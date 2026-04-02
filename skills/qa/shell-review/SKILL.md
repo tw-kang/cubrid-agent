@@ -7,6 +7,12 @@ description: Review CUBRID CTP shell testcase diffs and related shell helper/con
 
 Evaluate shell testcase diffs with CTP-specific rules, then produce a structured review report.
 
+## Quick Start (3 steps)
+
+1. Classify changed scripts as `test-entry` vs `helper` and note assumptions if ambiguous.
+2. Run core checks first: lifecycle, logic/readability, syntax, stability/orphan risk, and unstable-output handling.
+3. Report findings with severity (`blocker/major/minor/note`) using the output template.
+
 ## Skill-local reference usage
 
 - `@references/...` and `@examples/...` mean files bundled inside this skill directory.
@@ -69,46 +75,54 @@ This skill is optimized for practical CTP shell testcase review with clear scope
    - Must record outcome using `write_ok`/`write_nok` directly or via helper flow.
 
 6. **Validate CTP helper usage**
-   - Prefer `cubrid_createdb` over raw `cubrid createdb` for compatibility.
-   - For config mutation, use helper APIs (`change_db_parameter`, `change_broker_parameter`, `change_ha_parameter`) rather than ad-hoc edits.
-   - If comparing outputs, ensure normalization/filtering is present for unstable content (for example timestamps, PIDs, hostnames, ports, temp paths, and version-dependent strings). `format_csql_output`, `format_query_plan`, `format_path_output`, sorting, or targeted filtering are all valid approaches.
+    - Prefer `cubrid_createdb` over raw `cubrid createdb` for compatibility.
+    - For config mutation, use helper APIs (`change_db_parameter`, `change_broker_parameter`, `change_ha_parameter`) rather than ad-hoc edits.
+    - If comparing outputs, ensure normalization/filtering is present for unstable content (for example timestamps, PIDs, hostnames, ports, temp paths, and version-dependent strings). `format_csql_output`, `format_query_plan`, `format_path_output`, sorting, or targeted filtering are all valid approaches.
+    - See checklist **H) Unstable output control** for concrete pass/fail checks.
 
 7. **Logic correctness review**
-   - Verify command flow is clear and sequential (no race conditions).
-   - Check error handling: commands that may fail should have exit code checks.
-   - Validate variable initialization: all variables used should be defined before use.
-   - Ensure proper cleanup sequence: stop services before deleting databases, release resources in reverse order of allocation.
-   - Check for resource leaks: file descriptors, temporary files, database connections.
-   - Verify background processes (`&`) have corresponding `wait` calls to prevent orphans.
+    - Verify command flow is clear and sequential (no race conditions).
+    - Check error handling: commands that may fail should have exit code checks.
+    - Validate variable initialization: all variables used should be defined before use.
+    - Ensure proper cleanup sequence: stop services before deleting databases, release resources in reverse order of allocation.
+    - Check for resource leaks: file descriptors, temporary files, database connections.
+    - Verify background processes (`&`) have corresponding `wait` calls to prevent orphans.
 
-8. **Portability and bashism review**
-   - If a changed script declares `#!/bin/sh`, flag newly introduced bash-only syntax (`[[ ]]`, `source`, arrays, `<<<`, `function name {` etc.) unless the shebang is intentionally switched to `#!/bin/bash`.
-   - `#!/bin/bash` is acceptable when the script actually depends on bash features.
+8. **Readability and reviewability**
+   - For `test-entry` scripts, testcase logic must be readable enough that a human reviewer can follow intent and flow without reconstructing hidden steps.
+   - For `test-entry` scripts, immediately after shebang, require a short comment block summarizing the issue ID/context and testcase purpose.
+   - For `test-entry` scripts, if SQL/query steps are required for testcase understanding, keep them in the `.sh` script (inline SQL / heredoc) instead of splitting into separate query files.
+   - For `test-entry` scripts, if the same multi-step sequence is repeated, require function extraction and reuse to reduce duplication and review risk.
 
-9. **Syntax error detection**
-   - Check for missing spaces in `[ ]` tests: `[ "$var"="value" ]` should be `[ "$var" = "value" ]`.
-   - Verify variable expansions are quoted when single-argument/string semantics are required (for example `rm -- "$file"`, `[ "$value" = "x" ]`). Do not enforce blanket quoting when intentional word splitting/globbing is required and safe.
-   - Ensure command substitutions are quoted when used as single string/test operands.
-   - Check for balanced control structures: every `if` has `fi`, every `for` has `done`, every `while` has `done`.
-   - Validate here-documents have proper terminators.
-   - Check for array syntax in POSIX sh scripts (not supported).
-   - Verify `local` keyword is not used in `/bin/sh` scripts (not POSIX-compliant).
+9. **Portability and bashism review**
+    - If a changed script declares `#!/bin/sh`, flag newly introduced bash-only syntax (`[[ ]]`, `source`, arrays, `<<<`, `function name {` etc.) unless the shebang is intentionally switched to `#!/bin/bash`.
+    - `#!/bin/bash` is acceptable when the script actually depends on bash features.
 
-10. **Stability / hang risk review**
-   - Flag unbounded loops (`while true`, `until` without bounded break/timeout).
-   - Flag risky sleep usage (see sleep usage guidelines below).
-   - Prefer `xkill` for portable/process-name termination; flag raw `kill -9` only when it is broad, unguarded, or bypasses expected cleanup/retry flow.
+10. **Syntax error detection**
+    - Check for missing spaces in `[ ]` tests: `[ "$var"="value" ]` should be `[ "$var" = "value" ]`.
+    - Verify variable expansions are quoted when single-argument/string semantics are required (for example `rm -- "$file"`, `[ "$value" = "x" ]`). Do not enforce blanket quoting when intentional word splitting/globbing is required and safe.
+    - Ensure command substitutions are quoted when used as single string/test operands.
+    - Check for balanced control structures: every `if` has `fi`, every `for` has `done`, every `while` has `done`.
+    - Validate here-documents have proper terminators.
+    - Check for array syntax in POSIX sh scripts (not supported).
+    - Verify `local` keyword is not used in `/bin/sh` scripts (not POSIX-compliant).
 
-11. **Orphan process prevention review**
-    - Flag background processes (`cmd &`) without corresponding `wait $pid` or cleanup.
-    - Flag `nohup` usage that may intentionally orphan processes.
-    - Ensure `coproc` usages have proper cleanup.
-    - Verify process groups are properly terminated (prefer `xkill` or `pkill` with specific patterns).
-    - Check for subshells with process redirection `<(cmd)` that may leave processes running.
+11. **Stability / hang risk review**
+    - Flag unbounded loops (`while true`, `until` without bounded break/timeout).
+    - Flag risky sleep usage (see sleep usage guidelines below).
+    - Prefer `xkill` for portable/process-name termination; flag raw `kill -9` only when it is broad, unguarded, or bypasses expected cleanup/retry flow.
 
-12. **Generate structured report**
-    - Use severity levels: `blocker`, `major`, `minor`, `note`.
-    - Include file path, evidence snippet, and concrete fix suggestion.
+12. **Orphan process prevention review**
+     - Flag background processes (`cmd &`) without corresponding `wait $pid` or cleanup.
+     - Flag `nohup` usage that may intentionally orphan processes.
+     - Ensure `coproc` usages have proper cleanup.
+     - Verify process groups are properly terminated (prefer `xkill` or `pkill` with specific patterns).
+     - Check for subshells with process redirection `<(cmd)` that may leave processes running.
+
+13. **Generate structured report**
+     - Use severity levels: `blocker`, `major`, `minor`, `note`.
+     - Include file path, evidence snippet, and concrete fix suggestion.
+    - Avoid duplicating full rule text in findings; reference checklist section names (for example `E) Readability and structure`, `H) Unstable output control`) where relevant.
 
 ## Checklist
 
@@ -137,7 +151,13 @@ This skill is optimized for practical CTP shell testcase review with clear scope
 - [ ] No resource leaks (files, connections, temp data).
 - [ ] Background processes have proper `wait` or cleanup.
 
-### E) Syntax correctness
+### E) Readability and structure (entry scripts)
+- [ ] A brief issue/testcase summary comment block appears immediately after shebang.
+- [ ] Logic flow is readable to a human reviewer without hidden/external assumptions.
+- [ ] Query logic needed for review is kept inside the `.sh` testcase (inline SQL/heredoc), not split into separate query files.
+- [ ] Repeated multi-step sequences are extracted into reusable functions.
+
+### F) Syntax correctness
 - [ ] Proper spacing in `[ ]` tests.
 - [ ] Variable expansions are quoted when single-argument/string semantics are required.
 - [ ] Command substitutions are quoted when treated as single string/test operands.
@@ -145,12 +165,17 @@ This skill is optimized for practical CTP shell testcase review with clear scope
 - [ ] No arrays in `/bin/sh` scripts.
 - [ ] No `local` in `/bin/sh` scripts.
 
-### F) Portability and safety
+### G) Portability and safety
 - [ ] Shebang and syntax are consistent (`sh` vs `bash`).
 - [ ] No unintended bashisms under `#!/bin/sh`.
 - [ ] No unbounded loop / unsafe hard kill pattern.
 - [ ] No orphan process risks.
 - [ ] Sleep usage follows guidelines.
+
+### H) Unstable output control
+- [ ] Volatile fields (timestamp/PID/hostname/port/temp path/version strings) are normalized, filtered, or made deterministic before assertion.
+- [ ] Ordering-sensitive outputs are sorted or compared with stable criteria.
+- [ ] Comparison path clearly explains how non-deterministic output is handled.
 
 ## Failure conditions (raise issue)
 
@@ -170,12 +195,16 @@ This skill is optimized for practical CTP shell testcase review with clear scope
 - Sleep > 10 seconds without condition-based waiting.
 - Missing variable initialization causing undefined behavior.
 - Hardcoded absolute paths instead of using `$init_path` or relative paths.
+- Missing shebang-top summary comment block (issue context + testcase purpose).
+- Query logic moved to external query files in a `test-entry` script when in-script SQL is needed for testcase understanding/review.
+- Repeated multi-step sequences left duplicated in a `test-entry` script instead of functionized reuse.
 
 ### minor
 - Output/assertion path likely flaky due to missing normalization/filtering/sorting of volatile content.
 - Non-critical portability smells or maintainability concerns.
 - Sleep 3-10 seconds without justification comment.
 - Quoting/style inconsistency that does not currently affect pass/fail behavior.
+- Readability issue where human reviewers cannot quickly understand testcase intent/flow.
 
 ### note
 - Sleep 0-2 seconds (acceptable but should have justification).
