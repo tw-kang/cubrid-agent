@@ -35,7 +35,7 @@ Always use `cubrid_createdb` over raw `cubrid createdb`.
 | Function | Purpose |
 |----------|---------|
 | `write_ok` | Report test passed |
-| `write_nok [file\|message]` | Report test failed |
+| `write_nok [file or message]` | Report test failed |
 | `compare_result_between_files <answer> <result>` | Compare and auto-call write_ok/write_nok |
 | `make_answer_or_compare_result` | Create answer files or compare results |
 

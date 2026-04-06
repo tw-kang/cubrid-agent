@@ -91,8 +91,9 @@ CTP program code (`cubrid-testtools/CTP/shell/init_path/init.sh`, helpers, confi
 ### 7. Stability: loops, sleep, and orphan processes
 
 **Loops — no unbounded loops allowed:**
-- `while true`, `while :`, `until false` without a bounded exit mechanism are **blocker** severity. Always use bounded conditions like `while [ $count -lt $max ]`.
-- Even with `break` inside, `while true` is not acceptable — refactor to a bounded loop.
+- `while true`, `while :`, `until false` without any exit mechanism → **blocker**.
+- `while true` with bounded break/timeout counter inside → **major** (refactor to bounded condition like `while [ $count -lt $max ]`).
+- Preferred: always use bounded loop conditions directly.
 
 **Sleep guidelines:**
 
@@ -117,13 +118,14 @@ Use severity levels: `blocker`, `major`, `minor`, `note`. Include file path, evi
 ### blocker
 - Missing lifecycle contract (init.sh, init test, finish) in entry script
 - No result assertion path (write_ok/write_nok)
-- `while true` / `while :` / unbounded loop without bounded exit
+- `while true` / `while :` / unbounded loop without any exit mechanism
 - Orphan process risks (`&` without `wait`, `nohup` without justification)
 - Changed `#!/bin/sh` script introduces bash-only syntax without switching shebang
 - Critical syntax errors (unbalanced structures, missing quotes causing safety issues)
 - Query logic split into external files when it should be inline in entry script
 
 ### major
+- `while true` / `while :` with bounded break/timeout counter (refactor to bounded condition)
 - Raw `cubrid createdb` instead of `cubrid_createdb`
 - Hardcoded absolute paths
 - Sleep > 10 seconds without condition-based waiting

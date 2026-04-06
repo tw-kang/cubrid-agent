@@ -39,7 +39,7 @@
         "Identifies date format ('01/15/2024') as potentially locale-dependent",
         "Flags the direct diff comparison of full csql output as flaky",
         "Suggests using format_csql_output or filtering/normalizing volatile fields before comparison",
-        "Notes the contrast: grep-based index check (good) vs full diff comparison (fragile)",
+        "Notes that grep-based checks are more stable than full diff comparison",
         "Severity is at least minor for the flaky query output comparison"
       ]
     }
