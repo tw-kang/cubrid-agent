@@ -1,0 +1,91 @@
+diff --git a/cubrid-testcases-private-ex/shell/cbrd_25600_index_info/cases/cbrd_25600_index_info.sh b/cubrid-testcases-private-ex/shell/cbrd_25600_index_info/cases/cbrd_25600_index_info.sh
+new file mode 100755
+index 0000000..c9d0e1f
+--- /dev/null
++++ b/cubrid-testcases-private-ex/shell/cbrd_25600_index_info/cases/cbrd_25600_index_info.sh
+@@ -0,0 +1,85 @@
++#!/bin/sh
++# CBRD-25600: Verify index info display after multi-column index creation
++# Creates a table with multiple indexes and verifies show index output
++
++. $init_path/init.sh
++init test
++
++dbname="idxtest"
++cubrid_createdb $dbname
++
++cubrid server start $dbname || {
++    write_nok "Failed to start server"
++    cubrid deletedb $dbname
++    finish
++}
++
++# Create table with multiple columns and indexes
++csql -udba $dbname << 'SQLEOF'
++CREATE TABLE t_orders (
++    order_id INT PRIMARY KEY,
++    customer_name VARCHAR(100),
++    product_code VARCHAR(50),
++    order_date DATE,
++    amount NUMERIC(10,2),
++    status VARCHAR(20)
++);
++
++CREATE INDEX idx_customer ON t_orders (customer_name);
++CREATE INDEX idx_product_date ON t_orders (product_code, order_date);
++CREATE INDEX idx_status_amount ON t_orders (status, amount DESC);
++SQLEOF
++
++# Insert test data
++csql -udba $dbname << 'SQLEOF'
++INSERT INTO t_orders VALUES (1, 'Alice', 'PRD-001', DATE'2024-01-15', 150.00, 'shipped');
++INSERT INTO t_orders VALUES (2, 'Bob', 'PRD-002', DATE'2024-01-16', 200.50, 'pending');
++INSERT INTO t_orders VALUES (3, 'Charlie', 'PRD-001', DATE'2024-01-17', 75.25, 'shipped');
++SQLEOF
++
++# Verify indexes exist by checking show index output
++csql -udba $dbname -c "SHOW INDEX IN t_orders" > index_output.txt 2>&1
++
++# Check each expected index exists in output
++check_failed=0
++
++for idx_name in idx_customer idx_product_date idx_status_amount; do
++    if ! grep -q "$idx_name" index_output.txt; then
++        echo "Missing index: $idx_name"
++        check_failed=1
++    fi
++done
++
++if [ $check_failed -eq 1 ]; then
++    write_nok index_output.txt
++    cubrid server stop $dbname
++    cubrid deletedb $dbname
++    finish
++fi
++
++# Verify query plan uses indexes
++csql -udba $dbname -c "SELECT * FROM t_orders WHERE customer_name = 'Alice'" > query_result.txt 2>&1
++
++# Compare full query output with expected
++cat > expected_query.txt << 'EOF'
++=== <Result of SELECT Command in Line 1> ===
++
++    order_id  customer_name         product_code          order_date              amount  status
++============================================================================================================
++           1  'Alice'               'PRD-001'             01/15/2024          150.00  'shipped'
++
++1 row selected. (0.003 sec) Committed.
++EOF
++
++diff query_result.txt expected_query.txt > /dev/null 2>&1
++if [ $? -eq 0 ]; then
++    write_ok
++else
++    write_nok "Query output mismatch"
++fi
++
++# Cleanup
++cubrid server stop $dbname
++cubrid deletedb $dbname
++
++finish

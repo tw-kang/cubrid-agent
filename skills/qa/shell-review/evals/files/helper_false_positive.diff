@@ -1,0 +1,62 @@
+diff --git a/cubrid-testcases-private-ex/shell/cbrd_25400_ha_failover/cases/ha_monitor_util.sh b/cubrid-testcases-private-ex/shell/cbrd_25400_ha_failover/cases/ha_monitor_util.sh
+new file mode 100755
+index 0000000..d4e5f6a
+--- /dev/null
++++ b/cubrid-testcases-private-ex/shell/cbrd_25400_ha_failover/cases/ha_monitor_util.sh
+@@ -0,0 +1,62 @@
++#!/bin/sh
++# Helper: Monitor HA replication status and return lag info
++# Called by cbrd_25400_ha_failover.sh entry script
++# Usage: ha_monitor_util.sh <dbname> <max_wait_sec> <output_file>
++
++. $init_path/init.sh
++
++dbname=$1
++max_wait=$2
++output_file=$3
++
++if [ -z "$dbname" ] || [ -z "$max_wait" ] || [ -z "$output_file" ]; then
++    echo "Usage: $0 <dbname> <max_wait_sec> <output_file>"
++    exit 1
++fi
++
++# Validate max_wait is a number
++case "$max_wait" in
++    ''|*[!0-9]*) echo "Error: max_wait must be a positive integer"; exit 1 ;;
++esac
++
++waited=0
++repl_ok=0
++
++echo "=== HA Monitor Report ===" > "$output_file"
++echo "Database: $dbname" >> "$output_file"
++echo "Start: $(date '+%Y-%m-%d %H:%M:%S')" >> "$output_file"
++echo "" >> "$output_file"
++
++while [ $waited -lt $max_wait ]; do
++    status=$(cubrid heartbeat list 2>&1)
++
++    # Check if replication is caught up
++    lag=$(echo "$status" | grep "replication delay" | awk '{print $NF}')
++
++    if [ -n "$lag" ] && [ "$lag" = "0" ]; then
++        repl_ok=1
++        echo "Replication caught up at ${waited}s" >> "$output_file"
++        break
++    fi
++
++    echo "  [$waited s] lag=$lag" >> "$output_file"
++    sleep 2
++    waited=$((waited + 2))
++done
++
++echo "" >> "$output_file"
++echo "End: $(date '+%Y-%m-%d %H:%M:%S')" >> "$output_file"
++
++if [ $repl_ok -eq 1 ]; then
++    echo "Result: SYNCED" >> "$output_file"
++    exit 0
++else
++    echo "Result: TIMEOUT (waited ${waited}s, last lag=${lag})" >> "$output_file"
++    exit 1
++fi

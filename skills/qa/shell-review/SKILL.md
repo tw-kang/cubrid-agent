@@ -1,287 +1,159 @@
 ---
 name: shell-review
-description: Review CUBRID CTP shell testcase diffs and related shell helper/config/doc changes for path conventions, lifecycle correctness, helper usage, logic correctness, portability, hang risk, and syntax errors. Use this skill whenever a PR/commit touches cubrid-testcases-private-ex/shell, CTP/shell/init_path, CTP/conf/shell*.conf, or doc/shell_guide.md, or when asked whether a shell testcase follows CTP conventions.
+description: Review CUBRID CTP shell testcase diffs for path conventions, lifecycle correctness, CTP helper usage, logic correctness, readability, portability, syntax errors, stability (loops/sleep/orphans), and unstable output handling. Use this skill whenever a PR or commit touches cubrid-testcases-private-ex/shell, CTP/shell/init_path, CTP/conf/shell*.conf, or doc/shell_guide.md. Also use when asked whether a shell testcase follows CTP conventions, or when reviewing any shell test script related to CUBRID.
 ---
 
 # Shell Testcase Review (CTP)
 
-Evaluate shell testcase diffs with CTP-specific rules, then produce a structured review report.
+Evaluate shell testcase diffs against CTP-specific rules and produce a structured review report.
 
-## Quick Start (3 steps)
+## Quick Start
 
-1. Classify changed scripts as `test-entry` vs `helper` and note assumptions if ambiguous.
-2. Run core checks first: lifecycle, logic/readability, syntax, stability/orphan risk, and unstable-output handling.
-3. Report findings with severity (`blocker/major/minor/note`) using the output template.
+1. Classify changed scripts as `test-entry` vs `helper` — assume entry if ambiguous.
+2. Run checks: lifecycle → logic/readability → syntax/portability → stability/orphans → unstable output.
+3. Report findings with severity (`blocker/major/minor/note`) using the output template below.
 
-## Skill-local reference usage
+**Key rules at a glance:**
+- No absolute paths — use `$init_path`, relative paths, or `$TMPDIR`
+- No `while true` or unbounded loops — always use bounded conditions
+- No `sleep > 10s` without polling — use condition-based waiting
+- No orphan processes — every `&` needs `wait` or cleanup
+- No external query files in entry scripts — keep SQL inline
+- Shebang-top summary comment required for entry scripts
+- CTP helpers preferred (`cubrid_createdb`, `change_db_parameter`, `xkill`, etc.)
 
-- `@references/...` and `@examples/...` mean files bundled inside this skill directory.
-- Use these bundled files as quick guidance, and validate against repository files in changed diffs.
+## Skill-local references
 
-## Design intent
+- `@references/...` and `@examples/...` are files bundled inside this skill directory.
+- Use them as guidance; validate against actual repository files in the diff under review.
 
-This skill is optimized for practical CTP shell testcase review with clear scope boundaries, false-positive control, and actionable severity-based findings.
+## Important: CTP Code is Reference Only
 
-## Important Note on CTP Code
-
-**CTP program code is for REVIEW REFERENCE ONLY.** The skill uses CTP code (`cubrid-testtools/CTP/shell/init_path/init.sh`, helper functions, configuration patterns) to understand expected testcase behavior and validation rules. **Do NOT suggest modifications to CTP code** - only use this knowledge to evaluate testcase correctness. CTP modifications are explicitly out of scope for this skill.
+CTP program code (`cubrid-testtools/CTP/shell/init_path/init.sh`, helpers, configs) is used to understand expected testcase behavior. **Do NOT suggest modifications to CTP code** — only evaluate testcase correctness against it.
 
 ## Scope
 
-### In scope
-- Changed shell testcase files under `cubrid-testcases-private-ex/shell/**/cases/*.sh`.
-- Related helper/config/docs diffs only when they affect testcase behavior:
-  - `cubrid-testtools/CTP/shell/init_path/*.sh` (for reference only)
-  - `cubrid-testtools/CTP/conf/shell*.conf` (for reference only)
-  - `cubrid-testtools/doc/shell_guide.md` (for reference only)
+**In scope:** Changed shell testcase files under `cubrid-testcases-private-ex/shell/**/cases/*.sh` and related helper/config/doc diffs that affect testcase behavior.
 
-### Out of scope
-- CTP program code modifications.
-- SQL/MEDIUM/JDBC/CCI/Isolation/HA logic changes that are not part of shell testcase review.
-- CI workflow design or auto-fixing code.
-- Broad shell style advice not tied to CTP conventions.
+**Out of scope:** CTP program modifications, SQL/MEDIUM/JDBC/CCI/HA logic changes outside shell tests, CI workflow design, broad shell style advice not tied to CTP.
 
-## Inputs
+## Review Procedure
 
-- PR or commit diff.
-- File list of changed paths.
-- Optional: baseline scripts in nearby directories for pattern comparison.
+### 1. Filter and classify
 
-## Review procedure
+- Target: `cubrid-testcases-private-ex/shell/**/cases/*.sh`
+- **test-entry**: sources `. $init_path/init.sh` and owns lifecycle (init test → write_ok/write_nok → finish)
+- **helper**: invoked by another script, does NOT own lifecycle. Do not require `init test`, `write_ok`/`write_nok`, or `finish` from helpers.
+- If ambiguous, review as entry and note the assumption.
 
-1. **Filter changed files**
-   - Primary target: `cubrid-testcases-private-ex/shell/**/cases/*.sh`.
-   - Keep non-case scripts only if they materially change testcase semantics.
+### 2. Path, naming, and absolute paths
 
-2. **Classify each changed `.sh` file**
-   - `test-entry`: script that sources `. $init_path/init.sh` and owns testcase lifecycle/result reporting.
-   - `helper`: script invoked by another case script or used only for parsing/transformation; do not require `init test`, `write_ok`/`write_nok`, `finish`, or entry-name matching.
-   - If classification is ambiguous, review as `test-entry` first and explicitly record that assumption in the report.
+- Entry script path pattern: `.../<test_name>/cases/<test_name>.sh`
+- No hardcoded absolute paths (`/home/...`, `/opt/...`, `/tmp/...`). Use `$init_path`, relative paths, or `$TMPDIR`.
+- Helpers are exempt from naming-match checks.
 
-3. **Validate path and naming (entry scripts)**
-   - Preferred pattern: `.../<test_name>/cases/<test_name>.sh`.
-   - Allow nested scenario variants where immediate parent and file stem still align.
-   - If file is clearly a helper, do not raise naming mismatch as a hard failure.
+### 3. Lifecycle contract (entry scripts only)
 
-4. **Validate no absolute paths**
-    - Entry scripts must use `$init_path` to reference CTP resources.
-    - No hardcoded absolute paths like `/home/...`, `/opt/...`, `/tmp/...`.
-    - Temporary files should use relative paths or `$TMPDIR`.
+- Must source init: `. $init_path/init.sh` (equivalent forms allowed)
+- Must call `init test` before core logic
+- Must record outcome via `write_ok`/`write_nok`
+- Must end with cleanup path reaching `finish`
 
-5. **Validate lifecycle contract (entry scripts)**
-   - Must source init: `. $init_path/init.sh` (or equivalent forms like `. "$init_path/init.sh"` or `source "$init_path/init.sh"` in bash).
-   - Must call `init test` before core test logic.
-   - Must complete with cleanup path ending in `finish`.
-   - Must record outcome using `write_ok`/`write_nok` directly or via helper flow.
+### 4. CTP helpers and logic correctness
 
-6. **Validate CTP helper usage**
-    - Prefer `cubrid_createdb` over raw `cubrid createdb` for compatibility.
-    - For config mutation, use helper APIs (`change_db_parameter`, `change_broker_parameter`, `change_ha_parameter`) rather than ad-hoc edits.
-    - If comparing outputs, ensure normalization/filtering is present for unstable content (for example timestamps, PIDs, hostnames, ports, temp paths, and version-dependent strings). `format_csql_output`, `format_query_plan`, `format_path_output`, sorting, or targeted filtering are all valid approaches.
-    - See checklist **H) Unstable output control** for concrete pass/fail checks.
+**CTP helpers:**
+- Prefer `cubrid_createdb` over raw `cubrid createdb`
+- Use `change_db_parameter`, `change_broker_parameter`, `change_ha_parameter` for config changes
+- Normalize unstable output with `format_csql_output`, `format_query_plan`, `format_path_output`, sorting, or filtering
 
-7. **Logic correctness review**
-    - Verify command flow is clear and sequential (no race conditions).
-    - Check error handling: commands that may fail should have exit code checks.
-    - Validate variable initialization: all variables used should be defined before use.
-    - Ensure proper cleanup sequence: stop services before deleting databases, release resources in reverse order of allocation.
-    - Check for resource leaks: file descriptors, temporary files, database connections.
-    - Verify background processes (`&`) have corresponding `wait` calls to prevent orphans.
+**Logic correctness:**
+- Command flow must be clear and sequential (no race conditions)
+- Commands that may fail must have exit code checks
+- Variables must be initialized before use
+- Cleanup: stop services before deleting databases, release resources in reverse order
+- Check for resource leaks: temp files, file descriptors, database connections
+- Background processes (`&`) must have corresponding `wait` or cleanup
 
-8. **Readability and reviewability**
-   - For `test-entry` scripts, testcase logic must be readable enough that a human reviewer can follow intent and flow without reconstructing hidden steps.
-   - For `test-entry` scripts, immediately after shebang, require a short comment block summarizing the issue ID/context and testcase purpose.
-   - For `test-entry` scripts, if SQL/query steps are required for testcase understanding, keep them in the `.sh` script (inline SQL / heredoc) instead of splitting into separate query files.
-   - For `test-entry` scripts, if the same multi-step sequence is repeated, require function extraction and reuse to reduce duplication and review risk.
+### 5. Readability and structure (entry scripts)
 
-9. **Portability and bashism review**
-    - If a changed script declares `#!/bin/sh`, flag newly introduced bash-only syntax (`[[ ]]`, `source`, arrays, `<<<`, `function name {` etc.) unless the shebang is intentionally switched to `#!/bin/bash`.
-    - `#!/bin/bash` is acceptable when the script actually depends on bash features.
+- **Shebang-top summary required:** immediately after `#!/bin/sh`, add a comment block with issue ID/context and testcase purpose. This is essential for human reviewers to understand intent without reading the entire script.
+- **Inline SQL required:** when query steps are needed for testcase understanding, keep them in the `.sh` file (heredoc / inline csql) instead of splitting into separate query files. Reviewers should not need to cross-reference external files to follow the test logic.
+- **Function extraction:** if the same multi-step sequence repeats, extract it into a function. Duplicated blocks increase review risk and maintenance burden.
+- Logic flow must be readable to a human reviewer without reconstructing hidden steps.
 
-10. **Syntax error detection**
-    - Check for missing spaces in `[ ]` tests: `[ "$var"="value" ]` should be `[ "$var" = "value" ]`.
-    - Verify variable expansions are quoted when single-argument/string semantics are required (for example `rm -- "$file"`, `[ "$value" = "x" ]`). Do not enforce blanket quoting when intentional word splitting/globbing is required and safe.
-    - Ensure command substitutions are quoted when used as single string/test operands.
-    - Check for balanced control structures: every `if` has `fi`, every `for` has `done`, every `while` has `done`.
-    - Validate here-documents have proper terminators.
-    - Check for array syntax in POSIX sh scripts (not supported).
-    - Verify `local` keyword is not used in `/bin/sh` scripts (not POSIX-compliant).
+### 6. Syntax and portability
 
-11. **Stability / hang risk review**
-    - Flag unbounded loops (`while true`, `until` without bounded break/timeout).
-    - Flag risky sleep usage (see sleep usage guidelines below).
-    - Prefer `xkill` for portable/process-name termination; flag raw `kill -9` only when it is broad, unguarded, or bypasses expected cleanup/retry flow.
+- If shebang is `#!/bin/sh`, flag bash-only syntax (`[[ ]]`, `source`, arrays, `<<<`, `function name {`, etc.)
+- `#!/bin/bash` is fine when bash features are actually needed
+- Check: spacing in `[ ]` tests, quoted variables for string semantics, balanced control structures, valid here-documents
+- No `local` keyword or arrays in `/bin/sh` scripts
 
-12. **Orphan process prevention review**
-     - Flag background processes (`cmd &`) without corresponding `wait $pid` or cleanup.
-     - Flag `nohup` usage that may intentionally orphan processes.
-     - Ensure `coproc` usages have proper cleanup.
-     - Verify process groups are properly terminated (prefer `xkill` or `pkill` with specific patterns).
-     - Check for subshells with process redirection `<(cmd)` that may leave processes running.
+### 7. Stability: loops, sleep, and orphan processes
 
-13. **Generate structured report**
-     - Use severity levels: `blocker`, `major`, `minor`, `note`.
-     - Include file path, evidence snippet, and concrete fix suggestion.
-    - Avoid duplicating full rule text in findings; reference checklist section names (for example `E) Readability and structure`, `H) Unstable output control`) where relevant.
+**Loops — no unbounded loops allowed:**
+- `while true`, `while :`, `until false` without a bounded exit mechanism are **blocker** severity. Always use bounded conditions like `while [ $count -lt $max ]`.
+- Even with `break` inside, `while true` is not acceptable — refactor to a bounded loop.
 
-## Checklist
-
-### A) Path and naming
-- [ ] Entry script is in `cases/`.
-- [ ] Entry script name matches scenario naming convention.
-- [ ] Helper scripts are not misclassified as entry scripts.
-- [ ] No hardcoded absolute paths (use `$init_path`, relative paths, or `$TMPDIR`).
-
-### B) Lifecycle (entry scripts)
-- [ ] `init.sh` is sourced via `$init_path` (equivalent valid sourcing forms for the active shell are allowed).
-- [ ] `init test` appears before main operations.
-- [ ] `write_ok`/`write_nok` path exists.
-- [ ] `finish` is present in terminal cleanup flow.
-
-### C) CTP helper APIs
-- [ ] `cubrid_createdb` used when creating DB.
-- [ ] Parameter changes use helper functions.
-- [ ] Output comparison normalizes unstable content when needed.
-
-### D) Logic correctness
-- [ ] Command flow is clear and sequential.
-- [ ] Error handling exists for commands that may fail.
-- [ ] Variables are initialized before use.
-- [ ] Cleanup sequence is proper (stop before delete).
-- [ ] No resource leaks (files, connections, temp data).
-- [ ] Background processes have proper `wait` or cleanup.
-
-### E) Readability and structure (entry scripts)
-- [ ] A brief issue/testcase summary comment block appears immediately after shebang.
-- [ ] Logic flow is readable to a human reviewer without hidden/external assumptions.
-- [ ] Query logic needed for review is kept inside the `.sh` testcase (inline SQL/heredoc), not split into separate query files.
-- [ ] Repeated multi-step sequences are extracted into reusable functions.
-
-### F) Syntax correctness
-- [ ] Proper spacing in `[ ]` tests.
-- [ ] Variable expansions are quoted when single-argument/string semantics are required.
-- [ ] Command substitutions are quoted when treated as single string/test operands.
-- [ ] Control structures are balanced.
-- [ ] No arrays in `/bin/sh` scripts.
-- [ ] No `local` in `/bin/sh` scripts.
-
-### G) Portability and safety
-- [ ] Shebang and syntax are consistent (`sh` vs `bash`).
-- [ ] No unintended bashisms under `#!/bin/sh`.
-- [ ] No unbounded loop / unsafe hard kill pattern.
-- [ ] No orphan process risks.
-- [ ] Sleep usage follows guidelines.
-
-### H) Unstable output control
-- [ ] Volatile fields (timestamp/PID/hostname/port/temp path/version strings) are normalized, filtered, or made deterministic before assertion.
-- [ ] Ordering-sensitive outputs are sorted or compared with stable criteria.
-- [ ] Comparison path clearly explains how non-deterministic output is handled.
-
-## Failure conditions (raise issue)
-
-### blocker
-- Missing init/lifecycle contract (`init.sh`, `init test`, `finish`) in entry script.
-- No result assertion path (`write_ok`/`write_nok` or equivalent helper flow).
-- Changed `#!/bin/sh` entry script introduces bash-only syntax without switching to `#!/bin/bash` or otherwise making the requirement explicit.
-- Critical syntax errors (unbalanced structures, missing quotes causing safety issues).
-- Orphan process risks without cleanup (`&` without `wait`, `nohup` without justification).
-
-### major
-- Raw `cubrid createdb` used where `cubrid_createdb` should be used.
-- Unbounded loop or unguarded/overly broad process-kill pattern (`kill -9`, `pkill`, or grep/xargs kill pipeline).
-- Naming/path mismatch for entry script that breaks scenario convention.
-- Missing error handling for commands that may fail (no exit code checks).
-- Resource leaks (unclosed files, unremoved temp data, unreleased database resources).
-- Sleep > 10 seconds without condition-based waiting.
-- Missing variable initialization causing undefined behavior.
-- Hardcoded absolute paths instead of using `$init_path` or relative paths.
-- Missing shebang-top summary comment block (issue context + testcase purpose).
-- Query logic moved to external query files in a `test-entry` script when in-script SQL is needed for testcase understanding/review.
-- Repeated multi-step sequences left duplicated in a `test-entry` script instead of functionized reuse.
-
-### minor
-- Output/assertion path likely flaky due to missing normalization/filtering/sorting of volatile content.
-- Non-critical portability smells or maintainability concerns.
-- Sleep 3-10 seconds without justification comment.
-- Quoting/style inconsistency that does not currently affect pass/fail behavior.
-- Readability issue where human reviewers cannot quickly understand testcase intent/flow.
-
-### note
-- Sleep 0-2 seconds (acceptable but should have justification).
-- Style suggestions not affecting functionality.
-- Documentation comments could be improved.
-
-## Sleep usage guidelines
+**Sleep guidelines:**
 
 | Duration | Severity | Requirement |
 |----------|----------|-------------|
-| 0-2 sec | Note | Acceptable for file system sync; should have brief comment |
-| 3-10 sec | Minor | Must have comment explaining need |
-| >10 sec | Major | Must use condition-based waiting (polling loop) |
+| 0-2 sec | note | Acceptable; add brief comment |
+| 3-10 sec | minor | Must have comment explaining need |
+| >10 sec | major | Must use condition-based waiting (polling) |
 
-### Good pattern: Justified short sleep
+**Orphan processes:**
+- `cmd &` without `wait $pid` or cleanup → blocker
+- `nohup` without justification → flag
+- Prefer `xkill` over raw `kill -9` for process termination
+- Verify process groups are properly cleaned up
 
-```bash
-# Wait for broker to release port (typically <2s)
-sleep 2
-```
+### 8. Generate report
 
-### Good pattern: Polling instead of sleep
+Use severity levels: `blocker`, `major`, `minor`, `note`. Include file path, evidence snippet, and concrete fix suggestion. Reference checklist sections where relevant.
 
-```bash
-# GOOD: Poll for condition instead of fixed long sleep
-max_wait=30
-waited=0
-while [ $waited -lt $max_wait ]; do
-    if cubrid broker status | grep -q "ACTIVE"; then
-        break
-    fi
-    sleep 1
-    waited=$((waited + 1))
-done
+## Failure Conditions
 
-if [ $waited -ge $max_wait ]; then
-    write_nok "Timeout waiting for broker"
-fi
-```
+### blocker
+- Missing lifecycle contract (init.sh, init test, finish) in entry script
+- No result assertion path (write_ok/write_nok)
+- `while true` / `while :` / unbounded loop without bounded exit
+- Orphan process risks (`&` without `wait`, `nohup` without justification)
+- Changed `#!/bin/sh` script introduces bash-only syntax without switching shebang
+- Critical syntax errors (unbalanced structures, missing quotes causing safety issues)
+- Query logic split into external files when it should be inline in entry script
 
-### Bad pattern: Arbitrary long sleep
+### major
+- Raw `cubrid createdb` instead of `cubrid_createdb`
+- Hardcoded absolute paths
+- Sleep > 10 seconds without condition-based waiting
+- Unguarded broad process-kill pattern (`kill -9`, `pkill` pipeline)
+- Entry script naming/path mismatch
+- Missing error handling for commands that may fail
+- Missing shebang-top summary comment (issue context + testcase purpose)
+- Repeated multi-step sequences not extracted into functions
+- Missing variable initialization causing undefined behavior
 
-See `@examples/bad_patterns.sh` section "PATTERN 2: Unjustified Long Sleep" for examples.
+### minor
+- Flaky output from missing normalization/filtering of volatile content (PID, timestamp, hostname, port, temp paths, version strings)
+- Non-critical portability concerns
+- Sleep 3-10 seconds without justification
+- Quoting inconsistency not currently affecting behavior
+- Readability issue where intent/flow is unclear
 
-## Well-written testcase examples
+### note
+- Sleep 0-2 seconds (acceptable with comment)
+- Style suggestions not affecting functionality
+- Documentation improvements
 
-Complete working examples are provided in the `examples/` directory:
+## False-Positive Policy
 
-- `@examples/good_entry.sh` - Basic well-formed entry script with proper lifecycle
-- `@examples/good_helper.sh` - Acceptable helper script (non-entry)
-- `@examples/bad_patterns.sh` - Common anti-patterns with GOOD/BAD comparisons
+- Do not fail helper scripts with entry-script-only checks (lifecycle, naming).
+- Do not flag `#!/bin/bash` as error unless the script claims `/bin/sh` compatibility.
+- If a risky pattern is intentionally justified (commented guard, known test intent), downgrade severity.
+- CTP helpers are preferred but their absence in legacy code is not a blocker unless the change introduces new issues.
 
-### Quick reference
-
-**Good entry script characteristics:**
-- Proper lifecycle: `. $init_path/init.sh` → `init test` → test logic → `finish`
-- Uses CTP helpers: `cubrid_createdb`, not raw `cubrid createdb`
-- Error handling: checks exit codes before `write_ok`
-- Cleanup: stop services before deleting databases
-- Orphan prevention: `wait $pid` for background processes
-
-**Good helper script characteristics:**
-- Does NOT call `init test`
-- Does NOT call `write_ok`/`write_nok`
-- Does NOT call `finish`
-- Caller (entry script) handles lifecycle
-
-## False-positive policy
-
-- Do not fail helper scripts in `cases/` with entry-script-only checks.
-- Do not flag `#!/bin/bash` itself as an error unless the script claims `/bin/sh` compatibility.
-- If a risky pattern is intentionally justified (commented guard, bounded retry, known test intent), downgrade severity and explain why.
-- CTP helper functions (`xkill`, `cubrid_createdb`, `format_csql_output`, etc.) are preferred but their absence in legacy code is not a blocker unless the change introduces new issues.
-
-## Output format
-
-Use this exact structure:
+## Output Format
 
 ```markdown
 # Shell Testcase Review Report
@@ -304,23 +176,19 @@ Use this exact structure:
 - <flakiness/hang/portability notes if any>
 ```
 
+## Well-Written Testcase Examples
+
+See `@examples/` directory for working examples:
+- `@examples/good_entry.sh` — proper lifecycle, CTP helpers, error handling, cleanup ordering
+- `@examples/good_helper.sh` — helper pattern: no lifecycle ownership, exit codes for caller
+- `@examples/bad_patterns.sh` — anti-patterns with GOOD/BAD comparisons
+
 ## References
 
-### Documentation
-- `cubrid-testtools/doc/shell_guide.md` - Shell testing guide and conventions.
-- `@references/shell_guide_excerpt.md` - Key points from shell guide (quick reference).
-- `cubrid-testtools/CTP/AGENTS.md` - CTP-wide conventions.
-- `cubrid-testtools/CTP/shell/src/AGENTS.md` - Shell orchestration context.
+- `cubrid-testtools/doc/shell_guide.md` — Shell testing conventions
+- `@references/shell_guide_excerpt.md` — Quick reference from shell guide
+- `@references/init_sh_helpers.md` — CTP helper functions reference
+- `cubrid-testtools/CTP/shell/init_path/init.sh` — CTP helpers (reference only)
+- `cubrid-testcases-private-ex/shell` — Testcase repository
 
-### CTP Helper Functions (Reference Only)
-- `cubrid-testtools/CTP/shell/init_path/init.sh` - CTP helper functions and lifecycle.
-- `@references/init_sh_helpers.md` - Quick reference for CTP helpers.
-
-### Testcase Repository
-- `cubrid-testcases-private-ex/shell` - Testcase repository.
-- `@examples/` - Working example files:
-  - `good_entry.sh` - Well-formed entry script
-  - `good_helper.sh` - Acceptable helper script  
-  - `bad_patterns.sh` - Anti-patterns with corrections
-
-**Note on paths:** All paths in this skill are relative to the repository root. When reviewing, adapt to your local checkout structure. The `init_path` environment variable typically points to `cubrid-testtools/CTP/shell/init_path`.
+**Note:** All paths are relative to repository root. `init_path` typically points to `cubrid-testtools/CTP/shell/init_path`.

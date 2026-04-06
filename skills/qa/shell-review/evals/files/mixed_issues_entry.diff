@@ -1,0 +1,70 @@
+diff --git a/cubrid-testcases-private-ex/shell/cbrd_25301_online_backup/cases/cbrd_25301_online_backup.sh b/cubrid-testcases-private-ex/shell/cbrd_25301_online_backup/cases/cbrd_25301_online_backup.sh
+new file mode 100755
+index 0000000..a1b2c3d
+--- /dev/null
++++ b/cubrid-testcases-private-ex/shell/cbrd_25301_online_backup/cases/cbrd_25301_online_backup.sh
+@@ -0,0 +1,68 @@
++#!/bin/sh
++
++. $init_path/init.sh
++init test
++
++dbname="backuptest"
++
++# Create database
++cubrid createdb $dbname en_US
++
++cubrid server start $dbname
++
++# Insert test data
++csql -udba $dbname -c "CREATE TABLE t1 (id INT AUTO_INCREMENT PRIMARY KEY, val VARCHAR(100))"
++
++i=0
++while true; do
++    csql -udba $dbname -c "INSERT INTO t1 (val) VALUES ('data_$i')"
++    i=$((i + 1))
++    if [ $i -ge 100 ]; then
++        break
++    fi
++done
++
++# Start online backup in background
++cubrid backupdb -C -D /home/user/backup $dbname &
++backup_pid=$!
++
++# Wait for backup to complete
++sleep 60
++
++# Check backup result
++if [ -f /home/user/backup/${dbname}_bk0v000 ]; then
++    echo "Backup file exists"
++else
++    write_nok "Backup file not found"
++    cubrid server stop $dbname
++    cubrid deletedb $dbname
++    finish
++fi
++
++# Verify backup by restoredb
++cubrid restoredb -B /home/user/backup $dbname
++
++# Compare data count
++result=$(csql -udba $dbname -c "SELECT count(*) FROM t1" 2>&1)
++
++expected_count=100
++actual_count=$(echo $result | grep -o '[0-9]\+' | tail -1)
++
++if [ "$actual_count" = "$expected_count" ]; then
++    write_ok
++else
++    write_nok "Expected $expected_count rows, got $actual_count"
++fi
++
++# Cleanup
++cubrid server stop $dbname
++cubrid deletedb $dbname
++
++# Clean backup files
++rm -rf /home/user/backup/${dbname}*
++
++finish
