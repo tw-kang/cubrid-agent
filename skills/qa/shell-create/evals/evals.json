@@ -1,0 +1,23 @@
+{
+  "skill_name": "shell-create",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "CBRD-27100 이슈에 대한 shell tc를 작성해줘. cubrid checkdb 유틸리티가 standalone 모드에서 정상 동작하는지 확인하는 테스트야. 2026년 상반기 이슈 수정건이야.",
+      "expected_output": "shell/_06_issues/_26_1h/cbrd_27100/cases/cbrd_27100.sh 경로에 lifecycle contract를 준수하는 완전한 entry script",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "create draft shell tc for CBRD-28050. 이건 새 기능이야 — release code는 _40_master이고, online index rebuild 기능을 테스트하는 거야. 인덱스 리빌드 중 DML이 정상 동작하는지 확인해야 해.",
+      "expected_output": "shell/_40_master/cbrd_28050_online_index_rebuild/cases/cbrd_28050_online_index_rebuild.sh 경로에 인덱스 리빌드와 동시 DML을 테스트하는 entry script (백그라운드 프로세스 추적 포함)",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "shell tc 초안 만들어줘. CBRD-27500 이슈로, broker 파라미터 MAX_NUM_APPL_SERVER를 변경한 후 broker restart 없이 동적으로 반영되는지 확인하는 테스트. 2026년 1h 이슈야.",
+      "expected_output": "shell/_06_issues/_26_1h/cbrd_27500/cases/cbrd_27500.sh 경로에 change_broker_parameter를 사용하고 broker status로 동적 반영을 확인하는 entry script",
+      "files": []
+    }
+  ]
+}
