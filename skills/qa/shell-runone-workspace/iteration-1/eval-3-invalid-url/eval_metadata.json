@@ -1,0 +1,22 @@
+{
+  "eval_id": 3,
+  "eval_name": "invalid-url",
+  "prompt": "bug_cubrid2125 테스트 실행해줘. 빌드 URL은 http://invalid-url-that-does-not-exist.com/fake_build.sh 야",
+  "assertions": [
+    {
+      "id": "detect-install-failure",
+      "text": "잘못된 URL로 인한 설치 실패를 감지하고 사용자에게 명확히 알린다",
+      "type": "qualitative"
+    },
+    {
+      "id": "no-test-execution",
+      "text": "설치 실패 후 테스트를 실행하지 않고 중단한다",
+      "type": "qualitative"
+    },
+    {
+      "id": "request-correct-url",
+      "text": "올바른 빌드 파일 링크를 다시 제시하라는 안내 메시지를 출력한다",
+      "type": "qualitative"
+    }
+  ]
+}

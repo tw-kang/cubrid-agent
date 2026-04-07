@@ -1,0 +1,1557 @@
+Split: 12 train, 8 test (holdout=0.4)
+
+============================================================
+Iteration 1/5
+Description: Use this skill when the user wants to run, execute, or test a single CTP shell testcase (.sh) and see the result. Triggers on requests like "이 케이스 수행해줘", "run this shell tc", "테스트 실행해봐", "이 쉘 테스트 돌려봐", "execute shell testcase", or any request to run a specific .sh test file under cubrid-testcases. After execution, it reports pass/fail and analyzes failures. Also use when the user points to a shell test script and asks to check if it works, verify it passes, or debug why it fails.
+============================================================
+Train: 18/36 correct, precision=100% recall=0% accuracy=50% (41.9s)
+  [FAIL] rate=0/3 expected=True: 방금 만든 cbrd_27500.sh 테스트가 제대로 동작하는지 실행해서 확인해줘
+  [FAIL] rate=0/3 expected=True: cbrd_25301 테스트가 자꾸 실패하는데 원인 좀 분석해줘. 빌드 http://192.168.1.91:8
+  [FAIL] rate=0/3 expected=True: 이 쉘 테스트가 패스하는지 확인해줘 - shell/_06_issues/_10_1h/bug_1562/cases
+  [FAIL] rate=0/3 expected=True: run this shell tc: cbrd_27000. build url http://192.168.1.91
+  [FAIL] rate=0/3 expected=True: cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_253
+  [FAIL] rate=0/3 expected=True: bug_2733 shell tc 돌려봐
+  [PASS] rate=0/3 expected=False: shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh 이 테스트
+  [PASS] rate=0/3 expected=False: daily_regression_test_excluded_list_linux.conf에 cbrd_25301을 
+  [PASS] rate=0/3 expected=False: shell tc regression 전체를 ctp.sh로 돌리고 싶은데 어떻게 해야해?
+  [PASS] rate=0/3 expected=False: CBRD-25301 이슈에 대한 shell tc를 새로 만들어줘. backupdb 관련 테스트야
+  [PASS] rate=0/3 expected=False: cbrd_25301.sh 스크립트에서 cubrid_createdb 대신 cubrid createdb를 쓰고 
+  [PASS] rate=0/3 expected=False: cubrid backupdb -S testdb 명령어가 에러나는데 뭐가 문제인지 봐줘
+Test : 13/24 correct, precision=100% recall=8% accuracy=54% (0.0s)
+  [FAIL] rate=0/3 expected=True: execute shell testcase bug_cubrid2125 and tell me the result
+  [FAIL] rate=0/3 expected=True: shell/_01_utility/_03_start_server/itrack_10001 이 테스트 한번 돌려보
+  [FAIL] rate=0/3 expected=True: cbrd_22586 테스트 실행해봐. 빌드는 http://192.168.1.91:8080/REPO_ROOT/
+  [FAIL] rate=1/3 expected=True: shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupd
+  [PASS] rate=0/3 expected=False: CTP shell.conf 설정 파일 어떻게 수정해야 하는지 알려줘. scenario 경로를 바꾸고 싶어
+  [PASS] rate=0/3 expected=False: SQL tc 하나 돌려봐 - sql/_04_operator_function/_01_arithmetic/cas
+  [PASS] rate=0/3 expected=False: cubrid-testcases-private-ex 레포에서 backupdb 관련 shell tc가 어디에 있
+  [PASS] rate=0/3 expected=False: init.sh에 있는 write_ok 함수가 어떻게 동작하는지 설명해줘
+
+Improving description...
+Proposed (24.1s): Invoke when the user wants to execute a single CTP shell testcase and see whether it passes or fails. Key signals: a CBRD issue number or .sh file path combined with run/execute intent ("돌려봐", "수행해줘", "실행해봐", "run", "shell tc"), or a build URL provided alongside a test name. Also use when the user asks to verify a specific shell test works, check if it passes, or diagnose why a particular shell tc keeps failing. Does NOT apply to: creating or editing test scripts, running full regression suites, reviewing code, or general CUBRID debugging unrelated to a specific testcase run.
+
+============================================================
+Iteration 2/5
+Description: Invoke when the user wants to execute a single CTP shell testcase and see whether it passes or fails. Key signals: a CBRD issue number or .sh file path combined with run/execute intent ("돌려봐", "수행해줘", "실행해봐", "run", "shell tc"), or a build URL provided alongside a test name. Also use when the user asks to verify a specific shell test works, check if it passes, or diagnose why a particular shell tc keeps failing. Does NOT apply to: creating or editing test scripts, running full regression suites, reviewing code, or general CUBRID debugging unrelated to a specific testcase run.
+============================================================
+Train: 19/36 correct, precision=100% recall=6% accuracy=53% (38.2s)
+  [FAIL] rate=0/3 expected=True: 방금 만든 cbrd_27500.sh 테스트가 제대로 동작하는지 실행해서 확인해줘
+  [FAIL] rate=1/3 expected=True: 이 쉘 테스트가 패스하는지 확인해줘 - shell/_06_issues/_10_1h/bug_1562/cases
+  [FAIL] rate=0/3 expected=True: cbrd_25301 테스트가 자꾸 실패하는데 원인 좀 분석해줘. 빌드 http://192.168.1.91:8
+  [FAIL] rate=0/3 expected=True: run this shell tc: cbrd_27000. build url http://192.168.1.91
+  [FAIL] rate=0/3 expected=True: bug_2733 shell tc 돌려봐
+  [FAIL] rate=0/3 expected=True: cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_253
+  [PASS] rate=0/3 expected=False: shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh 이 테스트
+  [PASS] rate=0/3 expected=False: daily_regression_test_excluded_list_linux.conf에 cbrd_25301을 
+  [PASS] rate=0/3 expected=False: CBRD-25301 이슈에 대한 shell tc를 새로 만들어줘. backupdb 관련 테스트야
+  [PASS] rate=0/3 expected=False: shell tc regression 전체를 ctp.sh로 돌리고 싶은데 어떻게 해야해?
+  [PASS] rate=0/3 expected=False: cbrd_25301.sh 스크립트에서 cubrid_createdb 대신 cubrid createdb를 쓰고 
+  [PASS] rate=0/3 expected=False: cubrid backupdb -S testdb 명령어가 에러나는데 뭐가 문제인지 봐줘
+Test : 13/24 correct, precision=100% recall=8% accuracy=54% (0.0s)
+  [FAIL] rate=0/3 expected=True: execute shell testcase bug_cubrid2125 and tell me the result
+  [FAIL] rate=0/3 expected=True: shell/_01_utility/_03_start_server/itrack_10001 이 테스트 한번 돌려보
+  [PASS] rate=0/3 expected=False: CTP shell.conf 설정 파일 어떻게 수정해야 하는지 알려줘. scenario 경로를 바꾸고 싶어
+  [FAIL] rate=1/3 expected=True: shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupd
+  [FAIL] rate=0/3 expected=True: cbrd_22586 테스트 실행해봐. 빌드는 http://192.168.1.91:8080/REPO_ROOT/
+  [PASS] rate=0/3 expected=False: cubrid-testcases-private-ex 레포에서 backupdb 관련 shell tc가 어디에 있
+  [PASS] rate=0/3 expected=False: SQL tc 하나 돌려봐 - sql/_04_operator_function/_01_arithmetic/cas
+  [PASS] rate=0/3 expected=False: init.sh에 있는 write_ok 함수가 어떻게 동작하는지 설명해줘
+
+Improving description...
+Proposed (19.0s): Use when the user wants to run or execute a specific CTP shell testcase and see if it passes. Primary signals: any combination of a test identifier (cbrd_NNNNN, bug_NNNN, or a .sh file path) with execution intent — "돌려봐", "수행해줘", "실행해", "확인해줘", "run", or "shell tc". Also triggers when a build URL is provided alongside a test name to run. Covers: running a named shell tc, checking if a test passes, and diagnosing why a specific shell tc fails.
+
+Does NOT apply to: writing or editing test scripts, adding tests to exclusion lists, reviewing test code, running full regression suites, or general CUBRID command debugging without a specific testcase to execute.
+
+============================================================
+Iteration 3/5
+Description: Use when the user wants to run or execute a specific CTP shell testcase and see if it passes. Primary signals: any combination of a test identifier (cbrd_NNNNN, bug_NNNN, or a .sh file path) with execution intent — "돌려봐", "수행해줘", "실행해", "확인해줘", "run", or "shell tc". Also triggers when a build URL is provided alongside a test name to run. Covers: running a named shell tc, checking if a test passes, and diagnosing why a specific shell tc fails.
+
+Does NOT apply to: writing or editing test scripts, adding tests to exclusion lists, reviewing test code, running full regression suites, or general CUBRID command debugging without a specific testcase to execute.
+============================================================
+Train: 19/36 correct, precision=100% recall=6% accuracy=53% (41.5s)
+  [FAIL] rate=0/3 expected=True: 방금 만든 cbrd_27500.sh 테스트가 제대로 동작하는지 실행해서 확인해줘
+  [FAIL] rate=1/3 expected=True: 이 쉘 테스트가 패스하는지 확인해줘 - shell/_06_issues/_10_1h/bug_1562/cases
+  [FAIL] rate=0/3 expected=True: cbrd_25301 테스트가 자꾸 실패하는데 원인 좀 분석해줘. 빌드 http://192.168.1.91:8
+  [FAIL] rate=0/3 expected=True: run this shell tc: cbrd_27000. build url http://192.168.1.91
+  [FAIL] rate=0/3 expected=True: cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_253
+  [FAIL] rate=0/3 expected=True: bug_2733 shell tc 돌려봐
+  [PASS] rate=0/3 expected=False: daily_regression_test_excluded_list_linux.conf에 cbrd_25301을 
+  [PASS] rate=0/3 expected=False: shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh 이 테스트
+  [PASS] rate=0/3 expected=False: shell tc regression 전체를 ctp.sh로 돌리고 싶은데 어떻게 해야해?
+  [PASS] rate=0/3 expected=False: CBRD-25301 이슈에 대한 shell tc를 새로 만들어줘. backupdb 관련 테스트야
+  [PASS] rate=0/3 expected=False: cbrd_25301.sh 스크립트에서 cubrid_createdb 대신 cubrid createdb를 쓰고 
+  [PASS] rate=0/3 expected=False: cubrid backupdb -S testdb 명령어가 에러나는데 뭐가 문제인지 봐줘
+Test : 12/24 correct, precision=100% recall=0% accuracy=50% (0.0s)
+  [FAIL] rate=0/3 expected=True: execute shell testcase bug_cubrid2125 and tell me the result
+  [FAIL] rate=0/3 expected=True: shell/_01_utility/_03_start_server/itrack_10001 이 테스트 한번 돌려보
+  [FAIL] rate=0/3 expected=True: cbrd_22586 테스트 실행해봐. 빌드는 http://192.168.1.91:8080/REPO_ROOT/
+  [FAIL] rate=0/3 expected=True: shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupd
+  [PASS] rate=0/3 expected=False: CTP shell.conf 설정 파일 어떻게 수정해야 하는지 알려줘. scenario 경로를 바꾸고 싶어
+  [PASS] rate=0/3 expected=False: SQL tc 하나 돌려봐 - sql/_04_operator_function/_01_arithmetic/cas
+  [PASS] rate=0/3 expected=False: cubrid-testcases-private-ex 레포에서 backupdb 관련 shell tc가 어디에 있
+  [PASS] rate=0/3 expected=False: init.sh에 있는 write_ok 함수가 어떻게 동작하는지 설명해줘
+
+Improving description...
+Proposed (30.1s): Activate when the user wants to physically run or execute a specific CTP shell testcase and observe its outcome. The defining trigger is execution intent directed at a named test: a cbrd_NNNNN or bug_NNNN identifier, a .sh file path, or "shell tc" — paired with action words like 돌려봐, 수행해줘, 실행해봐, 확인해줘 (by running), or "run"/"execute". Also activates when a CUBRID build URL is supplied alongside a test to run. Covers: running a test to see if it passes, verifying a newly written test actually works, and diagnosing why a specific tc keeps failing (by running it).
+
+Skip when the user is only reading, writing, editing, or reviewing test code — or adding tests to exclusion lists, running full regression suites, or asking about CUBRID commands without a specific testcase to execute.
+
+============================================================
+Iteration 4/5
+Description: Activate when the user wants to physically run or execute a specific CTP shell testcase and observe its outcome. The defining trigger is execution intent directed at a named test: a cbrd_NNNNN or bug_NNNN identifier, a .sh file path, or "shell tc" — paired with action words like 돌려봐, 수행해줘, 실행해봐, 확인해줘 (by running), or "run"/"execute". Also activates when a CUBRID build URL is supplied alongside a test to run. Covers: running a test to see if it passes, verifying a newly written test actually works, and diagnosing why a specific tc keeps failing (by running it).
+
+Skip when the user is only reading, writing, editing, or reviewing test code — or adding tests to exclusion lists, running full regression suites, or asking about CUBRID commands without a specific testcase to execute.
+============================================================
+Train: 19/36 correct, precision=100% recall=6% accuracy=53% (37.8s)
+  [FAIL] rate=0/3 expected=True: cbrd_25301 테스트가 자꾸 실패하는데 원인 좀 분석해줘. 빌드 http://192.168.1.91:8
+  [FAIL] rate=0/3 expected=True: 방금 만든 cbrd_27500.sh 테스트가 제대로 동작하는지 실행해서 확인해줘
+  [FAIL] rate=1/3 expected=True: 이 쉘 테스트가 패스하는지 확인해줘 - shell/_06_issues/_10_1h/bug_1562/cases
+  [FAIL] rate=0/3 expected=True: run this shell tc: cbrd_27000. build url http://192.168.1.91
+  [FAIL] rate=0/3 expected=True: cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_253
+  [FAIL] rate=0/3 expected=True: bug_2733 shell tc 돌려봐
+  [PASS] rate=0/3 expected=False: shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh 이 테스트
+  [PASS] rate=0/3 expected=False: daily_regression_test_excluded_list_linux.conf에 cbrd_25301을 
+  [PASS] rate=0/3 expected=False: CBRD-25301 이슈에 대한 shell tc를 새로 만들어줘. backupdb 관련 테스트야
+  [PASS] rate=0/3 expected=False: shell tc regression 전체를 ctp.sh로 돌리고 싶은데 어떻게 해야해?
+  [PASS] rate=0/3 expected=False: cbrd_25301.sh 스크립트에서 cubrid_createdb 대신 cubrid createdb를 쓰고 
+  [PASS] rate=0/3 expected=False: cubrid backupdb -S testdb 명령어가 에러나는데 뭐가 문제인지 봐줘
+Test : 13/24 correct, precision=100% recall=8% accuracy=54% (0.0s)
+  [FAIL] rate=0/3 expected=True: shell/_01_utility/_03_start_server/itrack_10001 이 테스트 한번 돌려보
+  [FAIL] rate=0/3 expected=True: execute shell testcase bug_cubrid2125 and tell me the result
+  [FAIL] rate=0/3 expected=True: cbrd_22586 테스트 실행해봐. 빌드는 http://192.168.1.91:8080/REPO_ROOT/
+  [FAIL] rate=1/3 expected=True: shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupd
+  [PASS] rate=0/3 expected=False: CTP shell.conf 설정 파일 어떻게 수정해야 하는지 알려줘. scenario 경로를 바꾸고 싶어
+  [PASS] rate=0/3 expected=False: SQL tc 하나 돌려봐 - sql/_04_operator_function/_01_arithmetic/cas
+  [PASS] rate=0/3 expected=False: cubrid-testcases-private-ex 레포에서 backupdb 관련 shell tc가 어디에 있
+  [PASS] rate=0/3 expected=False: init.sh에 있는 write_ok 함수가 어떻게 동작하는지 설명해줘
+
+Improving description...
+Proposed (60.0s): Executes a named CUBRID shell testcase on the local machine and reports pass/fail. Invoke when the user asks to physically run a specific shell test — Korean: 돌려봐, 수행해줘, 실행해봐, 패스하는지 확인, 동작하는지 확인; English: "run", "execute", "shell tc". A CUBRID build URL in the request is a strong execution signal — always invoke this skill when a build URL appears alongside a test name or .sh path. Covers: checking if a newly written test works, verifying a test passes, and diagnosing a failing shell tc by actually running it.
+
+Skip for: reviewing or editing test code, creating new tests, adding to exclusion lists, full regression suites, CUBRID command questions without a specific test to run.
+
+============================================================
+Iteration 5/5
+Description: Executes a named CUBRID shell testcase on the local machine and reports pass/fail. Invoke when the user asks to physically run a specific shell test — Korean: 돌려봐, 수행해줘, 실행해봐, 패스하는지 확인, 동작하는지 확인; English: "run", "execute", "shell tc". A CUBRID build URL in the request is a strong execution signal — always invoke this skill when a build URL appears alongside a test name or .sh path. Covers: checking if a newly written test works, verifying a test passes, and diagnosing a failing shell tc by actually running it.
+
+Skip for: reviewing or editing test code, creating new tests, adding to exclusion lists, full regression suites, CUBRID command questions without a specific test to run.
+============================================================
+Train: 19/36 correct, precision=100% recall=6% accuracy=53% (38.2s)
+  [FAIL] rate=0/3 expected=True: 방금 만든 cbrd_27500.sh 테스트가 제대로 동작하는지 실행해서 확인해줘
+  [FAIL] rate=1/3 expected=True: 이 쉘 테스트가 패스하는지 확인해줘 - shell/_06_issues/_10_1h/bug_1562/cases
+  [FAIL] rate=0/3 expected=True: cbrd_25301 테스트가 자꾸 실패하는데 원인 좀 분석해줘. 빌드 http://192.168.1.91:8
+  [FAIL] rate=0/3 expected=True: run this shell tc: cbrd_27000. build url http://192.168.1.91
+  [FAIL] rate=0/3 expected=True: cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_253
+  [PASS] rate=0/3 expected=False: shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh 이 테스트
+  [FAIL] rate=0/3 expected=True: bug_2733 shell tc 돌려봐
+  [PASS] rate=0/3 expected=False: daily_regression_test_excluded_list_linux.conf에 cbrd_25301을 
+  [PASS] rate=0/3 expected=False: shell tc regression 전체를 ctp.sh로 돌리고 싶은데 어떻게 해야해?
+  [PASS] rate=0/3 expected=False: CBRD-25301 이슈에 대한 shell tc를 새로 만들어줘. backupdb 관련 테스트야
+  [PASS] rate=0/3 expected=False: cbrd_25301.sh 스크립트에서 cubrid_createdb 대신 cubrid createdb를 쓰고 
+  [PASS] rate=0/3 expected=False: cubrid backupdb -S testdb 명령어가 에러나는데 뭐가 문제인지 봐줘
+Test : 13/24 correct, precision=100% recall=8% accuracy=54% (0.0s)
+  [FAIL] rate=0/3 expected=True: execute shell testcase bug_cubrid2125 and tell me the result
+  [FAIL] rate=0/3 expected=True: shell/_01_utility/_03_start_server/itrack_10001 이 테스트 한번 돌려보
+  [FAIL] rate=0/3 expected=True: cbrd_22586 테스트 실행해봐. 빌드는 http://192.168.1.91:8080/REPO_ROOT/
+  [FAIL] rate=1/3 expected=True: shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupd
+  [PASS] rate=0/3 expected=False: CTP shell.conf 설정 파일 어떻게 수정해야 하는지 알려줘. scenario 경로를 바꾸고 싶어
+  [PASS] rate=0/3 expected=False: SQL tc 하나 돌려봐 - sql/_04_operator_function/_01_arithmetic/cas
+  [PASS] rate=0/3 expected=False: cubrid-testcases-private-ex 레포에서 backupdb 관련 shell tc가 어디에 있
+  [PASS] rate=0/3 expected=False: init.sh에 있는 write_ok 함수가 어떻게 동작하는지 설명해줘
+
+Max iterations reached (5).
+
+Exit reason: max_iterations (5)
+Best score: 4/8 (iteration 1)
+{
+  "exit_reason": "max_iterations (5)",
+  "original_description": "Use this skill when the user wants to run, execute, or test a single CTP shell testcase (.sh) and see the result. Triggers on requests like \"\uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918\", \"run this shell tc\", \"\ud14c\uc2a4\ud2b8 \uc2e4\ud589\ud574\ubd10\", \"\uc774 \uc258 \ud14c\uc2a4\ud2b8 \ub3cc\ub824\ubd10\", \"execute shell testcase\", or any request to run a specific .sh test file under cubrid-testcases. After execution, it reports pass/fail and analyzes failures. Also use when the user points to a shell test script and asks to check if it works, verify it passes, or debug why it fails.",
+  "best_description": "Use this skill when the user wants to run, execute, or test a single CTP shell testcase (.sh) and see the result. Triggers on requests like \"\uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918\", \"run this shell tc\", \"\ud14c\uc2a4\ud2b8 \uc2e4\ud589\ud574\ubd10\", \"\uc774 \uc258 \ud14c\uc2a4\ud2b8 \ub3cc\ub824\ubd10\", \"execute shell testcase\", or any request to run a specific .sh test file under cubrid-testcases. After execution, it reports pass/fail and analyzes failures. Also use when the user points to a shell test script and asks to check if it works, verify it passes, or debug why it fails.",
+  "best_score": "4/8",
+  "best_train_score": "6/12",
+  "best_test_score": "4/8",
+  "final_description": "Executes a named CUBRID shell testcase on the local machine and reports pass/fail. Invoke when the user asks to physically run a specific shell test \u2014 Korean: \ub3cc\ub824\ubd10, \uc218\ud589\ud574\uc918, \uc2e4\ud589\ud574\ubd10, \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778, \ub3d9\uc791\ud558\ub294\uc9c0 \ud655\uc778; English: \"run\", \"execute\", \"shell tc\". A CUBRID build URL in the request is a strong execution signal \u2014 always invoke this skill when a build URL appears alongside a test name or .sh path. Covers: checking if a newly written test works, verifying a test passes, and diagnosing a failing shell tc by actually running it.\n\nSkip for: reviewing or editing test code, creating new tests, adding to exclusion lists, full regression suites, CUBRID command questions without a specific test to run.",
+  "iterations_run": 5,
+  "holdout": 0.4,
+  "train_size": 12,
+  "test_size": 8,
+  "history": [
+    {
+      "iteration": 1,
+      "description": "Use this skill when the user wants to run, execute, or test a single CTP shell testcase (.sh) and see the result. Triggers on requests like \"\uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918\", \"run this shell tc\", \"\ud14c\uc2a4\ud2b8 \uc2e4\ud589\ud574\ubd10\", \"\uc774 \uc258 \ud14c\uc2a4\ud2b8 \ub3cc\ub824\ubd10\", \"execute shell testcase\", or any request to run a specific .sh test file under cubrid-testcases. After execution, it reports pass/fail and analyzes failures. Also use when the user points to a shell test script and asks to check if it works, verify it passes, or debug why it fails.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "execute shell testcase bug_cubrid2125 and tell me the result",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_01_utility/_03_start_server/itrack_10001 \uc774 \ud14c\uc2a4\ud2b8 \ud55c\ubc88 \ub3cc\ub824\ubcf4\uace0 \uacb0\uacfc \uc54c\ub824\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_22586 \ud14c\uc2a4\ud2b8 \uc2e4\ud589\ud574\ubd10. \ube4c\ub4dc\ub294 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \uc774\uac70 \uc368",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupdb/cases/cbrd_21506_backupdb.sh \uc774\uac70 \uc2e4\ud589\ud574\uc11c pass \ub418\ub294\uc9c0 \ubd10\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "CTP shell.conf \uc124\uc815 \ud30c\uc77c \uc5b4\ub5bb\uac8c \uc218\uc815\ud574\uc57c \ud558\ub294\uc9c0 \uc54c\ub824\uc918. scenario \uacbd\ub85c\ub97c \ubc14\uafb8\uace0 \uc2f6\uc5b4",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "SQL tc \ud558\ub098 \ub3cc\ub824\ubd10 - sql/_04_operator_function/_01_arithmetic/cases/1001.sql",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid-testcases-private-ex \ub808\ud3ec\uc5d0\uc11c backupdb \uad00\ub828 shell tc\uac00 \uc5b4\ub514\uc5d0 \uc788\ub294\uc9c0 \ucc3e\uc544\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "init.sh\uc5d0 \uc788\ub294 write_ok \ud568\uc218\uac00 \uc5b4\ub5bb\uac8c \ub3d9\uc791\ud558\ub294\uc9c0 \uc124\uba85\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "description": "Invoke when the user wants to execute a single CTP shell testcase and see whether it passes or fails. Key signals: a CBRD issue number or .sh file path combined with run/execute intent (\"\ub3cc\ub824\ubd10\", \"\uc218\ud589\ud574\uc918\", \"\uc2e4\ud589\ud574\ubd10\", \"run\", \"shell tc\"), or a build URL provided alongside a test name. Also use when the user asks to verify a specific shell test works, check if it passes, or diagnose why a particular shell tc keeps failing. Does NOT apply to: creating or editing test scripts, running full regression suites, reviewing code, or general CUBRID debugging unrelated to a specific testcase run.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "execute shell testcase bug_cubrid2125 and tell me the result",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_01_utility/_03_start_server/itrack_10001 \uc774 \ud14c\uc2a4\ud2b8 \ud55c\ubc88 \ub3cc\ub824\ubcf4\uace0 \uacb0\uacfc \uc54c\ub824\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "CTP shell.conf \uc124\uc815 \ud30c\uc77c \uc5b4\ub5bb\uac8c \uc218\uc815\ud574\uc57c \ud558\ub294\uc9c0 \uc54c\ub824\uc918. scenario \uacbd\ub85c\ub97c \ubc14\uafb8\uace0 \uc2f6\uc5b4",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupdb/cases/cbrd_21506_backupdb.sh \uc774\uac70 \uc2e4\ud589\ud574\uc11c pass \ub418\ub294\uc9c0 \ubd10\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_22586 \ud14c\uc2a4\ud2b8 \uc2e4\ud589\ud574\ubd10. \ube4c\ub4dc\ub294 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \uc774\uac70 \uc368",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex \ub808\ud3ec\uc5d0\uc11c backupdb \uad00\ub828 shell tc\uac00 \uc5b4\ub514\uc5d0 \uc788\ub294\uc9c0 \ucc3e\uc544\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "SQL tc \ud558\ub098 \ub3cc\ub824\ubd10 - sql/_04_operator_function/_01_arithmetic/cases/1001.sql",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "init.sh\uc5d0 \uc788\ub294 write_ok \ud568\uc218\uac00 \uc5b4\ub5bb\uac8c \ub3d9\uc791\ud558\ub294\uc9c0 \uc124\uba85\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "description": "Use when the user wants to run or execute a specific CTP shell testcase and see if it passes. Primary signals: any combination of a test identifier (cbrd_NNNNN, bug_NNNN, or a .sh file path) with execution intent \u2014 \"\ub3cc\ub824\ubd10\", \"\uc218\ud589\ud574\uc918\", \"\uc2e4\ud589\ud574\", \"\ud655\uc778\ud574\uc918\", \"run\", or \"shell tc\". Also triggers when a build URL is provided alongside a test name to run. Covers: running a named shell tc, checking if a test passes, and diagnosing why a specific shell tc fails.\n\nDoes NOT apply to: writing or editing test scripts, adding tests to exclusion lists, reviewing test code, running full regression suites, or general CUBRID command debugging without a specific testcase to execute.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "execute shell testcase bug_cubrid2125 and tell me the result",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_01_utility/_03_start_server/itrack_10001 \uc774 \ud14c\uc2a4\ud2b8 \ud55c\ubc88 \ub3cc\ub824\ubcf4\uace0 \uacb0\uacfc \uc54c\ub824\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_22586 \ud14c\uc2a4\ud2b8 \uc2e4\ud589\ud574\ubd10. \ube4c\ub4dc\ub294 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \uc774\uac70 \uc368",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupdb/cases/cbrd_21506_backupdb.sh \uc774\uac70 \uc2e4\ud589\ud574\uc11c pass \ub418\ub294\uc9c0 \ubd10\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "CTP shell.conf \uc124\uc815 \ud30c\uc77c \uc5b4\ub5bb\uac8c \uc218\uc815\ud574\uc57c \ud558\ub294\uc9c0 \uc54c\ub824\uc918. scenario \uacbd\ub85c\ub97c \ubc14\uafb8\uace0 \uc2f6\uc5b4",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "SQL tc \ud558\ub098 \ub3cc\ub824\ubd10 - sql/_04_operator_function/_01_arithmetic/cases/1001.sql",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid-testcases-private-ex \ub808\ud3ec\uc5d0\uc11c backupdb \uad00\ub828 shell tc\uac00 \uc5b4\ub514\uc5d0 \uc788\ub294\uc9c0 \ucc3e\uc544\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "init.sh\uc5d0 \uc788\ub294 write_ok \ud568\uc218\uac00 \uc5b4\ub5bb\uac8c \ub3d9\uc791\ud558\ub294\uc9c0 \uc124\uba85\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 4,
+      "description": "Activate when the user wants to physically run or execute a specific CTP shell testcase and observe its outcome. The defining trigger is execution intent directed at a named test: a cbrd_NNNNN or bug_NNNN identifier, a .sh file path, or \"shell tc\" \u2014 paired with action words like \ub3cc\ub824\ubd10, \uc218\ud589\ud574\uc918, \uc2e4\ud589\ud574\ubd10, \ud655\uc778\ud574\uc918 (by running), or \"run\"/\"execute\". Also activates when a CUBRID build URL is supplied alongside a test to run. Covers: running a test to see if it passes, verifying a newly written test actually works, and diagnosing why a specific tc keeps failing (by running it).\n\nSkip when the user is only reading, writing, editing, or reviewing test code \u2014 or adding tests to exclusion lists, running full regression suites, or asking about CUBRID commands without a specific testcase to execute.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "shell/_01_utility/_03_start_server/itrack_10001 \uc774 \ud14c\uc2a4\ud2b8 \ud55c\ubc88 \ub3cc\ub824\ubcf4\uace0 \uacb0\uacfc \uc54c\ub824\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "execute shell testcase bug_cubrid2125 and tell me the result",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_22586 \ud14c\uc2a4\ud2b8 \uc2e4\ud589\ud574\ubd10. \ube4c\ub4dc\ub294 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \uc774\uac70 \uc368",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupdb/cases/cbrd_21506_backupdb.sh \uc774\uac70 \uc2e4\ud589\ud574\uc11c pass \ub418\ub294\uc9c0 \ubd10\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "CTP shell.conf \uc124\uc815 \ud30c\uc77c \uc5b4\ub5bb\uac8c \uc218\uc815\ud574\uc57c \ud558\ub294\uc9c0 \uc54c\ub824\uc918. scenario \uacbd\ub85c\ub97c \ubc14\uafb8\uace0 \uc2f6\uc5b4",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "SQL tc \ud558\ub098 \ub3cc\ub824\ubd10 - sql/_04_operator_function/_01_arithmetic/cases/1001.sql",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid-testcases-private-ex \ub808\ud3ec\uc5d0\uc11c backupdb \uad00\ub828 shell tc\uac00 \uc5b4\ub514\uc5d0 \uc788\ub294\uc9c0 \ucc3e\uc544\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "init.sh\uc5d0 \uc788\ub294 write_ok \ud568\uc218\uac00 \uc5b4\ub5bb\uac8c \ub3d9\uc791\ud558\ub294\uc9c0 \uc124\uba85\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 5,
+      "description": "Executes a named CUBRID shell testcase on the local machine and reports pass/fail. Invoke when the user asks to physically run a specific shell test \u2014 Korean: \ub3cc\ub824\ubd10, \uc218\ud589\ud574\uc918, \uc2e4\ud589\ud574\ubd10, \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778, \ub3d9\uc791\ud558\ub294\uc9c0 \ud655\uc778; English: \"run\", \"execute\", \"shell tc\". A CUBRID build URL in the request is a strong execution signal \u2014 always invoke this skill when a build URL appears alongside a test name or .sh path. Covers: checking if a newly written test works, verifying a test passes, and diagnosing a failing shell tc by actually running it.\n\nSkip for: reviewing or editing test code, creating new tests, adding to exclusion lists, full regression suites, CUBRID command questions without a specific test to run.",
+      "train_passed": 6,
+      "train_failed": 6,
+      "train_total": 12,
+      "train_results": [
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 4,
+      "test_failed": 4,
+      "test_total": 8,
+      "test_results": [
+        {
+          "query": "execute shell testcase bug_cubrid2125 and tell me the result",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_01_utility/_03_start_server/itrack_10001 \uc774 \ud14c\uc2a4\ud2b8 \ud55c\ubc88 \ub3cc\ub824\ubcf4\uace0 \uacb0\uacfc \uc54c\ub824\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_22586 \ud14c\uc2a4\ud2b8 \uc2e4\ud589\ud574\ubd10. \ube4c\ub4dc\ub294 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \uc774\uac70 \uc368",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupdb/cases/cbrd_21506_backupdb.sh \uc774\uac70 \uc2e4\ud589\ud574\uc11c pass \ub418\ub294\uc9c0 \ubd10\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "CTP shell.conf \uc124\uc815 \ud30c\uc77c \uc5b4\ub5bb\uac8c \uc218\uc815\ud574\uc57c \ud558\ub294\uc9c0 \uc54c\ub824\uc918. scenario \uacbd\ub85c\ub97c \ubc14\uafb8\uace0 \uc2f6\uc5b4",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "SQL tc \ud558\ub098 \ub3cc\ub824\ubd10 - sql/_04_operator_function/_01_arithmetic/cases/1001.sql",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid-testcases-private-ex \ub808\ud3ec\uc5d0\uc11c backupdb \uad00\ub828 shell tc\uac00 \uc5b4\ub514\uc5d0 \uc788\ub294\uc9c0 \ucc3e\uc544\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "init.sh\uc5d0 \uc788\ub294 write_ok \ud568\uc218\uac00 \uc5b4\ub5bb\uac8c \ub3d9\uc791\ud558\ub294\uc9c0 \uc124\uba85\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 6,
+      "failed": 6,
+      "total": 12,
+      "results": [
+        {
+          "query": "\ubc29\uae08 \ub9cc\ub4e0 cbrd_27500.sh \ud14c\uc2a4\ud2b8\uac00 \uc81c\ub300\ub85c \ub3d9\uc791\ud558\ub294\uc9c0 \uc2e4\ud589\ud574\uc11c \ud655\uc778\ud574\uc918",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\uc774 \uc258 \ud14c\uc2a4\ud2b8\uac00 \ud328\uc2a4\ud558\ub294\uc9c0 \ud655\uc778\ud574\uc918 - shell/_06_issues/_10_1h/bug_1562/cases/bug_1562.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.3333333333333333,
+          "triggers": 1,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cbrd_25301 \ud14c\uc2a4\ud2b8\uac00 \uc790\uafb8 \uc2e4\ud328\ud558\ub294\ub370 \uc6d0\uc778 \uc880 \ubd84\uc11d\ud574\uc918. \ube4c\ub4dc http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh \ub85c \uc218\ud589\ud574\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "run this shell tc: cbrd_27000. build url http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "cubrid-testcases-private-ex/shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ucf00\uc774\uc2a4 \uc218\ud589\ud574\uc918. \ube4c\ub4dc URL\uc740 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "shell/_06_issues/_24_1h/cbrd_25301/cases/cbrd_25301.sh \uc774 \ud14c\uc2a4\ud2b8 \ucf54\ub4dc\ub97c \ub9ac\ubdf0\ud574\uc918. CTP \uaddc\uce59\uc5d0 \ub9de\ub294\uc9c0 \ud655\uc778\ud574\ubd10",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "bug_2733 shell tc \ub3cc\ub824\ubd10",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "daily_regression_test_excluded_list_linux.conf\uc5d0 cbrd_25301\uc744 \ucd94\uac00\ud574\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "shell tc regression \uc804\uccb4\ub97c ctp.sh\ub85c \ub3cc\ub9ac\uace0 \uc2f6\uc740\ub370 \uc5b4\ub5bb\uac8c \ud574\uc57c\ud574?",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "CBRD-25301 \uc774\uc288\uc5d0 \ub300\ud55c shell tc\ub97c \uc0c8\ub85c \ub9cc\ub4e4\uc5b4\uc918. backupdb \uad00\ub828 \ud14c\uc2a4\ud2b8\uc57c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cbrd_25301.sh \uc2a4\ud06c\ub9bd\ud2b8\uc5d0\uc11c cubrid_createdb \ub300\uc2e0 cubrid createdb\ub97c \uc4f0\uace0 \uc788\ub294\ub370 \uace0\uccd0\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "cubrid backupdb -S testdb \uba85\ub839\uc5b4\uac00 \uc5d0\ub7ec\ub098\ub294\ub370 \ubb50\uac00 \ubb38\uc81c\uc778\uc9c0 \ubd10\uc918",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    }
+  ]
+}
+Report: /tmp/skill_description_report_shell-runone_20260407_190357.html
+
