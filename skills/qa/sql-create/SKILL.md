@@ -7,6 +7,38 @@ description: Use this skill whenever the user wants to create, draft, write, or 
 
 Generate well-formed CUBRID CTP SQL testcase files (`.sql` + `.answer`).
 
+## Prerequisites — CTP Installation Check (mandatory first step)
+
+**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
+
+1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
+2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
+
+```bash
+# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
+if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
+    echo "CTP found: $CTP_HOME"
+elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
+    export CTP_HOME=$HOME/CTP
+elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
+    export CTP_HOME=$HOME/cubrid-testtools/CTP
+else
+    echo "CTP not found"; exit 1
+fi
+# Verify conf directory exists
+ls $CTP_HOME/conf/
+```
+
+If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediately** and display:
+
+> "CTP is not installed. This skill cannot proceed.
+> Installation methods:
+> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
+> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
+> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
+
+**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
+
 ## Quick Start
 
 1. Gather context: JIRA issue ID, feature/bug under test, expected behavior.
@@ -117,15 +149,15 @@ SET SYSTEM PARAMETERS 'param_name=original_value';
 
 ## Answer File Generation
 
-`.answer` 파일은 직접 작성하지 않는다. `sql-runone` 스킬을 사용하여 생성한다.
+Do NOT write `.answer` files manually. Use the `sql-runone` skill to generate them.
 
-### 절차
+### Procedure
 
-1. `.sql` 파일을 `cases/` 디렉토리에 작성한다.
-2. `sql-runone` 스킬을 호출하여 해당 `.sql` 파일을 CTP로 실행한다.
-   - 빌드 URL이 필요하다 — 사용자에게 요청하거나 이미 제공된 URL을 사용한다.
-3. CTP 실행 후 `cases/` 디렉토리에 `.result` 파일이 생성된다.
-4. `.result` 파일을 `answers/` 디렉토리에 `.answer` 확장자로 복사한다:
+1. Place the `.sql` file in the `cases/` directory.
+2. Invoke the `sql-runone` skill to run the `.sql` file through CTP.
+   - A build URL is required — use one already provided by the user, or ask for it.
+3. After CTP execution, a `.result` file is generated in the `cases/` directory.
+4. Copy the `.result` file to the `answers/` directory with the `.answer` extension:
 
 ```bash
 BASENAME=cbrd_XXXXX
@@ -133,13 +165,13 @@ cp sql/_13_issues/_26_1h/cases/${BASENAME}.result \
    sql/_13_issues/_26_1h/answers/${BASENAME}.answer
 ```
 
-5. `.answer` 파일 내용을 확인하여 기대한 결과와 일치하는지 검토한다.
-   - DDL/DML: 영향받은 행 수 (`0` 또는 정수)
-   - SELECT: 컬럼 헤더 + 데이터 행
-   - 에러: `Error:-NNN\n<에러 메시지>`
-   - 각 SQL 문 출력은 `===...===` 줄로 구분
+5. Review the `.answer` file contents to confirm they match expected results.
+   - DDL/DML: affected row count (`0` or integer)
+   - SELECT: column headers + data rows
+   - Errors: `Error:-NNN\n<error message>`
+   - Each SQL statement output is separated by `===...===` lines
 
-빌드 URL이 없거나 CUBRID 환경이 없는 경우, `.answer` 파일은 빈 파일로 생성하고 추후 `sql-runone`으로 완성하도록 안내한다.
+If no build URL is available or CUBRID environment is not set up, create an empty `.answer` file and instruct the user to complete it later using `sql-runone`.
 
 ## Generation Process
 

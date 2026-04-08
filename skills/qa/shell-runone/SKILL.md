@@ -9,6 +9,40 @@ Run a single CTP shell testcase on the local machine, report the result, and ana
 
 ## Prerequisites
 
+### CTP Installation Check (mandatory first step)
+
+**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
+
+1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
+2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
+
+```bash
+# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
+if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
+    echo "CTP found: $CTP_HOME"
+elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
+    export CTP_HOME=$HOME/CTP
+elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
+    export CTP_HOME=$HOME/cubrid-testtools/CTP
+else
+    echo "CTP not found"; exit 1
+fi
+# Verify shell helpers exist
+ls $CTP_HOME/shell/init_path/init.sh
+```
+
+If `ctp.sh` or `init.sh` is not found at any of the above paths, **stop immediately** and display:
+
+> "CTP is not installed. This skill cannot proceed.
+> Installation methods:
+> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
+> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
+> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
+
+**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
+
+### Other requirements
+
 The local machine must have:
 - `cubrid-testtools` repository with CTP shell helpers (`CTP/shell/init_path/init.sh`)
 - `cubrid-testcases-private-ex` repository containing the test cases
@@ -21,8 +55,8 @@ CUBRID does not need to be pre-installed — the skill handles installation via 
 
 Before anything else, a CUBRID build file URL is required. If the user already provided a URL in their request, use it directly. Otherwise, ask:
 
-> "테스트를 수행하려면 CUBRID 빌드 파일 링크가 필요합니다. 빌드 URL을 알려주세요."
-> (예: `http://somewhere/CUBRID-11.3.0.xxxx-Linux.x86_64.sh`)
+> "A CUBRID build file URL is required to run the test. Please provide the build URL."
+> (e.g. `http://somewhere/CUBRID-11.3.0.xxxx-Linux.x86_64.sh`)
 
 Once you have the URL, install CUBRID and capture the output for error checking:
 
@@ -43,7 +77,7 @@ cubrid --version
 
 If either check indicates failure (grep finds `[ERROR]` or `cubrid --version` fails), **stop immediately** and tell the user:
 
-> "빌드 파일 설치에 실패했습니다. 올바른 빌드 파일 링크를 확인 후 다시 제시해 주세요."
+> "Build installation failed. Please verify the build file URL and try again."
 > (Show the `[ERROR]` lines from `/tmp/cubrid_install.log` for context)
 
 Do not proceed with test execution if installation fails.

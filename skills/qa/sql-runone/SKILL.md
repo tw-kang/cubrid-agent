@@ -9,6 +9,38 @@ Skip for: reviewing or editing SQL test files, creating new SQL tests, full regr
 
 Run a single CTP SQL testcase via CTP interactive mode. Supports `sql`, `medium`, `sql_by_cci` categories.
 
+## 0. CTP Installation Check (mandatory first step)
+
+**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
+
+1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
+2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
+
+```bash
+# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
+if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
+    echo "CTP found: $CTP_HOME"
+elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
+    export CTP_HOME=$HOME/CTP
+elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
+    export CTP_HOME=$HOME/cubrid-testtools/CTP
+else
+    echo "CTP not found"; exit 1
+fi
+# Verify conf directory exists
+ls $CTP_HOME/conf/
+```
+
+If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediately** and display:
+
+> "CTP is not installed. This skill cannot proceed.
+> Installation methods:
+> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
+> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
+> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
+
+**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
+
 ## 1. Pre-run Cleanup
 
 ```bash
@@ -19,7 +51,7 @@ cubrid service stop 2>/dev/null
 ## 2. Install CUBRID (mandatory)
 
 A build URL is required. If not provided, ask:
-> "테스트를 수행하려면 CUBRID 빌드 파일 링크가 필요합니다. 빌드 URL을 알려주세요."
+> "A CUBRID build file URL is required to run the test. Please provide the build URL."
 
 ```bash
 sh ~/cubrid-testtools/CTP/common/script/run_cubrid_install <build_url> 2>&1 | tee /tmp/cubrid_install.log
@@ -42,9 +74,9 @@ export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
 
 | Category | Trigger | Conf file | Interactive command |
 |----------|---------|-----------|-------------------|
-| `sql` | 기본 (path에 `/sql/`) | `sql.conf` | `run <file>` |
-| `medium` | path에 `/medium/` | `medium_dev.conf` | `run <file>` |
-| `sql_by_cci` | 사용자가 `sqlbycci`/`sql_by_cci` 명시 | `sql_by_cci.conf` | `run_cci <file>` |
+| `sql` | default (path contains `/sql/`) | `sql.conf` | `run <file>` |
+| `medium` | path contains `/medium/` | `medium_dev.conf` | `run <file>` |
+| `sql_by_cci` | user explicitly says `sqlbycci`/`sql_by_cci` | `sql_by_cci.conf` | `run_cci <file>` |
 
 ```bash
 CTP_HOME=$HOME/cubrid-testtools/CTP
