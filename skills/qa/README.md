@@ -2,6 +2,14 @@
 
 CUBRID skills for Claude Code (oh-my-claudecode)
 
+> All skills in this repository were created using the [`skill-creator`](https://github.com/anthropics/skills/tree/main/skills/skill-creator) skill.
+>
+> **Install skill-creator:**
+> ```bash
+> npx skills add anthropics/skills --skill skill-creator
+> ```
+> Then invoke it in Claude Code with `/skill-creator` to scaffold, edit, or benchmark your own skills.
+
 ## Skills
 
 | Skill | 설명 |
