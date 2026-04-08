@@ -7,38 +7,6 @@ description: Review CUBRID CTP shell testcase diffs for path conventions, lifecy
 
 Evaluate shell testcase diffs against CTP-specific rules and produce a structured review report.
 
-## Prerequisites — CTP Installation Check (mandatory first step)
-
-**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
-```bash
-# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
-if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
-    echo "CTP found: $CTP_HOME"
-elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/CTP
-elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/cubrid-testtools/CTP
-else
-    echo "CTP not found"; exit 1
-fi
-# Verify shell helpers exist
-ls $CTP_HOME/shell/init_path/init.sh
-```
-
-If `ctp.sh` or `init.sh` is not found at any of the above paths, **stop immediately** and display:
-
-> "CTP is not installed. This skill cannot proceed.
-> Installation methods:
-> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
-> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
-> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
-
-**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
-
 ## Quick Start
 
 1. Classify changed scripts as `test-entry` vs `helper` — assume entry if ambiguous.
