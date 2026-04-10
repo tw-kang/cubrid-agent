@@ -9,11 +9,6 @@ Generate well-formed CUBRID CTP HA replication testcase files (`.sql` with `--te
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-CTP can exist in two forms:
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -39,24 +34,11 @@ If `ctp.sh` or `conf/` is not found, stop and display:
 
 Use the detected `$CTP_HOME` in all subsequent steps.
 
-## Quick Start
-
-1. Gather context: JIRA issue ID, feature/bug under test, expected replication behavior.
-2. Determine directory path (bug fix vs. new feature).
-3. Generate the `.sql` file following the format conventions below.
-4. Output the file path and contents.
-
 ## HA Replication Concepts
 
-HA replication tests verify that data written on the **master** node is correctly replicated to the **slave** node. The CTP ha_repl module:
+HA replication tests verify that data written on the **master** is correctly replicated to the **slave**. `--test:` statements run on master only; `--check:` statements run on both and results are compared. Any discrepancy is a replication failure.
 
-- Runs SQL statements marked `--test:` on the **master** node only
-- Runs SQL statements marked `--check:` on **both** master and slave, then compares results
-- Flags any discrepancy between master and slave as a replication failure
-
-Key invariant: after every `--test: COMMIT;`, the subsequent `--check:` queries must return identical result sets on master and slave.
-
-The `migrate/Convert.java` transformer also auto-adds primary keys to tables that lack them, so that replication can track rows.
+Key invariant: after every `--test: COMMIT;`, subsequent `--check:` queries must return identical result sets on master and slave. The `migrate/Convert.java` transformer auto-adds primary keys to tables that lack them.
 
 ## Marker Reference
 
@@ -140,7 +122,7 @@ Place `--test: COMMIT;` after every logical batch of DML:
 
 ### DDL replication
 
-DDL statements (CREATE TABLE, ALTER TABLE, DROP TABLE, CREATE INDEX, etc.) are also replicated. Test them with `--test:` and verify the schema state with a `--check:` query (e.g. `SELECT COUNT(*) FROM t1` or a query that would fail if the table does not exist on the slave).
+DDL statements are also replicated. Test with `--test:` and verify schema state with a `--check:` query (e.g. `SELECT COUNT(*) FROM t1`).
 
 ## Writing Rules
 
@@ -153,56 +135,22 @@ DDL statements (CREATE TABLE, ALTER TABLE, DROP TABLE, CREATE INDEX, etc.) are a
 
 ## Infrastructure Requirements
 
-ha_repl tests require a **3-node setup** that cannot be run locally without the infrastructure:
+Requires a **3-node setup** (controller, master, slave) that cannot be run locally. Config: `$CTP_HOME/conf/ha_repl.conf` (set master/slave SSH host, user, password). Run: `bin/ctp.sh ha_repl -c conf/ha_repl.conf`. Results: `$CTP_HOME/result/ha_repl/current_runtime_logs/`.
 
-| Component | Role |
-|-----------|------|
-| Controller node | Orchestrates the test run via CTP |
-| Master node | Receives `--test:` statements; primary CUBRID HA node |
-| Slave node | Receives replicated data; results compared against master by `--check:` |
+> ha_repl testcases do NOT have `.answer` files. Pass/fail is determined by result-set equality between master and slave at each `--check:` point.
 
-Config file: `$CTP_HOME/conf/ha_repl.conf`
+## Generation Process — Self-Review Checklist
 
-Required config keys:
-```
-env.instance1.master.ssh.host=<master-ip>
-env.instance1.master.ssh.user=<user>
-env.instance1.master.ssh.password=<password>
-env.instance1.slave.ssh.host=<slave-ip>
-env.instance1.slave.ssh.user=<user>
-env.instance1.slave.ssh.password=<password>
-```
-
-Run command (on controller):
-```bash
-bin/ctp.sh ha_repl -c conf/ha_repl.conf
-```
-
-Results: `$CTP_HOME/result/ha_repl/current_runtime_logs/`
-
-> Unlike SQL testcases, ha_repl testcases do NOT have a corresponding `.answer` file. Pass/fail is determined by result-set equality between master and slave at each `--check:` point.
-
-## Generation Process
-
-1. **Clarify the test target**: JIRA issue ID, behavior under test, test type (bug fix / new feature).
-2. **Determine the directory path**: current date (year + half) for bug fixes, or release code for new features.
-3. **Draft the `.sql` file**: header → setup (DROP IF EXISTS + CREATE + primary key) → test/check blocks → cleanup.
-4. **Self-review checklist**:
-   - Header `/** ... */` present with CBRD number and Coverage list?
-   - Every DML batch followed by `--test: COMMIT;` before `--check:`?
-   - Every table has a PRIMARY KEY?
-   - All `--check:` SELECTs use `ORDER BY`?
-   - Cleanup (`DROP TABLE IF EXISTS` + `COMMIT`) at the end?
-   - No statements mixing `--test:` and `--check:` on the same line?
-5. **Present the output**: show file path and contents.
+- Header `/** ... */` present with CBRD number and Coverage list?
+- Every DML batch followed by `--test: COMMIT;` before `--check:`?
+- Every table has a PRIMARY KEY?
+- All `--check:` SELECTs use `ORDER BY`?
+- Cleanup (`DROP TABLE IF EXISTS` + `COMMIT`) at the end?
+- No statements mixing `--test:` and `--check:` on the same line?
 
 ## Relationship to SQL Testcases
 
-ha_repl testcases are SQL testcase variants:
-- They use the same header format (`/** ... */` with Coverage)
-- Instead of bare SQL + `evaluate` markers, they use `--test:` / `--check:` prefixes on every line
-- They do **not** use `evaluate`, `--+ server-message on/off`, or `.answer` files
-- They live under `ha_repl/` instead of `sql/` in the testcases repository
+ha_repl testcases use the same `/** ... */` header format as SQL testcases but prefix every line with `--test:` / `--check:` instead of bare SQL + `evaluate` markers. They do **not** use `evaluate`, `--+ server-message on/off`, or `.answer` files. They live under `ha_repl/` instead of `sql/`.
 
 ## Examples
 
