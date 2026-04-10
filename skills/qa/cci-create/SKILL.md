@@ -9,11 +9,6 @@ Generate well-formed CUBRID CTP CCI testcase scripts (shell + C source + answer 
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-CTP can exist in two forms:
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -32,27 +27,12 @@ ls $CTP_HOME/shell/init_path/init.sh
 If `ctp.sh` or `init.sh` is not found, stop and display:
 
 > "CTP is not installed. This skill cannot proceed.
-> Installation methods:
-> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
-> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
+> Installation: `git clone https://github.com/CUBRID/cubrid-testtools.git`
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
-
-Use the detected `$CTP_HOME` in all subsequent steps.
 
 ## What is a CCI Test?
 
-CCI (C Client Interface) tests verify CUBRID's C-language client driver (`libcascci`). Each test consists of:
-- A **shell script** (`.sh`) -- sets up DB, compiles C code, runs the binary, checks output
-- A **C source file** (`test.c`) -- CCI API calls
-- An **answer file** (`.answer`) -- expected output (simple pattern only)
-
-## Quick Start
-
-1. Gather context: JIRA issue ID (if bug fix), CCI API(s) being tested.
-2. Choose pattern: **simple** (output comparison) or **issue** (explicit pass/fail).
-3. Determine directory path.
-4. Generate shell script + test.c (+ answer file if simple).
-5. Output directory path and file contents.
+CCI (C Client Interface) tests verify CUBRID's C-language client driver (`libcascci`). Each test consists of a **shell script** (`.sh`), a **C source file** (`test.c`), and optionally an **answer file** (`.answer`) for output comparison.
 
 ## Directory Path Convention
 
@@ -276,16 +256,11 @@ Add `-m32` for 32-bit CUBRID, `-lpthread` for thread-safe builds.
 
 ## Generation Checklist
 
-1. Clarify: JIRA issue ID, CCI API(s), pass/fail criteria.
-2. Choose pattern: simple or issue.
-3. Draft: shell script + test.c (+ answer file if simple).
-4. Self-review:
-   - `#!/bin/bash`?
-   - `. $init_path/init.sh` and `init test` before anything else?
-   - DB cleanup before `finish`?
-   - `finish` is last call?
-   - No hardcoded paths or ports?
-5. Present: directory path and all file contents.
+- `#!/bin/bash`?
+- `. $init_path/init.sh` and `init test` before anything else?
+- DB cleanup before `finish`?
+- `finish` is last call?
+- No hardcoded paths or ports?
 
 ## Examples
 
