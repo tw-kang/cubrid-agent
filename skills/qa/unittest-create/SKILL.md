@@ -9,11 +9,6 @@ Generate well-formed CUBRID C/C++ unit test files that integrate with CTP's unit
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-CTP can exist in two forms:
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -32,21 +27,12 @@ ls $CTP_HOME/conf/
 If `ctp.sh` or `conf/` is not found, stop and display:
 
 > "CTP is not installed. This skill cannot proceed.
-> Installation methods:
-> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
-> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
+> Installation: `git clone https://github.com/CUBRID/cubrid-testtools.git`
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
-
-Use the detected `$CTP_HOME` in all subsequent steps.
 
 ## What is a CUBRID Unittest?
 
-C or C++ programs that test internal CUBRID components at the unit level:
-
-- Compiled **from CUBRID source code** (not from the testcases repo)
-- Test **internal APIs and data structures** directly (no broker or server)
-- Discovered by CTP via `$CUBRID/build_release/bin/unittests_*`
-- Pass/fail based on **text output**, not exit codes
+C/C++ programs that test internal CUBRID components at the unit level. Compiled from CUBRID source (not testcases repo), test internal APIs directly (no broker/server), discovered by CTP via `$CUBRID/build_release/bin/unittests_*`, and judged by text output (not exit codes).
 
 ## Pass/Fail Criteria
 
@@ -61,14 +47,6 @@ fi
 
 - **PASS** = no `fail`/`Unit tests failed` (case-insensitive) AND at least one `OK`/`success`
 - **FAIL** = contains `fail`/`Unit tests failed`, OR no `OK`/`success`
-
-## Quick Start
-
-1. Identify the CUBRID internal module or function to test.
-2. Determine the binary name: `unittests_<module>`.
-3. Write the C/C++ test file following the output convention.
-4. Place the source in the CUBRID source tree.
-5. Add it to the build system (CMakeLists.txt or Makefile).
 
 ## File Location
 
@@ -218,16 +196,11 @@ build_release/bin/unittests_snapshot   — MVCC snapshot logic
 
 ## Generation Checklist
 
-1. Clarify: which internal function/data structure to test.
-2. Name: `unittests_<module>` (e.g., `unittests_btree`, `unittests_heap`).
-3. Draft: C or C++ test file printing `FAIL:` on failure, `OK` on success.
-4. CMake: show how to add the binary to the build.
-5. Self-review:
-   - Prints `OK`/`success` when all tests pass?
-   - Prints `fail` when any test fails?
-   - No hardcoded file paths or server dependencies?
-   - Binary named `unittests_<module>`?
-6. Present: source file + CMakeLists.txt addition.
+- Prints `OK`/`success` when all tests pass?
+- Prints `fail` when any test fails?
+- No hardcoded file paths or server dependencies?
+- Binary named `unittests_<module>`?
+- CMakeLists.txt entry included?
 
 ## Examples
 
