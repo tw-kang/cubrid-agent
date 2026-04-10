@@ -9,11 +9,6 @@ Generate well-formed CUBRID CTP isolation testcase files (`.ctl` format) for con
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-CTP can exist in two forms:
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -39,13 +34,6 @@ If `ctp.sh` is not found, stop and display:
 
 Use the detected `$CTP_HOME` in all subsequent steps.
 
-## Quick Start
-
-1. Gather context: JIRA issue ID, isolation level(s) under test, concurrency scenario, expected behavior.
-2. Determine directory path (bug fix vs. new feature, isolation level).
-3. Generate the `.ctl` file following format conventions below.
-4. Output the file path and contents.
-
 ## Directory Path Convention
 
 Testcases live under `~/cubrid-testcases/isolation/`.
@@ -60,7 +48,7 @@ _05_ReadCommitted_RepeatableRead/  - C1=READ COMMITTED, C2=REPEATABLE READ
 _06_features/          - Feature-specific isolation tests (new features)
 ```
 
-Choose the directory matching the isolation levels used in the test. When clients use different levels, pick the mixed directory that matches (C1 level first, C2 level second).
+Choose the directory matching the isolation levels used. For mixed levels, match C1 level first, C2 level second.
 
 ### Bug fixes
 
@@ -162,7 +150,7 @@ C2: quit;
 | `MC: wait until C2 ready;` | Block until C2 finishes its current statement and is idle |
 | `MC: wait until C1 ready, C2 ready;` | Wait for multiple clients simultaneously |
 
-`MC: wait until Cx ready;` is a synchronization barrier — the controller does not issue the next command to any client until the named client(s) are done. Use after every logical phase.
+`MC: wait until Cx ready;` is a synchronization barrier. Use after every logical phase.
 
 ### Client (C1, C2, ...) commands
 
@@ -257,20 +245,14 @@ C2: SELECT * FROM t1;
 MC: wait until C2 ready;
 ```
 
-## Generation Process
+## Generation Process — Self-Review Checklist
 
-1. **Clarify the test target**: JIRA issue ID, which isolation anomaly is being tested (dirty read, lost update, phantom read, lock contention, privilege change, etc.), and the expected outcome.
-2. **Determine the directory**: choose the isolation level directory matching the client levels used.
-3. **Draft the `.ctl` file**:
-   - Write the header comment (Test Case, Priority, Test Plan, Test Scenario, Test Point, NUM_CLIENTS)
-   - `MC: setup NUM_CLIENTS = N;`
-   - Client session setup (login, lock timeout, isolation level) for each client
-   - `/* preparation */` phase: DDL + initial data + COMMIT + MC wait
-   - Test body: interleaved C1/C2 statements with MC waits at each sync point
-   - `/* cleanup */` phase: DROP tables, DROP users if created, COMMIT + MC wait
-   - `C1: quit;` / `C2: quit;`
-4. **Self-review**: header complete? Every phase followed by MC wait? All clients quit? Cleanup present? Lock timeout set? Isolation level set?
-5. **Present the output**: show full file path and `.ctl` contents.
+- Header complete (Test Case, Priority, Test Plan, Test Scenario, Test Point, NUM_CLIENTS)?
+- Every phase followed by `MC: wait until Cx ready;`?
+- All clients quit (`C1: quit;`, `C2: quit;`)?
+- Cleanup present (`DROP TABLE IF EXISTS` + `COMMIT`)?
+- Lock timeout set per client?
+- Isolation level set per client?
 
 ## Examples
 
