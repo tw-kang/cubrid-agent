@@ -7,6 +7,38 @@ description: Use this skill whenever the user wants to create, draft, write, or 
 
 Generate well-formed CUBRID C/C++ unit test files that integrate with CTP's unittest runner.
 
+## Prerequisites — CTP Installation Check (mandatory first step)
+
+CTP can exist in two forms:
+
+1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
+2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
+
+```bash
+# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
+if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
+    echo "CTP found: $CTP_HOME"
+elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
+    export CTP_HOME=$HOME/CTP
+elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
+    export CTP_HOME=$HOME/cubrid-testtools/CTP
+else
+    echo "CTP not found"; exit 1
+fi
+# Verify conf directory exists
+ls $CTP_HOME/conf/
+```
+
+If `ctp.sh` or `conf/` is not found, stop and display:
+
+> "CTP is not installed. This skill cannot proceed.
+> Installation methods:
+> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
+> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
+> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
+
+Use the detected `$CTP_HOME` in all subsequent steps.
+
 ## What is a CUBRID Unittest?
 
 C or C++ programs that test internal CUBRID components at the unit level:
