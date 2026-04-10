@@ -11,11 +11,6 @@ Run a single CTP SQL testcase via CTP interactive mode. Supports `sql`, `medium`
 
 ## 0. CTP Installation Check (mandatory first step)
 
-**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -31,15 +26,11 @@ fi
 ls $CTP_HOME/conf/
 ```
 
-If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediately** and display:
+If `ctp.sh` or `conf/` is not found, **stop immediately** and display:
 
 > "CTP is not installed. This skill cannot proceed.
-> Installation methods:
-> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
-> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
+> Install: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
-
-**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
 
 ## 1. Pre-run Cleanup
 
@@ -51,7 +42,7 @@ cubrid service stop 2>/dev/null
 ## 2. Install CUBRID (mandatory)
 
 A build URL is required. If not provided, ask:
-> "A CUBRID build file URL is required to run the test. Please provide the build URL."
+> "A CUBRID build file URL is required. Please provide the build URL."
 
 ```bash
 sh ~/cubrid-testtools/CTP/common/script/run_cubrid_install <build_url> 2>&1 | tee /tmp/cubrid_install.log
@@ -59,7 +50,7 @@ grep '\[ERROR\]' /tmp/cubrid_install.log
 source ~/.cubrid.sh && cubrid_rel
 ```
 
-`run_cubrid_install` installs to `$HOME/CUBRID` and sets up `~/.cubrid.sh`. Do not install CUBRID by other means — always use this script. If `[ERROR]` appears or `cubrid_rel` fails, stop and ask the user for a correct URL.
+Always use this script (installs to `$HOME/CUBRID`, sets up `~/.cubrid.sh`). If `[ERROR]` appears or `cubrid_rel` fails, stop and ask for a correct URL.
 
 ## 3. Verify environment
 
@@ -92,7 +83,7 @@ fi
 
 ## 5. Prepare file structure
 
-CTP expects `.sql` in a `cases/` directory with answers in sibling `answers/`. If the file is already in `cases/`, use it directly. Otherwise create a temp structure:
+CTP expects `.sql` in `cases/` with answers in sibling `answers/`. If already in `cases/`, use directly. Otherwise create a temp structure:
 
 ```bash
 TEMP_DIR=/tmp/sql_runone_$$
@@ -104,7 +95,7 @@ SQL_FILE=$TEMP_DIR/cases/$(basename "$SQL_FILE")
 
 ## 6. Read the SQL file
 
-Always read the SQL file before running to understand what it tests. This context is essential for diagnosing failures.
+Read the SQL file before running to understand what it tests. Essential for diagnosing failures.
 
 ## 7. Run via CTP interactive mode
 
@@ -113,7 +104,7 @@ printf "%s %s\nquit\n" "$RUN_CMD" "$SQL_FILE" | \
   timeout 600 $CTP_HOME/bin/ctp.sh $CTP_CATEGORY -c $CTP_CONF --interactive 2>&1 | tee /tmp/sql_runone_output.log
 ```
 
-Setup (DB creation, CUBRID config) takes 1–3 minutes before the interactive shell starts.
+Setup (DB creation, config) takes 1-3 minutes before the interactive shell starts.
 
 ## 8. Parse result
 
@@ -127,7 +118,7 @@ If no result files exist, check for "No Results!!" or "Failed to connect to data
 
 ## 9. Failure analysis (when fail > 0)
 
-The key to diagnosing SQL test failures is comparing the actual result against the expected answer to identify which query produced different output.
+Compare actual result against expected answer to identify which query diverged.
 
 ### Step A: Find the result and answer files
 
@@ -144,7 +135,7 @@ ANSWER_FILE=$(echo "$SQL_FILE" | sed 's|/cases/|/answers/|; s|\.sql$|.answer|')
 diff "$ANSWER_FILE" "$RESULT_FILE"
 ```
 
-The diff shows exactly which query produced different output. Each query result block in the file is separated by `===...===` lines, so the diff context reveals which SQL statement caused the divergence.
+Query result blocks are separated by `===...===` lines, so the diff context reveals which SQL statement diverged.
 
 ### Step C: Check server/broker logs and core dumps
 
@@ -182,7 +173,7 @@ On success:
 ## Common Issues
 
 - **"No Results!!"** — SQL file path not found. Check absolute path and `cases/` directory.
-- **"Failed to connect to database server"** — locale library missing (`make_locale.sh -t 64bit`), port conflict (run Pre-run Cleanup), or disk full.
+- **"Failed to connect to database server"** — locale library missing (`make_locale.sh -t 64bit`), port conflict, or disk full.
 - **"Cannot connect to a broker"** — broker not running or port 33120 occupied.
-- **No answer file** — CTP runs but cannot compare. Tell user the test ran but needs an answer file.
-- **javac not found** — non-fatal if testcase does not use Java stored procedures. JRE is sufficient.
+- **No answer file** — test ran but needs an answer file for comparison.
+- **javac not found** — non-fatal unless testcase uses Java stored procedures.
