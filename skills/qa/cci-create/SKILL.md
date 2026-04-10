@@ -10,17 +10,17 @@ Generate well-formed CUBRID CTP CCI testcase scripts (shell + C source + answer 
 ## What is a CCI Test?
 
 CCI (C Client Interface) tests verify CUBRID's C-language client driver (`libcascci`). Each test consists of:
-- A **shell script** (`.sh`) — sets up DB, compiles C code, runs the binary, checks output
-- A **C source file** (`test.c`) — contains the actual CCI API calls
-- An **answer file** (`.answer`) — expected output for `compare_result_between_files` (simple tests only)
+- A **shell script** (`.sh`) -- sets up DB, compiles C code, runs the binary, checks output
+- A **C source file** (`test.c`) -- CCI API calls
+- An **answer file** (`.answer`) -- expected output (simple pattern only)
 
 ## Quick Start
 
-1. Gather context: JIRA issue ID (if bug fix), CCI API(s) being tested, expected behavior.
-2. Choose test pattern: **simple** (output comparison) or **issue** (explicit pass/fail check).
+1. Gather context: JIRA issue ID (if bug fix), CCI API(s) being tested.
+2. Choose pattern: **simple** (output comparison) or **issue** (explicit pass/fail).
 3. Determine directory path.
-4. Generate shell script + test.c (+ answer file if simple pattern).
-5. Output the directory path and file contents.
+4. Generate shell script + test.c (+ answer file if simple).
+5. Output directory path and file contents.
 
 ## Directory Path Convention
 
@@ -65,7 +65,7 @@ Use `cbrd_XXXXX` or `bug_bts_XXXXX` naming for CUBRID issues.
 
 ### Pattern 1: Simple (output comparison)
 
-Use when the test produces deterministic text output that can be compared against an answer file.
+For tests with deterministic text output compared against an answer file.
 
 ```bash
 #!/bin/bash
@@ -73,7 +73,6 @@ Use when the test produces deterministic text output that can be compared agains
 init test
 set -x
 
-# create_ccidb: creates 'ccidb' DB with standard schema, starts server and broker
 create_ccidb
 isdbstart=`cubrid server status | grep "Server ccidb " | wc -l`
 if [ $isdbstart -ne 1 ]; then
@@ -82,10 +81,8 @@ fi
 
 cubrid broker start
 
-# compile C source
 xgcc -o test test.c
 
-# run test
 port=`cubrid broker status -b | grep broker1 | awk '{print $4}'`
 output_file=${case_name}.output
 ./test $port > $output_file
@@ -102,7 +99,7 @@ finish
 
 ### Pattern 2: Issue/explicit check
 
-Use when verifying a specific bug fix or behavior — check output for a keyword or condition.
+For verifying a specific bug fix -- check output for a keyword or condition.
 
 ```bash
 #!/bin/bash
@@ -208,17 +205,17 @@ int main(int argc, char *argv[])
 
 ## Compilation
 
-### `xgcc` (simple tests using `create_ccidb`)
-`xgcc` is a CTP wrapper that handles include/lib paths automatically:
+### `xgcc` (simple tests)
+CTP wrapper; handles include/lib paths automatically:
 ```bash
 xgcc -o test test.c
 ```
 
-### Manual `gcc` (issue tests with custom DB)
+### Manual `gcc` (issue tests)
 ```bash
 gcc -o test test.c -I${CUBRID}/include -L${CUBRID}/lib -lcascci
 ```
-For 32-bit CUBRID, add `-m32`. For thread-safe builds, add `-lpthread`.
+Add `-m32` for 32-bit CUBRID, `-lpthread` for thread-safe builds.
 
 ## Helper Functions Reference
 
@@ -245,18 +242,18 @@ For 32-bit CUBRID, add `-m32`. For thread-safe builds, add `-lpthread`.
 7. **No hardcoded CUBRID paths**: use `${CUBRID}/include`, `${CUBRID}/lib`
 8. **`finish` must be last call** — always
 
-## Generation Process
+## Generation Checklist
 
-1. **Clarify**: JIRA issue ID, CCI API(s) being tested, what pass/fail looks like.
-2. **Choose pattern**: simple (deterministic output) or issue (keyword check).
-3. **Draft**: shell script + test.c (+ answer file if simple).
-4. **Self-review**:
+1. Clarify: JIRA issue ID, CCI API(s), pass/fail criteria.
+2. Choose pattern: simple or issue.
+3. Draft: shell script + test.c (+ answer file if simple).
+4. Self-review:
    - `#!/bin/bash`?
    - `. $init_path/init.sh` and `init test` before anything else?
    - DB cleanup before `finish`?
    - `finish` is last call?
    - No hardcoded paths or ports?
-5. **Present**: show directory path and all file contents.
+5. Present: directory path and all file contents.
 
 ## Examples
 

@@ -9,16 +9,16 @@ Generate well-formed CUBRID C/C++ unit test files that integrate with CTP's unit
 
 ## What is a CUBRID Unittest?
 
-CUBRID unittests are C or C++ programs written by developers to test internal CUBRID components at the unit level. Unlike CCI or shell tests, they:
+C or C++ programs that test internal CUBRID components at the unit level:
 
-- Are compiled **from CUBRID source code** (not from a separate testcases repo)
-- Test **internal APIs and data structures** directly (no broker or server required)
-- Are discovered and run by CTP automatically by scanning `$CUBRID/build_release/bin/unittests_*`
-- Are pass/fail based on **text output**, not exit codes
+- Compiled **from CUBRID source code** (not from the testcases repo)
+- Test **internal APIs and data structures** directly (no broker or server)
+- Discovered by CTP via `$CUBRID/build_release/bin/unittests_*`
+- Pass/fail based on **text output**, not exit codes
 
 ## Pass/Fail Criteria
 
-CTP uses this logic to judge each unittest binary:
+CTP judges each unittest binary by scanning stdout:
 
 ```bash
 if [ `cat ${unittestlog} | grep -i 'fail\|Unit tests failed' | wc -l` -eq 0 \
@@ -27,9 +27,8 @@ if [ `cat ${unittestlog} | grep -i 'fail\|Unit tests failed' | wc -l` -eq 0 \
 fi
 ```
 
-**PASS** = output has **no** `fail` or `Unit tests failed` (case-insensitive) **AND** has at least one `OK` or `success`.
-
-**FAIL** = output contains `fail` or `Unit tests failed`, OR has no `OK`/`success`.
+- **PASS** = no `fail`/`Unit tests failed` (case-insensitive) AND at least one `OK`/`success`
+- **FAIL** = contains `fail`/`Unit tests failed`, OR no `OK`/`success`
 
 ## Quick Start
 
@@ -39,32 +38,26 @@ fi
 4. Place the source in the CUBRID source tree.
 5. Add it to the build system (CMakeLists.txt or Makefile).
 
-## File Location in CUBRID Source
+## File Location
 
-Unittest source files live in the CUBRID source repository, not in `cubrid-testcases`. Typical locations:
+Source files live in the CUBRID source repo (not `cubrid-testcases`):
 
 ```
 cubrid/unit_tests/<module>/test_<module>.cpp
 cubrid/unit_tests/common/test_output.hpp
-```
-
-Or within the module being tested:
-```
 cubrid/src/<module>/test_<name>.c
 cubrid/src/<module>/test_<name>.cpp
 ```
 
-After compilation, the binary appears at:
+Compiled binaries:
 ```
 cubrid/build_release/bin/unittests_<module>
-cubrid/build_debug/bin/unittests_<module>     # for debug build
+cubrid/build_debug/bin/unittests_<module>
 ```
-
-CTP discovers all files matching `$CUBRID/build_release/bin/unittests_*` automatically.
 
 ## Test Output Convention
 
-Your unittest binary must print pass/fail-indicator lines to stdout. Follow these conventions:
+The binary must print pass/fail indicators to stdout.
 
 ### Minimal C example
 ```c
@@ -92,7 +85,6 @@ static int failed = 0;
 
 static void test_example_function(void)
 {
-    /* test logic here */
     int result = 1 + 1;
     ASSERT_EQ(result, 2, "1+1 should equal 2");
 }
@@ -171,9 +163,9 @@ target_link_libraries(unittests_mymodule cubrid_static)
 install(TARGETS unittests_mymodule DESTINATION bin)
 ```
 
-The binary must be installed to `bin/` so CTP finds it as `build_release/bin/unittests_mymodule`.
+The binary must install to `bin/` so CTP discovers it.
 
-## Existing Unittest Binaries (reference)
+## Existing Unittest Binaries
 
 ```
 build_release/bin/unittests_area       — area/extent management
@@ -182,8 +174,6 @@ build_release/bin/unittests_lf         — lock-free data structures
 build_release/bin/unittests_snapshot   — MVCC snapshot logic
 ```
 
-These are examples of the naming and scope convention.
-
 ## Writing Rules
 
 1. **Binary name**: `unittests_<module>` — always plural, always `unittests_` prefix
@@ -191,21 +181,21 @@ These are examples of the naming and scope convention.
 3. **Print `fail`** for each failing assertion — CTP counts these
 4. **No external dependencies** beyond CUBRID internal headers — unittests run without a running CUBRID server
 5. **No broker, no server** — unittests test pure C/C++ logic, not server behavior
-6. **Build with `build_release`** target (`sh build.sh -t 64 -m release -b build_release`) or `build_debug` for debug builds
-7. **One logical module per binary** — keep scope narrow and focused
+6. **Build with `build_release`** (`sh build.sh -t 64 -m release -b build_release`) or `build_debug`
+7. **One logical module per binary**
 
-## Generation Process
+## Generation Checklist
 
-1. **Clarify**: Which CUBRID internal function, data structure, or algorithm to test?
-2. **Name**: pick `unittests_<module>` matching the module (e.g., `unittests_btree`, `unittests_heap`).
-3. **Draft**: C or C++ test file with assertions printing `FAIL:` on failure and `OK` on success.
-4. **CMake**: show how to add the binary to the build.
-5. **Self-review**:
-   - Does the program print `OK` or `success` when all tests pass?
-   - Does it print `fail` when any test fails?
+1. Clarify: which internal function/data structure to test.
+2. Name: `unittests_<module>` (e.g., `unittests_btree`, `unittests_heap`).
+3. Draft: C or C++ test file printing `FAIL:` on failure, `OK` on success.
+4. CMake: show how to add the binary to the build.
+5. Self-review:
+   - Prints `OK`/`success` when all tests pass?
+   - Prints `fail` when any test fails?
    - No hardcoded file paths or server dependencies?
-   - Binary will be named `unittests_<module>`?
-6. **Present**: source file content + CMakeLists.txt addition.
+   - Binary named `unittests_<module>`?
+6. Present: source file + CMakeLists.txt addition.
 
 ## Examples
 

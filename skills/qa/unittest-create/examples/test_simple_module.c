@@ -1,26 +1,11 @@
 /*
- * test_simple_module.c
- *
- * Example CUBRID unittest for an internal module.
- *
- * Compile (as part of CUBRID build):
- *   sh build.sh -t 64 -m release -b build_release
- *
- * The resulting binary must be named unittests_<module>:
- *   build_release/bin/unittests_simple_module
- *
- * CTP discovery: CTP scans $CUBRID/build_release/bin/unittests_* automatically.
- *
- * Pass criteria (CTP logic):
- *   PASS = output has 'OK' or 'success' AND no 'fail' or 'Unit tests failed'
- *   FAIL = output contains 'fail', OR no 'OK'/'success' found
+ * test_simple_module.c — Example CUBRID unittest.
+ * Binary: build_release/bin/unittests_simple_module
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-/* --- Minimal test harness ------------------------------------------------ */
 
 static int total = 0;
 static int failed = 0;
@@ -54,10 +39,7 @@ static int failed = 0;
         } \
     } while (0)
 
-/* --- Functions under test ------------------------------------------------
- * Replace these stubs with actual includes from CUBRID source.
- * Example: #include "some_module.h"
- */
+/* Replace stubs below with #include of the actual module header. */
 
 static int
 add (int a, int b)
@@ -71,8 +53,6 @@ get_greeting (void)
   return "hello";
 }
 
-/* --- Test functions ------------------------------------------------------- */
-
 static void
 test_add_positive (void)
 {
@@ -84,7 +64,6 @@ test_add_positive (void)
 static void
 test_add_overflow_guard (void)
 {
-  /* test with boundary values */
   CHECK_EQ_INT (add (2147483646, 1), 2147483647, "add near INT_MAX");
 }
 
@@ -94,8 +73,6 @@ test_greeting (void)
   CHECK_EQ_STR (get_greeting (), "hello", "greeting should be 'hello'");
   CHECK (strlen (get_greeting ()) > 0, "greeting should not be empty");
 }
-
-/* --- Main ---------------------------------------------------------------- */
 
 int
 main (void)

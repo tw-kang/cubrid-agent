@@ -1,27 +1,12 @@
 /*
- * test_simple_module.cpp
- *
- * Example CUBRID unittest in C++ for an internal module.
- *
- * Compile (as part of CUBRID build):
- *   sh build.sh -t 64 -m release -b build_release
- *
- * The resulting binary must be named unittests_<module>:
- *   build_release/bin/unittests_simple_module
- *
- * CTP discovery: CTP scans $CUBRID/build_release/bin/unittests_* automatically.
- *
- * Pass criteria (CTP logic):
- *   PASS = output has 'OK' or 'success' AND no 'fail' or 'Unit tests failed'
- *   FAIL = output contains 'fail', OR no 'OK'/'success' found
+ * test_simple_module.cpp — Example CUBRID unittest (C++).
+ * Binary: build_release/bin/unittests_simple_module
  */
 
 #include <iostream>
 #include <string>
 #include <vector>
 #include <cstring>
-
-/* --- Minimal test harness ------------------------------------------------ */
 
 static int total_checks = 0;
 static int failed_checks = 0;
@@ -46,10 +31,7 @@ static int failed_checks = 0;
         } \
     } while (0)
 
-/* --- Functions/classes under test ----------------------------------------
- * Replace these stubs with actual includes from CUBRID source.
- * Example: #include "some_module.hpp"
- */
+/* Replace stubs below with #include of the actual module header. */
 
 class StringHelper
 {
@@ -70,8 +52,6 @@ public:
     return s.substr (0, prefix.size ()) == prefix;
   }
 };
-
-/* --- Test functions ------------------------------------------------------- */
 
 static void
 test_trim_basic ()
@@ -101,8 +81,6 @@ test_trim_tabs_newlines ()
   CHECK_EQ (StringHelper::trim ("\t  cubrid  \n"), std::string ("cubrid"),
 	    "trim removes tabs and newlines");
 }
-
-/* --- Main ---------------------------------------------------------------- */
 
 int
 main ()

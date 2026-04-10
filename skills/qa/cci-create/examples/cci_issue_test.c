@@ -4,10 +4,6 @@
 #include "cas_cci.h"
 
 /* Issue test: verify cci_connect_with_url query_timeout option.
- * When a slow query exceeds the timeout, the connection should be
- * disconnected and cci_execute should return an error containing
- * "query time out".
- *
  * Usage: ./test <broker_port> <dbname> <timeout_ms>
  */
 
@@ -30,7 +26,6 @@ main (int argc, char *argv[])
   dbname = argv[2];
   timeout_ms = atoi (argv[3]);
 
-  /* connect with query_timeout and disconnect_on_query_timeout=yes */
   snprintf (url, sizeof (url),
 	    "cci:CUBRID:localhost:%d:%s:dba::?query_timeout=%d&disconnect_on_query_timeout=yes",
 	    port, dbname, timeout_ms);
@@ -42,7 +37,7 @@ main (int argc, char *argv[])
       return 1;
     }
 
-  /* run a slow query — cross join on db_class causes timeout */
+  /* cross join on db_class to trigger timeout */
   req = cci_prepare (conn,
 		     "SELECT 1 FROM db_class A, db_class B, db_class C",
 		     0, &error);
@@ -57,7 +52,6 @@ main (int argc, char *argv[])
   res = cci_execute (req, 0, 0, &error);
   if (res < 0)
     {
-      /* expect a timeout error */
       printf ("query time out: [%d] %s\n", error.err_code, error.err_msg);
     }
   else

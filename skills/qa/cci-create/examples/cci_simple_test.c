@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include "cas_cci.h"
 
-/* Simple CCI test: connect to ccidb, create a table, insert a row, select it.
+/* Simple CCI test: connect, create table, insert, select.
  * Usage: ./test <broker_port>
- * Output: printed to stdout, compared against cci_simple_test.answer
  */
 
 #define HOST "127.0.0.1"
@@ -34,7 +33,6 @@ main (int argc, char *argv[])
     }
   port = atoi (argv[1]);
 
-  /* connect */
   conn = cci_connect (HOST, port, DBNAME, USER, PASSWD);
   if (conn < 0)
     {
@@ -42,7 +40,6 @@ main (int argc, char *argv[])
       return 1;
     }
 
-  /* create table */
   req = cci_prepare (conn, "CREATE TABLE cci_test (id INT, name VARCHAR(50))",
 		     0, &error);
   if (req < 0)
@@ -58,7 +55,6 @@ main (int argc, char *argv[])
       goto disconnect;
     }
 
-  /* insert row */
   req = cci_prepare (conn, "INSERT INTO cci_test VALUES (1, 'hello')",
 		     0, &error);
   if (req < 0)
@@ -69,10 +65,8 @@ main (int argc, char *argv[])
   cci_execute (req, 0, 0, &error);
   cci_close_req_handle (req);
 
-  /* commit */
   cci_end_tran (conn, CCI_TRAN_COMMIT, &error);
 
-  /* select */
   req = cci_prepare (conn, "SELECT id, name FROM cci_test ORDER BY id",
 		     0, &error);
   if (req < 0)
@@ -90,7 +84,6 @@ main (int argc, char *argv[])
       goto disconnect;
     }
 
-  /* fetch and print each row */
   while (1)
     {
       res = cci_cursor (req, 1, CCI_CURSOR_CURRENT, &error);
@@ -104,18 +97,15 @@ main (int argc, char *argv[])
 
       cci_fetch (req, &error);
 
-      /* col 1: id */
       cci_get_data (req, 1, CCI_A_TYPE_STR, &val, &ind);
       printf ("%s ", val);
 
-      /* col 2: name */
       cci_get_data (req, 2, CCI_A_TYPE_STR, &val, &ind);
       printf ("%s\n", val);
     }
 
   cci_close_req_handle (req);
 
-  /* cleanup table */
   req = cci_prepare (conn, "DROP TABLE cci_test", 0, &error);
   if (req >= 0)
     {
