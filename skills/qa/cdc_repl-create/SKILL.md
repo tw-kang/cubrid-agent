@@ -9,11 +9,6 @@ Generate well-formed CUBRID CTP CDC replication testcase files (`.sql`).
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-CTP can exist in two forms:
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -41,7 +36,7 @@ Use the detected `$CTP_HOME` in all subsequent steps.
 
 ## What is CDC Replication Testing?
 
-CDC (Change Data Capture) is a mechanism that captures DML changes (INSERT/UPDATE/DELETE) from a source database in real-time and replicates them to a target database. CDC replication tests verify that captured changes are correctly and consistently applied to the target.
+CDC (Change Data Capture) captures DML changes (INSERT/UPDATE/DELETE) from a source database in real-time and replicates them to a target. CDC replication tests verify that captured changes are correctly applied to the target.
 
 ### CDC vs. HA Replication — Key Differences
 
@@ -59,9 +54,9 @@ CDC (Change Data Capture) is a mechanism that captures DML changes (INSERT/UPDAT
 
 ### CDC-Specific Components
 
-- **`CheckDiff.java`**: CDC-specific data consistency verifier. Compares source and target data after CDC replication completes. Not present in ha_repl.
-- **`CdcReplUtils.java`**: Utility functions specific to CDC operations (e.g., waiting for CDC sync, validating capture state).
-- **`cdc_test_helper`**: Native C tool (`cdc_test_helper/cdc_test_helper.c`) for CDC-specific test operations. Build with `cdc_test_helper/build.sh` before running tests.
+- **`CheckDiff.java`**: Compares source and target data after CDC replication completes (not present in ha_repl).
+- **`CdcReplUtils.java`**: Utility functions for CDC operations (sync waiting, capture state validation).
+- **`cdc_test_helper`**: Native C tool (`cdc_test_helper/cdc_test_helper.c`). Build with `cdc_test_helper/build.sh` before running tests.
 
 ## Testcase Markers
 
@@ -151,7 +146,7 @@ Always start with `/** ... */` comment:
 
 ### PRIMARY KEY is mandatory
 
-CDC tracks rows by primary key. A table without a PRIMARY KEY cannot be reliably replicated:
+CDC tracks rows by primary key — tables without one cannot be reliably replicated:
 
 ```sql
 -- CORRECT
@@ -163,9 +158,7 @@ CDC tracks rows by primary key. A table without a PRIMARY KEY cannot be reliably
 
 ### LOB (BLOB/CLOB) limitations
 
-BLOB and CLOB columns may not replicate correctly via CDC. Either:
-- Avoid LOB columns unless the test explicitly targets LOB CDC behavior
-- If testing LOB behavior, add a comment noting the known limitation
+BLOB/CLOB may not replicate correctly via CDC. Avoid LOB columns unless the test explicitly targets LOB CDC behavior.
 
 ### Composite primary keys
 
@@ -177,7 +170,7 @@ Allowed, but prefer single-column integer primary keys for clarity:
 
 ### CHECK queries must be deterministic
 
-Always include `ORDER BY` in `--check:` queries. Results are compared between source and target — non-deterministic ordering will cause false failures:
+Always include `ORDER BY` in `--check:` queries — non-deterministic ordering causes false failures:
 
 ```sql
 -- CORRECT
@@ -219,28 +212,17 @@ When testing joins or cross-table consistency, create all tables before any data
 
 ## Infrastructure Requirements
 
-CDC replication tests require a live CDC-enabled CUBRID environment:
-- Source DB node with CDC enabled
-- Target DB node configured to consume CDC events
-- `cdc_test_helper` built (`cdc_test_helper/build.sh`) and accessible
-- Config: `conf/cdc_repl.conf` pointing to source/target nodes
+Requires a CDC-enabled CUBRID environment (source + target nodes), `cdc_test_helper` built via `build.sh`, and `conf/cdc_repl.conf` pointing to both nodes. Cannot be run locally without a full CDC replication cluster.
 
-**These tests cannot be run locally without a full CDC replication environment.** When generating a testcase without access to such an environment, create the `.sql` file and note that execution requires a configured CDC cluster.
+## Generation Process — Self-Review Checklist
 
-## Generation Process
-
-1. **Clarify the test target**: JIRA issue ID, behavior under test (INSERT/UPDATE/DELETE/DDL/mixed), test type (bug fix / new feature).
-2. **Determine the directory path**: current date (year + half) for bug fixes, or release code for new features.
-3. **Draft the `.sql` file**: header → setup (DROP IF EXISTS + CREATE TABLE with PRIMARY KEY + COMMIT) → test blocks (--test: DML + COMMIT) → check blocks (--check: SELECT ORDER BY) → cleanup.
-4. **Self-review checklist**:
-   - Header present with CBRD issue ID and Coverage section?
-   - Every table has an explicit PRIMARY KEY?
-   - Every DML batch ends with `--test: COMMIT;`?
-   - Every `--check:` query has `ORDER BY`?
-   - `DROP TABLE IF EXISTS` before every `CREATE TABLE`?
-   - No LOB columns unless explicitly required?
-   - Cleanup at the bottom?
-5. **Present the output**: show file path and contents.
+- Header present with CBRD issue ID and Coverage section?
+- Every table has an explicit PRIMARY KEY?
+- Every DML batch ends with `--test: COMMIT;`?
+- Every `--check:` query has `ORDER BY`?
+- `DROP TABLE IF EXISTS` before every `CREATE TABLE`?
+- No LOB columns unless explicitly required?
+- Cleanup at the bottom?
 
 ## Examples
 
