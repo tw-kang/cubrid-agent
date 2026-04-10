@@ -9,11 +9,6 @@ Generate well-formed CUBRID CTP SQL testcase files (`.sql` + `.answer`).
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -36,16 +31,6 @@ If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediatel
 > - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
 > - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
-
-**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
-
-## Quick Start
-
-1. Gather context: JIRA issue ID, feature/bug under test, expected behavior.
-2. Determine directory path (bug fix vs. new feature).
-3. Generate the `.sql` file following format conventions below.
-4. Run the `.sql` via `sql-runone` skill to generate the `.answer` file.
-5. Output both file paths and contents.
 
 ## Directory Path Convention
 
@@ -173,14 +158,14 @@ cp sql/_13_issues/_26_1h/cases/${BASENAME}.result \
 
 If no build URL is available or CUBRID environment is not set up, create an empty `.answer` file and instruct the user to complete it later using `sql-runone`.
 
-## Generation Process
+## Self-Review Checklist
 
-1. **Clarify the test target**: JIRA issue ID, behavior under test, test type (bug fix / new feature).
-2. **Determine the directory path**: current date (year + half) for bug fixes, or release code for new features.
-3. **Draft the `.sql` file**: header → server-message → setup → evaluate sections → cleanup.
-4. **Generate `.answer`**: invoke `sql-runone` skill to run the test and copy `.result` → `.answer`.
-5. **Self-review**: header present? evaluate labels? DROP IF EXISTS? server-message paired? queryPlan needed?
-6. **Present the output**: show file paths and contents.
+Before presenting output, verify:
+- Header block present with CBRD number and coverage?
+- `evaluate` labels on each scenario?
+- `DROP TABLE IF EXISTS` before every `CREATE TABLE`?
+- `server-message on/off` paired correctly?
+- `.queryPlan` file needed?
 
 ## Examples
 
