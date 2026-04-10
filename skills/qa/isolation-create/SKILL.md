@@ -9,7 +9,7 @@ Generate well-formed CUBRID CTP isolation testcase files (`.ctl` format) for con
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
+CTP can exist in two forms:
 
 1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
 2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
@@ -29,7 +29,7 @@ fi
 ls $CTP_HOME/isolation/
 ```
 
-If `ctp.sh` is not found at any of the above paths, **stop immediately** and display:
+If `ctp.sh` is not found, stop and display:
 
 > "CTP is not installed. This skill cannot proceed.
 > Installation methods:
@@ -37,7 +37,7 @@ If `ctp.sh` is not found at any of the above paths, **stop immediately** and dis
 > - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
 
-**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
+Use the detected `$CTP_HOME` in all subsequent steps.
 
 ## Quick Start
 
@@ -213,12 +213,10 @@ Use `/* comment */` on its own line to label phases and improve readability. The
 
 ```
 C1: UPDATE t1 SET val = 1 WHERE id = 1;
-/* C2 tries to update same row — will block */
 C2: UPDATE t1 SET val = 2 WHERE id = 1;
 MC: wait until C1 ready;
 C1: COMMIT;
 MC: wait until C1 ready, C2 ready;
-/* C2 unblocked after C1 commits */
 C2: COMMIT;
 MC: wait until C2 ready;
 ```
@@ -227,12 +225,10 @@ MC: wait until C2 ready;
 
 ```
 C1: INSERT INTO t1 VALUES (1, 'uncommitted');
-/* C2 reads — should NOT see C1's uncommitted row under any isolation level */
 C2: SELECT * FROM t1;
 MC: wait until C2 ready;
 C1: COMMIT;
 MC: wait until C1 ready;
-/* C2 reads again — now sees C1's committed row (if RC or higher) */
 C2: SELECT * FROM t1;
 MC: wait until C2 ready;
 ```
@@ -241,11 +237,9 @@ MC: wait until C2 ready;
 
 ```
 C1: SELECT * FROM t1 WHERE val > 0;
-/* C2 inserts a new row */
 C2: INSERT INTO t1 VALUES (99, 'phantom');
 C2: COMMIT;
 MC: wait until C2 ready;
-/* C1 re-reads — under SERIALIZABLE, sees the same result as before */
 C1: SELECT * FROM t1 WHERE val > 0;
 C1: COMMIT;
 MC: wait until C1 ready;

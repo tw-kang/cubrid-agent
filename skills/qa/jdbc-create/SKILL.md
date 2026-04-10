@@ -9,7 +9,7 @@ Generate well-formed CUBRID CTP JDBC testcase files (JUnit 4 Java `.java` classe
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
+CTP can exist in two forms:
 
 1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
 2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
@@ -28,15 +28,13 @@ fi
 ls $CTP_HOME/conf/
 ```
 
-If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediately** and display:
+If `ctp.sh` or `conf/` is not found, stop and display:
 
 > "CTP is not installed. This skill cannot proceed.
 > Installation methods:
 > - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
 > - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
-
-**Proceed to the following steps only after CTP installation is confirmed.**
 
 ## Quick Start
 
@@ -97,7 +95,6 @@ import org.junit.Test;
 
 public class TestCbrdXXXXX {
 
-    // Connection properties — always read from jdbc.properties via PropertiesUtil
     private static final String DRIVER = PropertiesUtil.getValue(
             "jdbc.driverClassName", "jdbc.properties");
     private static final String URL = PropertiesUtil.getValue("jdbc.url",
@@ -113,19 +110,16 @@ public class TestCbrdXXXXX {
         Connection conn = DriverManager.getConnection(URL, USER, PASS);
         try {
             Statement stmt = conn.createStatement();
-            // setup
             stmt.execute("DROP TABLE IF EXISTS t1");
             stmt.execute("CREATE TABLE t1 (id INT PRIMARY KEY, val VARCHAR(100))");
             stmt.execute("INSERT INTO t1 VALUES (1, 'hello')");
 
-            // test
             ResultSet rs = stmt.executeQuery("SELECT * FROM t1 WHERE id = 1");
             Assert.assertTrue(rs.next());
             Assert.assertEquals(1, rs.getInt("id"));
             Assert.assertEquals("hello", rs.getString("val"));
             rs.close();
 
-            // cleanup
             stmt.execute("DROP TABLE IF EXISTS t1");
             stmt.close();
         } finally {

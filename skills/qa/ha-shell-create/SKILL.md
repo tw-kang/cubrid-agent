@@ -9,7 +9,7 @@ Generate well-formed CUBRID CTP HA shell testcase scripts for high-availability 
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-**Before executing this skill, verify CTP is installed and HA helpers are available:**
+Verify CTP is installed and HA helpers are available:
 
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
@@ -27,12 +27,10 @@ ls $CTP_HOME/shell/init_path/make_ha.sh
 ls $CTP_HOME/shell/init_path/ha_common.sh
 ```
 
-If `make_ha.sh` is not found, **stop immediately** and display:
+If `make_ha.sh` is not found, stop and display:
 
 > "CTP HA helpers not found. HA shell tests require make_ha.sh in CTP/shell/init_path/.
 > Installation: `git clone https://github.com/CUBRID/cubrid-testtools.git`"
-
-**Proceed only after CTP installation is confirmed.**
 
 ## Quick Start
 
@@ -97,9 +95,6 @@ set -x
 
 # --- Setup HA (creates hatestdb on both nodes, configures HA, starts heartbeat) ---
 setup_ha_environment
-
-# masterHostName and slaveHostName are set by setup_ha_environment
-# dbname=hatestdb is set by make_ha.sh
 
 # --- Test phase ---
 # (test logic here)

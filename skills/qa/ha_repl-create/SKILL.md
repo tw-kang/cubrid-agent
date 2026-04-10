@@ -9,7 +9,7 @@ Generate well-formed CUBRID CTP HA replication testcase files (`.sql` with `--te
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
+CTP can exist in two forms:
 
 1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
 2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
@@ -29,7 +29,7 @@ fi
 ls $CTP_HOME/conf/
 ```
 
-If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediately** and display:
+If `ctp.sh` or `conf/` is not found, stop and display:
 
 > "CTP is not installed. This skill cannot proceed.
 > Installation methods:
@@ -37,7 +37,7 @@ If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediatel
 > - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
 
-**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
+Use the detected `$CTP_HOME` in all subsequent steps.
 
 ## Quick Start
 
@@ -131,10 +131,6 @@ Always start with `/** ... */` comment:
 - Keep setup minimal; use simple names (`t1`, `t2`, `col1`)
 - Provide an explicit `PRIMARY KEY` on every table (CTP auto-adds one if missing, but explicit is clearer)
 
-### Primary keys
-
-Every table used in replication tests must have a primary key so that the slave can identify rows for row-based replication. If you omit it, `Convert.java` will inject one automatically — but prefer to define it explicitly.
-
 ### Commit discipline
 
 Place `--test: COMMIT;` after every logical batch of DML:
@@ -184,7 +180,7 @@ bin/ctp.sh ha_repl -c conf/ha_repl.conf
 
 Results: `$CTP_HOME/result/ha_repl/current_runtime_logs/`
 
-> Note: Unlike SQL testcases, ha_repl testcases do NOT have a corresponding `.answer` file. Pass/fail is determined by result-set equality between master and slave at each `--check:` point.
+> Unlike SQL testcases, ha_repl testcases do NOT have a corresponding `.answer` file. Pass/fail is determined by result-set equality between master and slave at each `--check:` point.
 
 ## Generation Process
 

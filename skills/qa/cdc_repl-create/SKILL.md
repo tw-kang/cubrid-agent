@@ -9,7 +9,7 @@ Generate well-formed CUBRID CTP CDC replication testcase files (`.sql`).
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
+CTP can exist in two forms:
 
 1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
 2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
@@ -29,7 +29,7 @@ fi
 ls $CTP_HOME/conf/
 ```
 
-If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediately** and display:
+If `ctp.sh` or `conf/` is not found, stop and display:
 
 > "CTP is not installed. This skill cannot proceed.
 > Installation methods:
@@ -37,7 +37,7 @@ If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediatel
 > - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
 
-**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
+Use the detected `$CTP_HOME` in all subsequent steps.
 
 ## What is CDC Replication Testing?
 
