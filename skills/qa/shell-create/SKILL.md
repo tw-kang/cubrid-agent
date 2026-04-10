@@ -9,11 +9,6 @@ Generate well-formed CUBRID CTP shell testcase scripts that pass review on the f
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-**Before executing this skill, verify CTP is installed. CTP can exist in two forms:**
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -37,20 +32,9 @@ If `ctp.sh` or `init.sh` is not found at any of the above paths, **stop immediat
 > - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
 
-**Proceed to the following steps only after CTP installation is confirmed. Use the detected `$CTP_HOME` in all subsequent steps.**
-
-## Quick Start
-
-1. Gather context: JIRA issue ID, feature under test, test scenario, expected behavior.
-2. Determine test type: bug fix, new feature, utility check, parameter verification, etc.
-3. Generate the script following the lifecycle contract and CTP conventions below.
-4. Output the directory path and file content.
-
 ## What Makes a Good Shell Testcase
 
-A CTP shell testcase is a self-contained script that sets up a CUBRID environment, exercises a specific behavior, verifies the result, and cleans up. The CTP framework handles execution, result collection, and regression tracking — the script just needs to follow the contract.
-
-Think of it as a 5-phase flow: **init → setup → test → verify → cleanup**.
+A self-contained script following a 5-phase flow: **init → setup → test → verify → cleanup**. The CTP framework handles execution, result collection, and regression tracking.
 
 ## Scope
 
@@ -125,13 +109,12 @@ finish
 ### Phase details
 
 **1. Shebang + summary comment**
-- Always start with `#!/bin/sh` (use `#!/bin/bash` only when bash features are actually needed)
-- Immediately after the shebang, add a comment block: issue ID + what the test verifies + brief setup/action/expected description
-- This comment is essential — reviewers use it to understand intent without reading the entire script
+- Start with `#!/bin/sh` (use `#!/bin/bash` only when bash features are needed)
+- Add a comment block with issue ID, what the test verifies, and brief setup/action/expected description
 
 **2. Source and init**
 - `. $init_path/init.sh` — loads all CTP helper functions
-- `init test` — initializes the test environment, sets up logging, clears previous state
+- `init test` — initializes test environment, sets up logging, clears previous state
 
 **3. Setup**
 - Create databases with `cubrid_createdb` (never raw `cubrid createdb`)
@@ -154,7 +137,7 @@ finish
 
 ## CTP Helper Functions
 
-These helpers exist for cross-platform compatibility, automatic cleanup tracking, and consistency. Always prefer them over raw commands.
+Always prefer these over raw commands (cross-platform compatibility, automatic cleanup tracking).
 
 ### Must-use helpers (using raw equivalents will fail review)
 
@@ -205,7 +188,7 @@ For the full helper reference, see `@references/init_sh_helpers.md`.
 
 ## Writing Rules
 
-These rules reflect what the shell-review skill checks. Following them means your generated testcase passes review without issues.
+These rules match what the shell-review skill checks.
 
 ### Shebang and portability
 - Default to `#!/bin/sh` — do NOT use bash-only syntax (`[[ ]]`, `source`, arrays, `<<<`, `function name {`, `local`)
@@ -267,35 +250,18 @@ WINDOWS_NOT_SUPPORTED
 . $init_path/init.sh
 ```
 
-## Generation Process
+## Self-Review Checklist
 
-When the user requests a testcase, follow this process:
-
-1. **Clarify the test target**: Ask for the JIRA issue ID (CBRD-XXXXX), the feature/bug being tested, and the expected behavior if not already provided.
-
-2. **Determine the directory path**: Based on whether it's a new feature or bug fix, construct the correct path following the convention above.
-
-3. **Generate the script**: Follow the lifecycle contract strictly. Include:
-   - Shebang-top summary comment with issue context
-   - All lifecycle phases (init → setup → test → verify → cleanup)
-   - CTP helpers (never raw commands)
-   - Error handling for fail-prone operations
-   - Inline SQL via heredocs
-   - Bounded waits (no unbounded loops)
-   - Proper cleanup ordering
-
-4. **Review your own output**: Before presenting, mentally run through the shell-review checklist:
-   - Lifecycle complete? (init.sh, init test, write_ok/write_nok, finish)
-   - CTP helpers used? (cubrid_createdb, change_db_parameter, xkill)
-   - No hardcoded paths?
-   - No unbounded loops?
-   - No orphan processes?
-   - SQL inline?
-   - Error handling present?
-   - Shebang-top comment present?
-   - Cleanup in reverse order?
-
-5. **Present the output**: Show the full directory path and script content. If the test scenario is complex, explain the test strategy briefly.
+Before presenting output, verify:
+- Lifecycle complete? (init.sh, init test, write_ok/write_nok, finish)
+- CTP helpers used? (cubrid_createdb, change_db_parameter, xkill)
+- No hardcoded paths?
+- No unbounded loops?
+- No orphan processes?
+- SQL inline?
+- Error handling present?
+- Shebang-top comment present?
+- Cleanup in reverse order?
 
 ## Examples
 
