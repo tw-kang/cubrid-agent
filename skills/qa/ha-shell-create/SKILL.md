@@ -9,8 +9,6 @@ Generate well-formed CUBRID CTP HA shell testcase scripts for high-availability 
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-Verify CTP is installed and HA helpers are available:
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -31,14 +29,6 @@ If `make_ha.sh` is not found, stop and display:
 
 > "CTP HA helpers not found. HA shell tests require make_ha.sh in CTP/shell/init_path/.
 > Installation: `git clone https://github.com/CUBRID/cubrid-testtools.git`"
-
-## Quick Start
-
-1. Gather context: JIRA issue ID, HA behavior under test, expected outcome.
-2. Determine test type: replication verify, failover, config change, etc.
-3. Determine directory path (bug fix vs. new feature release).
-4. Generate the script following the HA lifecycle contract below.
-5. Output the directory path and file content.
 
 ## HA Shell vs Regular Shell Tests
 
@@ -113,31 +103,18 @@ finish
 
 ### Phase details
 
-**1. Shebang + summary comment**
-- Always `#!/bin/bash` — HA helpers require bash (aliases, shopt, arithmetic)
-- Comment block: issue ID + what the test verifies + HA configuration required
+**Shebang + summary**: Always `#!/bin/bash` (HA helpers require bash). Comment block: issue ID, what the test verifies, HA config.
 
-**2. Source and init**
+**Source and init**:
 - `. $init_path/init.sh` — CTP core helpers (write_ok, write_nok, format_csql_output, finish)
-- `. $init_path/make_ha.sh` — HA environment helpers (reads HA.properties, defines run_on_slave aliases, sources make_ha_upper.sh)
-- `init test` — initializes CTP test logging
-- `set -x` — enables debug output (standard in HA tests)
+- `. $init_path/make_ha.sh` — HA helpers (reads HA.properties, defines run_on_slave, sources make_ha_upper.sh)
+- `init test` — initializes CTP test logging; `set -x` — enables debug output
 
-**3. Setup HA with `setup_ha_environment`**
-- Creates `hatestdb` on master AND slave
-- Modifies `cubrid.conf`, `cubrid_ha.conf`, `cubrid_broker.conf` and uploads to slave
-- Starts `cubrid heartbeat` on both nodes
-- Waits until master reaches `current HA running mode is active`
-- Auto-sets `masterHostName` (local hostname) and `slaveHostName` (remote)
+**`setup_ha_environment`**: Creates `hatestdb` on master AND slave, modifies and uploads `cubrid.conf`/`cubrid_ha.conf`/`cubrid_broker.conf`, starts heartbeat on both nodes, waits for active mode, auto-sets `masterHostName`/`slaveHostName`.
 
-**4. Test logic**
-- Execute DML on master, verify replication on slave
-- Use `wait_for_slave` before comparing master/slave data
-- Use `run_on_slave -c "..."` for all remote execution (never raw ssh)
+**Test logic**: Execute DML on master, use `wait_for_slave` before comparing, use `run_on_slave -c "..."` for all remote execution (never raw ssh).
 
-**5. Cleanup**
-- `revert_ha_environment` — destroys hatestdb on both nodes, reverts all config files
-- `finish` — must be the last call
+**Cleanup**: `revert_ha_environment` destroys hatestdb on both nodes and reverts all config files. `finish` must be the last call.
 
 ## HA Helper Functions Reference
 
@@ -254,20 +231,15 @@ run_on_slave -initfile $init_path/ha_common.sh -c "cleanup $dbname"
 9. **No hardcoded absolute paths** — use `$CUBRID`, `$currentPath`, `$init_path`
 10. **Bounded loops** — never `while true`; use `for ((i=0; i<N; i++))` with a limit
 
-## Generation Process
+## Generation Checklist
 
-1. **Clarify**: JIRA issue ID, HA scenario (replication/failover/config), expected behavior.
-2. **Path**: pick the correct `HA/shell/` subdirectory based on whether it's a bug or feature.
-3. **Draft**: follow the lifecycle contract; use `setup_ha_environment` / `revert_ha_environment`.
-4. **Self-review**:
-   - `#!/bin/bash`?
-   - Both `init.sh` AND `make_ha.sh` sourced?
-   - `setup_ha_environment` called before DB ops?
-   - `wait_for_slave` before master/slave comparison?
-   - `run_on_slave` (not ssh) for remote commands?
-   - `$masterHostName`/`$slaveHostName` (not hardcoded)?
-   - `revert_ha_environment` before `finish`?
-5. **Present**: show full directory path and script content.
+- `#!/bin/bash`?
+- Both `init.sh` AND `make_ha.sh` sourced?
+- `setup_ha_environment` called before DB ops?
+- `wait_for_slave` before master/slave comparison?
+- `run_on_slave` (not ssh) for remote commands?
+- `$masterHostName`/`$slaveHostName` (not hardcoded)?
+- `revert_ha_environment` before `finish`?
 
 ## Examples
 
