@@ -9,11 +9,6 @@ Generate well-formed CUBRID CTP JDBC testcase files (JUnit 4 Java `.java` classe
 
 ## Prerequisites — CTP Installation Check (mandatory first step)
 
-CTP can exist in two forms:
-
-1. **Deployed form**: `$HOME/CTP` (copied from cubrid-testtools)
-2. **Git clone form**: `~/cubrid-testtools/CTP` (repository used directly)
-
 ```bash
 # Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
 if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
@@ -35,13 +30,6 @@ If `ctp.sh` or `conf/` is not found, stop and display:
 > - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
 > - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
-
-## Quick Start
-
-1. Gather context: JIRA issue ID (or feature name), JDBC feature under test, expected behavior.
-2. Determine directory path and class name.
-3. Generate the `.java` file following structure and naming conventions below.
-4. Output the file path and contents.
 
 ## Directory Path Convention
 
@@ -137,27 +125,7 @@ public class TestCbrdXXXXX {
 
 ## PropertiesUtil — Connection Setup
 
-**Never hardcode connection URLs.** Always use `PropertiesUtil`:
-
-```java
-private static final String DRIVER = PropertiesUtil.getValue(
-        "jdbc.driverClassName", "jdbc.properties");
-private static final String URL = PropertiesUtil.getValue("jdbc.url",
-        "jdbc.properties");
-private static final String USER = PropertiesUtil.getValue("jdbc.username",
-        "jdbc.properties");
-private static final String PASS = PropertiesUtil.getValue("jdbc.password",
-        "jdbc.properties");
-```
-
-Then obtain a connection:
-
-```java
-Class.forName(DRIVER);
-Connection conn = DriverManager.getConnection(URL, USER, PASS);
-```
-
-`jdbc.properties` is populated at test runtime by CTP from `conf/jdbc.conf`.
+**Never hardcode connection URLs.** Use `PropertiesUtil` as shown in the template above. `jdbc.properties` is populated at test runtime by CTP from `conf/jdbc.conf`.
 
 ## JUnit Assert Reference
 
@@ -196,34 +164,15 @@ try {
 9. **throws declaration**: Declare `throws SQLException, ClassNotFoundException` on test methods that call `Class.forName`.
 10. **Method name must contain "test"**: CTP's `JdbcLocalTest` runner identifies test methods by substring "test".
 
-## @Ignore Usage
+## Self-Review Checklist
 
-Place `@Ignore` immediately before `@Test`:
-
-```java
-@Ignore
-@Test
-public void testDisabledFeature() throws SQLException, ClassNotFoundException {
-    // reason: not yet implemented in CUBRID 12.0
-}
-```
-
-Do not use `@Ignore` without `@Test`.
-
-## Generation Process
-
-1. **Clarify the test target**: JIRA issue ID or feature, behavior under test, JDBC API involved (Statement / PreparedStatement / ResultSet / Connection).
-2. **Determine directory and package**: CBRD issue → `cbrd/` package; feature → `spec/<area>/` package.
-3. **Determine class name**: `TestCbrdXXXXX` for issues, `TestFeatureName` for features.
-4. **Draft the `.java` file**: imports → static connection fields → `@Test` methods → helper methods if needed.
-5. **Self-review checklist**:
-   - `DROP TABLE IF EXISTS` before `CREATE TABLE`?
-   - Resources closed in `finally`?
-   - No hardcoded URLs?
-   - Method name contains "test"?
-   - `@Ignore` above `@Test` (not standalone)?
-   - Package matches directory?
-6. **Present the output**: show the destination path and full file contents.
+Before presenting output, verify:
+- `DROP TABLE IF EXISTS` before `CREATE TABLE`?
+- Resources closed in `finally`?
+- No hardcoded URLs?
+- Method name contains "test"?
+- `@Ignore` above `@Test` (not standalone)?
+- Package matches directory?
 
 ## Examples
 
