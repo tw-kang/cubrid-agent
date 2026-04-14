@@ -14,11 +14,210 @@ CUBRID skills for Claude Code (oh-my-claudecode)
 
 | Skill | 설명 |
 |-------|------|
+| [cci-create](cci-create/) | CTP CCI testcase 초안 생성 |
+| [cci-runone](cci-runone/) | CTP CCI testcase 단건 실행 및 결과 리포트 |
+| [cdc_repl-create](cdc_repl-create/) | CTP CDC replication testcase 초안 생성 |
+| [cdc_repl-runone](cdc_repl-runone/) | CTP CDC replication testcase 단건 실행 및 결과 리포트 |
+| [ha_repl-create](ha_repl-create/) | CTP HA replication testcase 초안 생성 |
+| [ha_repl-runone](ha_repl-runone/) | CTP HA replication testcase 단건 실행 및 결과 리포트 |
+| [ha-shell-create](ha-shell-create/) | CTP HA shell testcase 초안 생성 |
+| [ha-shell-runone](ha-shell-runone/) | CTP HA shell testcase 단건 실행 및 결과 리포트 |
+| [isolation-create](isolation-create/) | CTP isolation testcase 초안 생성 |
+| [isolation-runone](isolation-runone/) | CTP isolation testcase 단건 실행 및 결과 리포트 |
+| [jdbc-create](jdbc-create/) | CTP JDBC testcase 초안 생성 |
+| [jdbc-runone](jdbc-runone/) | CTP JDBC testcase 단건 실행 및 결과 리포트 |
 | [shell-create](shell-create/) | CTP shell testcase 초안 생성 |
 | [shell-review](shell-review/) | CTP shell testcase diff 리뷰 |
 | [shell-runone](shell-runone/) | CTP shell testcase 단건 실행 및 결과 리포트 |
 | [sql-create](sql-create/) | CTP SQL testcase (`.sql` + `.answer`) 초안 생성 |
 | [sql-runone](sql-runone/) | CTP SQL testcase 단건 실행 및 결과 리포트 |
+| [unittest-create](unittest-create/) | CTP C/C++ unittest 초안 생성 |
+| [unittest-runone](unittest-runone/) | CTP unittest 단건 실행 및 결과 리포트 |
+
+---
+
+### [cci-create](cci-create/)
+
+CTP CCI(C Client Interface) testcase 초안을 생성하는 스킬. CBRD 이슈 번호와 테스트 시나리오를 기반으로 `.c` 소스 파일과 CCI 테스트 스크립트를 생성합니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill cci-create
+```
+
+**사용 예시:**
+- "CBRD-12345 cci tc 만들어줘"
+- "create cci testcase for CBRD-12345"
+- "cci 테스트케이스 초안 작성해줘"
+
+---
+
+### [cci-runone](cci-runone/)
+
+로컬 머신에서 CTP CCI testcase 한 건을 실행하고 결과를 리포트하는 스킬.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill cci-runone
+```
+
+**사용 예시:**
+- "cbrd_12345 cci tc 돌려봐 (빌드 URL: http://...)"
+- "run cci test cbrd_12345"
+
+---
+
+### [cdc_repl-create](cdc_repl-create/)
+
+CTP CDC replication testcase (`.sql`) 초안을 생성하는 스킬. `--test:` / `--check:` 마커 형식을 준수합니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill cdc_repl-create
+```
+
+**사용 예시:**
+- "CBRD-12345 cdc_repl tc 만들어줘"
+- "create cdc replication tc for CBRD-12345"
+
+---
+
+### [cdc_repl-runone](cdc_repl-runone/)
+
+CTP CDC replication testcase 한 건을 실행하고 결과를 리포트하는 스킬. CDC 인프라(소스 + 타깃 노드) 설정이 필요합니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill cdc_repl-runone
+```
+
+**사용 예시:**
+- "cbrd_12345.sql cdc_repl 테스트 돌려봐"
+- "run cdc_repl test cbrd_12345"
+
+---
+
+### [ha_repl-create](ha_repl-create/)
+
+CTP HA replication testcase (`.sql`) 초안을 생성하는 스킬. `--test:` / `--check:` 마커 형식을 준수합니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill ha_repl-create
+```
+
+**사용 예시:**
+- "CBRD-12345 ha_repl tc 만들어줘"
+- "create ha replication tc for CBRD-12345"
+- "ha_repl tc 초안 작성해줘"
+
+---
+
+### [ha_repl-runone](ha_repl-runone/)
+
+CTP HA replication testcase 한 건을 실행하고 결과를 리포트하는 스킬. HA 인프라(마스터 + 슬레이브 노드) 설정이 필요합니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill ha_repl-runone
+```
+
+**사용 예시:**
+- "cbrd_12345.sql ha_repl 테스트 돌려봐"
+- "run ha_repl test cbrd_12345"
+
+---
+
+### [ha-shell-create](ha-shell-create/)
+
+CTP HA shell testcase (`.sh`) 초안을 생성하는 스킬. `make_ha.sh` 헬퍼를 활용한 HA 복제 테스트 스크립트를 생성합니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill ha-shell-create
+```
+
+**사용 예시:**
+- "CBRD-12345 ha shell tc 만들어줘"
+- "create ha shell tc for CBRD-12345"
+- "ha shell testcase 초안 작성해줘"
+
+---
+
+### [ha-shell-runone](ha-shell-runone/)
+
+로컬 HA 인프라에서 CTP HA shell testcase 한 건을 실행하고 결과를 리포트하는 스킬.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill ha-shell-runone
+```
+
+**사용 예시:**
+- "cbrd_12345 ha shell tc 돌려봐 (빌드 URL: http://...)"
+- "run ha shell test cbrd_12345"
+
+---
+
+### [isolation-create](isolation-create/)
+
+CTP isolation testcase (`.ctl`) 초안을 생성하는 스킬. CBRD 이슈 번호와 테스트 시나리오를 기반으로 격리 수준 테스트 파일을 생성합니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill isolation-create
+```
+
+**사용 예시:**
+- "CBRD-12345 isolation tc 만들어줘"
+- "create isolation tc for CBRD-12345"
+- "isolation testcase 초안 작성해줘"
+
+---
+
+### [isolation-runone](isolation-runone/)
+
+CTP isolation testcase 한 건을 실행하고 결과를 리포트하는 스킬.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill isolation-runone
+```
+
+**사용 예시:**
+- "cbrd_12345.ctl isolation 테스트 돌려봐"
+- "run isolation test cbrd_12345"
+
+---
+
+### [jdbc-create](jdbc-create/)
+
+CTP JDBC testcase (JUnit 4 Java `@Test` 메서드) 초안을 생성하는 스킬. CBRD 이슈 번호와 테스트 시나리오를 기반으로 Java 테스트 파일을 생성합니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill jdbc-create
+```
+
+**사용 예시:**
+- "CBRD-12345 jdbc tc 만들어줘"
+- "create jdbc testcase for CBRD-12345"
+- "jdbc 테스트케이스 초안 작성해줘"
+
+---
+
+### [jdbc-runone](jdbc-runone/)
+
+CTP JDBC testcase 한 건을 실행하고 결과를 리포트하는 스킬.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill jdbc-runone
+```
+
+**사용 예시:**
+- "cbrd_12345 jdbc tc 돌려봐 (빌드 URL: http://...)"
+- "run jdbc test cbrd_12345"
 
 ---
 
@@ -28,11 +227,7 @@ CTP shell testcase 초안을 생성하는 스킬. CBRD 이슈 번호와 테스�
 
 **설치:**
 ```bash
-# npx skills (권장)
 npx skills add tw-kang/skills --skill shell-create
-
-# 수동 복사
-cp -r shell-create ~/.claude/skills/
 ```
 
 **사용 예시:**
@@ -48,11 +243,7 @@ CTP shell testcase diff를 리뷰하는 스킬. 경로 규칙, 라이프사이�
 
 **설치:**
 ```bash
-# npx skills (권장)
 npx skills add tw-kang/skills --skill shell-review
-
-# 수동 복사
-cp -r shell-review ~/.claude/skills/
 ```
 
 **사용 예시:**
@@ -67,11 +258,7 @@ cp -r shell-review ~/.claude/skills/
 
 **설치:**
 ```bash
-# npx skills (권장)
 npx skills add tw-kang/skills --skill shell-runone
-
-# 수동 복사
-cp -r shell-runone ~/.claude/skills/
 ```
 
 **사용 예시:**
@@ -87,11 +274,7 @@ CTP SQL testcase (`.sql` + `.answer`) 초안을 생성하는 스킬. CBRD 이슈
 
 **설치:**
 ```bash
-# npx skills (권장)
 npx skills add tw-kang/skills --skill sql-create
-
-# 수동 복사
-cp -r sql-create ~/.claude/skills/
 ```
 
 **사용 예시:**
@@ -107,17 +290,44 @@ CTP SQL testcase 한 건을 CTP interactive mode로 실행하고 결과를 리�
 
 **설치:**
 ```bash
-# npx skills (권장)
 npx skills add tw-kang/skills --skill sql-runone
-
-# 수동 복사
-cp -r sql-runone ~/.claude/skills/
 ```
 
 **사용 예시:**
 - "cbrd_12345.sql 돌려봐 (빌드 URL: http://...)"
 - "이 sql tc 패스하는지 확인해줘"
 - "run sql tc cbrd_12345"
+
+---
+
+### [unittest-create](unittest-create/)
+
+CTP C/C++ unittest 초안을 생성하는 스킬. CUBRID 소스 코드 기반의 저수준 유닛 테스트를 생성합니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill unittest-create
+```
+
+**사용 예시:**
+- "CBRD-12345 unittest tc 만들어줘"
+- "create C unit test for CBRD-12345"
+- "유닛테스트 초안 작성해줘"
+
+---
+
+### [unittest-runone](unittest-runone/)
+
+CTP unittest 바이너리 한 건을 실행하고 결과를 리포트하는 스킬.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill unittest-runone
+```
+
+**사용 예시:**
+- "cbrd_12345 unittest 돌려봐"
+- "run unittest cbrd_12345"
 
 ---
 
@@ -130,7 +340,11 @@ cp -r sql-runone ~/.claude/skills/
 npx skills add tw-kang/skills --all
 
 # 수동 복사
-cp -r shell-create shell-review shell-runone sql-create sql-runone ~/.claude/skills/
+cp -r cci-create cci-runone cdc_repl-create cdc_repl-runone \
+      ha_repl-create ha_repl-runone ha-shell-create ha-shell-runone \
+      isolation-create isolation-runone jdbc-create jdbc-runone \
+      shell-create shell-review shell-runone sql-create sql-runone \
+      unittest-create unittest-runone ~/.claude/skills/
 ```
 
 설치 후 Claude Code를 재시작하거나 새 세션을 열면 스킬이 활성화됩니다.
