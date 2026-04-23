@@ -1,6 +1,6 @@
 ---
 name: cci-create
-description: Use this skill whenever the user wants to create, draft, write, or scaffold a new CCI testcase for CUBRID CTP. This is the right skill any time someone needs a new CCI (C Client Interface) test script and C source file. Common requests: "cci tc 만들어줘", "cci 테스트케이스 작성", "create cci testcase", "draft cci test for CBRD-XXXXX", "새 cci 테스트케이스". NOT for: cci_compatibility tests (use cci-compatibility-create), JDBC tests (use jdbc-create), regular shell tests (use shell-create).
+description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new CCI testcase for CUBRID CTP. This is the right skill any time someone needs a new CCI (C Client Interface) test script and C source file. Common requests: \"cci tc 만들어줘\", \"cci 테스트케이스 작성\", \"create cci testcase\", \"draft cci test for CBRD-XXXXX\", \"새 cci 테스트케이스\". NOT for: cci_compatibility tests (use cci-compatibility-create), JDBC tests (use jdbc-create), regular shell tests (use shell-create)."
 ---
 
 # CCI Testcase Creator (CTP)

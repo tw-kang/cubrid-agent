@@ -1,8 +1,6 @@
 ---
 name: sql-runone
-description: "Executes a single CUBRID SQL testcase (.sql file) through CTP and reports pass/fail with diff analysis. Invoke when the user wants to run one specific SQL test — Korean: 돌려봐, 수행해줘, 실행해봐, SQL tc 한건 확인, SQL 케이스 실행, 패스하는지 확인; English: \"run\", \"execute\", \"sql tc\", \"test this sql\". A CUBRID build URL alongside a .sql file path is a strong execution signal. Also handles sql_by_cci (CCI driver) when user explicitly says 'sqlbycci' or 'sql_by_cci'.
-
-Skip for: reviewing or editing SQL test files, creating new SQL tests, full regression suite runs."
+description: "Executes a single CUBRID SQL testcase (.sql file) through CTP and reports pass/fail with diff analysis. Invoke when the user wants to run one specific SQL test — Korean: 돌려봐, 수행해줘, 실행해봐, SQL tc 한건 확인, SQL 케이스 실행, 패스하는지 확인; English: \"run\", \"execute\", \"sql tc\", \"test this sql\". A CUBRID build URL alongside a .sql file path is a strong execution signal. Also handles sql_by_cci (CCI driver) when user explicitly says 'sqlbycci' or 'sql_by_cci'. Skip for: reviewing or editing SQL test files, creating new SQL tests, full regression suite runs."
 ---
 
 # SQL Testcase Runner (CTP Interactive Mode)
