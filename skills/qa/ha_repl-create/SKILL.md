@@ -1,6 +1,6 @@
 ---
 name: ha_repl-create
-description: Use this skill whenever the user wants to create, draft, write, or scaffold a new HA replication testcase (.sql) for CUBRID CTP ha_repl module. This is the right skill any time someone needs a new ha_repl test produced from scratch for a CBRD issue — bug fix or new feature. Common requests: "ha_repl tc 만들어줘", "ha replication testcase", "ha_repl tc 초안", "ha_repl tc 초안 작성해줘", "create ha_repl tc", "draft ha replication test", "새 ha_repl testcase", "ha replication 테스트케이스 작성", "create draft ha_repl tc for CBRD-XXXXX". NOT for: running existing ha_repl tests, reviewing diffs/PRs, CTP configuration, or general SQL scripting unrelated to CTP test creation.
+description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new HA replication testcase (.sql) for CUBRID CTP ha_repl module. This is the right skill any time someone needs a new ha_repl test produced from scratch for a CBRD issue — bug fix or new feature. Common requests: \"ha_repl tc 만들어줘\", \"ha replication testcase\", \"ha_repl tc 초안\", \"ha_repl tc 초안 작성해줘\", \"create ha_repl tc\", \"draft ha replication test\", \"새 ha_repl testcase\", \"ha replication 테스트케이스 작성\", \"create draft ha_repl tc for CBRD-XXXXX\". NOT for: running existing ha_repl tests, reviewing diffs/PRs, CTP configuration, or general SQL scripting unrelated to CTP test creation."
 ---
 
 # HA Replication Testcase Creator (CTP)

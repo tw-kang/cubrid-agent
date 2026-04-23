@@ -1,6 +1,6 @@
 ---
 name: jdbc-create
-description: Use this skill whenever the user wants to create, draft, write, or scaffold a new JDBC testcase (JUnit 4 Java @Test method) for CUBRID CTP. Common requests: "jdbc tc 만들어줘", "jdbc testcase", "jdbc tc 초안", "create jdbc test", "jdbc 테스트케이스 작성", "create jdbc tc for CBRD-XXXXX". NOT for: running existing JDBC tests, reviewing diffs/PRs, CTP configuration, or general Java coding unrelated to CTP test creation.
+description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new JDBC testcase (JUnit 4 Java @Test method) for CUBRID CTP. Common requests: \"jdbc tc 만들어줘\", \"jdbc testcase\", \"jdbc tc 초안\", \"create jdbc test\", \"jdbc 테스트케이스 작성\", \"create jdbc tc for CBRD-XXXXX\". NOT for: running existing JDBC tests, reviewing diffs/PRs, CTP configuration, or general Java coding unrelated to CTP test creation."
 ---
 
 # JDBC Testcase Creator (CTP)

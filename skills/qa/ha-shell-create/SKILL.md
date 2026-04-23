@@ -1,6 +1,6 @@
 ---
 name: ha-shell-create
-description: Use this skill whenever the user wants to create, draft, write, or scaffold a new HA shell testcase (.sh) for CUBRID CTP. This is the right skill any time someone needs a new HA replication test script produced from scratch for a CBRD issue. Common requests: "ha shell tc 만들어줘", "ha shell tc 초안 작성해줘", "create ha shell tc", "draft HA shell test", "새 ha 테스트케이스", "HA shell 테스트케이스 작성", "create draft ha shell tc for CBRD-XXXXX". NOT for: regular shell tests (use shell-create), ha_repl SQL-format tests (use ha_repl-create), debugging existing HA tests, or CTP configuration.
+description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new HA shell testcase (.sh) for CUBRID CTP. This is the right skill any time someone needs a new HA replication test script produced from scratch for a CBRD issue. Common requests: \"ha shell tc 만들어줘\", \"ha shell tc 초안 작성해줘\", \"create ha shell tc\", \"draft HA shell test\", \"새 ha 테스트케이스\", \"HA shell 테스트케이스 작성\", \"create draft ha shell tc for CBRD-XXXXX\". NOT for: regular shell tests (use shell-create), ha_repl SQL-format tests (use ha_repl-create), debugging existing HA tests, or CTP configuration."
 ---
 
 # HA Shell Testcase Creator (CTP)

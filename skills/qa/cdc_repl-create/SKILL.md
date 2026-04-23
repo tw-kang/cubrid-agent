@@ -1,6 +1,6 @@
 ---
 name: cdc_repl-create
-description: Use this skill whenever the user wants to create, draft, write, or scaffold a new CDC replication testcase (.sql) for CUBRID CTP. Common requests: "cdc_repl tc 만들어줘", "cdc replication testcase", "cdc tc 초안", "create cdc repl tc", "draft cdc test", "새 cdc 테스트케이스 작성", "create draft cdc tc for CBRD-XXXXX". NOT for: running existing CDC tests, reviewing diffs/PRs, CTP configuration, or general SQL scripting unrelated to CTP cdc_repl test creation.
+description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new CDC replication testcase (.sql) for CUBRID CTP. Common requests: \"cdc_repl tc 만들어줘\", \"cdc replication testcase\", \"cdc tc 초안\", \"create cdc repl tc\", \"draft cdc test\", \"새 cdc 테스트케이스 작성\", \"create draft cdc tc for CBRD-XXXXX\". NOT for: running existing CDC tests, reviewing diffs/PRs, CTP configuration, or general SQL scripting unrelated to CTP cdc_repl test creation."
 ---
 
 # CDC Replication Testcase Creator (CTP)

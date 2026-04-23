@@ -1,6 +1,6 @@
 ---
 name: unittest-create
-description: Use this skill whenever the user wants to create, draft, write, or scaffold a new C/C++ unit test for CUBRID CTP's unittest category. These are low-level unit tests compiled from CUBRID source code. Common requests: "unittest tc 만들어줘", "unit test 작성", "create unittest for CUBRID", "새 유닛테스트", "C unit test 추가". NOT for: CCI tests (use cci-create), shell tests (use shell-create), JDBC tests (use jdbc-create).
+description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new C/C++ unit test for CUBRID CTP's unittest category. These are low-level unit tests compiled from CUBRID source code. Common requests: \"unittest tc 만들어줘\", \"unit test 작성\", \"create unittest for CUBRID\", \"새 유닛테스트\", \"C unit test 추가\". NOT for: CCI tests (use cci-create), shell tests (use shell-create), JDBC tests (use jdbc-create)."
 ---
 
 # CUBRID Unittest Creator (CTP)

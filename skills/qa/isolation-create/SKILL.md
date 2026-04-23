@@ -1,6 +1,6 @@
 ---
 name: isolation-create
-description: Use this skill whenever the user wants to create, draft, write, or scaffold a new isolation testcase (.ctl) for CUBRID CTP. This is the right skill any time someone needs a new isolation test produced from scratch for a CBRD issue — bug fix or new feature. Common requests: "isolation tc 만들어줘", "isolation tc 초안 작성해줘", "create isolation tc", "draft isolation test", "새 isolation testcase", "isolation testcase 작성", "create draft isolation tc for CBRD-XXXXX". NOT for: running existing isolation tests, reviewing diffs/PRs, CTP configuration, or SQL/shell testcase creation.
+description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new isolation testcase (.ctl) for CUBRID CTP. This is the right skill any time someone needs a new isolation test produced from scratch for a CBRD issue — bug fix or new feature. Common requests: \"isolation tc 만들어줘\", \"isolation tc 초안 작성해줘\", \"create isolation tc\", \"draft isolation test\", \"새 isolation testcase\", \"isolation testcase 작성\", \"create draft isolation tc for CBRD-XXXXX\". NOT for: running existing isolation tests, reviewing diffs/PRs, CTP configuration, or SQL/shell testcase creation."
 ---
 
 # Isolation Testcase Creator (CTP)

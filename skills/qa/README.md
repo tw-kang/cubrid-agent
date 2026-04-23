@@ -1,6 +1,29 @@
 # skills
 
-CUBRID skills for Claude Code (oh-my-claudecode)
+CUBRID CTP skills installable across **Claude Code, Cursor, Codex, Gemini CLI, and [45+ other agents](https://github.com/vercel-labs/skills#available-agents)** via the [`skills`](https://github.com/vercel-labs/skills) CLI.
+
+## Installation
+
+**Prerequisites:** Node.js ≥ 18 (for `npx`)
+
+```bash
+# Install one skill to one or more agents (project scope by default)
+npx skills add tw-kang/skills -a claude-code -a codex -a cursor -s cci-create
+
+# Install to user (global) directory instead of project
+npx skills add tw-kang/skills -g -s cci-runone
+
+# Install every skill to every supported agent
+npx skills add tw-kang/skills --all
+
+# List available skills without installing
+npx skills add tw-kang/skills --list
+
+# Non-interactive (CI/CD)
+npx skills add tw-kang/skills -s shell-create -a claude-code -g -y
+```
+
+See the [`skills` CLI docs](https://github.com/vercel-labs/skills) for the full agent list, `--copy` vs symlink install strategy, and other commands (`npx skills list`, `npx skills update`, `npx skills remove`).
 
 > All skills in this repository were created using the [`skill-creator`](https://github.com/anthropics/skills/tree/main/skills/skill-creator) skill.
 >
@@ -336,10 +359,19 @@ npx skills add tw-kang/skills --skill unittest-runone
 모든 스킬을 한 번에 설치하려면:
 
 ```bash
-# npx skills (권장)
+# 기본: 모든 스킬을 모든 지원 에이전트(Claude/Cursor/Codex/Gemini/...)에 설치
 npx skills add tw-kang/skills --all
 
-# 수동 복사
+# 특정 에이전트만 대상
+npx skills add tw-kang/skills --all -a claude-code -a codex -a cursor -a gemini-cli
+
+# user-global 설치
+npx skills add tw-kang/skills --all -g
+```
+
+Fallback — 수동 복사 (Claude Code 전용, `skills` CLI를 쓰지 못하는 환경에서만):
+
+```bash
 cp -r cci-create cci-runone cdc_repl-create cdc_repl-runone \
       ha_repl-create ha_repl-runone ha-shell-create ha-shell-runone \
       isolation-create isolation-runone jdbc-create jdbc-runone \
@@ -347,4 +379,4 @@ cp -r cci-create cci-runone cdc_repl-create cdc_repl-runone \
       unittest-create unittest-runone ~/.claude/skills/
 ```
 
-설치 후 Claude Code를 재시작하거나 새 세션을 열면 스킬이 활성화됩니다.
+설치 후 해당 에이전트를 재시작하거나 새 세션을 열면 스킬이 활성화됩니다.

@@ -1,6 +1,6 @@
 ---
 name: shell-create
-description: Use this skill whenever the user wants to create, draft, write, or scaffold a new shell testcase (.sh) for CUBRID CTP. This is the right skill any time someone needs a new test script produced from scratch for a CBRD issue — bug fix or feature. Common requests: "shell tc 만들어줘", "shell tc 초안 작성해줘", "create shell tc", "draft shell test", "새 shell testcase", "create draft shell tc for CBRD-XXXXX". Users typically mention a CBRD issue number, what behavior to test, and sometimes a target release directory. NOT for: debugging existing tests, reviewing diffs/PRs, CTP configuration, explaining helper functions, or general bash scripting unrelated to CTP test creation.
+description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new shell testcase (.sh) for CUBRID CTP. This is the right skill any time someone needs a new test script produced from scratch for a CBRD issue — bug fix or feature. Common requests: \"shell tc 만들어줘\", \"shell tc 초안 작성해줘\", \"create shell tc\", \"draft shell test\", \"새 shell testcase\", \"create draft shell tc for CBRD-XXXXX\". Users typically mention a CBRD issue number, what behavior to test, and sometimes a target release directory. NOT for: debugging existing tests, reviewing diffs/PRs, CTP configuration, explaining helper functions, or general bash scripting unrelated to CTP test creation."
 ---
 
 # Shell Testcase Creator (CTP)
