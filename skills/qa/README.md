@@ -357,7 +357,7 @@ npx skills add tw-kang/skills --skill cubrid-unittest-tc-runone
 
 ### [jira](jira/)
 
-CUBRID JIRA 이슈를 조회해서 마크다운으로 보여주는 스킬. 스킬에 stdlib-only Python fetcher를 번들로 포함하므로 외부 의존성(Python 패키지/`uv`/별도 CLI)이 없습니다. `pandoc`이 있으면 Jira wiki markup이 깔끔한 마크다운으로 변환되고, 없으면 원문 그대로 출력됩니다.
+CUBRID JIRA 이슈를 조회해서 마크다운으로 보여주는 스킬. 스킬에 stdlib-only Python fetcher를 번들로 포함하므로 Python 패키지·`uv`·별도 CLI 등의 외부 의존성이 없습니다. 단, **`pandoc`은 필수**입니다 (Jira wiki markup → 마크다운 변환). `pandoc`이 없으면 스킬이 사용자에게 설치 여부를 먼저 묻고, 동의를 얻은 뒤 진행합니다.
 
 캐시 디렉토리: `--dir` → `$CUBRID_JIRA_DIR` → `~/.local/share/cubrid-jira/issues/` 순서로 결정. 한 번 받은 이슈는 캐시에 남아 다음 호출 때 네트워크 없이 즉시 출력됩니다.
 
