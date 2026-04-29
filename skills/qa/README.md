@@ -43,8 +43,8 @@ See the [`skills` CLI docs](https://github.com/vercel-labs/skills) for the full 
 | [cubrid-cdc_repl-tc-runone](cubrid-cdc_repl-tc-runone/) | CTP CDC replication testcase 단건 실행 및 결과 리포트 |
 | [cubrid-ha_repl-tc-create](cubrid-ha_repl-tc-create/) | CTP HA replication testcase 초안 생성 |
 | [cubrid-ha_repl-tc-runone](cubrid-ha_repl-tc-runone/) | CTP HA replication testcase 단건 실행 및 결과 리포트 |
-| [cubrid-ha-shell-tc-create](cubrid-ha-shell-tc-create/) | CTP HA shell testcase 초안 생성 |
-| [cubrid-ha-shell-tc-runone](cubrid-ha-shell-tc-runone/) | CTP HA shell testcase 단건 실행 및 결과 리포트 |
+| [cubrid-ha_shell-tc-create](cubrid-ha_shell-tc-create/) | CTP HA shell testcase 초안 생성 |
+| [cubrid-ha_shell-tc-runone](cubrid-ha_shell-tc-runone/) | CTP HA shell testcase 단건 실행 및 결과 리포트 |
 | [cubrid-isolation-tc-create](cubrid-isolation-tc-create/) | CTP isolation testcase 초안 생성 |
 | [cubrid-isolation-tc-runone](cubrid-isolation-tc-runone/) | CTP isolation testcase 단건 실행 및 결과 리포트 |
 | [cubrid-jdbc-tc-create](cubrid-jdbc-tc-create/) | CTP JDBC testcase 초안 생성 |
@@ -153,13 +153,13 @@ npx skills add tw-kang/skills --skill cubrid-ha_repl-tc-runone
 
 ---
 
-### [cubrid-ha-shell-tc-create](cubrid-ha-shell-tc-create/)
+### [cubrid-ha_shell-tc-create](cubrid-ha_shell-tc-create/)
 
 CTP HA shell testcase (`.sh`) 초안을 생성하는 스킬. `make_ha.sh` 헬퍼를 활용한 HA 복제 테스트 스크립트를 생성합니다.
 
 **설치:**
 ```bash
-npx skills add tw-kang/skills --skill cubrid-ha-shell-tc-create
+npx skills add tw-kang/skills --skill cubrid-ha_shell-tc-create
 ```
 
 **사용 예시:**
@@ -169,13 +169,13 @@ npx skills add tw-kang/skills --skill cubrid-ha-shell-tc-create
 
 ---
 
-### [cubrid-ha-shell-tc-runone](cubrid-ha-shell-tc-runone/)
+### [cubrid-ha_shell-tc-runone](cubrid-ha_shell-tc-runone/)
 
 로컬 HA 인프라에서 CTP HA shell testcase 한 건을 실행하고 결과를 리포트하는 스킬.
 
 **설치:**
 ```bash
-npx skills add tw-kang/skills --skill cubrid-ha-shell-tc-runone
+npx skills add tw-kang/skills --skill cubrid-ha_shell-tc-runone
 ```
 
 **사용 예시:**
@@ -411,7 +411,7 @@ Fallback — 수동 복사 (Claude Code 전용, `skills` CLI를 쓰지 못하는
 
 ```bash
 cp -r cubrid-cci-tc-create cubrid-cci-tc-runone cubrid-cdc_repl-tc-create cubrid-cdc_repl-tc-runone \
-      cubrid-ha_repl-tc-create cubrid-ha_repl-tc-runone cubrid-ha-shell-tc-create cubrid-ha-shell-tc-runone \
+      cubrid-ha_repl-tc-create cubrid-ha_repl-tc-runone cubrid-ha_shell-tc-create cubrid-ha_shell-tc-runone \
       cubrid-isolation-tc-create cubrid-isolation-tc-runone cubrid-jdbc-tc-create cubrid-jdbc-tc-runone \
       cubrid-shell-tc-create cubrid-shell-tc-review cubrid-shell-tc-runone cubrid-sql-tc-create cubrid-sql-tc-runone \
       cubrid-unittest-tc-create cubrid-unittest-tc-runone cubrid-test-fail-reasoning jira ~/.claude/skills/

@@ -1,6 +1,6 @@
 ---
-name: cubrid-ha-shell-tc-runone
-description: "Executes a single CUBRID HA shell testcase (.sh using make_ha.sh) on configured HA infrastructure and reports pass/fail. Requires master + slave nodes. Invoke when the user asks to run a specific HA shell test — Korean: ha shell tc 돌려봐, ha shell 테스트 실행; English: \"run ha shell test\". NOT for: creating tests (use cubrid-ha-shell-tc-create), regular shell tests (use cubrid-shell-tc-runone), running full regression."
+name: cubrid-ha_shell-tc-runone
+description: "Executes a single CUBRID HA shell testcase (.sh using make_ha.sh) on configured HA infrastructure and reports pass/fail. Requires master + slave nodes. Invoke when the user asks to run a specific HA shell test — Korean: ha shell tc 돌려봐, ha shell 테스트 실행; English: \"run ha shell test\". NOT for: creating tests (use cubrid-ha_shell-tc-create), regular shell tests (use cubrid-shell-tc-runone), running full regression."
 ---
 
 # HA Shell Testcase Runner (CTP)

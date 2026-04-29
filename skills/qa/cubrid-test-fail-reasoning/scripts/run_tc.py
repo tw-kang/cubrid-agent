@@ -48,7 +48,7 @@ import sys
 import time
 
 
-SHELL_LIKE = {"shell", "ha_shell", "ha-shell", "ha_repl", "cdc_repl", "isolation"}
+SHELL_LIKE = {"shell", "ha_shell", "ha_repl", "cdc_repl", "isolation"}
 
 # No bundled defaults — TC-root location is environment-specific.
 # Resolution: $CUBRID_TC_ROOT_<CATEGORY>  ->  $CUBRID_TC_ROOT  ->  None.

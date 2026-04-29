@@ -5,7 +5,7 @@ TC path with one of the recognized category prefixes (the parser's
 `HEADER_RE`):
 
 ```
-shell|sql|ha_shell|ha-shell|ha_repl|cdc_repl|isolation|jdbc|cci|unittest
+shell|sql|ha_shell|ha_repl|cdc_repl|isolation|jdbc|cci|unittest
 ```
 
 followed by `/<sub-path>/...<.sh|.sql|.test|...>`. All subsequent non-empty

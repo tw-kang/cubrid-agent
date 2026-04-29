@@ -1,6 +1,6 @@
 ---
 name: cubrid-test-fail-reasoning
-description: "Diagnose a batch of CUBRID regression test failures (shell, sql, isolation, jdbc, cci, ha-shell, ha_repl, cdc_repl, unittest) over a given commit range and produce a single report.md with suspect commits and answer-fix vs bug-report verdicts. Invoke whenever the user supplies (or asks for) a CUBRID test-failure analysis with a fail list + branch + commit range — Korean: 실패 분석, 실패 원인 추측, 회귀 원인, 11.x 실패 리포트, 실패 TC bisect, 답지 수정인지 버그인지; English: 'analyze failing CUBRID tests', 'bisect regression', 'fail reason report'. Requires all three inputs; refuses precisely if any is missing."
+description: "Diagnose a batch of CUBRID regression test failures (shell, sql, isolation, jdbc, cci, ha_shell, ha_repl, cdc_repl, unittest) over a given commit range and produce a single report.md with suspect commits and answer-fix vs bug-report verdicts. Invoke whenever the user supplies (or asks for) a CUBRID test-failure analysis with a fail list + branch + commit range — Korean: 실패 분석, 실패 원인 추측, 회귀 원인, 11.x 실패 리포트, 실패 TC bisect, 답지 수정인지 버그인지; English: 'analyze failing CUBRID tests', 'bisect regression', 'fail reason report'. Requires all three inputs; refuses precisely if any is missing."
 ---
 
 # CUBRID Test Failure Reasoning
@@ -92,7 +92,7 @@ Each row in `failures.json` carries a `runone_skill` selected by the leading dir
 | TC path prefix | Routes to | Script handler |
 | --- | --- | --- |
 | `shell/` | `cubrid-shell-tc-runone` | shell |
-| `ha_shell/` or `ha-shell/` | `cubrid-ha-shell-tc-runone` | shell |
+| `ha_shell/` | `cubrid-ha_shell-tc-runone` | shell |
 | `ha_repl/` | `cubrid-ha_repl-tc-runone` | shell |
 | `cdc_repl/` | `cubrid-cdc_repl-tc-runone` | shell |
 | `isolation/` | `cubrid-isolation-tc-runone` | shell |

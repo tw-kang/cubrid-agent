@@ -43,8 +43,7 @@ from typing import Iterable
 CATEGORY_TO_RUNONE: dict[str, str] = {
     "shell":     "cubrid-shell-tc-runone",
     "sql":       "cubrid-sql-tc-runone",
-    "ha_shell":  "cubrid-ha-shell-tc-runone",
-    "ha-shell":  "cubrid-ha-shell-tc-runone",
+    "ha_shell":  "cubrid-ha_shell-tc-runone",
     "ha_repl":   "cubrid-ha_repl-tc-runone",
     "cdc_repl":  "cubrid-cdc_repl-tc-runone",
     "isolation": "cubrid-isolation-tc-runone",
