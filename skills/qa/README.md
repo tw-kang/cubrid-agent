@@ -56,6 +56,7 @@ See the [`skills` CLI docs](https://github.com/vercel-labs/skills) for the full 
 | [cubrid-sql-tc-runone](cubrid-sql-tc-runone/) | CTP SQL testcase 단건 실행 및 결과 리포트 |
 | [cubrid-unittest-tc-create](cubrid-unittest-tc-create/) | CTP C/C++ unittest 초안 생성 |
 | [cubrid-unittest-tc-runone](cubrid-unittest-tc-runone/) | CTP unittest 단건 실행 및 결과 리포트 |
+| [jira](jira/) | CUBRID JIRA 이슈 조회 (캐시 우선, stdlib-only) |
 
 ---
 
@@ -354,6 +355,26 @@ npx skills add tw-kang/skills --skill cubrid-unittest-tc-runone
 
 ---
 
+### [jira](jira/)
+
+CUBRID JIRA 이슈를 조회해서 마크다운으로 보여주는 스킬. 스킬에 stdlib-only Python fetcher를 번들로 포함하므로 외부 의존성(Python 패키지/`uv`/별도 CLI)이 없습니다. `pandoc`이 있으면 Jira wiki markup이 깔끔한 마크다운으로 변환되고, 없으면 원문 그대로 출력됩니다.
+
+캐시 디렉토리: `--dir` → `$CUBRID_JIRA_DIR` → `~/.local/share/cubrid-jira/issues/` 순서로 결정. 한 번 받은 이슈는 캐시에 남아 다음 호출 때 네트워크 없이 즉시 출력됩니다.
+
+번들된 fetcher 로직은 [vimkim/cubrid-jira-fetcher](https://github.com/vimkim/cubrid-jira-fetcher)에서 가져왔습니다.
+
+**설치:**
+```bash
+npx skills add tw-kang/skills --skill jira
+```
+
+**사용 예시:**
+- "CBRD-26463 봐줘"
+- "이 JIRA 이슈 요약해줘 (CBRD-25123)"
+- "what's CBRD-26463 about?"
+
+---
+
 ## 전체 설치
 
 모든 스킬을 한 번에 설치하려면:
@@ -376,7 +397,7 @@ cp -r cubrid-cci-tc-create cubrid-cci-tc-runone cubrid-cdc_repl-tc-create cubrid
       cubrid-ha_repl-tc-create cubrid-ha_repl-tc-runone cubrid-ha-shell-tc-create cubrid-ha-shell-tc-runone \
       cubrid-isolation-tc-create cubrid-isolation-tc-runone cubrid-jdbc-tc-create cubrid-jdbc-tc-runone \
       cubrid-shell-tc-create cubrid-shell-tc-review cubrid-shell-tc-runone cubrid-sql-tc-create cubrid-sql-tc-runone \
-      cubrid-unittest-tc-create cubrid-unittest-tc-runone ~/.claude/skills/
+      cubrid-unittest-tc-create cubrid-unittest-tc-runone jira ~/.claude/skills/
 ```
 
 설치 후 해당 에이전트를 재시작하거나 새 세션을 열면 스킬이 활성화됩니다.
