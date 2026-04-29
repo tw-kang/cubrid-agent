@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Provide a working CUBRID install at --target, using a pluggable backend.
 
-Backends (selected by env var CUBRID_BUILD_BACKEND):
+Backends (selected by env var CUBRID_BUILD_BACKEND, default `pod`):
 
-  pod  (default)
-      Build CUBRID inside the configured Kubernetes build pod, tar, kubectl-cp
-      out, extract locally. The pod name comes from CUBRID_BUILD_POD (default:
-      cubridci-build-5d85b4566c-g4twr). Build steps mirror what works on the
-      cent6_9 image: source devtoolset-8, ninja generator, build target only.
+  pod
+      Build CUBRID inside a Kubernetes build pod, tar, kubectl-cp out, extract
+      locally. Requires `kubectl` on PATH and `CUBRID_BUILD_POD` set to the
+      target pod name. The build inside the pod uses devtoolset-8 + ninja.
 
   url
-      Download a prebuilt CUBRID tarball from CUBRID_BUILD_URL and extract.
-      Designed for the future flow where the pod is replaced by an HTTP
-      artifact endpoint.
+      Download a prebuilt CUBRID tarball from `CUBRID_BUILD_URL` and extract.
+      The portable, deployment-friendly path; no kubectl required.
+
+Default --target resolution:
+  $CUBRID_INSTALL  ->  ./CUBRID  (current working directory)
 
 The script is idempotent: if --target already contains a cubrid_rel whose
 short SHA matches --commit, the build is skipped (override with --force).
@@ -76,7 +77,11 @@ POD_BUILD_SCRIPT = textwrap.dedent("""\
 
 def build_via_pod(branch: str, commit: str | None, pod: str, target: str) -> None:
     if not shutil.which("kubectl"):
-        sys.exit("[build_cubrid] kubectl not found in PATH (pod backend requires it)")
+        sys.exit(
+            "[build_cubrid] kubectl not found in PATH. The `pod` backend "
+            "requires it. Either install kubectl, or switch to the portable "
+            "`url` backend: set CUBRID_BUILD_BACKEND=url and CUBRID_BUILD_URL."
+        )
     log(f"backend=pod pod={pod} branch={branch} commit={commit or '(branch tip)'}")
     checkout_commit = f"git checkout {commit}" if commit else ""
     sh = POD_BUILD_SCRIPT.format(branch=branch, checkout_commit=checkout_commit)
@@ -100,7 +105,12 @@ def main() -> None:
     ap.add_argument("--branch", required=True)
     ap.add_argument("--commit", default=None,
                     help="optional explicit commit; if omitted, build from branch tip")
-    ap.add_argument("--target", default="/home/dev/CUBRID")
+    ap.add_argument(
+        "--target",
+        default=os.environ.get("CUBRID_INSTALL")
+        or os.path.join(os.getcwd(), "CUBRID"),
+        help="local install dir (default: $CUBRID_INSTALL or ./CUBRID)",
+    )
     ap.add_argument("--force", action="store_true",
                     help="rebuild even if local install matches commit")
     args = ap.parse_args()
@@ -118,7 +128,13 @@ def main() -> None:
             sys.exit("[build_cubrid] CUBRID_BUILD_BACKEND=url requires CUBRID_BUILD_URL")
         build_via_url(url, args.target)
     elif backend == "pod":
-        pod = os.environ.get("CUBRID_BUILD_POD", "cubridci-build-5d85b4566c-g4twr")
+        pod = os.environ.get("CUBRID_BUILD_POD")
+        if not pod:
+            sys.exit(
+                "[build_cubrid] CUBRID_BUILD_BACKEND=pod requires CUBRID_BUILD_POD "
+                "to be set to the build pod name. For deployments without a pod, "
+                "use CUBRID_BUILD_BACKEND=url + CUBRID_BUILD_URL instead."
+            )
         build_via_pod(args.branch, args.commit, pod, args.target)
     else:
         sys.exit(f"[build_cubrid] unknown CUBRID_BUILD_BACKEND={backend!r}")

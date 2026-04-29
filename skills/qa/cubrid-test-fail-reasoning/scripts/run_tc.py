@@ -2,16 +2,23 @@
 """Run each failing TC and capture pass/fail + structured diff.
 
 For shell-style TCs (.sh — covers shell, ha_shell, ha_repl, cdc_repl,
-isolation), this script replicates the steps documented in
-/home/dev/skills/cubrid-shell-tc-runone/SKILL.md so that no LLM dispatch is
-needed: source ~/.cubrid.sh, set CTP_HOME and init_path, clean stale CUBRID
-processes, cd into <test>/cases/, run `timeout 300 sh <tc>`, then read the
-emitted .result file.
+isolation), this script replicates the lifecycle documented in the
+`cubrid-shell-tc-runone` skill so that no LLM dispatch is needed: source
+~/.cubrid.sh, set CTP_HOME and init_path, clean stale CUBRID processes,
+cd into <test>/cases/, run `timeout 300 sh <tc>`, then read the emitted
+.result file.
 
 For non-shell TCs (sql, jdbc, cci, unittest), the script emits status=DELEGATE
 together with the right runone skill name. The orchestrating agent should then
-read the corresponding /home/dev/skills/cubrid-<category>-tc-runone/SKILL.md
-and run that TC by hand.
+invoke the matching `cubrid-<category>-tc-runone` skill (resolved via Claude's
+available_skills registry) and run that TC by hand.
+
+Test-root resolution per category:
+  $CUBRID_TC_ROOT_<CATEGORY>   (e.g. CUBRID_TC_ROOT_SHELL)
+  $CUBRID_TC_ROOT              (shared fallback for all categories)
+If neither is set for a category, that TC is skipped with status=NO_TEST_ROOT.
+
+CTP location: $CTP_HOME (no built-in default — set it explicitly).
 
 Output JSON shape:
 {
@@ -43,18 +50,8 @@ import time
 
 SHELL_LIKE = {"shell", "ha_shell", "ha-shell", "ha_repl", "cdc_repl", "isolation"}
 
-DEFAULT_TC_ROOTS: dict[str, str] = {
-    "shell":     "/home/dev/cubrid-testcases-private-ex",
-    "sql":       "/home/dev/cubrid-testcases-private",
-    "ha_shell":  "/home/dev/cubrid-testcases-private-ex",
-    "ha-shell":  "/home/dev/cubrid-testcases-private-ex",
-    "ha_repl":   "/home/dev/cubrid-testcases-private-ex",
-    "cdc_repl":  "/home/dev/cubrid-testcases-private-ex",
-    "isolation": "/home/dev/cubrid-testcases-private-ex",
-    "jdbc":      "/home/dev/cubrid-testcases-private-ex",
-    "cci":       "/home/dev/cubrid-testcases-private-ex",
-    "unittest":  "/home/dev/cubrid-testcases-private-ex",
-}
+# No bundled defaults — TC-root location is environment-specific.
+# Resolution: $CUBRID_TC_ROOT_<CATEGORY>  ->  $CUBRID_TC_ROOT  ->  None.
 
 RESULT_LINE_RE = re.compile(r"^[a-z0-9_]+-\d+ : (OK|NOK)\s*$")
 
@@ -64,10 +61,8 @@ def log(msg: str) -> None:
 
 
 def find_test_root(category: str) -> str | None:
-    return os.environ.get(
-        f"CUBRID_TC_ROOT_{category.upper().replace('-', '_')}",
-        DEFAULT_TC_ROOTS.get(category),
-    )
+    key = f"CUBRID_TC_ROOT_{category.upper().replace('-', '_')}"
+    return os.environ.get(key) or os.environ.get("CUBRID_TC_ROOT")
 
 
 def cleanup_stale_cubrid() -> None:
@@ -118,7 +113,12 @@ def run_shell_tc(tc_path: str, test_root: str, timeout: int = 300) -> dict:
 
     cleanup_stale_cubrid()
 
-    ctp_home = os.environ.get("CTP_HOME", "/home/dev/cubrid-testtools/CTP")
+    ctp_home = os.environ.get("CTP_HOME")
+    if not ctp_home:
+        return {"status": "NOK", "full_path": full,
+                "result_lines": ["<CTP_HOME is not set; cannot run shell TC>"],
+                "failing_diffs": [],
+                "duration_s": 0.0}
     init_path = f"{ctp_home}/shell/init_path"
     cmd = (
         f"source ~/.cubrid.sh && "
@@ -180,7 +180,7 @@ def main() -> None:
         else:
             r = {"status": "DELEGATE",
                  "delegate_hint": (
-                     f"invoke /home/dev/skills/{fail['runone_skill']}/SKILL.md"
+                     f"invoke the `{fail['runone_skill']}` skill"
                  )}
         runs.append({**fail, **r})
 

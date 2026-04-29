@@ -8,7 +8,7 @@ controlled by `CUBRID_BUILD_BACKEND`.
 
 ```
 CUBRID_BUILD_BACKEND=pod
-CUBRID_BUILD_POD=cubridci-build-5d85b4566c-g4twr   # or whatever pod is current
+CUBRID_BUILD_POD=<your build pod name>             # required — no built-in default
 ```
 
 Steps run inside the pod:
@@ -30,7 +30,7 @@ Steps run inside the pod:
    we only need the install tree.
 6. `tar czf /tmp/CUBRID.tar.gz -C /home CUBRID`.
 7. `kubectl cp <pod>:/tmp/CUBRID.tar.gz <local>` and extract to `--target`
-   (default `/home/dev/CUBRID`).
+   (default: `$CUBRID_INSTALL` or `./CUBRID` in the current working directory).
 
 ## url backend (future)
 
