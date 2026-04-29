@@ -56,6 +56,7 @@ See the [`skills` CLI docs](https://github.com/vercel-labs/skills) for the full 
 | [cubrid-sql-tc-runone](cubrid-sql-tc-runone/) | CTP SQL testcase 단건 실행 및 결과 리포트 |
 | [cubrid-unittest-tc-create](cubrid-unittest-tc-create/) | CTP C/C++ unittest 초안 생성 |
 | [cubrid-unittest-tc-runone](cubrid-unittest-tc-runone/) | CTP unittest 단건 실행 및 결과 리포트 |
+| [cubrid-test-fail-reasoning](cubrid-test-fail-reasoning/) | Bisect a batch of failing CUBRID testcases over a commit range; emit a single report.md with suspect commits and answer-fix / bug-report verdicts |
 | [jira](jira/) | CUBRID JIRA 이슈 조회 (캐시 우선, stdlib-only) |
 
 ---
@@ -355,6 +356,22 @@ npx skills add tw-kang/skills --skill cubrid-unittest-tc-runone
 
 ---
 
+### [cubrid-test-fail-reasoning](cubrid-test-fail-reasoning/)
+
+End-to-end pipeline that takes a fail list + branch + commit range, runs every failing testcase, identifies the introducing commit per failure via diff-token bisect (`git log -G`), and writes a single tabulated `report.md` with answer-fix / bug-report verdicts. Bundles all logic as Python stdlib scripts; build is produced via a pluggable backend (kubectl pod or HTTP tarball URL — `kubectl` is gated behind a user-consent prompt). Hard-refuses unless all three inputs (fail list, branch, commit range) are provided.
+
+**Install:**
+```bash
+npx skills add tw-kang/skills --skill cubrid-test-fail-reasoning
+```
+
+**Examples:**
+- "release/11.3 fail list /tmp/fail.txt 분석해줘 (range good_sha..bad_sha)"
+- "이게 답지 수정인지 버그인지 봐줘"
+- "bisect regression on develop a1b2c3d..e5f6789"
+
+---
+
 ### [jira](jira/)
 
 CUBRID JIRA 이슈를 조회해서 마크다운으로 보여주는 스킬. 스킬에 stdlib-only Python fetcher를 번들로 포함하므로 Python 패키지·`uv`·별도 CLI 등의 외부 의존성이 없습니다. 단, **`pandoc`은 필수**입니다 (Jira wiki markup → 마크다운 변환). `pandoc`이 없으면 스킬이 사용자에게 설치 여부를 먼저 묻고, 동의를 얻은 뒤 진행합니다.
@@ -397,7 +414,7 @@ cp -r cubrid-cci-tc-create cubrid-cci-tc-runone cubrid-cdc_repl-tc-create cubrid
       cubrid-ha_repl-tc-create cubrid-ha_repl-tc-runone cubrid-ha-shell-tc-create cubrid-ha-shell-tc-runone \
       cubrid-isolation-tc-create cubrid-isolation-tc-runone cubrid-jdbc-tc-create cubrid-jdbc-tc-runone \
       cubrid-shell-tc-create cubrid-shell-tc-review cubrid-shell-tc-runone cubrid-sql-tc-create cubrid-sql-tc-runone \
-      cubrid-unittest-tc-create cubrid-unittest-tc-runone jira ~/.claude/skills/
+      cubrid-unittest-tc-create cubrid-unittest-tc-runone cubrid-test-fail-reasoning jira ~/.claude/skills/
 ```
 
 설치 후 해당 에이전트를 재시작하거나 새 세션을 열면 스킬이 활성화됩니다.
