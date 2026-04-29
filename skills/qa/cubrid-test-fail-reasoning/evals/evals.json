@@ -1,0 +1,23 @@
+{
+  "skill_name": "cubrid-test-fail-reasoning",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a fail list at /tmp/fail.txt for the 11.3.5 release. Branch is release/11.3, commit range e028ad0a01f1ae918197a79cdb2ee900fe3f565e..2006ab10fdf7bfe582c83991f941ee894501e00c. Run the tests and produce report.md.",
+      "expected_output": "Skill validates inputs, builds CUBRID via pod, runs each failing TC, identifies suspect commit f1f5e9894 [CBRD-26059] for the bind_var_cnt-related failures, and writes report.md with the per-row table plus a 'Root-cause groups' section.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Analyze these failing CUBRID tests for me — fail list at /tmp/fail.txt. (no branch given)",
+      "expected_output": "Skill REFUSES with a precise message naming --branch and --commit-range as missing. No build is started, no kubectl call is made.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "fail.txt is /tmp/fail.txt, branch develop, commit range a1b2c3d..e5f6789. Tell me which are answer-fix vs bug-report.",
+      "expected_output": "Skill validates inputs (commit-range short shas pass the regex check), proceeds with the pipeline, and produces a report.md whose Verdict column is populated as answer-fix or bug-report per row according to the heuristic in references/reasoning_steps.md.",
+      "files": []
+    }
+  ]
+}
