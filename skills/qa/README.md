@@ -59,6 +59,15 @@ See the [`skills` CLI docs](https://github.com/vercel-labs/skills) for the full 
 | [cubrid-test-fail-reasoning](cubrid-test-fail-reasoning/) | Bisect a batch of failing CUBRID testcases over a commit range; emit a single report.md with suspect commits and answer-fix / bug-report verdicts |
 | [jira](jira/) | CUBRID JIRA 이슈 조회 (캐시 우선, stdlib-only) |
 
+## JIRA 스킬 자동 호출 (cross-cutting)
+
+`cubrid-*-tc-create` / `cubrid-*-tc-runone` / `cubrid-shell-tc-review` / `cubrid-test-fail-reasoning` 스킬은 요청에 `CBRD-XXXXX` 또는 `cbrd_XXXXX` 토큰이 포함된 경우 [jira](jira/) 스킬을 **먼저 호출**해서 이슈 컨텍스트(제목, 설명, 재현 절차, 영향 컴포넌트, 코멘트)를 가져옵니다. 이 컨텍스트가 testcase 작성 범위·기대 동작·실패 진단 정확도를 크게 향상시킵니다.
+
+- `jira` 스킬이 설치되어 있지 않으면 호출하는 스킬이 사용자에게 설치 동의를 요청합니다 (`npx skills add tw-kang/skills -s jira -a claude-code`).
+- 따라서 위 스킬들 중 하나라도 사용한다면 `jira` 스킬을 함께 설치하기를 권장합니다.
+- `jira` 스킬은 `pandoc`을 필요로 합니다 — 없을 경우 description/comments가 raw Jira-wiki 마크업으로 출력됩니다 (degraded readability). 호출 측 스킬은 `pandoc` 부재 시 경고를 먼저 출력합니다.
+- 디스커버리 경로: `$(pwd)/.claude/skills/jira` → `$HOME/.claude/skills/jira` → `$HOME/.claude/plugins/skills/jira` → `$HOME/skills/jira` → `${CLAUDE_PLUGIN_ROOT}/skills/jira`.
+
 ---
 
 ### [cubrid-cci-tc-create](cubrid-cci-tc-create/)
@@ -379,6 +388,8 @@ CUBRID JIRA 이슈를 조회해서 마크다운으로 보여주는 스킬. 스�
 캐시 디렉토리: `--dir` → `$CUBRID_JIRA_DIR` → `~/.local/share/cubrid-jira/issues/` 순서로 결정. 한 번 받은 이슈는 캐시에 남아 다음 호출 때 네트워크 없이 즉시 출력됩니다.
 
 번들된 fetcher 로직은 [vimkim/cubrid-jira-fetcher](https://github.com/vimkim/cubrid-jira-fetcher)에서 가져왔습니다.
+
+> **다른 스킬과의 관계:** `cubrid-*-tc-create` / `cubrid-*-tc-runone` / `cubrid-shell-tc-review` / `cubrid-test-fail-reasoning` 스킬은 CBRD 이슈 번호가 포함된 요청을 받으면 이 `jira` 스킬을 자동으로 호출합니다. 위 스킬들 중 하나라도 사용한다면 `jira` 스킬을 함께 설치하기를 권장합니다 — 자세한 내용은 상단의 "JIRA 스킬 자동 호출 (cross-cutting)" 섹션을 참고하세요.
 
 **설치:**
 ```bash
