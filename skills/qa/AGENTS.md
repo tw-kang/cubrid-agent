@@ -15,7 +15,7 @@ Top-level layout:
   examples/         # optional: reference example artifacts
   references/       # optional: domain references for the skill
   evals/            # optional: evaluation set for skill optimization
-README.md           # English skill index + per-skill summaries
+README.md           # Korean-only skill index + per-skill summaries
 AGENTS.md           # this file
 ```
 
@@ -26,7 +26,7 @@ These rules are non-negotiable. Apply them to every new skill and every change t
 ### Language
 
 - **All skills (`SKILL.md`, `references/`, `examples/` comments, `scripts/` comments) MUST be written in English.**
-- **`README.md` MUST be written in English.**
+- **`README.md` MUST be written in Korean only** — every section, table cell, install instruction, and example phrase. Do not mix English prose into `README.md`. Untranslatable identifiers (skill names, CLI commands, file paths, code blocks) stay verbatim, but the surrounding narrative is Korean.
 - Frontmatter `description` SHOULD include both English and Korean trigger phrases when the skill is invoked from Korean speech (e.g., `"shell tc 만들어줘"`, `"create shell tc"`), because the trigger sentence is matched literally — no translation happens at invocation time.
 
 ### Skill size
@@ -96,8 +96,9 @@ where `<action>` is one of `create`, `runone`, `review`. Example: `cubrid-shell-
 
 ## README.md
 
-- Index table at the top: one row per skill, name + one-line English description.
-- Per-skill section: install command, brief description, example invocation phrases.
+- **Korean-only** — see "Language" rule above.
+- Index table at the top: one row per skill, 스킬명 + 한 줄 한국어 설명.
+- Per-skill section: 설치 명령, 짧은 설명, 호출 예시 문구. 호출 예시는 한국어 자연어 위주로 적되 영어 trigger 문구도 포함해도 좋습니다.
 - The manual `cp -r` fallback list at the bottom MUST include every skill directory.
 
 ## Pre-merge Checklist
@@ -108,5 +109,5 @@ Before committing any skill change:
 - [ ] Skill content is English (frontmatter description may carry Korean trigger phrases)
 - [ ] Code-executable steps are bundled under `scripts/`, not described in prose
 - [ ] No new third-party Python/Node deps; runtime tools (if any) gated behind a consent prompt
-- [ ] `README.md` updated (index table, per-skill section, fallback `cp -r` list)
+- [ ] `README.md` updated (index table, per-skill section, fallback `cp -r` list) — **Korean only**
 - [ ] Conventional-commit message in English
