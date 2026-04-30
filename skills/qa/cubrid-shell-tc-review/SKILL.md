@@ -37,6 +37,36 @@ CTP program code (`cubrid-testtools/CTP/shell/init_path/init.sh`, helpers, confi
 
 **Out of scope:** CTP program modifications, SQL/MEDIUM/JDBC/CCI/HA logic changes outside shell tests, CI workflow design, broad shell style advice not tied to CTP.
 
+## JIRA Issue Context (do this when the testcase header references a CBRD-XXXXX)
+
+Extract the CBRD-XXXXX from the testcase (e.g. shebang-top comment `# CBRD-XXXXX:`, filename `cbrd_XXXXX.sh`, or PR description) and **invoke the `jira` skill first** to read the issue requirements before reviewing. This lets you check whether the test actually verifies what the issue asks for, not just whether the script is well-formed.
+
+1. **Check that the `jira` skill is available** — search common install locations for its bundled fetcher script:
+
+   ```bash
+   JIRA_SCRIPT=""
+   for d in "$(pwd)/.claude/skills/jira" "$HOME/.claude/skills/jira" "$HOME/skills/jira" "/home/dev/skills/jira"; do
+       [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
+   done
+   ```
+
+2. **If available** — invoke the skill (e.g. `/jira CBRD-XXXXX`) or run the bundled script and read the output before proceeding:
+
+   ```bash
+   python3 "$JIRA_SCRIPT" CBRD-XXXXX
+   ```
+
+   Use the summary, description, and comments to assess coverage gaps and false-pass risks (the test passes but does not actually verify the bug). Add a "Coverage vs Issue Intent" finding to the report if the test does not exercise what the issue describes.
+
+3. **If missing** — **halt and ask the user**:
+
+   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate review against the issue's intent, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
+   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
+
+   Wait for explicit confirmation. If the user declines, proceed without JIRA context and note in the report that issue intent could not be cross-checked.
+
+4. **No CBRD-XXXXX in the testcase or PR** — skip this section.
+
 ## Review Procedure
 
 ### 1. Filter and classify
