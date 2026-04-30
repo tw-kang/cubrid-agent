@@ -103,6 +103,40 @@ Each row in `failures.json` carries a `runone_skill` selected by the leading dir
 
 `run_tc.py` natively executes shell-style TCs (`.sh`) by replicating the relevant runone steps in code (source `~/.cubrid.sh`, set `CTP_HOME` + `init_path`, clean stale CUBRID processes, `cd cases/`, `timeout 300 sh <tc>`, parse `<tc>.result`). For non-shell TCs, the script emits `status=DELEGATE` and the matching runone skill must be invoked by the calling agent.
 
+## JIRA Issue Context (per-failure enrichment)
+
+For each TC whose path encodes a `cbrd_XXXXX` (e.g. `shell/_06_issues/_25_2h/cbrd_27100/cases/cbrd_27100.sh`), **invoke the `jira` skill** to fetch the CBRD-XXXXX issue background — original symptom, expected behavior, affected components, comments — and feed that context into the `answer-fix` vs `bug-report` verdict. Issue intent is the single most reliable signal for distinguishing intentional output evolution (answer-fix) from a true regression (bug-report).
+
+1. **Check that the `jira` skill is available** — search common install locations for its bundled fetcher script:
+
+   ```bash
+   JIRA_SCRIPT=""
+   for d in "$(pwd)/.claude/skills/jira" "$HOME/.claude/skills/jira" "$HOME/skills/jira" "/home/dev/skills/jira"; do
+       [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
+   done
+   ```
+
+2. **If available** — extract every `cbrd_NNNNN` token from the TC paths in the fail list, dedupe, and fetch each one. The fetcher caches issues so repeats are cheap:
+
+   ```bash
+   grep -oiE 'cbrd_[0-9]+' "$FAIL_LIST" \
+     | tr '[:lower:]' '[:upper:]' \
+     | sed 's/CBRD_/CBRD-/' \
+     | sort -u \
+     | while read -r cbrd; do python3 "$JIRA_SCRIPT" "$cbrd"; done
+   ```
+
+   Pass the gathered context to the verdict step: a CBRD that says "intentional output format change" supports `answer-fix`; one that says "data corruption" / "crash" / "wrong result" supports `bug-report`.
+
+3. **If missing** — **halt and ask the user**:
+
+   > The `jira` skill is required to enrich each failure's verdict with the issue's stated intent, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
+   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
+
+   Wait for explicit confirmation. If the user declines, proceed without JIRA context and add a `verdict_confidence=low` note for any TC whose verdict was decided without it.
+
+4. **No CBRD-XXXXX in any TC path** — skip this section.
+
 ## Reasoning method (automated)
 
 For each `NOK` TC, `generate_report.py`:
@@ -117,6 +151,7 @@ For each `NOK` TC, `generate_report.py`:
 4. Triages the verdict:
    - format / identifier / cache-key / hash text / sha1 / byte counter shifts → **answer-fix** (intentional output evolution; update test answer files)
    - crashes, wrong query results, lock/deadlock changes, performance regressions → **bug-report** (raise a JIRA, link the suspect commit)
+   - **Cross-check with JIRA context** (see "JIRA Issue Context (per-failure enrichment)" above): if the CBRD-XXXXX issue describes an intentional behavior change in the suspect commit's release, prefer `answer-fix`; if it describes the failure mode, prefer `bug-report` and reference the issue in the report's `Notes` column.
 
 When automatic bisect returns no commit (token too generic, or root cause is in a non-`src/` file), the row is marked `action=investigate` with the diff snippet preserved so the orchestrating agent can step in for manual reasoning.
 
