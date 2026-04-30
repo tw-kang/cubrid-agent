@@ -28,6 +28,36 @@ If `ctp.sh` is not found, stop and display:
 > Install: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
 > Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
 
+## JIRA Issue Context (do this when the test corresponds to a CBRD-XXXXX)
+
+If the test path or user's request mentions `CBRD-XXXXX` (e.g. `cbrd_27100.sh`, `TestCbrd27100.java`), **invoke the `jira` skill first** to fetch the issue background — original symptom, expected behavior, affected components, comments — before running and diagnosing the test. This dramatically improves failure analysis: actual behavior can then be compared against the issue's stated expected behavior.
+
+1. **Check that the `jira` skill is available** — search common install locations for its bundled fetcher script:
+
+   ```bash
+   JIRA_SCRIPT=""
+   for d in "$(pwd)/.claude/skills/jira" "$HOME/.claude/skills/jira" "$HOME/skills/jira" "/home/dev/skills/jira"; do
+       [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
+   done
+   ```
+
+2. **If available** — invoke the skill (e.g. `/jira CBRD-XXXXX`) or run the bundled script and read the output before proceeding:
+
+   ```bash
+   python3 "$JIRA_SCRIPT" CBRD-XXXXX
+   ```
+
+   Use the summary, description, and comments to inform pass/fail interpretation and root-cause diagnosis.
+
+3. **If missing** — **halt and ask the user**:
+
+   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate failure diagnosis, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
+   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
+
+   Wait for explicit confirmation. If the user declines, proceed without JIRA context and warn them that issue-specific details may be missing.
+
+4. **No CBRD-XXXXX in the test path or request** — skip this section.
+
 ## Execution Steps
 
 ### 1. Install CUBRID
