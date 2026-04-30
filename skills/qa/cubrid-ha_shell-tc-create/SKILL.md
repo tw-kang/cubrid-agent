@@ -30,6 +30,36 @@ If `make_ha.sh` is not found, stop and display:
 > "CTP HA helpers not found. HA shell tests require make_ha.sh in CTP/shell/init_path/.
 > Installation: `git clone https://github.com/CUBRID/cubrid-testtools.git`"
 
+## JIRA Issue Context (do this when a CBRD-XXXXX is referenced)
+
+When the request includes a `CBRD-XXXXX` ticket, **invoke the `jira` skill first** to fetch the issue background — title, description, reproduction steps, affected components, and comments — before generating the testcase. This grounds the test in the issue's actual requirements rather than guesswork.
+
+1. **Check that the `jira` skill is available** — search common install locations for its bundled fetcher script:
+
+   ```bash
+   JIRA_SCRIPT=""
+   for d in "$(pwd)/.claude/skills/jira" "$HOME/.claude/skills/jira" "$HOME/skills/jira" "/home/dev/skills/jira"; do
+       [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
+   done
+   ```
+
+2. **If available** — invoke the skill (e.g. `/jira CBRD-XXXXX`) or run the bundled script and read the output before proceeding:
+
+   ```bash
+   python3 "$JIRA_SCRIPT" CBRD-XXXXX
+   ```
+
+   Use the summary, description, and comments to drive the testcase scope, expected behavior, and edge cases.
+
+3. **If missing** — **halt and ask the user**:
+
+   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate testcase generation, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
+   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
+
+   Wait for explicit confirmation. If the user declines, proceed without JIRA context and warn them that issue-specific details may be missing.
+
+4. **No CBRD-XXXXX in the request** — skip this section.
+
 ## HA Shell vs Regular Shell Tests
 
 | Aspect | Regular Shell | HA Shell |
