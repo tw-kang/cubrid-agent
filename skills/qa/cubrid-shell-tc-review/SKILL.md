@@ -41,31 +41,51 @@ CTP program code (`cubrid-testtools/CTP/shell/init_path/init.sh`, helpers, confi
 
 Extract the CBRD-XXXXX from the testcase (e.g. shebang-top comment `# CBRD-XXXXX:`, filename `cbrd_XXXXX.sh`, or PR description) and **invoke the `jira` skill first** to read the issue requirements before reviewing. This lets you check whether the test actually verifies what the issue asks for, not just whether the script is well-formed.
 
-1. **Check that the `jira` skill is available** — search common install locations for its bundled fetcher script:
+**Already fetched in this conversation?** Reuse the context — do not re-invoke. The fetcher caches issues, but the conversation should not redundantly re-display them.
+
+1. **Normalize the ticket ID** — `jira_search.py` requires the canonical `CBRD-NNNNN` form. Filenames typically use `cbrd_NNNNN`:
+
+   ```bash
+   TICKET=$(echo "$RAW_INPUT" | grep -oiE 'cbrd[-_ ]?[0-9]+' | head -1 \
+            | tr '[:lower:]' '[:upper:]' \
+            | sed -E 's/^CBRD[-_ ]?/CBRD-/')
+   ```
+
+2. **Locate the `jira` skill** — search project-scope, user-scope, plugin cache, and any `CLAUDE_PLUGIN_ROOT` install path. Do **not** rely on developer-specific paths:
 
    ```bash
    JIRA_SCRIPT=""
-   for d in "$(pwd)/.claude/skills/jira" "$HOME/.claude/skills/jira" "$HOME/skills/jira" "/home/dev/skills/jira"; do
-       [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
+   for d in \
+       "$(pwd)/.claude/skills/jira" \
+       "$HOME/.claude/skills/jira" \
+       "$HOME/.claude/plugins/skills/jira" \
+       "$HOME/skills/jira" \
+       "${CLAUDE_PLUGIN_ROOT:-}/skills/jira"
+   do
+       [ -n "$d" ] && [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
    done
    ```
 
-2. **If available** — invoke the skill (e.g. `/jira CBRD-XXXXX`) or run the bundled script and read the output before proceeding:
+3. **If the skill is available** — prefer the slash form `/jira CBRD-XXXXX` when the harness exposes it (it honors the upstream `pandoc` prerequisite gate). Otherwise call the bundled script directly. Warn the user when `pandoc` is missing so they know the description/comments will fall back to raw Jira-wiki markup:
 
    ```bash
-   python3 "$JIRA_SCRIPT" CBRD-XXXXX
+   command -v pandoc >/dev/null 2>&1 || \
+       echo "WARNING: pandoc not installed — JIRA description/comments will be raw wiki markup (degraded readability)."
+   python3 "$JIRA_SCRIPT" "$TICKET"
    ```
 
-   Use the summary, description, and comments to assess coverage gaps and false-pass risks (the test passes but does not actually verify the bug). Add a "Coverage vs Issue Intent" finding to the report if the test does not exercise what the issue describes.
+   Use the summary, description, and comments to assess coverage gaps and false-pass risks (the test passes but does not actually exercise the bug). If the test does not exercise what the issue describes, raise a "Coverage vs Issue Intent" finding.
 
-3. **If missing** — **halt and ask the user**:
+4. **If the skill is missing** — **halt and ask the user**:
 
    > The `jira` skill is required to fetch CBRD-XXXXX context for accurate review against the issue's intent, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
    > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
+   >
+   > After install, re-run the discovery step above. If the script is still not found, the install path may differ on this system — please report which directory under `~/.claude/` or the plugin cache contains the new `jira/scripts/jira_search.py`.
 
-   Wait for explicit confirmation. If the user declines, proceed without JIRA context and note in the report that issue intent could not be cross-checked.
+   Wait for explicit confirmation. If the user declines, proceed without JIRA context and note in the report that issue-specific intent could not be cross-checked, and add `verdict_confidence=low` to affected findings.
 
-4. **No CBRD-XXXXX in the testcase or PR** — skip this section.
+5. **No CBRD-XXXXX in the testcase or PR** — skip this section.
 
 ## Review Procedure
 

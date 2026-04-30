@@ -105,33 +105,46 @@ Each row in `failures.json` carries a `runone_skill` selected by the leading dir
 
 ## JIRA Issue Context (per-failure enrichment)
 
-For each TC whose path encodes a `cbrd_XXXXX` (e.g. `shell/_06_issues/_25_2h/cbrd_27100/cases/cbrd_27100.sh`), **invoke the `jira` skill** to fetch the CBRD-XXXXX issue background — original symptom, expected behavior, affected components, comments — and feed that context into the `answer-fix` vs `bug-report` verdict. Issue intent is the single most reliable signal for distinguishing intentional output evolution (answer-fix) from a true regression (bug-report).
+For each TC whose path encodes a `cbrd_XXXXX` / `cbrd-XXXXX` / `CBRDXXXXX` token (e.g. `shell/_06_issues/_25_2h/cbrd_27100/cases/cbrd_27100.sh`), **invoke the `jira` skill** to fetch the CBRD-XXXXX issue background — original symptom, expected behavior, affected components, comments — and feed that context into the `answer-fix` vs `bug-report` verdict. Issue intent is the single most reliable signal for distinguishing intentional output evolution (answer-fix) from a true regression (bug-report).
 
-1. **Check that the `jira` skill is available** — search common install locations for its bundled fetcher script:
+**Already fetched in this conversation?** Reuse the context — do not re-invoke. The fetcher caches issues, but the conversation should not redundantly re-display them.
+
+1. **Locate the `jira` skill** — search project-scope, user-scope, plugin cache, and any `CLAUDE_PLUGIN_ROOT` install path. Do **not** rely on developer-specific paths:
 
    ```bash
    JIRA_SCRIPT=""
-   for d in "$(pwd)/.claude/skills/jira" "$HOME/.claude/skills/jira" "$HOME/skills/jira" "/home/dev/skills/jira"; do
-       [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
+   for d in \
+       "$(pwd)/.claude/skills/jira" \
+       "$HOME/.claude/skills/jira" \
+       "$HOME/.claude/plugins/skills/jira" \
+       "$HOME/skills/jira" \
+       "${CLAUDE_PLUGIN_ROOT:-}/skills/jira"
+   do
+       [ -n "$d" ] && [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
    done
    ```
 
-2. **If available** — extract every `cbrd_NNNNN` token from the TC paths in the fail list, dedupe, and fetch each one. The fetcher caches issues so repeats are cheap:
+2. **If available** — extract every `cbrd[NNNNN]` token from the TC paths in the fail list (handles `cbrd_NNNNN`, `cbrd-NNNNN`, `CBRDNNNNN`, mixed case), dedupe, normalize to `CBRD-NNNNN`, and fetch each one. Warn when `pandoc` is missing so the caller knows the description/comments will fall back to raw Jira-wiki markup:
 
    ```bash
-   grep -oiE 'cbrd_[0-9]+' "$FAIL_LIST" \
+   command -v pandoc >/dev/null 2>&1 || \
+       echo "WARNING: pandoc not installed — JIRA description/comments will be raw wiki markup (degraded readability)."
+
+   grep -oiE 'cbrd[-_]?[0-9]+' "$FAIL_LIST" \
      | tr '[:lower:]' '[:upper:]' \
-     | sed 's/CBRD_/CBRD-/' \
+     | sed -E 's/^CBRD[-_]?/CBRD-/' \
      | sort -u \
      | while read -r cbrd; do python3 "$JIRA_SCRIPT" "$cbrd"; done
    ```
 
-   Pass the gathered context to the verdict step: a CBRD that says "intentional output format change" supports `answer-fix`; one that says "data corruption" / "crash" / "wrong result" supports `bug-report`.
+   The fetcher caches issues so repeats are cheap. Pass the gathered context to the verdict step: a CBRD that says "intentional output format change" supports `answer-fix`; one that says "data corruption" / "crash" / "wrong result" supports `bug-report`.
 
 3. **If missing** — **halt and ask the user**:
 
    > The `jira` skill is required to enrich each failure's verdict with the issue's stated intent, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
    > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
+   >
+   > After install, re-run the discovery step above. If the script is still not found, the install path may differ on this system — please report which directory under `~/.claude/` or the plugin cache contains the new `jira/scripts/jira_search.py`.
 
    Wait for explicit confirmation. If the user declines, proceed without JIRA context and add a `verdict_confidence=low` note for any TC whose verdict was decided without it.
 
