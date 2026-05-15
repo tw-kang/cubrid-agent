@@ -18,6 +18,7 @@ From `cubrid-testtools/CTP/shell/init_path/init.sh`
 |----------|---------|
 | `cubrid_createdb [-r] <dbname> [options]` | Create DB with CTP compatibility (charset handling, env setup) |
 | `cubrid deletedb <dbname>` | Delete DB with core/fatal error checking and backup |
+| `create_ccidb` | Build the canned `ccidb` test DB from the bundled `ccidb.sql` / `ccidbbak` snapshot, used by CCI/JDBC scenarios. |
 
 Always use `cubrid_createdb` over raw `cubrid createdb` — it handles locale parameter compatibility across CUBRID versions.
 
@@ -36,6 +37,7 @@ change_db_parameter "java_stored_procedure=yes"
 change_db_parameter "log_max_archives=1"
 change_broker_parameter "SQL_LOG=ON"
 change_broker_parameter "MAX_NUM_APPL_SERVER=5"
+change_db_section_parameter common "log_max_archives=1"
 change_ha_parameter "ha_enable_sql_logging=true"
 ```
 
@@ -96,7 +98,7 @@ Always prefer `xkill` over raw `kill -9` or `pkill`.
 
 Place before sourcing init.sh:
 ```bash
-#!/bin/sh
+#!/bin/bash
 WINDOWS_NOT_SUPPORTED
 . $init_path/init.sh
 init test
