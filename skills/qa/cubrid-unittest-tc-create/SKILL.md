@@ -108,5 +108,5 @@ Don't eyeball it — prove it compiles and that CTP would judge it PASS.
 
 - `@examples/test_simple_module.c` — minimal C unittest: assertion macros + `OK`-on-pass `main`.
 - `@examples/test_simple_module.cpp` — minimal C++ unittest (same shape, `std::cout`).
-- `$CTP_HOME/../doc/unittest_guide.md` — full CTP unittest guide.
+- Test guide: `unittest_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/unittest_guide.md (or `$CTP_HOME/../doc/unittest_guide.md` if CTP is checked out locally).
 - `$CUBRID/build_release/bin/unittests_*` and the CUBRID `unit_tests/` source dir — existing binaries to model.

@@ -18,6 +18,7 @@ Run a single CTP shell testcase, report OK/NOK, and — when it fails — diagno
 - **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/shell/init_path/init.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`). CUBRID itself need not be pre-installed.
 - **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE_EX` if set, else discover the `cubrid-testcases-private-ex` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **Build URL.** A CUBRID build URL is required to install the binary under test. If not given, ask for it.
+- Test guide: `shell_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/shell_guide.md (or `$CTP_HOME/../doc/shell_guide.md` if CTP is checked out locally).
 - **JIRA context (optional).** If the test maps to a `CBRD-XXXXX`, run `cubrid-jira search CBRD-XXXXX` first to ground diagnosis in the issue's real symptom and expected behavior (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` notably sharpens the failure verdict.
 
 ## Run

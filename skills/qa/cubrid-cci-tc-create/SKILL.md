@@ -117,3 +117,4 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 - `@examples/cci_issue_test.sh` + `@examples/cci_issue_test.c` — explicit pass/fail (issue) pattern.
 - `$TC/interface/CCI/shell/_20_cci/` — existing CCI testcases by category.
 - `$CTP_HOME/shell/init_path/init.sh` — CTP core helpers. CCI API header: `${CUBRID}/include/cas_cci.h`.
+- Test guide: `cci_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/cci_guide.md (or `$CTP_HOME/../doc/cci_guide.md` if CTP is checked out locally).

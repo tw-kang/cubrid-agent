@@ -16,6 +16,7 @@ Generate a CUBRID CTP shell testcase that passes review on the first try. A good
 ## Before you start
 
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/shell/init_path/init.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE_EX` if set, else discover the `cubrid-testcases-private-ex` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **JIRA context (optional).** If the request names a `CBRD-XXXXX`, run `cubrid-jira search CBRD-XXXXX` first to ground the test in the issue's real reproduction and expected behavior (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` notably improves accuracy.
 
 ## Directory convention
@@ -127,3 +128,4 @@ Procedure detail: `@references/verification_protocol.md`.
 
 - `@examples/` — working patterns: `basic_entry.sh`, `config_change.sh`, `utility_test.sh`, `output_comparison.sh`, and `cci_crash_repro.sh` (+ `.c`) for the CAS-coredump / CCI-client pattern.
 - `@references/directory_guide.md`, `@references/init_sh_helpers.md`, `@references/crash_cas_patterns.md`, `@references/verification_protocol.md`.
+- Test guide: `shell_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/shell_guide.md (or `$CTP_HOME/../doc/shell_guide.md` if CTP is checked out locally).

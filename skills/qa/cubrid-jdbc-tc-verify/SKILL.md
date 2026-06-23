@@ -20,6 +20,7 @@ CTP's `JdbcLocalTest` runner has **no single-case filter** — it compiles and r
 - **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
 - **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE` if set, else discover the `cubrid-testcases-private` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below. The testcase tree (`$TC/interface/JDBC/test_jdbc`) must be present.
 - **Build URL.** A CUBRID build URL is required to install the binary under test. If not given, ask for it.
+- Test guide: `jdbc_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/jdbc_guide.md (or `$CTP_HOME/../doc/jdbc_guide.md` if CTP is checked out locally).
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground diagnosis (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` sharpens the failure verdict.
 
 ## Run

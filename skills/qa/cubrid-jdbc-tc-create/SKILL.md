@@ -136,3 +136,4 @@ Prove it compiles and runs — don't just eyeball it.
 - `@examples/TestCBRD12345.java` — driver pattern (`ConnectionProvider`, `SqlUtil`, `@Test(expected=…)`).
 - `@examples/TestFeatureSpec.java` — spec pattern (`extends GeneralTestCase`, `conn()`, static helpers).
 - Real corpus: `$TC/interface/JDBC/test_jdbc/` — `build.xml` (discovery rules), `src/cubrid/jdbc/ConnectionProvider.java`, `src/cubrid/jdbc/SqlUtil.java`, `src/com/cubrid/jdbc/test/spec/GeneralTestCase.java`.
+- Test guide: `jdbc_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/jdbc_guide.md (or `$CTP_HOME/../doc/jdbc_guide.md` if CTP is checked out locally).

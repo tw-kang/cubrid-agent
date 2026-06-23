@@ -9,25 +9,28 @@ Generate a CUBRID CTP CDC replication testcase that passes review on the first t
 
 ## Scope
 
-**Produces:** the `.sql` testcase (header + `--test:`/`--check:` markers driving source DML and source/target comparison), in the correct `cases/` directory.
+**Produces:** the `.sql` testcase (header + `--test:`/`--check:` markers driving source DML and source/target comparison), in the correct `$TC/sql/` `cases/` directory.
 
 **Does NOT produce:** CTP config (`conf/cdc_repl.conf`), the `cdc_test_helper` / `CdcReplUtils.java` / `CheckDiff.java` tooling, CI config, or HA/log-replication tests — route those to `cubrid-ha-*`. CDC differs from `ha_repl`: it diffs via `CheckDiff` (not master/slave row compare), needs an explicit PRIMARY KEY on every table (ha_repl auto-adds one), and has limited LOB support.
 
 ## Before you start
 
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/bin/ctp.sh $CTP_HOME/conf/`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES` if set, else discover the `cubrid-testcases` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
 ## Directory convention
 
-The path is how CTP identifies and categorizes a test. CDC tests live in the `cubrid-testcases` repo, parallel to `ha_repl`. Multiple `.sql` files for one issue share the same `cases/` dir — never per-test subdirectories.
+The path is how CTP identifies and categorizes a test. Multiple `.sql` files for one issue share the same `cases/` dir — never per-test subdirectories.
 
 ```
-# Bug fix:   cdc_repl/_13_issues/_{yy}_{1|2}h/cases/cbrd_xxxxx.sql
-# Feature:   cdc_repl/_{no}_{release_code}/{feature_group}/cases/cbrd_xxxxx.sql
+# Bug fix:   $TC/sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_xxxxx.sql
+# Feature:   $TC/sql/_{no}_{release_code}/{feature_group}/cases/cbrd_xxxxx.sql
 ```
 
 `{yy}` = 2-digit year, `{1|2}h` = first/second half (issue creation date). Split scenarios get a suffix: `cbrd_27100_insert.sql`, `cbrd_27100_update.sql`.
+
+cdc_repl has no own tree — it runs the `cubrid-testcases/sql` testcases (the `--test:`/`--check:` ones) selected via `$TC/sql/config/daily_regression_test_exclude_list_cdc_repl.conf`.
 
 ## Lifecycle contract
 
@@ -109,10 +112,11 @@ CDC needs a full source+target cluster, so local execution is usually impossible
 - Every `--check:` query has `ORDER BY` on the PK?
 - `DROP TABLE IF EXISTS` before every `CREATE TABLE`? Cleanup at the bottom?
 - No LOB columns unless the issue requires them? No `--test:`/`--check:` mixed without a commit between?
-- Correct `cdc_repl/_13_issues/_{yy}_{1|2}h/cases/` (or feature) path? Filename == `cbrd_xxxxx[_kw].sql`?
+- Correct `$TC/sql/_13_issues/_{yy}_{1|2}h/cases/` (or feature) path? Filename == `cbrd_xxxxx[_kw].sql`?
 - Verified (cluster-first, else static)?
 
 ## Examples & references
 
 - `@examples/basic_dml_capture.sql` — INSERT/UPDATE/DELETE CDC capture with consistency checks.
 - `@examples/schema_change_capture.sql` — DDL changes captured by CDC.
+- Reference: no dedicated cdc_repl guide — see `ha_repl_guide.md` (https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/ha_repl_guide.md) and `$CTP_HOME/common/ext/run_cdc_repl.sh`.

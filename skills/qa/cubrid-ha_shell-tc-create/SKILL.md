@@ -127,3 +127,4 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 - `@examples/ha_replication_verify.sh` — INSERT/UPDATE/DELETE replication with master/slave comparison.
 - `@examples/ha_failover_test.sh` — kill master, verify slave promotion.
 - CTP helper source (read for exact signatures): `$CTP_HOME/shell/init_path/make_ha.sh` (run_on_slave, properties), `make_ha_upper.sh` (setup/revert, wait_for_slave, failover), `ha_common.sh` (cleanup, wait_for_active), `init.sh` (write_ok/write_nok/finish). Existing tests: `$TC/HA/shell/`.
+- Test guide: `ha_shell_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/ha_shell_guide.md (or `$CTP_HOME/../doc/ha_shell_guide.md` if CTP is checked out locally).

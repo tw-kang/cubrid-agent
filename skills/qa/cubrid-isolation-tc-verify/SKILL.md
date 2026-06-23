@@ -20,6 +20,7 @@ Run a single CTP isolation testcase (`.ctl`), report PASS/FAIL, and — when it 
 - **Build URL.** A CUBRID build URL is required to install the binary under test. If not given, ask for it.
 - **Java.** CTP is Java-based; `JAVA_HOME` must be set (`export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))`).
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy.
+- Test guide: `isolation_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/isolation_guide.md (or `$CTP_HOME/../doc/isolation_guide.md` if CTP is checked out locally).
 
 ## Run
 

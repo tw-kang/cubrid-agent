@@ -19,6 +19,7 @@ Run a single CTP HA shell testcase, report OK/NOK, and — when it fails — dia
 - **CTP + HA helpers.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/shell/init_path/make_ha.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
 - **HA infrastructure.** A configured slave is mandatory: `find $CTP_HOME -name HA.properties` must yield a file with slave SSH credentials (host/user/password). CUBRID must be installed on both nodes. If unconfigured, stop and explain HA tests cannot run without a reachable slave.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy.
+- Test guide: `ha_shell_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/ha_shell_guide.md (or `$CTP_HOME/../doc/ha_shell_guide.md` if CTP is checked out locally).
 
 ## Run
 

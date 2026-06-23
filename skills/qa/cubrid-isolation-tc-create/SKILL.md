@@ -153,3 +153,4 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 
 - `@examples/read_committed_lock_test.ctl` — lock contention between two transactions under READ COMMITTED.
 - `@examples/serializable_phantom_read.ctl` — phantom-read prevention under SERIALIZABLE.
+- Test guide: `isolation_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/isolation_guide.md (or `$CTP_HOME/../doc/isolation_guide.md` if CTP is checked out locally).

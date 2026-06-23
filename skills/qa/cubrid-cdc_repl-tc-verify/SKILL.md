@@ -15,7 +15,8 @@ Run a single CTP cdc_repl testcase, report PASS/FAIL, and — when it fails — 
 
 ## Before you start
 
-- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES` if set, else discover the `cubrid-testcases` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES` if set, else discover the `cubrid-testcases` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below. cdc_repl has no own tree — it runs the `cubrid-testcases/sql` testcases (the `--test:`/`--check:` ones) selected via `$TC/sql/config/daily_regression_test_exclude_list_cdc_repl.conf`.
+- Reference: no dedicated cdc_repl guide — see `ha_repl_guide.md` (https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/ha_repl_guide.md) and `$CTP_HOME/common/ext/run_cdc_repl.sh`.
 - **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
 - **CDC infrastructure required.** These tests CANNOT run on a single local machine. They need a source + target cluster declared in `$CTP_HOME/conf/cdc_repl.conf` (SSH host/user/password for both nodes) with `cdc_test_helper` already built on each node via `cdc_test_helper/build.sh`. Sanity check: `grep -E 'ssh\.(host|user|password)' $CTP_HOME/conf/cdc_repl.conf`. If the conf is missing or credentials are absent, stop and ask the user to configure it.
 - **Build URL.** A CUBRID build URL is required so CTP installs the binary on both nodes. If neither `cubrid_download_url` in the conf nor the user supplies one, ask for it.
@@ -25,7 +26,7 @@ Run a single CTP cdc_repl testcase, report PASS/FAIL, and — when it fails — 
 
 Work from a scratch dir so logs and the temp conf never collide: `work=$(mktemp -d)`.
 
-1. **Locate the testcase** — cdc_repl tests live at `cdc_repl/{test}/cases/{test}.sql`. From a partial name or CBRD number: `find "$TC" -path '*/cdc_repl/*/cases/*.sql' -name '<pattern>.sql'`.
+1. **Locate the testcase** — cdc_repl runs `cubrid-testcases/sql` testcases (the `--test:`/`--check:` ones). From a partial name or CBRD number: `find "$TC/sql" -path '*/cases/*.sql' -name '<pattern>.sql'`.
 2. **Read the script first** — understand its `--test:` (apply on source) and `--check:` (compare source vs target) markers. Confirm every table declares an explicit `PRIMARY KEY`; CDC tracks rows by PK and cannot replicate a table without one. This is what makes a failure diagnosable.
 3. **Prepare a temp conf** pointed at this test's `cases/` dir and build URL:
    ```bash

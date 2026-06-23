@@ -9,13 +9,14 @@ Generate a CUBRID CTP HA replication testcase that passes review on the first tr
 
 ## Scope
 
-**Produces:** one self-contained `.sql` testcase under `ha_repl/` with a `/** ... */` header, balanced `--test:`/`--check:` markers, and correct directory path.
+**Produces:** one self-contained `.sql` testcase under `$TC/sql/` with a `/** ... */` header, balanced `--test:`/`--check:` markers, and correct directory path.
 
 **Does NOT produce:** `.answer` files (ha_repl has none — correctness is master/slave equality), CTP framework/conf changes, CI config, or SQL/JDBC/CCI/shell tests (route those to the matching `cubrid-*-tc-create`).
 
 ## Before you start
 
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/conf/ha_repl.conf`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES` if set, else discover the `cubrid-testcases` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
 ## Directory convention
@@ -23,11 +24,13 @@ Generate a CUBRID CTP HA replication testcase that passes review on the first tr
 The path is how CTP identifies and categorizes a test. Multiple `.sql` files for the same area share one `cases/` dir — never create per-test subdirectories.
 
 ```
-# Bug fix:   ha_repl/_13_issues/_{yy}_{1|2}h/cases/cbrd_xxxxx.sql
-# Feature:   ha_repl/_{no}_{release_code}/{feature_group}/cases/cbrd_xxxxx.sql
+# Bug fix:   $TC/sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_xxxxx.sql
+# Feature:   $TC/sql/_{no}_{release_code}/{feature_group}/cases/cbrd_xxxxx.sql
 ```
 
 `{yy}` = 2-digit year, `{1|2}h` = first/second half (issue creation date). Multiple tests for one issue get a suffix: `cbrd_xxxxx_insert.sql`, `cbrd_xxxxx_ddl.sql`.
+
+ha_repl has no own tree — it runs the `cubrid-testcases/sql` testcases (the `--test:`/`--check:` ones) selected via `$TC/sql/config/daily_regression_test_exclude_list_ha_repl.conf`.
 
 ## Lifecycle contract
 
@@ -85,7 +88,7 @@ These match what the corpus and reviewers expect.
 - **Re-runnable table setup:** `--test: DROP TABLE IF EXISTS t1;` immediately before each `--test: CREATE TABLE t1 ...;`.
 - **Verify a DML batch:** `--test:` the writes, `--test: COMMIT;`, then a single `--check: SELECT * FROM t1 ORDER BY id;`.
 - **Verify DDL replicated:** after the DDL + `COMMIT`, `--check: SELECT COUNT(*) FROM t1;` (or a schema-revealing read) to confirm the slave applied it.
-- **vs. SQL testcases:** same `/** ... */` header, but no `evaluate`, no `--+ server-message on/off`, no `.answer` files; lines are prefixed `--test:`/`--check:` and the file lives under `ha_repl/`.
+- **vs. SQL testcases:** same `/** ... */` header, but no `evaluate`, no `--+ server-message on/off`, no `.answer` files; lines are prefixed `--test:`/`--check:` and the file lives under `$TC/sql/`.
 
 ## Verify before claiming done
 
@@ -109,3 +112,4 @@ ha_repl needs a **3-node cluster** (controller + master + slave) and cannot run 
 
 - `@examples/basic_insert_replicate.sql` — INSERT/UPDATE/DELETE replication with consistency checks.
 - `@examples/ddl_replicate.sql` — DDL (CREATE/ALTER/DROP TABLE) replication.
+- Test guide: `ha_repl_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/ha_repl_guide.md (or `$CTP_HOME/../doc/ha_repl_guide.md` if CTP is checked out locally).

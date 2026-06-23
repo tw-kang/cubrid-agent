@@ -16,6 +16,7 @@ Generate a CUBRID CTP SQL testcase that passes review on the first try. A good t
 ## Before you start
 
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES` if set, else discover the `cubrid-testcases` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
 ## Directory convention
@@ -23,10 +24,11 @@ Generate a CUBRID CTP SQL testcase that passes review on the first try. A good t
 The path is how CTP locates and categorizes a test. The `.sql` and its `.answer` share basename, split across sibling `cases/` and `answers/` dirs.
 
 ```
-# Bug fix:  sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
-#                                       answers/cbrd_XXXXX.answer
-# Feature:  sql/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
-#                                                    answers/cbrd_XXXXX.answer
+# Bug fix:  $TC/sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
+#                                            answers/cbrd_XXXXX.answer
+# Feature:  $TC/sql/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
+#                                                        answers/cbrd_XXXXX.answer
+# Medium:   $TC/medium/...
 ```
 
 `{yy}` = 2-digit year, `{1|2}h` = first/second half of year. Multiple tests for one issue get a suffix (`cbrd_27100_select.sql`, `cbrd_27100_update.sql`). All SQL files share one `cases/`+`answers/` pair — never make per-test subdirectories.
@@ -94,3 +96,4 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 - `@examples/bug_fix_error_cases.sql` — negative test with `server-message on/off`.
 - `@examples/bug_fix_select.sql` — basic SELECT result verification.
 - `@examples/feature_query_plan.sql` — optimizer test with a `.queryPlan` sidecar.
+- Test guide: `sql_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/sql_guide.md (or `$CTP_HOME/../doc/sql_guide.md` if CTP is checked out locally).
