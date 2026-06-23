@@ -15,7 +15,8 @@ Run a single CTP CCI testcase, report OK/NOK, and — when it fails — diagnose
 
 ## Before you start
 
-- **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/shell/init_path/init.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`). The testcase repo (`cubrid-testcases-private`) must also be present; CUBRID itself need not be pre-installed.
+- **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/shell/init_path/init.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`). CUBRID itself need not be pre-installed.
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE` if set, else discover the `cubrid-testcases-private` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **Build URL.** A CUBRID build URL is required to install the binary under test. If not given, ask for it.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy.
 
@@ -29,7 +30,7 @@ Work from a scratch dir so logs never collide: `work=$(mktemp -d)`.
    grep '\[ERROR\]' "$work/install.log" && { echo "install failed"; }   # stop & show these lines if present
    source ~/.cubrid.sh && cubrid --version                              # must print a version
    ```
-2. **Locate the testcase** — CCI tests live under `cubrid-testcases-private/interface/CCI/shell/_20_cci/<category>/{test_name}/cases/{test_name}.sh`. From a partial name or CBRD number: `find ~/cubrid-testcases-private/interface/CCI -path '*/cases/*' -name '<pattern>.sh'`.
+2. **Locate the testcase** — CCI tests live under `$TC/interface/CCI/shell/_20_cci/<category>/{test_name}/cases/{test_name}.sh`. From a partial name or CBRD number: `find "$TC/interface/CCI" -path '*/cases/*' -name '<pattern>.sh'`.
 3. **Read the files first** — the `.sh` header says what is tested, `test.c` shows the CCI API calls being exercised, and the `.answer` file (if present) shows expected output. This is what makes a failure diagnosable.
 4. **Execute** from the `cases/` dir (tests use relative paths) with a timeout:
    ```bash

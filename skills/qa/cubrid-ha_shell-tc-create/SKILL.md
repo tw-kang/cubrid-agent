@@ -9,18 +9,19 @@ Generate a CUBRID CTP HA shell testcase that passes review on the first try. A g
 
 ## Scope
 
-**Produces:** the entry `.sh` (owns the full HA lifecycle), correct directory paths under `cubrid-testcases-private/HA/shell/`, replication/failover/config-change logic against `hatestdb`.
+**Produces:** the entry `.sh` (owns the full HA lifecycle), correct directory paths under `$TC/HA/shell/`, replication/failover/config-change logic against `hatestdb`.
 
 **Does NOT produce:** answer files (CTP generates these in `init answer` mode — never hand-write them), CTP framework changes, CI config. Route regular shell tests to `cubrid-shell-tc-create`, ha_repl SQL-format tests to `cubrid-ha_repl-tc-create`.
 
 ## Before you start
 
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE` if set, else discover the `cubrid-testcases-private` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **CTP with HA helpers must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/shell/init_path/make_ha.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`). HA tests also need an `HA.properties` with reachable slave-node credentials.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
 ## Directory convention
 
-The path is how CTP identifies and categorizes a test; the directory name and the script filename **must match** (`test_name/cases/test_name.sh`). HA tests live under `cubrid-testcases-private/HA/shell/` (not `cubrid-testcases`).
+The path is how CTP identifies and categorizes a test; the directory name and the script filename **must match** (`test_name/cases/test_name.sh`). HA tests live under `$TC/HA/shell/` (not `cubrid-testcases`).
 
 ```
 # Bug fix:   HA/shell/_{nn}_bts_issue/cbrd_xxxxx/cases/cbrd_xxxxx.sh
@@ -125,4 +126,4 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 
 - `@examples/ha_replication_verify.sh` — INSERT/UPDATE/DELETE replication with master/slave comparison.
 - `@examples/ha_failover_test.sh` — kill master, verify slave promotion.
-- CTP helper source (read for exact signatures): `$CTP_HOME/shell/init_path/make_ha.sh` (run_on_slave, properties), `make_ha_upper.sh` (setup/revert, wait_for_slave, failover), `ha_common.sh` (cleanup, wait_for_active), `init.sh` (write_ok/write_nok/finish). Existing tests: `cubrid-testcases-private/HA/shell/`.
+- CTP helper source (read for exact signatures): `$CTP_HOME/shell/init_path/make_ha.sh` (run_on_slave, properties), `make_ha_upper.sh` (setup/revert, wait_for_slave, failover), `ha_common.sh` (cleanup, wait_for_active), `init.sh` (write_ok/write_nok/finish). Existing tests: `$TC/HA/shell/`.

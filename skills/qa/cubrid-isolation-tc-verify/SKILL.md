@@ -15,7 +15,8 @@ Run a single CTP isolation testcase (`.ctl`), report PASS/FAIL, and — when it 
 
 ## Before you start
 
-- **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`). The testcase repo (`cubrid-testcases`) must also be present.
+- **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES` if set, else discover the `cubrid-testcases` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **Build URL.** A CUBRID build URL is required to install the binary under test. If not given, ask for it.
 - **Java.** CTP is Java-based; `JAVA_HOME` must be set (`export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))`).
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy.
@@ -30,7 +31,7 @@ Work from a scratch dir so logs and configs never collide: `work=$(mktemp -d)`.
    grep '\[ERROR\]' "$work/install.log" && { echo "install failed"; }   # stop & show these lines if present
    source ~/.cubrid.sh && cubrid --version                              # must print a version
    ```
-2. **Locate the testcase** — isolation tests live under `~/cubrid-testcases/isolation/`: `find ~/cubrid-testcases/isolation -name '<pattern>.ctl'`.
+2. **Locate the testcase** — isolation tests live under `$TC/isolation/`: `find "$TC/isolation" -name '<pattern>.ctl'`.
 3. **Read the `.ctl` first** — know the concurrent scenario, which clients/transactions it runs, and what serialization it expects. This is what makes a failure diagnosable.
 4. **Write a CTP config** pointed at the *directory* containing the `.ctl` (not the file). A directory runs every `.ctl` in it, so isolate the one test if needed:
    ```bash

@@ -16,18 +16,19 @@ Generate a CUBRID CTP CCI testcase that passes review on the first try. A CCI te
 ## Before you start
 
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/shell/init_path/init.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE` if set, else discover the `cubrid-testcases-private` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
 ## Directory convention
 
-The path is how CTP identifies and categorizes a test. The directory name and the `.sh` filename **must match** (`test_name/cases/test_name.sh`). CCI tests live under `cubrid-testcases-private/interface/CCI/shell/_20_cci/`.
+The path is how CTP identifies and categorizes a test. The directory name and the `.sh` filename **must match** (`test_name/cases/test_name.sh`). CCI tests live under `$TC/interface/CCI/shell/_20_cci/`.
 
 ```
 # Feature:  _20_cci/<category>/<test_name>/cases/<test_name>.sh (+ test.c [+ <test_name>.answer])
 # Bug fix:  _20_cci/_12_issue/<bug_id>/cases/<bug_id>.sh (+ test.c)
 ```
 
-Bug-fix dirs use `cbrd_xxxxx` or `bug_bts_xxxxx` naming. Category dirs include `_01_simple` (API sanity), `_03_func`, `_06_bind`, `_07_query`, `_12_issue` (bug fixes), `_14_ENUM`, `_15_Cursor`, `_28_features_84x`, and more — pick the one matching the feature area, or `_12_issue` for a bug fix. Full list and the `.answer`-only rule: browse `~/cubrid-testcases-private/interface/CCI/shell/_20_cci/`.
+Bug-fix dirs use `cbrd_xxxxx` or `bug_bts_xxxxx` naming. Category dirs include `_01_simple` (API sanity), `_03_func`, `_06_bind`, `_07_query`, `_12_issue` (bug fixes), `_14_ENUM`, `_15_Cursor`, `_28_features_84x`, and more — pick the one matching the feature area, or `_12_issue` for a bug fix. Full list and the `.answer`-only rule: browse `$TC/interface/CCI/shell/_20_cci/`.
 
 ## Lifecycle contract
 
@@ -114,5 +115,5 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 
 - `@examples/cci_simple_test.sh` + `@examples/cci_simple_test.c` + `@examples/cci_simple_test.answer` — output-comparison (simple) pattern.
 - `@examples/cci_issue_test.sh` + `@examples/cci_issue_test.c` — explicit pass/fail (issue) pattern.
-- `~/cubrid-testcases-private/interface/CCI/shell/_20_cci/` — existing CCI testcases by category.
-- `~/cubrid-testtools/CTP/shell/init_path/init.sh` — CTP core helpers. CCI API header: `${CUBRID}/include/cas_cci.h`.
+- `$TC/interface/CCI/shell/_20_cci/` — existing CCI testcases by category.
+- `$CTP_HOME/shell/init_path/init.sh` — CTP core helpers. CCI API header: `${CUBRID}/include/cas_cci.h`.

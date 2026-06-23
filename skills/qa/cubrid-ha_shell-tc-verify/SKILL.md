@@ -15,6 +15,7 @@ Run a single CTP HA shell testcase, report OK/NOK, and — when it fails — dia
 
 ## Before you start
 
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE` if set, else discover the `cubrid-testcases-private` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **CTP + HA helpers.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/shell/init_path/make_ha.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
 - **HA infrastructure.** A configured slave is mandatory: `find $CTP_HOME -name HA.properties` must yield a file with slave SSH credentials (host/user/password). CUBRID must be installed on both nodes. If unconfigured, stop and explain HA tests cannot run without a reachable slave.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy.
@@ -23,7 +24,7 @@ Run a single CTP HA shell testcase, report OK/NOK, and — when it fails — dia
 
 Work from a scratch dir so logs and conf never collide: `work=$(mktemp -d)`.
 
-1. **Locate the testcase** — HA shell tests live at `~/cubrid-testcases-private/HA/shell/{name}/cases/{name}.sh`. From a partial name or CBRD number: `find ~/cubrid-testcases-private/HA/shell -path '*/cases/*' -name '<pattern>.sh'`.
+1. **Locate the testcase** — HA shell tests live at `$TC/HA/shell/{name}/cases/{name}.sh`. From a partial name or CBRD number: `find $TC/HA/shell -path '*/cases/*' -name '<pattern>.sh'`.
 2. **Read the script first** — know its setup/test/verify/cleanup phases and which `make_ha.sh` helpers (`setup_ha_environment`, `wait_for_slave`, `run_on_slave`) it uses. This is what makes a failure diagnosable.
 3. **Build a run conf** pointing at the `cases/` dir, carrying any HA settings from the template:
    ```bash

@@ -15,7 +15,7 @@ Generate a CUBRID JDBC testcase as a **standard JUnit 4 class** that drops into 
 
 ## Before you start
 
-- **Testcase tree present.** Expect the JDBC develop tree at `~/cubrid-testcases-private/interface/JDBC/test_jdbc`. Sanity check: `ls ~/cubrid-testcases-private/interface/JDBC/test_jdbc/build.xml`. CTP itself is only needed to *run* (that's `cubrid-jdbc-tc-verify`).
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE` if set, else discover the `cubrid-testcases-private` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below. The JDBC develop tree lives at `$TC/interface/JDBC/test_jdbc`; sanity check: `ls $TC/interface/JDBC/test_jdbc/build.xml`. CTP itself is only needed to *run* (that's `cubrid-jdbc-tc-verify`).
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy.
 
 ## Directory convention
@@ -119,7 +119,7 @@ Asserts: `org.junit.Assert.assertEquals/assertTrue/assertFalse/assertNull/assert
 Prove it compiles and runs — don't just eyeball it.
 
 1. **Run it (ground truth):** hand off to `cubrid-jdbc-tc-verify` with a build to execute the class under CTP and read the OK/NOK.
-2. **Compile fallback:** `cd ~/cubrid-testcases-private/interface/JDBC/test_jdbc && javac -cp "lib/*:$CUBRID/jdbc/cubrid_jdbc.jar" -d /tmp/jdbc_bin $(find src -name '*.java')` (or `ant compile`) to confirm it builds.
+2. **Compile fallback:** `cd $TC/interface/JDBC/test_jdbc && javac -cp "lib/*:$CUBRID/jdbc/cubrid_jdbc.jar" -d /tmp/jdbc_bin $(find src -name '*.java')` (or `ant compile`) to confirm it builds.
 
 ## Self-review checklist
 
@@ -135,4 +135,4 @@ Prove it compiles and runs — don't just eyeball it.
 
 - `@examples/TestCBRD12345.java` — driver pattern (`ConnectionProvider`, `SqlUtil`, `@Test(expected=…)`).
 - `@examples/TestFeatureSpec.java` — spec pattern (`extends GeneralTestCase`, `conn()`, static helpers).
-- Real corpus: `~/cubrid-testcases-private/interface/JDBC/test_jdbc/` — `build.xml` (discovery rules), `src/cubrid/jdbc/ConnectionProvider.java`, `src/cubrid/jdbc/SqlUtil.java`, `src/com/cubrid/jdbc/test/spec/GeneralTestCase.java`.
+- Real corpus: `$TC/interface/JDBC/test_jdbc/` — `build.xml` (discovery rules), `src/cubrid/jdbc/ConnectionProvider.java`, `src/cubrid/jdbc/SqlUtil.java`, `src/com/cubrid/jdbc/test/spec/GeneralTestCase.java`.

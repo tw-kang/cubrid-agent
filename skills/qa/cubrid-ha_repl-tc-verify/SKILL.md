@@ -19,7 +19,8 @@ A ha_repl test is a `.sql` with `--test:` / `--check:` markers: CTP runs `--test
 
 ## Before you start
 
-- **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`). The testcase repo (`cubrid-testcases` or `cubrid-testcases-private`) must also be present.
+- **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **Testcase repo.** ha_repl tests live in either `cubrid-testcases` or `cubrid-testcases-private`. Resolve each root without a hardcoded home path: use `$CUBRID_TESTCASES` / `$CUBRID_TESTCASES_PRIVATE` if set, else discover the checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call the resolved roots `$TC` below (search both when looking up a test).
 - **HA infrastructure configured.** `ls $CTP_HOME/conf/ha_repl.conf` and confirm master/slave SSH keys are set: `grep -E "env.instance1.(master|slave).ssh.(host|user|password)" $CTP_HOME/conf/ha_repl.conf`. If the file or any key is missing, stop and ask the user to set master/slave SSH credentials.
 - **Build URL.** A CUBRID build URL is required so CTP installs the binary on both nodes. If `cubrid_download_url` isn't already set in the conf and the user didn't provide one, ask for it.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy.
@@ -28,7 +29,7 @@ A ha_repl test is a `.sql` with `--test:` / `--check:` markers: CTP runs `--test
 
 Work from a scratch dir so confs and logs never collide: `work=$(mktemp -d)`.
 
-1. **Locate the testcase** — ha_repl tests live at `*/ha_repl/{test_name}/cases/{test_name}.sql`. From a partial name or CBRD number: `find ~/cubrid-testcases ~/cubrid-testcases-private -path '*/ha_repl/*/cases/*.sql' -name '<pattern>.sql'`.
+1. **Locate the testcase** — ha_repl tests live at `*/ha_repl/{test_name}/cases/{test_name}.sql`. From a partial name or CBRD number: `find $TC -path '*/ha_repl/*/cases/*.sql' -name '<pattern>.sql'` (pass both resolved roots).
 2. **Read the script first** — know its `--test:` / `--check:` markers and what each check expects. This is what makes a failure diagnosable.
 3. **Prepare a temp conf** pointing CTP at this one test's `cases/` dir and the build URL:
    ```bash

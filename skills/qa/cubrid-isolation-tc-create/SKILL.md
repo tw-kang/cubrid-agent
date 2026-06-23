@@ -16,11 +16,12 @@ Generate a CUBRID CTP isolation testcase that passes review on the first try. An
 ## Before you start
 
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/isolation/`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES` if set, else discover the `cubrid-testcases` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
 ## Directory convention
 
-The path encodes the isolation levels under test, so CTP and reviewers categorize the test by where it lives. Tests root at `~/cubrid-testcases/isolation/`.
+The path encodes the isolation levels under test, so CTP and reviewers categorize the test by where it lives. Tests root at `$TC/isolation/`.
 
 ```
 # Bug fix:   isolation/_{NN}_{level}/<area>/<test_name>/<test_name>_01.ctl

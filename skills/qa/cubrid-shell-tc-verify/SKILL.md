@@ -15,7 +15,8 @@ Run a single CTP shell testcase, report OK/NOK, and — when it fails — diagno
 
 ## Before you start
 
-- **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/shell/init_path/init.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`). The testcase repo (`cubrid-testcases-private-ex`) must also be present; CUBRID itself need not be pre-installed.
+- **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/shell/init_path/init.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`). CUBRID itself need not be pre-installed.
+- **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE_EX` if set, else discover the `cubrid-testcases-private-ex` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
 - **Build URL.** A CUBRID build URL is required to install the binary under test. If not given, ask for it.
 - **JIRA context (optional).** If the test maps to a `CBRD-XXXXX`, run `cubrid-jira search CBRD-XXXXX` first to ground diagnosis in the issue's real symptom and expected behavior (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` notably sharpens the failure verdict.
 
@@ -29,7 +30,7 @@ Work from a scratch dir so logs never collide: `work=$(mktemp -d)`.
    grep '\[ERROR\]' "$work/install.log" && { echo "install failed"; }   # stop & show these lines if present
    source ~/.cubrid.sh && cubrid --version                               # must print a version
    ```
-2. **Locate the testcase** — shell tests live at `{test_name}/cases/{test_name}.sh`. From a partial name or CBRD number: `find ~/cubrid-testcases-private-ex/shell -path '*/cases/*' -name '<pattern>.sh'`.
+2. **Locate the testcase** — shell tests live at `{test_name}/cases/{test_name}.sh`. From a partial name or CBRD number: `find $TC/shell -path '*/cases/*' -name '<pattern>.sh'`.
 3. **Read the script first** — know what it tests, which DBs/services it touches, and any platform guard (`WINDOWS_NOT_SUPPORTED`). This is what makes a failure diagnosable.
 4. **Execute** from the `cases/` dir (tests use relative paths) with a timeout:
    ```bash
