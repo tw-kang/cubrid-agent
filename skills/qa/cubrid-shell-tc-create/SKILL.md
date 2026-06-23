@@ -1,329 +1,129 @@
 ---
 name: cubrid-shell-tc-create
-description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new shell testcase (.sh) for CUBRID CTP. This is the right skill any time someone needs a new test script produced from scratch for a CBRD issue — bug fix or feature. Common requests: \"shell tc 만들어줘\", \"shell tc 초안 작성해줘\", \"create shell tc\", \"draft shell test\", \"새 shell testcase\", \"create draft shell tc for CBRD-XXXXX\". Users typically mention a CBRD issue number, what behavior to test, and sometimes a target release directory. NOT for: debugging existing tests, reviewing diffs/PRs, CTP configuration, explaining helper functions, or general bash scripting unrelated to CTP test creation."
+description: "Create, draft, or scaffold a new CUBRID CTP shell testcase (.sh) from scratch — for a CBRD bug fix or feature. Use this whenever someone says \"shell tc 만들어줘\", \"shell tc 초안 작성해줘\", \"create shell tc\", \"draft shell test\", \"새 shell testcase\", or \"create draft shell tc for CBRD-XXXXX\", even if they don't say the word \"testcase\". They usually give a CBRD number, the behavior to test, and sometimes a target release dir. NOT for: reviewing/debugging existing tests, running tests, CTP configuration, HA/replication tests (use cubrid-ha-* skills), or SQL/JDBC/CCI testcases."
 ---
 
 # Shell Testcase Creator (CTP)
 
-Generate well-formed CUBRID CTP shell testcase scripts that pass review on the first attempt.
-
-## Prerequisites — CTP Installation Check (mandatory first step)
-
-```bash
-# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
-if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
-    echo "CTP found: $CTP_HOME"
-elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/CTP
-elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/cubrid-testtools/CTP
-else
-    echo "CTP not found"; exit 1
-fi
-# Verify shell helpers exist
-ls $CTP_HOME/shell/init_path/init.sh
-```
-
-If `ctp.sh` or `init.sh` is not found at any of the above paths, **stop immediately** and display:
-
-> "CTP is not installed. This skill cannot proceed.
-> Installation methods:
-> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
-> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
-> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
-
-## JIRA Issue Context (do this when a CBRD-XXXXX is referenced)
-
-When the request includes a `CBRD-XXXXX` ticket, **invoke the `jira` skill first** to fetch the issue background — title, description, reproduction steps, affected components, and comments — before generating the testcase. This grounds the test in the issue's actual requirements rather than guesswork.
-
-**Already fetched in this conversation?** Reuse the context — do not re-invoke. The fetcher caches issues, but the conversation should not redundantly re-display them.
-
-1. **Normalize the ticket ID** — `jira_search.py` requires the canonical `CBRD-NNNNN` form. Filenames typically use `cbrd_NNNNN`:
-
-   ```bash
-   TICKET=$(echo "$RAW_INPUT" | grep -oiE 'cbrd[-_ ]?[0-9]+' | head -1 \
-            | tr '[:lower:]' '[:upper:]' \
-            | sed -E 's/^CBRD[-_ ]?/CBRD-/')
-   ```
-
-2. **Locate the `jira` skill** — search project-scope, user-scope, plugin cache, and any `CLAUDE_PLUGIN_ROOT` install path. Do **not** rely on developer-specific paths:
-
-   ```bash
-   JIRA_SCRIPT=""
-   for d in \
-       "$(pwd)/.claude/skills/jira" \
-       "$HOME/.claude/skills/jira" \
-       "$HOME/.claude/plugins/skills/jira" \
-       "$HOME/skills/jira" \
-       "${CLAUDE_PLUGIN_ROOT:-}/skills/jira"
-   do
-       [ -n "$d" ] && [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
-   done
-   ```
-
-3. **If the skill is available** — prefer the slash form `/jira CBRD-XXXXX` when the harness exposes it (it honors the upstream `pandoc` prerequisite gate). Otherwise call the bundled script directly. Warn the user when `pandoc` is missing so they know the description/comments will fall back to raw Jira-wiki markup:
-
-   ```bash
-   command -v pandoc >/dev/null 2>&1 || \
-       echo "WARNING: pandoc not installed — JIRA description/comments will be raw wiki markup (degraded readability)."
-   python3 "$JIRA_SCRIPT" "$TICKET"
-   ```
-
-   Let the summary, description, and comments drive the testcase scope, expected behavior, and edge cases.
-
-4. **If the skill is missing** — **halt and ask the user**:
-
-   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate testcase generation, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
-   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
-   >
-   > After install, re-run the discovery step above. If the script is still not found, the install path may differ on this system — please report which directory under `~/.claude/` or the plugin cache contains the new `jira/scripts/jira_search.py`.
-
-   Wait for explicit confirmation. If the user declines, proceed without JIRA context and warn them that issue-specific details may be missing.
-
-5. **No CBRD-XXXXX in the request** — skip this section.
-
-## What Makes a Good Shell Testcase
-
-A self-contained script following a 5-phase flow: **init → setup → test → verify → cleanup**. The CTP framework handles execution, result collection, and regression tracking.
+Generate a CUBRID CTP shell testcase that passes review on the first try. A good testcase is one self-contained `.sh` following a five-phase flow — **init → setup → test → verify → cleanup** — that CTP runs, collects, and regression-tracks.
 
 ## Scope
 
-**What this skill produces:**
-- Entry scripts (the main test script that owns the full lifecycle)
-- Helper scripts (utilities invoked by entry scripts, when the test needs them)
-- Correct directory paths following CTP naming conventions
+**Produces:** the entry script (owns the full lifecycle), optional helper scripts and embedded C clients (same `cases/` dir), correct directory paths.
 
-**What this skill does NOT produce:**
-- CTP framework modifications
-- SQL/MEDIUM/JDBC test cases
-- CI/CD configuration
-- Answer files (these are generated by running the test in answer mode via `init answer`)
+**Does NOT produce:** answer files (CTP generates these by running in `init answer` mode — never hand-write them), CTP framework changes, CI config, SQL/MEDIUM/JDBC tests, or HA/replication tests (route those to `cubrid-ha-*`).
 
-## Directory Path Convention
+## Before you start
 
-The path matters — CTP uses it to identify and categorize tests.
+- **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/shell/init_path/init.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **JIRA context (optional).** If the request names a `CBRD-XXXXX`, invoke `/jira CBRD-XXXXX` first to ground the test in the issue's real reproduction and expected behavior. Reuse it if already fetched this conversation. Skip if no ticket is given.
 
-### New features
+## Directory convention
+
+The path is how CTP identifies and categorizes a test. The directory name and the script filename **must match** (`test_name/cases/test_name.sh`).
+
 ```
-shell/_{no}_{release_code}/cbrd_xxxxx_{feature}/cases/cbrd_xxxxx_{feature}.sh
-```
-Example: `shell/_35_cherry/issue_21506_online_index/cbrd_21506_backupdb/cases/cbrd_21506_backupdb.sh`
-
-### Bug fixes
-```
-shell/_06_issues/_{yy}_{1|2}h/cbrd_xxxxx/cases/cbrd_xxxxx.sh
-```
-Example: `shell/_06_issues/_19_2h/cbrd_22586/cases/cbrd_22586.sh`
-
-When multiple test cases exist for the same issue, append a suffix:
-```
-cbrd_xxxxx_1/cases/cbrd_xxxxx_1.sh
-cbrd_xxxxx_{keyword}/cases/cbrd_xxxxx_{keyword}.sh
+# Bug fix:   shell/_06_issues/_{yy}_{1|2}h/cbrd_xxxxx/cases/cbrd_xxxxx.sh
+# Feature:   shell/_{no}_{release_code}/{feature_group}/cbrd_xxxxx_{kw}/cases/cbrd_xxxxx_{kw}.sh
 ```
 
-The directory name and the script filename must match: `test_name/cases/test_name.sh`.
+`{yy}` = 2-digit year, `{1|2}h` = first/second half (issue creation date). Multiple tests for one issue get a suffix: `cbrd_xxxxx_1`, `cbrd_xxxxx_{keyword}`. Full rules and the excluded-list mechanism: see `@references/directory_guide.md`.
 
-## Lifecycle Contract
+## Lifecycle contract
 
-Every entry script must follow this exact sequence. Missing any step will fail review.
+Every entry script follows this skeleton. Missing a step fails review.
 
 ```bash
-#!/bin/sh
-# CBRD-XXXXX: Brief description of what this test verifies
-# Describe the setup, action, and expected outcome in 1-2 lines
+#!/bin/bash
+# CBRD-XXXXX: one-line statement of what this verifies.
+# Setup → action → expected outcome, in 1-2 lines.
 
 . $init_path/init.sh
 init test
 
-# --- Setup phase ---
-dbname=testdb
+dbname=db_xxxxx
+
+# --- Setup ---
 cubrid_createdb $dbname
 cubrid server start $dbname
 
-# --- Test phase ---
-# (test logic here)
+# --- Test --- (capture output to logs; keep SQL inline via heredocs)
+csql -udba "$dbname" > result.log 2>&1 <<'EOF'
+CREATE TABLE t1 (id INT PRIMARY KEY);
+EOF
 
-# --- Verify phase ---
-if [ condition ]; then
-    write_ok
-else
-    write_nok
-fi
+# --- Verify ---
+if [ <condition> ]; then write_ok; else write_nok "$result_log"; fi
 
-# --- Cleanup phase (reverse order) ---
+# --- Cleanup (reverse order) ---
 cubrid server stop $dbname
 cubrid deletedb $dbname
+rm -f *.log csql.*
 finish
 ```
 
-### Phase details
+### Why each phase matters (not just ritual)
 
-**1. Shebang + summary comment**
-- Start with `#!/bin/sh` (use `#!/bin/bash` only when bash features are needed)
-- Add a comment block with issue ID, what the test verifies, and brief setup/action/expected description
+- `. $init_path/init.sh` loads every CTP helper; `init test` resets prior state and sets up logging. Without them nothing else resolves.
+- Use `#!/bin/bash` (the house majority). Keep the body portable anyway — reach for a bashism only when it earns its place.
+- `finish` reverts every conf change, stops services, and frees broker shared memory. It must be the **last** call, and **every** exit path (including early `write_nok` returns) must reach it — otherwise the next test inherits dirty state.
+- Every code path must end at exactly one of `write_ok` / `write_nok`, then `finish`.
 
-**2. Source and init**
-- `. $init_path/init.sh` — loads all CTP helper functions
-- `init test` — initializes test environment, sets up logging, clears previous state
+## Essential helpers (use these, not raw commands)
 
-**3. Setup**
-- Create databases with `cubrid_createdb` (never raw `cubrid createdb`)
-- Start services as needed
-- Apply configuration changes with CTP helpers
+Raw equivalents fail review because these handle cross-version/charset quirks and auto-revert.
 
-**4. Test logic**
-- Execute the operations being tested
-- Capture output to log files for verification
-- Keep SQL inline using heredocs (never split into external .sql files)
-
-**5. Verify**
-- Use `write_ok` when the test passes, `write_nok` when it fails
-- Or use `compare_result_between_files <answer> <result>` which calls write_ok/write_nok automatically
-
-**6. Cleanup (reverse order)**
-- Stop services before deleting databases
-- Remove temp files
-- `finish` must be the last call — it restores configs, stops remaining services, releases shared memory
-
-## CTP Helper Functions
-
-Always prefer these over raw commands (cross-platform compatibility, automatic cleanup tracking).
-
-### Must-use helpers (using raw equivalents will fail review)
-
-| Instead of | Use | Why |
+| Use | Instead of | Why |
 |---|---|---|
-| `cubrid createdb $db` | `cubrid_createdb $db` | Handles charset compatibility across CUBRID versions |
-| Direct edit of cubrid.conf | `change_db_parameter "key=value"` | Auto-reverted by `finish` |
-| Direct edit of cubrid_broker.conf | `change_broker_parameter "key=value"` | Auto-reverted by `finish` |
-| Direct edit of cubrid_ha.conf | `change_ha_parameter "key=value"` | Auto-reverted by `finish` |
-| `kill -9`, `pkill` | `xkill <pattern>` | User-scoped, cross-platform safe |
+| `cubrid_createdb $db` | `cubrid createdb $db` | charset/locale compatibility across versions |
+| `change_db_parameter "k=v"` / `change_broker_parameter "k=v"` | editing `.conf` | auto-reverted by `finish` |
+| `xgcc -o bin src.c` | `gcc ... -lcascci` | auto `-I/-L $CUBRID`, `-lcascci -lpthread`, 32/64-bit + OS detection |
+| `xkill <pattern>` | `kill -9` / `pkill` | user-scoped, cross-platform |
+| `write_ok` / `write_nok [file]` | echoing PASS/FAIL | CTP result tracking |
 
-### Result handling
+Full reference (output normalization, SQL asserts, ports, platform macros): `@references/init_sh_helpers.md`.
 
-| Function | Purpose |
-|---|---|
-| `write_ok` | Record test passed |
-| `write_nok [file\|message]` | Record test failed (optionally attach evidence) |
-| `compare_result_between_files <answer> <result>` | Diff two files, auto-calls write_ok/write_nok |
+## Writing rules (principles, not ritual)
 
-### Output normalization (use before diff comparisons)
+- **Inline SQL** via single-quoted heredocs (`<<'EOF'`) so the shell doesn't expand `$`/backticks in your SQL. Never split SQL into separate `.sql` files.
+- **Quote variables** (`"$db"`), space your tests (`[ "$x" -eq 0 ]`).
+- **Error handling:** check exit codes for things that can fail (`cubrid server start`, `csql`, compiles). Pattern: `cmd || { write_nok "reason"; <cleanup>; finish; exit 0; }`.
+- **No hardcoded paths** (`/tmp`, `/home`, `/opt`); use `$init_path`, `$CUBRID`, cwd, `$TMPDIR`.
+- **Bounded loops only** — poll with a counter, never `while true`. Sleep 0-2s is fine; >10s must become polling.
+- **Track every background PID** (`cmd & pid=$!`) with a matching `wait`/`xkill`; leave no orphans.
+- **Clean up on every exit path:** `rm -f *.log csql.* <binaries>` before `finish`, in early-exit branches too.
+- **Platform exclusion:** put the macro (`WINDOWS_NOT_SUPPORTED` / `LINUX_NOT_SUPPORTED`) *before* sourcing init.sh.
 
-| Function | What it normalizes |
-|---|---|
-| `format_csql_output <file>` | Strips execution time, CAS info from csql output |
-| `format_query_plan <file>` | Normalizes query plan volatile content |
-| `format_path_output <file>` | Normalizes absolute paths |
-| `diff_ignore_lineno <f1> <f2>` | Ignores line number differences |
+## House idioms (quick recipes)
 
-### SQL execution
+These match what the corpus and reviewers expect. Details + a full crash-repro walkthrough: `@references/crash_cas_patterns.md`.
 
-| Function | Purpose |
-|---|---|
-| `exec_sql <dbname> <sql>` | Execute SQL via csql |
-| `test_exec_sql <dbname> <sql> <expected>` | Execute SQL and assert result |
-| `test_exec_command <cmd> <expected>` | Execute command and assert output |
+- **Broker is `broker1`** (not `query_editor`). Live port: `port=\`cubrid broker status -b | grep broker1 | awk '{print $4}'\``.
+- **CAS process / PID:** `ps -f -u $USER | grep -v grep | grep broker1_cub_cas | awk '{print $2}'`.
+- **Force a single CAS** (for CAS-reuse / crash repros): `change_broker_parameter "MIN_NUM_APPL_SERVER=1"` and `"MAX_NUM_APPL_SERVER=1"`, then `cubrid broker restart`.
+- **Coredump check:** clean a baseline, then count after the action — `find "$CUBRID" ./ \( -name "core.*" -o -name "*coredump*" \) | wc -l` before vs. after; assert no new cores. For crash bugs also assert the CAS PID is unchanged.
+- **Compile + run an embedded CCI C client:** `xgcc -o client client.c` then `./client <args>`; commit the `.c` next to the `.sh`.
 
-### Utility
+## Verify before claiming done
 
-| Function | Purpose |
-|---|---|
-| `get_os` | Returns: Linux, AIX, Windows_NT |
-| `get_broker_port_from_shell_config` | Get broker port from runtime config |
-| `get_cubrid_port_id` | Get CUBRID port from config |
-| `xgcc [options] <source>` | Cross-platform GCC wrapper |
-| `do_make_locale [force] [debug\|release]` | Cross-platform make_locale |
+After authoring, prove the testcase actually runs — don't just eyeball it.
 
-For the full helper reference, see `@references/init_sh_helpers.md`.
+1. **Pod-first:** if a k8s test-shell pod is reachable, run it there for real (install a build via CTP `run_cubrid_install`, inject the TC, run `ctp.sh shell`, read `feedback.log` for `OK`/`NOK`). This is ground truth.
+2. **Local fallback** (no pod is a clean, expected path): `bash -n` the script, `xgcc`-compile any `.c`, and run via local CTP if available.
 
-## Writing Rules
+Procedure detail: `@references/verification_protocol.md`.
 
-These rules match what the cubrid-shell-tc-review skill checks.
+## Self-review checklist
 
-### Shebang and portability
-- Default to `#!/bin/sh` — do NOT use bash-only syntax (`[[ ]]`, `source`, arrays, `<<<`, `function name {`, `local`)
-- Use `#!/bin/bash` only when bash features are genuinely needed
-- Always quote variables: `"$var"` not `$var`
-- Proper spacing in tests: `[ $x -eq 0 ]` with spaces around brackets
+- Lifecycle complete? (`init.sh`, `init test`, one of `write_ok`/`write_nok`, `finish` last)
+- CTP helpers over raw commands? (`cubrid_createdb`, `change_*_parameter`, `xgcc`, `xkill`)
+- SQL inline via single-quoted heredoc? No hardcoded paths? Bounded loops? No orphan PIDs?
+- Cleanup (`rm -f *.log csql.* <bin>`) on **every** exit path, before `finish`?
+- Crash test: coredump baseline taken and CAS PID compared?
+- Dir name == filename? Correct `_{yy}_{1|2}h` bucket?
+- Verified (pod-first, else local)?
 
-### Inline SQL
-- Keep all SQL inside the shell script using heredocs — never put queries in separate .sql files
-- Use single-quoted heredoc delimiter to prevent variable expansion in SQL: `<<'EOF'`
+## Examples & references
 
-```bash
-csql -udba "$dbname" <<'EOF'
-CREATE TABLE t1 (id INT PRIMARY KEY, val VARCHAR(100));
-INSERT INTO t1 VALUES (1, 'test');
-EOF
-```
-
-### Error handling
-- Check exit codes for commands that may fail: `cubrid server start`, `csql`, etc.
-- Pattern: `command || { write_nok "reason"; cleanup; finish; }`
-- Or use if-then: `if [ $? -ne 0 ]; then write_nok "reason"; ...; finish; fi`
-- Every code path must reach either write_ok/write_nok and finish
-
-### No hardcoded paths
-- Never use `/home/...`, `/opt/...`, `/tmp/...`
-- Use `$init_path`, `$CUBRID`, relative paths, or `$TMPDIR`
-
-### Loops and waits
-- Never use `while true`, `while :`, or `until false` — always use bounded conditions
-- Pattern: `while [ $waited -lt $max_wait ]; do ... sleep 1; waited=$((waited + 1)); done`
-- Sleep 0-2s: OK with brief comment
-- Sleep 3-10s: needs justification comment
-- Sleep >10s: must use polling instead
-
-### Background processes
-- Every `cmd &` must track the PID: `cmd & pid=$!`
-- Must have corresponding `wait $pid` or `xkill` cleanup
-- No orphan processes
-
-### Cleanup ordering
-1. Stop services (`cubrid server stop $dbname`)
-2. Delete databases (`cubrid deletedb $dbname`)
-3. Remove temp files (`rm -f ...`)
-4. `finish` (restores configs, final cleanup)
-
-### Output stability
-When comparing output, normalize volatile content first:
-- csql timing info → `format_csql_output`
-- Query plans → `format_query_plan`
-- Absolute paths → `format_path_output`
-- PIDs, timestamps, hostnames → use `grep`-based checks instead of full diff
-
-### Platform exclusion
-If a test is platform-specific, add the macro before sourcing init.sh:
-```bash
-#!/bin/sh
-WINDOWS_NOT_SUPPORTED
-. $init_path/init.sh
-```
-
-## Self-Review Checklist
-
-Before presenting output, verify:
-- Lifecycle complete? (init.sh, init test, write_ok/write_nok, finish)
-- CTP helpers used? (cubrid_createdb, change_db_parameter, xkill)
-- No hardcoded paths?
-- No unbounded loops?
-- No orphan processes?
-- SQL inline?
-- Error handling present?
-- Shebang-top comment present?
-- Cleanup in reverse order?
-
-## Examples
-
-See `@examples/` for complete working examples:
-- `@examples/basic_entry.sh` — standard entry script: DB create, SQL test, verify, cleanup
-- `@examples/config_change.sh` — parameter change test with change_db_parameter
-- `@examples/utility_test.sh` — cubrid utility (backupdb/restoredb) verification
-- `@examples/output_comparison.sh` — output capture and comparison with normalization
-
-## References
-
-- `@references/init_sh_helpers.md` — Full CTP helper function reference
-- `@references/directory_guide.md` — Directory structure and naming conventions
-- `cubrid-testtools/doc/shell_guide.md` — Official shell test guide
-- `cubrid-testtools/CTP/shell/init_path/init.sh` — CTP helpers source (reference only)
+- `@examples/` — working patterns: `basic_entry.sh`, `config_change.sh`, `utility_test.sh`, `output_comparison.sh`, and `cci_crash_repro.sh` (+ `.c`) for the CAS-coredump / CCI-client pattern.
+- `@references/directory_guide.md`, `@references/init_sh_helpers.md`, `@references/crash_cas_patterns.md`, `@references/verification_protocol.md`.

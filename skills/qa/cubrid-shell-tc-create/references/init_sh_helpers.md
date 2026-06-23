@@ -41,6 +41,14 @@ change_db_section_parameter common "log_max_archives=1"
 change_ha_parameter "ha_enable_sql_logging=true"
 ```
 
+To force a **single CAS** (so one reused process handles every request — needed for CAS-reuse/crash repros), set both bounds to 1 and restart the broker:
+```bash
+change_broker_parameter "MIN_NUM_APPL_SERVER=1"
+change_broker_parameter "MAX_NUM_APPL_SERVER=1"
+cubrid broker restart
+```
+`change_ha_parameter` exists for completeness, but HA/replication testcases belong in the `cubrid-ha-*` skills, not here.
+
 ## Result Handling
 
 | Function | Purpose |
@@ -88,7 +96,7 @@ Always prefer `xkill` over raw `kill -9` or `pkill`.
 | `get_os` | Returns: Linux, AIX, Windows_NT |
 | `get_broker_port_from_shell_config` | Broker port from shell_config.xml |
 | `get_cubrid_port_id` | CUBRID port from config |
-| `xgcc [options] <source>` | Cross-platform GCC wrapper |
+| `xgcc -o <bin> <source.c>` | Compile a CCI/C client. Auto-adds `-I$CUBRID/include -L$CUBRID/lib -lcascci -lpthread` and 32/64-bit + OS flags (`is32bit`). Use over raw `gcc` — don't repeat those flags. |
 | `do_make_locale [force] [debug\|release] [locale]` | Cross-platform make_locale |
 | `delete_make_locale` | Revert make_locale results |
 | `do_make_tz [new\|extend] [release] [nocheck]` | Cross-platform make_tz |

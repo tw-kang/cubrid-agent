@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # CBRD-99004: Verify SHOW INDEX output format for composite index
 # Creates a table with a composite index, captures SHOW INDEX output,
 # normalizes it, and compares against expected output.

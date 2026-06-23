@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # CBRD-99001: Verify INSERT ON DUPLICATE KEY UPDATE works correctly
 # Creates a table with unique constraint, inserts duplicate key,
 # and verifies that the existing row is updated instead of error.

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # CBRD-99002: Verify java_stored_procedure parameter enables JSP execution
 # Changes java_stored_procedure to yes, restarts server, and verifies
 # that a Java stored procedure can be loaded and called.

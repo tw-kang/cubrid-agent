@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # CBRD-99003: Verify backupdb and restoredb work correctly for a small database
 # Creates a DB with data, performs backup, drops a table, restores,
 # and verifies that the data is intact after restore.
