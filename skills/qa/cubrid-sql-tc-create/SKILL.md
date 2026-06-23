@@ -1,224 +1,96 @@
 ---
 name: cubrid-sql-tc-create
-description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new SQL testcase (.sql + .answer) for CUBRID CTP. This is the right skill any time someone needs a new SQL test produced from scratch for a CBRD issue — bug fix or new feature. Common requests: \"sql tc 만들어줘\", \"sql tc 초안 작성해줘\", \"create sql tc\", \"draft sql test\", \"새 sql testcase\", \"sql 테스트케이스 작성\", \"create draft sql tc for CBRD-XXXXX\". NOT for: running existing SQL tests, reviewing diffs/PRs, CTP configuration, or general SQL scripting unrelated to CTP test creation."
+description: "Create, draft, or scaffold a new CUBRID CTP SQL testcase (.sql + .answer) from scratch — for a CBRD bug fix or feature. Use this whenever someone says \"sql tc 만들어줘\", \"sql tc 초안 작성해줘\", \"create sql tc\", \"draft sql test\", \"새 sql testcase\", \"sql 테스트케이스 작성\", or \"create draft sql tc for CBRD-XXXXX\", even if they don't say the word \"testcase\". They usually give a CBRD number, the behavior to test, and sometimes a target release dir. NOT for: running existing SQL tests, reviewing diffs/PRs, CTP configuration, or SQL scripting unrelated to CTP test creation."
 ---
 
 # SQL Testcase Creator (CTP)
 
-Generate well-formed CUBRID CTP SQL testcase files (`.sql` + `.answer`).
+Generate a CUBRID CTP SQL testcase that passes review on the first try. A good testcase is a self-contained `.sql` (setup → scenarios → cleanup) plus a matching `.answer` that CTP diffs to decide pass/fail — and the `.answer` is **generated**, never hand-written.
 
-## Prerequisites — CTP Installation Check (mandatory first step)
+## Scope
 
-```bash
-# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
-if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
-    echo "CTP found: $CTP_HOME"
-elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/CTP
-elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/cubrid-testtools/CTP
-else
-    echo "CTP not found"; exit 1
-fi
-# Verify conf directory exists
-ls $CTP_HOME/conf/
-```
+**Produces:** the `.sql` file (owns its own setup and cleanup), an optional empty `.queryPlan` sidecar for optimizer tests, and correct directory paths under `cases/` + `answers/`.
 
-If `ctp.sh` or `conf/` is not found at any of the above paths, **stop immediately** and display:
+**Does NOT produce:** the `.answer` file (CTP generates it by running the `.sql` — see Lifecycle contract), CTP framework changes, CI config, or shell/JDBC/CCI/HA tests (route those to the matching `cubrid-*-tc-create` skill).
 
-> "CTP is not installed. This skill cannot proceed.
-> Installation methods:
-> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
-> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
-> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
+## Before you start
 
-## JIRA Issue Context (do this when a CBRD-XXXXX is referenced)
+- **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
-When the request includes a `CBRD-XXXXX` ticket, **invoke the `jira` skill first** to fetch the issue background — title, description, reproduction steps, affected components, and comments — before generating the testcase. This grounds the test in the issue's actual requirements rather than guesswork.
+## Directory convention
 
-**Already fetched in this conversation?** Reuse the context — do not re-invoke. The fetcher caches issues, but the conversation should not redundantly re-display them.
-
-1. **Normalize the ticket ID** — `jira_search.py` requires the canonical `CBRD-NNNNN` form. Filenames typically use `cbrd_NNNNN`:
-
-   ```bash
-   TICKET=$(echo "$RAW_INPUT" | grep -oiE 'cbrd[-_ ]?[0-9]+' | head -1 \
-            | tr '[:lower:]' '[:upper:]' \
-            | sed -E 's/^CBRD[-_ ]?/CBRD-/')
-   ```
-
-2. **Locate the `jira` skill** — search project-scope, user-scope, plugin cache, and any `CLAUDE_PLUGIN_ROOT` install path. Do **not** rely on developer-specific paths:
-
-   ```bash
-   JIRA_SCRIPT=""
-   for d in \
-       "$(pwd)/.claude/skills/jira" \
-       "$HOME/.claude/skills/jira" \
-       "$HOME/.claude/plugins/skills/jira" \
-       "$HOME/skills/jira" \
-       "${CLAUDE_PLUGIN_ROOT:-}/skills/jira"
-   do
-       [ -n "$d" ] && [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
-   done
-   ```
-
-3. **If the skill is available** — prefer the slash form `/jira CBRD-XXXXX` when the harness exposes it (it honors the upstream `pandoc` prerequisite gate). Otherwise call the bundled script directly. Warn the user when `pandoc` is missing so they know the description/comments will fall back to raw Jira-wiki markup:
-
-   ```bash
-   command -v pandoc >/dev/null 2>&1 || \
-       echo "WARNING: pandoc not installed — JIRA description/comments will be raw wiki markup (degraded readability)."
-   python3 "$JIRA_SCRIPT" "$TICKET"
-   ```
-
-   Let the summary, description, and comments drive the testcase scope, expected behavior, and edge cases.
-
-4. **If the skill is missing** — **halt and ask the user**:
-
-   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate testcase generation, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
-   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
-   >
-   > After install, re-run the discovery step above. If the script is still not found, the install path may differ on this system — please report which directory under `~/.claude/` or the plugin cache contains the new `jira/scripts/jira_search.py`.
-
-   Wait for explicit confirmation. If the user declines, proceed without JIRA context and warn them that issue-specific details may be missing.
-
-5. **No CBRD-XXXXX in the request** — skip this section.
-
-## Directory Path Convention
-
-### Bug fixes
+The path is how CTP locates and categorizes a test. The `.sql` and its `.answer` share basename, split across sibling `cases/` and `answers/` dirs.
 
 ```
-sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
-sql/_13_issues/_{yy}_{1|2}h/answers/cbrd_XXXXX.answer
+# Bug fix:  sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
+#                                       answers/cbrd_XXXXX.answer
+# Feature:  sql/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
+#                                                    answers/cbrd_XXXXX.answer
 ```
 
-- `{yy}` = two-digit year, `{1|2}h` = first/second half of year
-- Multiple tests for same issue: append suffix (`cbrd_27100_select.sql`, `cbrd_27100_update.sql`)
+`{yy}` = 2-digit year, `{1|2}h` = first/second half of year. Multiple tests for one issue get a suffix (`cbrd_27100_select.sql`, `cbrd_27100_update.sql`). All SQL files share one `cases/`+`answers/` pair — never make per-test subdirectories.
 
-### New features
+## Lifecycle contract
 
-```
-sql/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
-sql/_{no}_{release_code}/{feature_group}/answers/cbrd_XXXXX.answer
-```
+The `.answer` is the expected output and **must come from CTP**, not your keyboard — hand-written answers drift from real engine output and fail diffs.
 
-Multiple SQL test files share the same `cases/` and `answers/` directories — do not create per-test subdirectories.
+1. Write the `.sql` into `cases/`.
+2. Run it through CTP via the `cubrid-sql-tc-verify` skill (needs a build URL — use one given, else ask). This produces a `.result` next to the `.sql`.
+3. Promote it: `cp cases/cbrd_XXXXX.result answers/cbrd_XXXXX.answer`.
+4. Read the `.answer` and confirm it matches intent — DDL/DML show affected row count; SELECT shows headers + rows; errors show `Error:-NNN\n<message>`; each statement's output is split by `===...===` lines.
 
-## SQL File Format
+No build URL / no CUBRID env? Drop an empty `.answer` and tell the user to fill it later with `cubrid-sql-tc-verify`.
 
-```sql
-/**
- * This test case verifies CBRD-XXXXX: Brief one-line title
- *
- * Coverage:
- * 1 - Scenario one description
- * 2 - Scenario two description
- */
+## Essential helpers (use these, not raw SQL prose)
 
---+ server-message on
+These directives are how CTP and reviewers read your intent. Skipping them changes what gets compared.
 
-DROP TABLE IF EXISTS tbl_name;
-CREATE TABLE tbl_name (col1 INT, col2 VARCHAR(100));
-INSERT INTO tbl_name VALUES (1, 'hello'), (2, 'world');
+| Use | For | Why |
+|---|---|---|
+| `evaluate 'Case N: ...'` | label each scenario | sole section marker CTP echoes into the answer; number sequentially |
+| `--+ server-message on` / `off` | negative tests asserting `-NNN` errors | makes error text part of the diff; always pair on/off |
+| `DROP TABLE IF EXISTS t` before `CREATE` | every table | keeps the test re-runnable |
+| empty `cbrd_XXXXX.queryPlan` sidecar | optimizer/plan tests | tells CTP to capture and diff the query plan |
+| `cubrid-sql-tc-verify` | generating `.answer` | only sanctioned source of expected output |
 
-evaluate 'Case 1: description of what this tests';
-SELECT col1, col2 FROM tbl_name WHERE col1 = 1;
+## Writing rules
 
-evaluate 'Case 2: description of expected error';
-SELECT col1 / 0 FROM tbl_name;
+- **`evaluate 'Case N: description'`** before each scenario; this is the *only* section marker — do not add `-- === ...` style comment banners.
+- **Pair `server-message on/off`.** Enable only when asserting error messages; skip when checking result sets.
+- **`DROP TABLE IF EXISTS` before every `CREATE TABLE`**, setup at top, cleanup at bottom. Keep setup minimal with simple names (`tbl1`, `col1`).
+- **Simple, distinct data values** so answer diffs read cleanly; explicit column lists in `INSERT` when it aids readability.
+- **3–10 `evaluate` sections** per file is typical; one `evaluate` label per error case.
+- **No hardcoded paths.** SQL stays path-free; if a step needs scratch space use `work=$(mktemp -d)` or cwd, never `/tmp`/`/home`.
 
-DROP TABLE IF EXISTS tbl_name;
+## House idioms (quick recipes)
 
---+ server-message off
-```
+These match what the corpus and reviewers expect. See `@examples/` for full files.
 
-### Header block
+- **Header block** — start every file with `/** This test case verifies CBRD-XXXXX: <title> */` followed by a numbered `Coverage:` list.
+- **Query-plan test** — drop an empty `cbrd_XXXXX.queryPlan` beside the `.sql`; CTP then captures the optimizer plan into the answer.
+- **Parameter change (rare)** — `SET SYSTEM PARAMETERS 'k=v';` then restore the original value at the end of the test.
+- **`holdcas` (rare)** — wrap transaction-sensitive scenarios in `--+ holdcas on;` … `--+ holdcas off;`.
 
-Always start with `/** ... */` comment:
-- First line: `This test case verifies CBRD-XXXXX: <title>`
-- `Coverage:` section listing numbered scenarios
+## Verify before claiming done
 
-### `evaluate` statements
+After authoring, prove the testcase actually runs — don't just eyeball it.
 
-Use `evaluate 'Case N: description'` before each test scenario. Number sequentially. This is the sole section marker — do NOT add `-- ===` style comment headers.
+1. **Run it (ground truth):** push the `.sql` through `cubrid-sql-tc-verify` with a real build, generate the `.result`, promote it to `.answer`, and confirm the answer reflects intended behavior (right error codes, right row counts).
+2. **No-build fallback** (a clean, expected path): leave the `.answer` empty and hand off to the user with `cubrid-sql-tc-verify` instructions.
 
-### `--+ server-message on/off`
+## Self-review checklist
 
-Enable when testing error messages (negative tests expecting `-NNN` errors). Always pair on/off. Skip when the test only checks result sets.
+- Header block present with CBRD number and `Coverage:`?
+- `evaluate 'Case N: ...'` on every scenario, numbered, no `-- ===` banners?
+- `DROP TABLE IF EXISTS` before each `CREATE TABLE`? Cleanup at bottom?
+- `server-message on/off` paired (only for error tests)?
+- `.queryPlan` sidecar present for optimizer tests?
+- `.answer` generated via `cubrid-sql-tc-verify` (not hand-written), or left empty with a handoff note?
+- Dir/basename correct? Right `_{yy}_{1|2}h` bucket, shared `cases/`+`answers/`?
 
-### Setup and cleanup
+## Examples & references
 
-- `DROP TABLE IF EXISTS` before every `CREATE TABLE` (re-runnable)
-- Setup at top, cleanup at bottom
-- Keep setup minimal, use simple names (`tbl1`, `col1`)
-
-### Query plan tests
-
-When verifying optimizer decisions, create an empty `.queryPlan` file alongside the `.sql`:
-```
-cases/cbrd_XXXXX.sql
-cases/cbrd_XXXXX.queryPlan   ← empty file
-answers/cbrd_XXXXX.answer
-```
-
-## Writing Rules
-
-- Use explicit column lists in `INSERT` when it aids readability
-- Keep test SQL focused — avoid unrelated complexity
-- Prefer simple data values for easy answer diffs
-- 3–10 `evaluate` sections per file is typical
-- Each error case should have its own `evaluate` label
-
-### Parameter changes (rare)
-```sql
-SET SYSTEM PARAMETERS 'param_name=value';
--- ... test ...
-SET SYSTEM PARAMETERS 'param_name=original_value';
-```
-
-### `holdcas` directive (rare)
-```sql
---+ holdcas on;
--- ... transaction-sensitive test ...
---+ holdcas off;
-```
-
-## Answer File Generation
-
-Do NOT write `.answer` files manually. Use the `cubrid-sql-tc-runone` skill to generate them.
-
-### Procedure
-
-1. Place the `.sql` file in the `cases/` directory.
-2. Invoke the `cubrid-sql-tc-runone` skill to run the `.sql` file through CTP.
-   - A build URL is required — use one already provided by the user, or ask for it.
-3. After CTP execution, a `.result` file is generated in the `cases/` directory.
-4. Copy the `.result` file to the `answers/` directory with the `.answer` extension:
-
-```bash
-BASENAME=cbrd_XXXXX
-cp sql/_13_issues/_26_1h/cases/${BASENAME}.result \
-   sql/_13_issues/_26_1h/answers/${BASENAME}.answer
-```
-
-5. Review the `.answer` file contents to confirm they match expected results.
-   - DDL/DML: affected row count (`0` or integer)
-   - SELECT: column headers + data rows
-   - Errors: `Error:-NNN\n<error message>`
-   - Each SQL statement output is separated by `===...===` lines
-
-If no build URL is available or CUBRID environment is not set up, create an empty `.answer` file and instruct the user to complete it later using `cubrid-sql-tc-runone`.
-
-## Self-Review Checklist
-
-Before presenting output, verify:
-- Header block present with CBRD number and coverage?
-- `evaluate` labels on each scenario?
-- `DROP TABLE IF EXISTS` before every `CREATE TABLE`?
-- `server-message on/off` paired correctly?
-- `.queryPlan` file needed?
-
-## Examples
-
-- `@examples/bug_fix_error_cases.sql` — negative test with server-message
-- `@examples/bug_fix_select.sql` — basic SELECT result verification
-- `@examples/feature_query_plan.sql` — test with queryPlan for optimizer verification
+- `@examples/bug_fix_error_cases.sql` — negative test with `server-message on/off`.
+- `@examples/bug_fix_select.sql` — basic SELECT result verification.
+- `@examples/feature_query_plan.sql` — optimizer test with a `.queryPlan` sidecar.

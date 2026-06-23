@@ -1,280 +1,118 @@
 ---
 name: cubrid-cdc_repl-tc-create
-description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new CDC replication testcase (.sql) for CUBRID CTP. Common requests: \"cdc_repl tc 만들어줘\", \"cdc replication testcase\", \"cdc tc 초안\", \"create cdc repl tc\", \"draft cdc test\", \"새 cdc 테스트케이스 작성\", \"create draft cdc tc for CBRD-XXXXX\". NOT for: running existing CDC tests, reviewing diffs/PRs, CTP configuration, or general SQL scripting unrelated to CTP cdc_repl test creation."
+description: "Create, draft, or scaffold a new CUBRID CTP CDC replication testcase (.sql) from scratch — for a CBRD bug fix or feature. Use this whenever someone says \"cdc_repl tc 만들어줘\", \"cdc tc 초안 작성해줘\", \"create cdc repl tc\", \"draft cdc test\", \"새 cdc 테스트케이스\", or \"create draft cdc tc for CBRD-XXXXX\", even if they don't say the word \"testcase\". They usually give a CBRD number, the behavior to capture, and sometimes a target release dir. NOT for: running/reviewing existing CDC tests, CTP configuration, HA/log replication (use cubrid-ha-* skills), or SQL/shell/JDBC testcases."
 ---
 
 # CDC Replication Testcase Creator (CTP)
 
-Generate well-formed CUBRID CTP CDC replication testcase files (`.sql`).
+Generate a CUBRID CTP CDC replication testcase that passes review on the first try. CDC (Change Data Capture) reads DML from a source DB and applies it to a target; a good testcase is one self-contained `.sql` of `--test:`/`--check:` markers that CTP replays on both nodes and diffs with `CheckDiff.java`.
 
-## Prerequisites — CTP Installation Check (mandatory first step)
+## Scope
 
-```bash
-# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
-if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
-    echo "CTP found: $CTP_HOME"
-elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/CTP
-elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/cubrid-testtools/CTP
-else
-    echo "CTP not found"; exit 1
-fi
-# Verify conf directory exists
-ls $CTP_HOME/conf/
-```
+**Produces:** the `.sql` testcase (header + `--test:`/`--check:` markers driving source DML and source/target comparison), in the correct `cases/` directory.
 
-If `ctp.sh` or `conf/` is not found, stop and display:
+**Does NOT produce:** CTP config (`conf/cdc_repl.conf`), the `cdc_test_helper` / `CdcReplUtils.java` / `CheckDiff.java` tooling, CI config, or HA/log-replication tests — route those to `cubrid-ha-*`. CDC differs from `ha_repl`: it diffs via `CheckDiff` (not master/slave row compare), needs an explicit PRIMARY KEY on every table (ha_repl auto-adds one), and has limited LOB support.
 
-> "CTP is not installed. This skill cannot proceed.
-> Installation methods:
-> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
-> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
-> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
+## Before you start
 
-Use the detected `$CTP_HOME` in all subsequent steps.
+- **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/bin/ctp.sh $CTP_HOME/conf/`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
-## JIRA Issue Context (do this when a CBRD-XXXXX is referenced)
+## Directory convention
 
-When the request includes a `CBRD-XXXXX` ticket, **invoke the `jira` skill first** to fetch the issue background — title, description, reproduction steps, affected components, and comments — before generating the testcase. This grounds the test in the issue's actual requirements rather than guesswork.
-
-**Already fetched in this conversation?** Reuse the context — do not re-invoke. The fetcher caches issues, but the conversation should not redundantly re-display them.
-
-1. **Normalize the ticket ID** — `jira_search.py` requires the canonical `CBRD-NNNNN` form. Filenames typically use `cbrd_NNNNN`:
-
-   ```bash
-   TICKET=$(echo "$RAW_INPUT" | grep -oiE 'cbrd[-_ ]?[0-9]+' | head -1 \
-            | tr '[:lower:]' '[:upper:]' \
-            | sed -E 's/^CBRD[-_ ]?/CBRD-/')
-   ```
-
-2. **Locate the `jira` skill** — search project-scope, user-scope, plugin cache, and any `CLAUDE_PLUGIN_ROOT` install path. Do **not** rely on developer-specific paths:
-
-   ```bash
-   JIRA_SCRIPT=""
-   for d in \
-       "$(pwd)/.claude/skills/jira" \
-       "$HOME/.claude/skills/jira" \
-       "$HOME/.claude/plugins/skills/jira" \
-       "$HOME/skills/jira" \
-       "${CLAUDE_PLUGIN_ROOT:-}/skills/jira"
-   do
-       [ -n "$d" ] && [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
-   done
-   ```
-
-3. **If the skill is available** — prefer the slash form `/jira CBRD-XXXXX` when the harness exposes it (it honors the upstream `pandoc` prerequisite gate). Otherwise call the bundled script directly. Warn the user when `pandoc` is missing so they know the description/comments will fall back to raw Jira-wiki markup:
-
-   ```bash
-   command -v pandoc >/dev/null 2>&1 || \
-       echo "WARNING: pandoc not installed — JIRA description/comments will be raw wiki markup (degraded readability)."
-   python3 "$JIRA_SCRIPT" "$TICKET"
-   ```
-
-   Let the summary, description, and comments drive the testcase scope, expected behavior, and edge cases.
-
-4. **If the skill is missing** — **halt and ask the user**:
-
-   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate testcase generation, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
-   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
-   >
-   > After install, re-run the discovery step above. If the script is still not found, the install path may differ on this system — please report which directory under `~/.claude/` or the plugin cache contains the new `jira/scripts/jira_search.py`.
-
-   Wait for explicit confirmation. If the user declines, proceed without JIRA context and warn them that issue-specific details may be missing.
-
-5. **No CBRD-XXXXX in the request** — skip this section.
-
-## What is CDC Replication Testing?
-
-CDC (Change Data Capture) captures DML changes (INSERT/UPDATE/DELETE) from a source database in real-time and replicates them to a target. CDC replication tests verify that captured changes are correctly applied to the target.
-
-### CDC vs. HA Replication — Key Differences
-
-| Aspect | ha_repl | cdc_repl |
-|--------|---------|----------|
-| Capture mechanism | Log-based replication | CDC change capture |
-| Verification | Master/slave row comparison | `CheckDiff.java` (CDC-specific) |
-| Helper tool | (none) | `cdc_test_helper` (native C tool) |
-| Utility class | (none) | `CdcReplUtils.java` |
-| Config file | `conf/ha_repl.conf` | `conf/cdc_repl.conf` |
-| Run command | `bin/ctp.sh ha_repl -c conf/ha_repl.conf` | `bin/ctp.sh cdc_repl -c conf/cdc_repl.conf` |
-| Results path | `CTP/result/ha_repl/current_runtime_logs/` | `CTP/result/cdc_repl/current_runtime_logs/` |
-| PRIMARY KEY | Auto-added if missing | **Mandatory — must be explicit** |
-| LOB support | Full | Limited — BLOB/CLOB may not replicate correctly |
-
-### CDC-Specific Components
-
-- **`CheckDiff.java`**: Compares source and target data after CDC replication completes (not present in ha_repl).
-- **`CdcReplUtils.java`**: Utility functions for CDC operations (sync waiting, capture state validation).
-- **`cdc_test_helper`**: Native C tool (`cdc_test_helper/cdc_test_helper.c`). Build with `cdc_test_helper/build.sh` before running tests.
-
-## Testcase Markers
-
-| Marker | Purpose | Example |
-|--------|---------|---------|
-| `--test:` | DML/DDL statement executed on the **source** DB; captured by CDC | `--test: INSERT INTO t1 VALUES (1, 'a');` |
-| `--check:` | Query run on **both** source and target; results compared by `CheckDiff` | `--check: SELECT * FROM t1 ORDER BY id;` |
-
-**Rules:**
-- Every `--test:` block that modifies data must end with `--test: COMMIT;`
-- `--check:` queries must produce deterministic results — always use `ORDER BY`
-- Do not mix `--test:` and `--check:` on the same logical block without a `COMMIT` between them
-- Setup and teardown (`CREATE TABLE`, `DROP TABLE IF EXISTS`) use `--test:` markers
-
-## Directory Path Convention
-
-CDC replication testcases live in the `cubrid-testcases` repository under a path parallel to ha_repl:
-
-### Bug fixes
+The path is how CTP identifies and categorizes a test. CDC tests live in the `cubrid-testcases` repo, parallel to `ha_repl`. Multiple `.sql` files for one issue share the same `cases/` dir — never per-test subdirectories.
 
 ```
-cdc_repl/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
+# Bug fix:   cdc_repl/_13_issues/_{yy}_{1|2}h/cases/cbrd_xxxxx.sql
+# Feature:   cdc_repl/_{no}_{release_code}/{feature_group}/cases/cbrd_xxxxx.sql
 ```
 
-- `{yy}` = two-digit year, `{1|2}h` = first/second half of year
-- Multiple tests for same issue: append suffix (`cbrd_27100_insert.sql`, `cbrd_27100_update.sql`)
+`{yy}` = 2-digit year, `{1|2}h` = first/second half (issue creation date). Split scenarios get a suffix: `cbrd_27100_insert.sql`, `cbrd_27100_update.sql`.
 
-### New features
+## Lifecycle contract
 
-```
-cdc_repl/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
-```
-
-Multiple SQL test files share the same `cases/` directory — do not create per-test subdirectories.
-
-## Testcase File Format
+Every testcase follows this skeleton. Missing a step fails review or causes false diffs.
 
 ```sql
 /**
- * This test case verifies CBRD-XXXXX: CDC replication of <feature>
+ * This test case verifies CBRD-XXXXX: <one-line statement of what CDC behavior this checks>
  *
  * Coverage:
- * 1 - CDC captures INSERT operations
- * 2 - CDC captures UPDATE operations
- * 3 - CDC captures DELETE operations
- * 4 - Verify data consistency via CheckDiff
+ * 1 - CDC captures INSERT
+ * 2 - CDC captures UPDATE / DELETE
+ * 3 - Data consistency verified via CheckDiff
  */
 
+-- Setup (re-runnable)
 --test: DROP TABLE IF EXISTS t1;
 --test: CREATE TABLE t1 (id INT PRIMARY KEY, val VARCHAR(100));
 --test: COMMIT;
 
+-- Action on source + compare on both
 --test: INSERT INTO t1 VALUES (1, 'hello');
---test: INSERT INTO t1 VALUES (2, 'world');
 --test: COMMIT;
-
---check: SELECT * FROM t1 ORDER BY id;
-
---test: UPDATE t1 SET val = 'modified' WHERE id = 1;
---test: COMMIT;
-
 --check: SELECT id, val FROM t1 ORDER BY id;
 
---test: DELETE FROM t1 WHERE id = 2;
---test: COMMIT;
-
---check: SELECT id, val FROM t1 ORDER BY id;
-
+-- Cleanup
 --test: DROP TABLE IF EXISTS t1;
 --test: COMMIT;
 ```
 
-### Header block
+### Why each marker matters (not just ritual)
 
-Always start with `/** ... */` comment:
-- First line: `This test case verifies CBRD-XXXXX: <title>`
-- `Coverage:` section listing numbered scenarios
+- `--test:` runs a DML/DDL statement on the **source** DB; CDC captures it. `--check:` runs a query on **both** source and target, and `CheckDiff` compares the two result sets.
+- **Every `--test:` data change must end with `--test: COMMIT;`** — CDC captures committed changes only; uncommitted DML never reaches the target, so the diff stalls or fails.
+- **Never mix `--test:` and `--check:` in one logical block without a `COMMIT` between them** — you'd compare a state the target hasn't received yet.
+- Header `/** ... */` first, setup at top, cleanup at bottom. The header's `CBRD-XXXXX` + `Coverage:` block is what reviewers read first.
 
-### Setup and cleanup
+## Essential helpers (use these, not raw values)
 
-- `--test: DROP TABLE IF EXISTS` before every `--test: CREATE TABLE` (re-runnable)
-- Always include `--test: COMMIT;` after DDL and after each DML batch
-- Setup at top, cleanup at bottom
-- Keep table and column names simple (`t1`, `col1`)
+CDC has hard requirements that raw SQL silently violates — these are the load-bearing conventions.
 
-## File Format Rules
+| Use | Instead of | Why |
+|---|---|---|
+| explicit `PRIMARY KEY` on every table | a keyless table | CDC tracks rows by PK; keyless tables can't replicate reliably |
+| `--test: COMMIT;` after each DML batch | leaving DML open | CDC only captures committed work |
+| `--check: ... ORDER BY <pk>` | `--check:` with no order | source/target row order may differ → false diff |
+| `DROP TABLE IF EXISTS` before each `CREATE` | bare `CREATE TABLE` | makes the test re-runnable |
 
-### PRIMARY KEY is mandatory
+The `cdc_test_helper` (native C, built via its `build.sh`), `CdcReplUtils.java`, and `CheckDiff.java` are CTP-side infrastructure — you reference the behavior, you don't author them.
 
-CDC tracks rows by primary key — tables without one cannot be reliably replicated:
+## Writing rules (principles, not ritual)
 
-```sql
--- CORRECT
---test: CREATE TABLE t1 (id INT PRIMARY KEY, val VARCHAR(100));
+- **One feature/behavior per file.** Typical: 3–8 `--check:` blocks; give each DML type (INSERT/UPDATE/DELETE) its own `--check:`.
+- **Deterministic checks only:** every `--check:` ends in `ORDER BY` on the primary key, with simple predictable values for easy diff inspection.
+- **Explicit PK, explicit values:** single-column INT PK is clearest; composite PK is allowed but verbose. Don't rely on `AUTO_INCREMENT` alone when you need to predict inserted IDs — write explicit values.
+- **Avoid LOB:** BLOB/CLOB may not replicate via CDC — skip them unless the issue explicitly targets LOB CDC.
+- **Test the edges the issue cares about:** empty result after DELETE, multi-row UPDATE, NULL values — each with its own `--check:`.
 
--- WRONG — CDC cannot track rows without a primary key
---test: CREATE TABLE t1 (val VARCHAR(100));
-```
+## House idioms (quick recipes)
 
-### LOB (BLOB/CLOB) limitations
+These match what the corpus and `CheckDiff` expect.
 
-BLOB/CLOB may not replicate correctly via CDC. Avoid LOB columns unless the test explicitly targets LOB CDC behavior.
+- **NULL round-trip:** `--test: INSERT INTO t1 VALUES (3, NULL); --test: COMMIT;` then `--check: SELECT id, val FROM t1 WHERE val IS NULL ORDER BY id;`.
+- **Multi-table / joins:** create *all* tables before any inserts, dropping children before parents — `DROP t2; DROP t1; CREATE t1 ...; CREATE t2 ...; COMMIT;`.
+- **Composite PK:** `--test: CREATE TABLE t1 (id1 INT, id2 INT, val VARCHAR(100), PRIMARY KEY (id1, id2));`.
 
-### Composite primary keys
+## Verify before claiming done
 
-Allowed, but prefer single-column integer primary keys for clarity:
+CDC needs a full source+target cluster, so local execution is usually impossible — be honest about that.
 
-```sql
---test: CREATE TABLE t1 (id1 INT, id2 INT, val VARCHAR(100), PRIMARY KEY (id1, id2));
-```
+1. **Cluster-first:** if a CDC-enabled environment is reachable (source + target, `cdc_test_helper` built, `conf/cdc_repl.conf` pointing at both nodes), run via `bin/ctp.sh cdc_repl -c conf/cdc_repl.conf` and read `CTP/result/cdc_repl/current_runtime_logs/` for the `CheckDiff` verdict. This is ground truth.
+2. **Static fallback** (no cluster is an expected path): re-read the file against the checklist below — every table has a PK, every DML batch commits, every `--check:` orders by PK, drops precede creates. Route any scratch output through `work=$(mktemp -d)`, never a hardcoded path.
 
-### CHECK queries must be deterministic
+## Self-review checklist
 
-Always include `ORDER BY` in `--check:` queries — non-deterministic ordering causes false failures:
-
-```sql
--- CORRECT
---check: SELECT id, val FROM t1 ORDER BY id;
-
--- WRONG — row order may differ between source and target
---check: SELECT id, val FROM t1;
-```
-
-## Writing Rules
-
-- Keep tests focused on one feature or behavior per file
-- 3–8 `--check:` blocks per file is typical
-- Each distinct DML operation type (INSERT/UPDATE/DELETE) should have its own `--check:`
-- Use simple, predictable data values for easy diff inspection
-- Test edge cases: empty result after DELETE, multiple rows updated, NULL values
-- Do NOT test LOB columns unless explicitly required by the issue
-- Do NOT use `AUTO_INCREMENT` columns alone as primary key if you need to predict inserted IDs — use explicit values
-
-### NULL handling
-
-```sql
---test: INSERT INTO t1 VALUES (3, NULL);
---test: COMMIT;
---check: SELECT id, val FROM t1 WHERE val IS NULL ORDER BY id;
-```
-
-### Multi-table scenarios
-
-When testing joins or cross-table consistency, create all tables before any data inserts:
-
-```sql
---test: DROP TABLE IF EXISTS t2;
---test: DROP TABLE IF EXISTS t1;
---test: CREATE TABLE t1 (id INT PRIMARY KEY, name VARCHAR(50));
---test: CREATE TABLE t2 (id INT PRIMARY KEY, t1_id INT, score INT);
---test: COMMIT;
-```
-
-## Infrastructure Requirements
-
-Requires a CDC-enabled CUBRID environment (source + target nodes), `cdc_test_helper` built via `build.sh`, and `conf/cdc_repl.conf` pointing to both nodes. Cannot be run locally without a full CDC replication cluster.
-
-## Generation Process — Self-Review Checklist
-
-- Header present with CBRD issue ID and Coverage section?
+- Header present with `CBRD-XXXXX` and a `Coverage:` section?
 - Every table has an explicit PRIMARY KEY?
-- Every DML batch ends with `--test: COMMIT;`?
-- Every `--check:` query has `ORDER BY`?
-- `DROP TABLE IF EXISTS` before every `CREATE TABLE`?
-- No LOB columns unless explicitly required?
-- Cleanup at the bottom?
+- Every `--test:` DML batch ends with `--test: COMMIT;`?
+- Every `--check:` query has `ORDER BY` on the PK?
+- `DROP TABLE IF EXISTS` before every `CREATE TABLE`? Cleanup at the bottom?
+- No LOB columns unless the issue requires them? No `--test:`/`--check:` mixed without a commit between?
+- Correct `cdc_repl/_13_issues/_{yy}_{1|2}h/cases/` (or feature) path? Filename == `cbrd_xxxxx[_kw].sql`?
+- Verified (cluster-first, else static)?
 
-## Examples
+## Examples & references
 
-- `@examples/basic_dml_capture.sql` — INSERT/UPDATE/DELETE CDC capture with consistency checks
-- `@examples/schema_change_capture.sql` — DDL changes captured by CDC
+- `@examples/basic_dml_capture.sql` — INSERT/UPDATE/DELETE CDC capture with consistency checks.
+- `@examples/schema_change_capture.sql` — DDL changes captured by CDC.

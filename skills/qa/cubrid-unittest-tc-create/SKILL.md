@@ -1,264 +1,112 @@
 ---
 name: cubrid-unittest-tc-create
-description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new C/C++ unit test for CUBRID CTP's unittest category. These are low-level unit tests compiled from CUBRID source code. Common requests: \"unittest tc 만들어줘\", \"unit test 작성\", \"create unittest for CUBRID\", \"새 유닛테스트\", \"C unit test 추가\". NOT for: CCI tests (use cubrid-cci-tc-create), shell tests (use cubrid-shell-tc-create), JDBC tests (use cubrid-jdbc-tc-create)."
+description: "Create, draft, or scaffold a new CUBRID CTP unittest — a low-level C/C++ unit test compiled from CUBRID source. Use this whenever someone says \"unittest tc 만들어줘\", \"unit test 작성\", \"새 유닛테스트\", \"C unit test 추가\", \"create unittest for CUBRID\", or \"draft unit test\", even if they don't say \"testcase\". NOT for: CCI tests (use cubrid-cci-tc-create), shell tests (use cubrid-shell-tc-create), JDBC tests (use cubrid-jdbc-tc-create), reviewing/running existing tests, or CTP config."
 ---
 
 # CUBRID Unittest Creator (CTP)
 
-Generate well-formed CUBRID C/C++ unit test files that integrate with CTP's unittest runner.
+Generate a CUBRID CTP unittest that passes on the first try. A unittest is a self-contained C/C++ program compiled from CUBRID source that exercises an internal component directly (no broker, no server), prints pass/fail to stdout, and is discovered and judged by CTP's unittest runner.
 
-## Prerequisites — CTP Installation Check (mandatory first step)
+## Scope
+
+**Produces:** the test source (`test_<module>.c`/`.cpp`) under the CUBRID source tree, plus the `CMakeLists.txt` entry that builds and installs the binary so CTP can find it.
+
+**Does NOT produce:** CTP framework changes, CI config, server/broker-dependent tests, or CCI/shell/JDBC/SQL tests (route those to the matching `cubrid-*-tc-create` skill). Unittests test pure logic — anything needing a running server is out of scope.
+
+## Before you start
+
+- **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/bin/ctp.sh $CTP_HOME/conf/`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **CUBRID source tree** must be present — unittests are compiled from it, not from a testcases repo. Confirm the `unit_tests/` and `src/` directories exist before writing.
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
+
+## Directory convention
+
+Source lives in the CUBRID source repo; the binary must install to `bin/` so CTP discovers it by the `unittests_*` prefix.
+
+```
+# Source:  cubrid/unit_tests/<module>/test_<module>.cpp   (shared helpers in unit_tests/common/)
+#     or:  cubrid/src/<module>/test_<name>.{c,cpp}
+# Binary:  cubrid/build_release/bin/unittests_<module>     (also build_debug/)
+```
+
+Binary name is always `unittests_<module>` — plural, `unittests_` prefix, one binary per logical module. CTP discovers it via `$CUBRID/build_release/bin/unittests_*`.
+
+## Lifecycle contract
+
+CTP runs each binary and judges it by **scanning stdout** — exit code is ignored. The judgment is literally:
 
 ```bash
-# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
-if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
-    echo "CTP found: $CTP_HOME"
-elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/CTP
-elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/cubrid-testtools/CTP
-else
-    echo "CTP not found"; exit 1
-fi
-# Verify conf directory exists
-ls $CTP_HOME/conf/
+# PASS iff: no "fail"/"Unit tests failed" (case-insensitive) AND at least one "OK"/"success"
+if [ `grep -i 'fail\|Unit tests failed' "$unittestlog" | wc -l` -eq 0 \
+  -a `grep -i 'OK\|success' "$unittestlog" | wc -l` -ne 0 ]; then IS_SUCC=true; fi
 ```
 
-If `ctp.sh` or `conf/` is not found, stop and display:
+So every binary's `main` must:
 
-> "CTP is not installed. This skill cannot proceed.
-> Installation: `git clone https://github.com/CUBRID/cubrid-testtools.git`
-> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
+1. Run its test functions, counting failures.
+2. On all-pass: print a line containing `OK` or `success` (e.g. `printf("All tests passed. OK\n")`).
+3. On any failure: print `FAIL`/`fail` per failing assertion — these lines make CTP record FAIL.
+4. Print to **stdout**, not stderr; CTP reads stdout only.
 
-## JIRA Issue Context (do this when a CBRD-XXXXX is referenced)
+Miss the `OK`/`success` line and a passing run is still recorded as FAIL.
 
-When the request includes a `CBRD-XXXXX` ticket, **invoke the `jira` skill first** to fetch the issue background — title, description, reproduction steps, affected components, and comments — before generating the testcase. This grounds the test in the issue's actual requirements rather than guesswork.
+## Essential helpers (use these, not ad-hoc checks)
 
-**Already fetched in this conversation?** Reuse the context — do not re-invoke. The fetcher caches issues, but the conversation should not redundantly re-display them.
+Define assertion macros that increment a `failed` counter and print a `FAIL:` line carrying the expected/actual values — that single line satisfies the FAIL contract and gives a readable diff. The example files ship ready-to-copy macros:
 
-1. **Normalize the ticket ID** — `jira_search.py` requires the canonical `CBRD-NNNNN` form. Filenames typically use `cbrd_NNNNN`:
+| Use | For | Why |
+|---|---|---|
+| `ASSERT_EQ(a, b, msg)` | integer/scalar equality | prints `FAIL: msg (expected, got)`, bumps `failed` |
+| `ASSERT_STR_EQ(a, b, msg)` | C string equality | same, with `strcmp` |
+| `CHECK(cond, msg)` (C++) | any boolean condition | `std::cout` variant |
 
-   ```bash
-   TICKET=$(echo "$RAW_INPUT" | grep -oiE 'cbrd[-_ ]?[0-9]+' | head -1 \
-            | tr '[:lower:]' '[:upper:]' \
-            | sed -E 's/^CBRD[-_ ]?/CBRD-/')
-   ```
+Full macro bodies and a working `main`: see `@examples/test_simple_module.c` and `@examples/test_simple_module.cpp`. Copy one, rename, fill in tests.
 
-2. **Locate the `jira` skill** — search project-scope, user-scope, plugin cache, and any `CLAUDE_PLUGIN_ROOT` install path. Do **not** rely on developer-specific paths:
+## Writing rules (principles, not ritual)
 
-   ```bash
-   JIRA_SCRIPT=""
-   for d in \
-       "$(pwd)/.claude/skills/jira" \
-       "$HOME/.claude/skills/jira" \
-       "$HOME/.claude/plugins/skills/jira" \
-       "$HOME/skills/jira" \
-       "${CLAUDE_PLUGIN_ROOT:-}/skills/jira"
-   do
-       [ -n "$d" ] && [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
-   done
-   ```
+- **No server, no broker, no network.** Unittests link CUBRID internals and test pure logic; if it needs a running server it isn't a unittest.
+- **No external deps** beyond CUBRID internal headers — the binary must build and run standalone.
+- **Print the verdict on stdout:** `OK`/`success` on full pass, `fail` per failed assertion. This is the only thing CTP reads.
+- **One logical module per binary**, named `unittests_<module>`.
+- **No hardcoded paths** (`/tmp`, `/home`, absolute build dirs). If a test needs scratch space, use a `mktemp`-derived dir or the cwd, and clean it up.
+- **Build via** `sh build.sh -t 64 -m release -b build_release` (or `build_debug`); the binary lands in `build_*/bin/`.
 
-3. **If the skill is available** — prefer the slash form `/jira CBRD-XXXXX` when the harness exposes it (it honors the upstream `pandoc` prerequisite gate). Otherwise call the bundled script directly. Warn the user when `pandoc` is missing so they know the description/comments will fall back to raw Jira-wiki markup:
+## House idioms (quick recipes)
 
-   ```bash
-   command -v pandoc >/dev/null 2>&1 || \
-       echo "WARNING: pandoc not installed — JIRA description/comments will be raw wiki markup (degraded readability)."
-   python3 "$JIRA_SCRIPT" "$TICKET"
-   ```
+- **Wire the build** in `CMakeLists.txt` so the binary installs to `bin/`:
 
-   Let the summary, description, and comments drive the testcase scope, expected behavior, and edge cases.
+  ```cmake
+  add_executable(unittests_mymodule
+      unit_tests/mymodule/test_mymodule.cpp
+      src/mymodule/mymodule.c)            # the module under test
+  target_include_directories(unittests_mymodule PRIVATE src/include)
+  target_link_libraries(unittests_mymodule cubrid_static)
+  install(TARGETS unittests_mymodule DESTINATION bin)
+  ```
 
-4. **If the skill is missing** — **halt and ask the user**:
+- **Match an existing pattern.** Look at neighbors before inventing: `unittests_area` (extent mgmt), `unittests_bit` (bit ops), `unittests_lf` (lock-free structures), `unittests_snapshot` (MVCC). Mirror the closest one's structure and output style.
 
-   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate testcase generation, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
-   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
-   >
-   > After install, re-run the discovery step above. If the script is still not found, the install path may differ on this system — please report which directory under `~/.claude/` or the plugin cache contains the new `jira/scripts/jira_search.py`.
+## Verify before claiming done
 
-   Wait for explicit confirmation. If the user declines, proceed without JIRA context and warn them that issue-specific details may be missing.
+Don't eyeball it — prove it compiles and that CTP would judge it PASS.
 
-5. **No CBRD-XXXXX in the request** — skip this section.
+1. **Compile** the test into the tree: `sh build.sh -t 64 -m release -b build_release` (or just compile the one target). Fix until clean.
+2. **Run the binary** and capture stdout: `build_release/bin/unittests_<module> | tee out.log`.
+3. **Apply CTP's own rule** to `out.log`: confirm zero `fail`/`Unit tests failed` lines AND at least one `OK`/`success` line. If the run should fail, confirm a `fail` line appears.
+4. If a CTP unittest runner is reachable, run through it for ground truth.
 
-## What is a CUBRID Unittest?
+## Self-review checklist
 
-C/C++ programs that test internal CUBRID components at the unit level. Compiled from CUBRID source (not testcases repo), test internal APIs directly (no broker/server), discovered by CTP via `$CUBRID/build_release/bin/unittests_*`, and judged by text output (not exit codes).
+- Prints `OK`/`success` on full pass, and `fail` per failing assertion — on **stdout**?
+- Binary named `unittests_<module>` and installed to `bin/` via `CMakeLists.txt`?
+- No server/broker/network dependency? No external libs beyond CUBRID headers?
+- No hardcoded paths? Scratch (if any) via `mktemp`/cwd and cleaned up?
+- One logical module per binary?
+- Compiled clean and the produced stdout actually satisfies CTP's PASS rule?
 
-## Pass/Fail Criteria
+## Examples & references
 
-CTP judges each unittest binary by scanning stdout:
-
-```bash
-if [ `cat ${unittestlog} | grep -i 'fail\|Unit tests failed' | wc -l` -eq 0 \
-  -a `cat ${unittestlog} | grep -i 'OK\|success' | wc -l` -ne 0 ]; then
-    IS_SUCC=true
-fi
-```
-
-- **PASS** = no `fail`/`Unit tests failed` (case-insensitive) AND at least one `OK`/`success`
-- **FAIL** = contains `fail`/`Unit tests failed`, OR no `OK`/`success`
-
-## File Location
-
-Source files live in the CUBRID source repo (not `cubrid-testcases`):
-
-```
-cubrid/unit_tests/<module>/test_<module>.cpp
-cubrid/unit_tests/common/test_output.hpp
-cubrid/src/<module>/test_<name>.c
-cubrid/src/<module>/test_<name>.cpp
-```
-
-Compiled binaries:
-```
-cubrid/build_release/bin/unittests_<module>
-cubrid/build_debug/bin/unittests_<module>
-```
-
-## Test Output Convention
-
-The binary must print pass/fail indicators to stdout.
-
-### Minimal C example
-```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-static int failed = 0;
-
-#define ASSERT_EQ(a, b, msg) \
-    do { \
-        if ((a) != (b)) { \
-            printf("FAIL: %s (expected %d, got %d)\n", msg, (int)(b), (int)(a)); \
-            failed++; \
-        } \
-    } while (0)
-
-#define ASSERT_STR_EQ(a, b, msg) \
-    do { \
-        if (strcmp((a), (b)) != 0) { \
-            printf("FAIL: %s (expected '%s', got '%s')\n", msg, (b), (a)); \
-            failed++; \
-        } \
-    } while (0)
-
-static void test_example_function(void)
-{
-    int result = 1 + 1;
-    ASSERT_EQ(result, 2, "1+1 should equal 2");
-}
-
-int main(void)
-{
-    test_example_function();
-
-    if (failed == 0) {
-        printf("All tests passed. OK\n");
-        return 0;
-    } else {
-        printf("%d test(s) failed.\n", failed);
-        return 1;
-    }
-}
-```
-
-### Minimal C++ example
-```cpp
-#include <iostream>
-#include <cassert>
-#include <string>
-
-static int failed = 0;
-
-#define CHECK(cond, msg) \
-    do { \
-        if (!(cond)) { \
-            std::cout << "FAIL: " << (msg) << std::endl; \
-            failed++; \
-        } \
-    } while (0)
-
-static void test_string_ops()
-{
-    std::string s = "hello";
-    CHECK(s.length() == 5, "string length should be 5");
-    CHECK(s.substr(0, 3) == "hel", "substr(0,3) should be 'hel'");
-}
-
-int main()
-{
-    test_string_ops();
-
-    if (failed == 0) {
-        std::cout << "All unit tests passed. OK" << std::endl;
-        return 0;
-    } else {
-        std::cout << failed << " unit test(s) failed." << std::endl;
-        return 1;
-    }
-}
-```
-
-## Output Rules
-
-| Requirement | Details |
-|-------------|---------|
-| Print `OK` or `success` (case-insensitive) on pass | Required for CTP to record PASS |
-| Print `fail` or `Unit tests failed` on failure | CTP will record FAIL |
-| One binary per module | Named `unittests_<module>` |
-| stdout, not stderr | CTP reads stdout for pass/fail |
-| Exit code is not used | CTP checks output text, not exit code |
-
-## Build Integration
-
-### CMakeLists.txt (typical pattern)
-```cmake
-add_executable(unittests_mymodule
-    unit_tests/mymodule/test_mymodule.cpp
-    src/mymodule/mymodule.c        # module under test
-)
-target_include_directories(unittests_mymodule PRIVATE src/include)
-target_link_libraries(unittests_mymodule cubrid_static)
-install(TARGETS unittests_mymodule DESTINATION bin)
-```
-
-The binary must install to `bin/` so CTP discovers it.
-
-## Existing Unittest Binaries
-
-```
-build_release/bin/unittests_area       — area/extent management
-build_release/bin/unittests_bit        — bit manipulation
-build_release/bin/unittests_lf         — lock-free data structures
-build_release/bin/unittests_snapshot   — MVCC snapshot logic
-```
-
-## Writing Rules
-
-1. **Binary name**: `unittests_<module>` — always plural, always `unittests_` prefix
-2. **Print `OK` or `success`** when all tests pass — required for CTP PASS judgment
-3. **Print `fail`** for each failing assertion — CTP counts these
-4. **No external dependencies** beyond CUBRID internal headers — unittests run without a running CUBRID server
-5. **No broker, no server** — unittests test pure C/C++ logic, not server behavior
-6. **Build with `build_release`** (`sh build.sh -t 64 -m release -b build_release`) or `build_debug`
-7. **One logical module per binary**
-
-## Generation Checklist
-
-- Prints `OK`/`success` when all tests pass?
-- Prints `fail` when any test fails?
-- No hardcoded file paths or server dependencies?
-- Binary named `unittests_<module>`?
-- CMakeLists.txt entry included?
-
-## Examples
-
-- `@examples/test_simple_module.c` — minimal C unittest template
-- `@examples/test_simple_module.cpp` — minimal C++ unittest template
-
-## References
-
-- `~/cubrid-testtools/doc/unittest_guide.md` — full unittest guide
-- `$CUBRID/build_release/bin/unittests_*` — existing compiled unittest binaries
-- CUBRID source: `unit_tests/` directory in CUBRID git repo
+- `@examples/test_simple_module.c` — minimal C unittest: assertion macros + `OK`-on-pass `main`.
+- `@examples/test_simple_module.cpp` — minimal C++ unittest (same shape, `std::cout`).
+- `~/cubrid-testtools/doc/unittest_guide.md` — full CTP unittest guide.
+- `$CUBRID/build_release/bin/unittests_*` and the CUBRID `unit_tests/` source dir — existing binaries to model.

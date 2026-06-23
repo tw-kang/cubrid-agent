@@ -1,179 +1,77 @@
 ---
 name: cubrid-isolation-tc-create
-description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new isolation testcase (.ctl) for CUBRID CTP. This is the right skill any time someone needs a new isolation test produced from scratch for a CBRD issue — bug fix or new feature. Common requests: \"isolation tc 만들어줘\", \"isolation tc 초안 작성해줘\", \"create isolation tc\", \"draft isolation test\", \"새 isolation testcase\", \"isolation testcase 작성\", \"create draft isolation tc for CBRD-XXXXX\". NOT for: running existing isolation tests, reviewing diffs/PRs, CTP configuration, or SQL/shell testcase creation."
+description: "Create, draft, or scaffold a new CUBRID CTP isolation testcase (.ctl) from scratch — for a CBRD bug fix or feature. Use this whenever someone says \"isolation tc 만들어줘\", \"isolation tc 초안 작성해줘\", \"create isolation tc\", \"draft isolation test\", \"새 isolation testcase\", \"isolation testcase 작성\", or \"create draft isolation tc for CBRD-XXXXX\", even if they don't say the word \"testcase\". They usually give a CBRD number, the concurrency behavior to test, and the isolation levels involved. NOT for: running/reviewing existing isolation tests, CTP configuration, or SQL/shell/JDBC/CCI testcases."
 ---
 
 # Isolation Testcase Creator (CTP)
 
-Generate well-formed CUBRID CTP isolation testcase files (`.ctl` format) for concurrent transaction testing.
+Generate a CUBRID CTP isolation testcase that passes review on the first try. An isolation test is a `.ctl` script driving N concurrent clients (C1, C2, …) through interleaved transactions, synchronized by a main controller (MC), to verify a specific concurrency behavior — lock contention, read visibility, phantoms, deadlocks.
 
-## Prerequisites — CTP Installation Check (mandatory first step)
+## Scope
 
-```bash
-# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
-if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
-    echo "CTP found: $CTP_HOME"
-elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/CTP
-elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/cubrid-testtools/CTP
-else
-    echo "CTP not found"; exit 1
-fi
-# Verify isolation module exists
-ls $CTP_HOME/isolation/
-```
+**Produces:** the `.ctl` file(s) — a comment header documenting intent plus a test body of `MC:`/`Cx:` directives, in the correct isolation-level directory.
 
-If `ctp.sh` is not found, stop and display:
+**Does NOT produce:** answer files (CTP generates these by running the test — never hand-write them), CTP framework changes, CI config, or SQL/shell/JDBC/CCI tests (route those to the matching `cubrid-*-tc-create` skill).
 
-> "CTP is not installed. This skill cannot proceed.
-> Installation methods:
-> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
-> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
-> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
+## Before you start
 
-Use the detected `$CTP_HOME` in all subsequent steps.
+- **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/isolation/`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
-## JIRA Issue Context (do this when a CBRD-XXXXX is referenced)
+## Directory convention
 
-When the request includes a `CBRD-XXXXX` ticket, **invoke the `jira` skill first** to fetch the issue background — title, description, reproduction steps, affected components, and comments — before generating the testcase. This grounds the test in the issue's actual requirements rather than guesswork.
-
-**Already fetched in this conversation?** Reuse the context — do not re-invoke. The fetcher caches issues, but the conversation should not redundantly re-display them.
-
-1. **Normalize the ticket ID** — `jira_search.py` requires the canonical `CBRD-NNNNN` form. Filenames typically use `cbrd_NNNNN`:
-
-   ```bash
-   TICKET=$(echo "$RAW_INPUT" | grep -oiE 'cbrd[-_ ]?[0-9]+' | head -1 \
-            | tr '[:lower:]' '[:upper:]' \
-            | sed -E 's/^CBRD[-_ ]?/CBRD-/')
-   ```
-
-2. **Locate the `jira` skill** — search project-scope, user-scope, plugin cache, and any `CLAUDE_PLUGIN_ROOT` install path. Do **not** rely on developer-specific paths:
-
-   ```bash
-   JIRA_SCRIPT=""
-   for d in \
-       "$(pwd)/.claude/skills/jira" \
-       "$HOME/.claude/skills/jira" \
-       "$HOME/.claude/plugins/skills/jira" \
-       "$HOME/skills/jira" \
-       "${CLAUDE_PLUGIN_ROOT:-}/skills/jira"
-   do
-       [ -n "$d" ] && [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
-   done
-   ```
-
-3. **If the skill is available** — prefer the slash form `/jira CBRD-XXXXX` when the harness exposes it (it honors the upstream `pandoc` prerequisite gate). Otherwise call the bundled script directly. Warn the user when `pandoc` is missing so they know the description/comments will fall back to raw Jira-wiki markup:
-
-   ```bash
-   command -v pandoc >/dev/null 2>&1 || \
-       echo "WARNING: pandoc not installed — JIRA description/comments will be raw wiki markup (degraded readability)."
-   python3 "$JIRA_SCRIPT" "$TICKET"
-   ```
-
-   Let the summary, description, and comments drive the testcase scope, expected behavior, and edge cases.
-
-4. **If the skill is missing** — **halt and ask the user**:
-
-   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate testcase generation, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
-   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
-   >
-   > After install, re-run the discovery step above. If the script is still not found, the install path may differ on this system — please report which directory under `~/.claude/` or the plugin cache contains the new `jira/scripts/jira_search.py`.
-
-   Wait for explicit confirmation. If the user declines, proceed without JIRA context and warn them that issue-specific details may be missing.
-
-5. **No CBRD-XXXXX in the request** — skip this section.
-
-## Directory Path Convention
-
-Testcases live under `~/cubrid-testcases/isolation/`.
-
-### Isolation level directories
+The path encodes the isolation levels under test, so CTP and reviewers categorize the test by where it lives. Tests root at `~/cubrid-testcases/isolation/`.
 
 ```
-_01_ReadCommitted/     - Tests where all clients use READ COMMITTED
-_02_RepeatableRead/    - Tests where all clients use REPEATABLE READ
-_04_RepeatableRead_ReadCommitted/  - C1=REPEATABLE READ, C2=READ COMMITTED
-_05_ReadCommitted_RepeatableRead/  - C1=READ COMMITTED, C2=REPEATABLE READ
-_06_features/          - Feature-specific isolation tests (new features)
+# Bug fix:   isolation/_{NN}_{level}/<area>/<test_name>/<test_name>_01.ctl
+# Feature:   isolation/_06_features/<feature>/<test_name>/<test_name>_01.ctl
 ```
 
-Choose the directory matching the isolation levels used. For mixed levels, match C1 level first, C2 level second.
+Pick the directory by the client isolation levels. For mixed levels, match C1's level first, C2's second:
 
-### Bug fixes
+| C1 / C2 isolation | Directory |
+|---|---|
+| READ COMMITTED / READ COMMITTED | `_01_ReadCommitted/` |
+| REPEATABLE READ / REPEATABLE READ | `_02_RepeatableRead/` |
+| REPEATABLE READ / READ COMMITTED | `_04_RepeatableRead_ReadCommitted/` |
+| READ COMMITTED / REPEATABLE READ | `_05_ReadCommitted_RepeatableRead/` |
+| feature-specific (e.g. SERIALIZABLE, MVCC) | `_06_features/` |
 
-```
-isolation/_01_ReadCommitted/<area>/<test_name>/<test_name>_01.ctl
-```
+Multiple `.ctl` variants of one scenario number sequentially: `_01.ctl`, `_02.ctl`, …
 
-Example:
-```
-isolation/_01_ReadCommitted/update/update_conflict/update_conflict_01.ctl
-```
+## Lifecycle contract
 
-### New features
-
-```
-isolation/_06_features/<feature_name>/<test_name>/<test_name>_01.ctl
-```
-
-Example:
-```
-isolation/_06_features/mvcc_insert/mvcc_insert_visibility/mvcc_insert_visibility_01.ctl
-```
-
-### Numbering
-
-When multiple `.ctl` files test the same scenario variant, number sequentially: `_01.ctl`, `_02.ctl`, etc.
-
-## .ctl File Format
-
-Every `.ctl` file has two sections: a comment header block and the test body.
-
-### Header block
+Every `.ctl` is a header comment block followed by a body that runs **setup → preparation → test → cleanup → quit**. Missing a phase (or its sync barrier) fails review.
 
 ```
 /*
-Test Case: <Short descriptive title>
+Test Case: <short descriptive title>
 Priority: 1
-Reference case:
-Author: <your name>
+Reference case: <CBRD-XXXXX or blank>
+Author: <name>
 
-Test Plan:
-<1-3 sentences describing what concurrency behavior is being verified>
-
-Test Scenario:
-<Step-by-step narrative: who does what and when, C1 and C2 actions>
-
+Test Plan:    <1-3 sentences: what concurrency behavior is verified>
+Test Scenario: <step-by-step: who does what, when — C1 and C2 actions>
 Test Point:
-1) <What C1 should or should not experience (block/succeed/see data)>
-2) <What C2 should or should not experience>
+1) <what C1 should/should not experience (block/succeed/see data)>
+2) <what C2 should/should not experience>
 
 NUM_CLIENTS = 2
-C1: <One-line role of C1>;
-C2: <One-line role of C2>;
+C1: <one-line role>;
+C2: <one-line role>;
 */
-```
 
-- `Priority: 1` is standard; use `2` only for edge cases
-- `Reference case:` can be left blank or reference a related CBRD issue
-- `NUM_CLIENTS` in the header comment is documentation only; the actual setup is `MC: setup NUM_CLIENTS = N;`
-
-### Test body structure
-
-```
 MC: setup NUM_CLIENTS = 2;
 
 C1: login as 'dba';
 C1: set transaction lock timeout INFINITE;
 C1: set transaction isolation level read committed;
-
 C2: set transaction lock timeout INFINITE;
 C2: set transaction isolation level read committed;
 
 /* preparation */
 C1: DROP TABLE IF EXISTS t1;
-C1: CREATE TABLE t1 (...);
+C1: CREATE TABLE t1 (id INT PRIMARY KEY, val INT);
 C1: COMMIT;
 MC: wait until C1 ready;
 
@@ -189,122 +87,68 @@ C1: quit;
 C2: quit;
 ```
 
-## Command Reference
+### Why each phase matters (not just ritual)
 
-### MC (Main Controller) commands
+- `MC: setup NUM_CLIENTS = N;` must come first — it allocates the connections everything else uses.
+- `MC: wait until Cx ready;` is a synchronization barrier: it blocks until that client is idle. Without one after each logical phase, statements from different clients interleave unpredictably and the test goes flaky.
+- The header's `NUM_CLIENTS` is documentation only; the real count is the `MC: setup` line.
+- `DROP TABLE IF EXISTS` before `CREATE` plus an end cleanup make the test re-runnable; `COMMIT` after preparation releases setup locks before the concurrent phase begins.
+- `Cx: quit;` for every client closes sessions; a leaked session can hang the next test.
 
-| Command | Purpose |
+## Essential helpers (use these, not raw assumptions)
+
+| Directive | Purpose |
 |---|---|
-| `MC: setup NUM_CLIENTS = N;` | Set number of concurrent client connections (always first) |
-| `MC: wait until C1 ready;` | Block until C1 finishes its current statement and is idle |
-| `MC: wait until C2 ready;` | Block until C2 finishes its current statement and is idle |
-| `MC: wait until C1 ready, C2 ready;` | Wait for multiple clients simultaneously |
+| `MC: setup NUM_CLIENTS = N;` | Allocate N concurrent clients (always first) |
+| `MC: wait until C1 ready;` / `…C1 ready, C2 ready;` | Barrier — block until the named client(s) idle |
+| `Cx: login as 'dba';` / `…as '<user>';` | Authenticate (required at start, or after switching users) |
+| `Cx: set transaction lock timeout INFINITE;` / `<ms>;` | Lock wait — `INFINITE` avoids flaky timeouts unless the test verifies timeout |
+| `Cx: set transaction isolation level read committed\|repeatable read\|serializable;` | Per-client isolation level |
+| `Cx: <SQL>;` / `Cx: COMMIT;` / `Cx: ROLLBACK;` | Execute one statement / transaction control |
+| `Cx: quit;` | Close the client session (required at end) |
 
-`MC: wait until Cx ready;` is a synchronization barrier. Use after every logical phase.
+Label phases with standalone `/* comment */` lines — the runner ignores them.
 
-### Client (C1, C2, ...) commands
+## Writing rules (principles, not ritual)
 
-| Command | Purpose |
-|---|---|
-| `Cx: login as 'dba';` | Authenticate as DBA (required at start, or after switching users) |
-| `Cx: login as '<user>';` | Authenticate as a specific DB user |
-| `Cx: set transaction lock timeout INFINITE;` | Wait forever for locks (prevents spurious timeouts in tests) |
-| `Cx: set transaction lock timeout <ms>;` | Set explicit lock timeout in milliseconds |
-| `Cx: set transaction isolation level read committed;` | Set isolation level |
-| `Cx: set transaction isolation level repeatable read;` | Set isolation level |
-| `Cx: set transaction isolation level serializable;` | Set isolation level |
-| `Cx: <any SQL>;` | Execute any CUBRID SQL statement |
-| `Cx: COMMIT;` | Commit the current transaction |
-| `Cx: ROLLBACK;` | Rollback the current transaction |
-| `Cx: quit;` | End the client session (required at end) |
+- **Set lock timeout and isolation level per client**, before any DML — each client owns its own; don't assume defaults.
+- **`login as 'dba'`** at the top for setup/DDL even if a client later switches user.
+- **One statement per `Cx:` line** — never combine SQL on one directive.
+- **Sync after every phase boundary** with `MC: wait until Cx ready;` — this is the single most common review miss.
+- **COMMIT after preparation** so the concurrent phase starts from a clean lock state.
+- **Re-runnable:** `DROP TABLE IF EXISTS` before `CREATE`; drop every table/user/object you created during cleanup.
+- **No hardcoded paths** — `.ctl` files reference no filesystem paths; route any scratch (e.g. while verifying) through `work=$(mktemp -d)` or the cwd.
 
-### Inline comments
+## House idioms (quick recipes)
 
-Use `/* comment */` on its own line to label phases and improve readability. These are ignored by the test runner.
+These match what the corpus and reviewers expect.
 
-## Isolation Level Combinations
+- **Lock contention** (one writer blocks another): both `Cx: UPDATE … WHERE id = 1;`, `MC: wait until C1 ready;`, `C1: COMMIT;`, then `MC: wait until C1 ready, C2 ready;` lets C2 proceed.
+- **Read visibility** (no dirty read): `C1: INSERT …;` then `C2: SELECT …;` (must not see it) → `C1: COMMIT;` → `C2: SELECT …;` again, each followed by its barrier.
+- **Phantom read** (SERIALIZABLE prevents phantoms): `C1: SELECT … WHERE val > 0;`, `C2: INSERT …; C2: COMMIT;`, `C1: SELECT … WHERE val > 0;` — assert the phantom row is absent for C1.
+- **Privilege / ownership**: `C1: login as 'dba'; C1: ALTER TABLE … OWNER TO u; C1: COMMIT;`, barrier, then `C2: login as 'u'; C2: SELECT …;`.
 
-| Scenario | Directory | C1 isolation | C2 isolation |
-|---|---|---|---|
-| Both READ COMMITTED | `_01_ReadCommitted/` | `read committed` | `read committed` |
-| Both REPEATABLE READ | `_02_RepeatableRead/` | `repeatable read` | `repeatable read` |
-| C1=RR, C2=RC | `_04_RepeatableRead_ReadCommitted/` | `repeatable read` | `read committed` |
-| C1=RC, C2=RR | `_05_ReadCommitted_RepeatableRead/` | `read committed` | `repeatable read` |
-| SERIALIZABLE | `_06_features/` | `serializable` | `serializable` |
+Full worked scripts: see `@examples/`.
 
-## Writing Rules
+## Verify before claiming done
 
-1. **Always end with `C1: quit;` and `C2: quit;`** — sessions must be explicitly closed.
-2. **Always sync with `MC: wait until Cx ready;`** after every logical phase boundary. Without this, commands from different clients may interleave unpredictably.
-3. **Set lock timeout before any DML** — use `INFINITE` to avoid flaky timeouts unless the test specifically verifies timeout behavior.
-4. **Set isolation level per client** — each client sets its own isolation level; do not assume defaults.
-5. **Use `C1: login as 'dba';`** at the top for setup/DDL, even if C2 uses a different role.
-6. **`DROP TABLE IF EXISTS` before `CREATE TABLE`** — ensures the test is re-runnable.
-7. **Cleanup at end** — drop tables and any users/objects created during preparation.
-8. **Label phases with comments** — use `/* preparation */`, `/* test body */`, `/* cleanup */` to separate phases.
-9. **One statement per line** — do not combine multiple SQL statements on one `Cx:` line.
-10. **COMMIT after preparation** — always commit DDL and setup DML before the concurrent test phase begins.
+After authoring, prove the testcase actually runs — don't just eyeball it.
 
-## Common Patterns
+1. **Pod-first:** if a k8s test-shell pod is reachable, run it there for real (install a build, inject the `.ctl`, run via CTP `ctp.sh isolation`, read the feedback log for `OK`/`NOK`). This is ground truth.
+2. **Local fallback** (no pod is a clean, expected path): confirm the header parses, every `Cx:` has a matching barrier and `quit`, and run via local CTP if available.
 
-### Pattern 1: Lock contention (one writer blocks another)
+## Self-review checklist
 
-```
-C1: UPDATE t1 SET val = 1 WHERE id = 1;
-C2: UPDATE t1 SET val = 2 WHERE id = 1;
-MC: wait until C1 ready;
-C1: COMMIT;
-MC: wait until C1 ready, C2 ready;
-C2: COMMIT;
-MC: wait until C2 ready;
-```
+- Header complete? (Test Case, Priority, Test Plan, Test Scenario, Test Point, NUM_CLIENTS, per-client roles)
+- `MC: setup NUM_CLIENTS = N;` first, before any client directive?
+- `MC: wait until Cx ready;` after **every** phase boundary?
+- Lock timeout **and** isolation level set per client, before DML?
+- One statement per `Cx:` line? `COMMIT` after preparation?
+- Re-runnable (`DROP TABLE IF EXISTS`) and cleaned up (tables/users dropped)?
+- All clients `quit`? Correct isolation-level directory? Dir/file numbering right?
+- Verified (pod-first, else local)?
 
-### Pattern 2: Read visibility (dirty read prevention)
+## Examples & references
 
-```
-C1: INSERT INTO t1 VALUES (1, 'uncommitted');
-C2: SELECT * FROM t1;
-MC: wait until C2 ready;
-C1: COMMIT;
-MC: wait until C1 ready;
-C2: SELECT * FROM t1;
-MC: wait until C2 ready;
-```
-
-### Pattern 3: Phantom read test (SERIALIZABLE prevents phantoms)
-
-```
-C1: SELECT * FROM t1 WHERE val > 0;
-C2: INSERT INTO t1 VALUES (99, 'phantom');
-C2: COMMIT;
-MC: wait until C2 ready;
-C1: SELECT * FROM t1 WHERE val > 0;
-C1: COMMIT;
-MC: wait until C1 ready;
-```
-
-### Pattern 4: User privilege / ownership change
-
-```
-C1: login as 'dba';
-C1: ALTER TABLE t1 OWNER TO some_user;
-C1: COMMIT;
-MC: wait until C1 ready;
-C2: login as 'some_user';
-C2: SELECT * FROM t1;
-MC: wait until C2 ready;
-```
-
-## Generation Process — Self-Review Checklist
-
-- Header complete (Test Case, Priority, Test Plan, Test Scenario, Test Point, NUM_CLIENTS)?
-- Every phase followed by `MC: wait until Cx ready;`?
-- All clients quit (`C1: quit;`, `C2: quit;`)?
-- Cleanup present (`DROP TABLE IF EXISTS` + `COMMIT`)?
-- Lock timeout set per client?
-- Isolation level set per client?
-
-## Examples
-
-- `@examples/read_committed_lock_test.ctl` — lock contention between two transactions under READ COMMITTED
-- `@examples/serializable_phantom_read.ctl` — phantom read prevention under SERIALIZABLE isolation
+- `@examples/read_committed_lock_test.ctl` — lock contention between two transactions under READ COMMITTED.
+- `@examples/serializable_phantom_read.ctl` — phantom-read prevention under SERIALIZABLE.

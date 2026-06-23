@@ -1,147 +1,50 @@
 ---
 name: cubrid-ha_repl-tc-create
-description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new HA replication testcase (.sql) for CUBRID CTP ha_repl module. This is the right skill any time someone needs a new ha_repl test produced from scratch for a CBRD issue — bug fix or new feature. Common requests: \"ha_repl tc 만들어줘\", \"ha replication testcase\", \"ha_repl tc 초안\", \"ha_repl tc 초안 작성해줘\", \"create ha_repl tc\", \"draft ha replication test\", \"새 ha_repl testcase\", \"ha replication 테스트케이스 작성\", \"create draft ha_repl tc for CBRD-XXXXX\". NOT for: running existing ha_repl tests, reviewing diffs/PRs, CTP configuration, or general SQL scripting unrelated to CTP test creation."
+description: "Create, draft, or scaffold a new CUBRID CTP HA replication testcase (.sql) from scratch — for a CBRD bug fix or feature. Use this whenever someone says \"ha_repl tc 만들어줘\", \"ha_repl tc 초안 작성해줘\", \"ha replication 테스트케이스 작성\", \"새 ha_repl testcase\", \"create ha_repl tc\", \"draft ha replication test\", or \"create draft ha_repl tc for CBRD-XXXXX\", even if they don't say the word \"testcase\". They usually give a CBRD number, the behavior to replicate-test, and sometimes a target release dir. NOT for: running/reviewing existing ha_repl tests, CTP configuration, or plain SQL/JDBC/CCI/shell testcases (use the matching cubrid-*-tc-create skill)."
 ---
 
 # HA Replication Testcase Creator (CTP)
 
-Generate well-formed CUBRID CTP HA replication testcase files (`.sql` with `--test:` / `--check:` markers).
+Generate a CUBRID CTP HA replication testcase that passes review on the first try. An ha_repl test is a `.sql` file of `--test:` / `--check:` lines that CTP replays on a master/slave pair; pass/fail is result-set equality between the two nodes at each `--check:`.
 
-## Prerequisites — CTP Installation Check (mandatory first step)
+## Scope
 
-```bash
-# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
-if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
-    echo "CTP found: $CTP_HOME"
-elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/CTP
-elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/cubrid-testtools/CTP
-else
-    echo "CTP not found"; exit 1
-fi
-# Verify conf directory exists
-ls $CTP_HOME/conf/
-```
+**Produces:** one self-contained `.sql` testcase under `ha_repl/` with a `/** ... */` header, balanced `--test:`/`--check:` markers, and correct directory path.
 
-If `ctp.sh` or `conf/` is not found, stop and display:
+**Does NOT produce:** `.answer` files (ha_repl has none — correctness is master/slave equality), CTP framework/conf changes, CI config, or SQL/JDBC/CCI/shell tests (route those to the matching `cubrid-*-tc-create`).
 
-> "CTP is not installed. This skill cannot proceed.
-> Installation methods:
-> - Option 1: `git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`
-> - Option 2: `git clone https://github.com/CUBRID/cubrid-testtools.git` and use `~/cubrid-testtools/CTP` directly
-> Reference: ~/cubrid-testtools/doc/ctp_install_guide.md"
+## Before you start
 
-Use the detected `$CTP_HOME` in all subsequent steps.
+- **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/conf/ha_repl.conf`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
 
-## JIRA Issue Context (do this when a CBRD-XXXXX is referenced)
+## Directory convention
 
-When the request includes a `CBRD-XXXXX` ticket, **invoke the `jira` skill first** to fetch the issue background — title, description, reproduction steps, affected components, and comments — before generating the testcase. This grounds the test in the issue's actual requirements rather than guesswork.
-
-**Already fetched in this conversation?** Reuse the context — do not re-invoke. The fetcher caches issues, but the conversation should not redundantly re-display them.
-
-1. **Normalize the ticket ID** — `jira_search.py` requires the canonical `CBRD-NNNNN` form. Filenames typically use `cbrd_NNNNN`:
-
-   ```bash
-   TICKET=$(echo "$RAW_INPUT" | grep -oiE 'cbrd[-_ ]?[0-9]+' | head -1 \
-            | tr '[:lower:]' '[:upper:]' \
-            | sed -E 's/^CBRD[-_ ]?/CBRD-/')
-   ```
-
-2. **Locate the `jira` skill** — search project-scope, user-scope, plugin cache, and any `CLAUDE_PLUGIN_ROOT` install path. Do **not** rely on developer-specific paths:
-
-   ```bash
-   JIRA_SCRIPT=""
-   for d in \
-       "$(pwd)/.claude/skills/jira" \
-       "$HOME/.claude/skills/jira" \
-       "$HOME/.claude/plugins/skills/jira" \
-       "$HOME/skills/jira" \
-       "${CLAUDE_PLUGIN_ROOT:-}/skills/jira"
-   do
-       [ -n "$d" ] && [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
-   done
-   ```
-
-3. **If the skill is available** — prefer the slash form `/jira CBRD-XXXXX` when the harness exposes it (it honors the upstream `pandoc` prerequisite gate). Otherwise call the bundled script directly. Warn the user when `pandoc` is missing so they know the description/comments will fall back to raw Jira-wiki markup:
-
-   ```bash
-   command -v pandoc >/dev/null 2>&1 || \
-       echo "WARNING: pandoc not installed — JIRA description/comments will be raw wiki markup (degraded readability)."
-   python3 "$JIRA_SCRIPT" "$TICKET"
-   ```
-
-   Let the summary, description, and comments drive the testcase scope, expected behavior, and edge cases.
-
-4. **If the skill is missing** — **halt and ask the user**:
-
-   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate testcase generation, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
-   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
-   >
-   > After install, re-run the discovery step above. If the script is still not found, the install path may differ on this system — please report which directory under `~/.claude/` or the plugin cache contains the new `jira/scripts/jira_search.py`.
-
-   Wait for explicit confirmation. If the user declines, proceed without JIRA context and warn them that issue-specific details may be missing.
-
-5. **No CBRD-XXXXX in the request** — skip this section.
-
-## HA Replication Concepts
-
-HA replication tests verify that data written on the **master** is correctly replicated to the **slave**. `--test:` statements run on master only; `--check:` statements run on both and results are compared. Any discrepancy is a replication failure.
-
-Key invariant: after every `--test: COMMIT;`, subsequent `--check:` queries must return identical result sets on master and slave. The `migrate/Convert.java` transformer auto-adds primary keys to tables that lack them.
-
-## Marker Reference
-
-| Marker | Executed on | Purpose |
-|--------|-------------|---------|
-| `--test:` | Master only | DML/DDL/COMMIT to drive state changes |
-| `--check:` | Master **and** Slave | SELECT (or other read) to verify consistency |
-
-Rules:
-- Every `--test:` line contains exactly **one** SQL statement (no semicolons at line end except the statement terminator).
-- Every `--check:` line contains exactly **one** SELECT (or equivalent read) statement.
-- `--test: COMMIT;` must appear after every batch of DML before the next `--check:` block — the slave only sees committed data.
-- Do **not** mix `--test:` and `--check:` on the same statement.
-
-## Directory Path Convention
-
-### Bug fixes
+The path is how CTP identifies and categorizes a test. Multiple `.sql` files for the same area share one `cases/` dir — never create per-test subdirectories.
 
 ```
-ha_repl/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
+# Bug fix:   ha_repl/_13_issues/_{yy}_{1|2}h/cases/cbrd_xxxxx.sql
+# Feature:   ha_repl/_{no}_{release_code}/{feature_group}/cases/cbrd_xxxxx.sql
 ```
 
-- `{yy}` = two-digit year (e.g. `26` for 2026)
-- `{1|2}h` = first half (Jan–Jun) or second half (Jul–Dec)
-- Multiple tests for same issue: append suffix (`cbrd_27100_insert.sql`, `cbrd_27100_ddl.sql`)
+`{yy}` = 2-digit year, `{1|2}h` = first/second half (issue creation date). Multiple tests for one issue get a suffix: `cbrd_xxxxx_insert.sql`, `cbrd_xxxxx_ddl.sql`.
 
-### New features
+## Lifecycle contract
 
-```
-ha_repl/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
-```
-
-Multiple SQL test files share the same `cases/` directory — do not create per-test subdirectories.
-
-## SQL File Format
+Every testcase follows this skeleton. Missing a step fails review.
 
 ```sql
 /**
- * This test case verifies CBRD-XXXXX: Brief one-line title
+ * This test case verifies CBRD-XXXXX: one-line title.
  *
  * Coverage:
- * 1 - Scenario one description
- * 2 - Scenario two description
+ * 1 - scenario one
+ * 2 - scenario two
  */
 
 --test: DROP TABLE IF EXISTS t1;
 --test: CREATE TABLE t1 (id INT PRIMARY KEY, val VARCHAR(100));
---test: INSERT INTO t1 VALUES (1, 'hello'), (2, 'world');
---test: COMMIT;
-
---check: SELECT * FROM t1 ORDER BY id;
-
---test: UPDATE t1 SET val = 'updated' WHERE id = 1;
+--test: INSERT INTO t1 VALUES (1, 'a'), (2, 'b');
 --test: COMMIT;
 
 --check: SELECT * FROM t1 ORDER BY id;
@@ -150,59 +53,59 @@ Multiple SQL test files share the same `cases/` directory — do not create per-
 --test: COMMIT;
 ```
 
-### Header block
+### Why each phase matters (not just ritual)
 
-Always start with `/** ... */` comment:
-- First line: `This test case verifies CBRD-XXXXX: <title>`
-- `Coverage:` section listing numbered scenarios
+- The `/** ... */` header (CBRD number + `Coverage:` list) is how reviewers and CTP attribute the test — first line must be `This test case verifies CBRD-XXXXX: <title>`.
+- `--test:` runs on the **master only** and drives state (DML/DDL/COMMIT); `--check:` runs on **both nodes** and the framework compares result sets. Any mismatch is a replication failure.
+- `--test: COMMIT;` after every DML batch is load-bearing: the slave only sees committed data, so an uncommitted change makes the next `--check:` flap.
+- The closing `DROP TABLE IF EXISTS` + `COMMIT` leaves the cluster clean for the next test; the leading `DROP` makes the test re-runnable.
 
-### Setup and cleanup
+## Essential helpers (use these, not raw SQL habits)
 
-- `--test: DROP TABLE IF EXISTS tbl;` before every `--test: CREATE TABLE tbl ...;` (re-runnable)
-- Always end with `--test: DROP TABLE IF EXISTS tbl;` + `--test: COMMIT;` for cleanup
-- Keep setup minimal; use simple names (`t1`, `t2`, `col1`)
-- Provide an explicit `PRIMARY KEY` on every table (CTP auto-adds one if missing, but explicit is clearer)
+| Use | Instead of | Why |
+|---|---|---|
+| explicit `PRIMARY KEY` on every table | relying on auto-PK | `migrate/Convert.java` auto-adds one, but explicit is clearer and deterministic |
+| `--test: COMMIT;` after each DML batch | letting writes ride uncommitted | slave replicates committed data only |
+| `--check: SELECT ... ORDER BY` | unordered SELECT | result-set comparison is order-sensitive across nodes |
+| `--test: DROP TABLE IF EXISTS t;` | bare `DROP TABLE t;` | re-runnable; survives a prior failed run |
 
-### Commit discipline
+## Writing rules (principles, not ritual)
 
-Place `--test: COMMIT;` after every logical batch of DML:
-- After INSERT / UPDATE / DELETE batches, before `--check:` queries
-- After DDL (CREATE / ALTER / DROP) when followed by DML in the same test
-- At end of cleanup block
+- **One statement per line** — exactly one SQL statement per `--test:` or `--check:`; never mix both markers on one line.
+- **`--check:` is read-only** — SELECT/SHOW only, never DML; that is what gets cross-node compared.
+- **Deterministic checks** — `ORDER BY` every `--check:` SELECT; prefer simple data values for easy comparison. 3–8 `--check:` points per file is typical.
+- **Commit discipline** — `--test: COMMIT;` after each INSERT/UPDATE/DELETE batch and after DDL that precedes DML, and at the end of cleanup.
+- **DDL replicates too** — drive schema changes with `--test:` and verify the resulting state with a `--check:` (e.g. `SELECT COUNT(*) FROM t1`).
+- **Keep it focused** — minimal setup, simple names (`t1`, `col1`), no SQL complexity unrelated to the behavior under test.
 
-### DDL replication
+## House idioms (quick recipes)
 
-DDL statements are also replicated. Test with `--test:` and verify schema state with a `--check:` query (e.g. `SELECT COUNT(*) FROM t1`).
+These match what the corpus and reviewers expect.
 
-## Writing Rules
+- **Re-runnable table setup:** `--test: DROP TABLE IF EXISTS t1;` immediately before each `--test: CREATE TABLE t1 ...;`.
+- **Verify a DML batch:** `--test:` the writes, `--test: COMMIT;`, then a single `--check: SELECT * FROM t1 ORDER BY id;`.
+- **Verify DDL replicated:** after the DDL + `COMMIT`, `--check: SELECT COUNT(*) FROM t1;` (or a schema-revealing read) to confirm the slave applied it.
+- **vs. SQL testcases:** same `/** ... */` header, but no `evaluate`, no `--+ server-message on/off`, no `.answer` files; lines are prefixed `--test:`/`--check:` and the file lives under `ha_repl/`.
 
-- Use `--check:` only for **read** statements (SELECT, SHOW, etc.) — never for DML
-- Keep `--check:` queries deterministic: use `ORDER BY` on SELECT results
-- One statement per `--test:` or `--check:` line
-- 3–8 `--check:` verification points per file is typical
-- Avoid unrelated SQL complexity — keep test SQL focused on the feature under test
-- Prefer simple data values for easy result comparison
+## Verify before claiming done
 
-## Infrastructure Requirements
+ha_repl needs a **3-node cluster** (controller + master + slave) and cannot run locally. Prove correctness as far as the environment allows:
 
-Requires a **3-node setup** (controller, master, slave) that cannot be run locally. Config: `$CTP_HOME/conf/ha_repl.conf` (set master/slave SSH host, user, password). Run: `bin/ctp.sh ha_repl -c conf/ha_repl.conf`. Results: `$CTP_HOME/result/ha_repl/current_runtime_logs/`.
+1. **Cluster-first:** if a 3-node test environment is reachable, run it for real — `bin/ctp.sh ha_repl -c conf/ha_repl.conf`, then read `$CTP_HOME/result/ha_repl/current_runtime_logs/` and confirm every `--check:` matched between master and slave. This is ground truth.
+2. **Local fallback** (no cluster is a clean, expected path): statically validate the file — header present, markers balanced, every DML batch committed, every `--check:` ordered — and confirm the SQL parses (e.g. via a local `csql -` dry run of the `--test:`/`--check:` statements).
 
-> ha_repl testcases do NOT have `.answer` files. Pass/fail is determined by result-set equality between master and slave at each `--check:` point.
+## Self-review checklist
 
-## Generation Process — Self-Review Checklist
+- Header `/** ... */` present with `This test case verifies CBRD-XXXXX:` + Coverage list?
+- One statement per line, no line mixing `--test:` and `--check:`?
+- Every table has an explicit `PRIMARY KEY`?
+- Every DML batch followed by `--test: COMMIT;` before the next `--check:`?
+- Every `--check:` is read-only and uses `ORDER BY`?
+- Cleanup (`DROP TABLE IF EXISTS` + `COMMIT`) at the end? Leading `DROP` for re-runnability?
+- Correct path / `cases/` dir and `_{yy}_{1|2}h` bucket?
+- Verified (cluster-first, else static validation)?
 
-- Header `/** ... */` present with CBRD number and Coverage list?
-- Every DML batch followed by `--test: COMMIT;` before `--check:`?
-- Every table has a PRIMARY KEY?
-- All `--check:` SELECTs use `ORDER BY`?
-- Cleanup (`DROP TABLE IF EXISTS` + `COMMIT`) at the end?
-- No statements mixing `--test:` and `--check:` on the same line?
+## Examples & references
 
-## Relationship to SQL Testcases
-
-ha_repl testcases use the same `/** ... */` header format as SQL testcases but prefix every line with `--test:` / `--check:` instead of bare SQL + `evaluate` markers. They do **not** use `evaluate`, `--+ server-message on/off`, or `.answer` files. They live under `ha_repl/` instead of `sql/`.
-
-## Examples
-
-- `@examples/basic_insert_replicate.sql` — INSERT/UPDATE/DELETE replication with consistency checks
-- `@examples/ddl_replicate.sql` — DDL (CREATE TABLE, ALTER TABLE, DROP TABLE) replication
+- `@examples/basic_insert_replicate.sql` — INSERT/UPDATE/DELETE replication with consistency checks.
+- `@examples/ddl_replicate.sql` — DDL (CREATE/ALTER/DROP TABLE) replication.

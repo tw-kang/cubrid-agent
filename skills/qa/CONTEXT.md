@@ -5,11 +5,11 @@ Canonical terms for this repo. Keep entries implementation-free.
 | Term | Meaning |
 |---|---|
 | **Skill** | A self-contained agent capability directory (`SKILL.md` + optional `scripts/`, `references/`, `examples/`), distributed via the `vercel-labs/skills` CLI. |
-| **`jira` skill** | The auxiliary skill in this repo that fetches CUBRID Jira issue context. Not to be confused with the upstream projects below. |
-| **cubrid-jira** | vimkim's external CLI project (github.com/vimkim/cubrid-jira): cache-first reads, JQL search, dry-run-default writes against jira.cubrid.org. Upstream source for vendored functionality; never a runtime dependency of skills (see ADR 0001). |
+| **Action** | The trailing token of a testcase skill name: `create` (scaffold a new testcase) or `verify` (run one testcase, judge OK/NOK, and on failure diagnose the cause). These are the only two actions. |
+| **cubrid-jira** | vimkim's external CLI (github.com/vimkim/cubrid-jira): cache-first reads (`search`), JQL, dry-run-default writes against jira.cubrid.org. The project-standard tool for Jira; skills call it for **optional enrichment** only — never a runtime dependency (see ADR 0005). |
 | **cubrid-jira-fetcher** | The older upstream fetch-only project, since absorbed into cubrid-jira. Historical credit lines may still reference it. |
-| **Vendoring** | Copying (and adapting to stdlib-only) the needed portion of an external project's source into a skill's `scripts/`, with upstream credit — instead of requiring the user to install the external project. |
-| **Consumer skill** | A skill that auto-invokes the `jira` skill when a CBRD-XXXXX token appears in the request (all `cubrid-*-tc-*`, review, and fail-reasoning skills). |
+| **Optional enrichment** | Issue context a skill uses *if* `cubrid-jira` is installed and a `CBRD-XXXXX` is given; otherwise the skill silently skips it and runs normally. Installing the CLI improves accuracy but is never required. |
+| **Consumer skill** | A testcase skill (`cubrid-*-tc-{create,verify}`) that runs `cubrid-jira search CBRD-XXXXX` for optional enrichment when a CBRD token appears in the request. |
 | **CBRD-XXXXX** | A CUBRID Jira issue key. Filenames lowercase it as `cbrd_xxxxx`. |
 
 ## CTP shell-testcase terms

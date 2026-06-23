@@ -16,7 +16,7 @@ Generate a CUBRID CTP shell testcase that passes review on the first try. A good
 ## Before you start
 
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/shell/init_path/init.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
-- **JIRA context (optional).** If the request names a `CBRD-XXXXX`, invoke `/jira CBRD-XXXXX` first to ground the test in the issue's real reproduction and expected behavior. Reuse it if already fetched this conversation. Skip if no ticket is given.
+- **JIRA context (optional).** If the request names a `CBRD-XXXXX`, run `cubrid-jira search CBRD-XXXXX` first to ground the test in the issue's real reproduction and expected behavior (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` notably improves accuracy.
 
 ## Directory convention
 

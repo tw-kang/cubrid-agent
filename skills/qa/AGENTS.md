@@ -4,7 +4,7 @@ Project conventions for AI coding agents (Claude Code, Cursor, Codex, Gemini CLI
 
 ## Project Overview
 
-This repository ships a collection of [Agent Skills](https://github.com/vercel-labs/skills) for working with **CUBRID** — primarily CTP (CUBRID Test Program) testcase scaffolding/execution/review skills, plus auxiliary skills like `jira/` for JIRA lookup. Skills are distributed via the `vercel-labs/skills` CLI and are installable across 45+ AI agents.
+This repository ships a collection of [Agent Skills](https://github.com/vercel-labs/skills) for working with **CUBRID** — CTP (CUBRID Test Program) testcase skills in two actions per category: `create` (scaffold a testcase) and `verify` (run one testcase, judge OK/NOK, diagnose failures). Skills are distributed via the `vercel-labs/skills` CLI and are installable across 45+ AI agents.
 
 Top-level layout:
 
@@ -40,10 +40,10 @@ These rules are non-negotiable. Apply them to every new skill and every change t
 
 ### Bundled code
 
-- **Anything that can be expressed as code MUST be bundled inside the skill as code, not described in prose.**
-- Place executable logic in `<skill>/scripts/` (Python, POSIX shell, etc.). The skill body should call the bundled script via Bash with an explicit relative-to-skill path.
-- Do not require the user to `git clone` or install a separate companion repository. The skill must be self-contained.
-- When a previously-external CLI is needed, vendor its source code into `scripts/` and credit the upstream project in both the script header and the commit message (`Co-Authored-By:`).
+- **Non-trivial executable logic that can't be expressed in one line MUST be bundled as code, not described in prose.** A one-line sanity check (e.g. `ls $CTP_HOME/shell/init_path/init.sh`) stays inline; a multi-step routine goes in `<skill>/scripts/`. Don't create a `scripts/` file for something a single command expresses.
+- Place bundled logic in `<skill>/scripts/` (Python, POSIX shell, etc.). The skill body calls it via Bash with an explicit relative-to-skill path.
+- Do not require the user to `git clone` or install a separate companion repository for the skill to **function**. The skill must be self-contained: it runs (perhaps with reduced accuracy) without any external install.
+- An external CLI may be used for **optional enrichment** only — a skill calls it when present and skips it when absent (precedent: `cubrid-jira` for Jira context, ADR 0005). If a previously-external capability becomes *required*, vendor its source into `scripts/` instead, crediting upstream (`Co-Authored-By:`).
 
 ### Dependencies
 
@@ -85,11 +85,11 @@ CTP testcase skills follow the pattern:
 cubrid-<test-category>-tc-<action>
 ```
 
-where `<action>` is one of `create`, `runone`, `review`. Example: `cubrid-shell-tc-create`. Auxiliary skills (e.g. `jira`) may use a flat name when they are not testcase actions.
+where `<action>` is one of `create` or `verify`. Example: `cubrid-shell-tc-create`, `cubrid-shell-tc-verify`. The `name:` frontmatter MUST equal the directory name.
 
 ## Commit Conventions
 
-- Use Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, ...). Scope by skill name when relevant: `feat(jira): ...`.
+- Use Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, ...). Scope by skill name when relevant: `feat(shell-tc-verify): ...`.
 - Commit in **meaningful units** — separate "bundle code" from "wire SKILL.md" from "update README" when possible.
 - Commit messages MUST be in English.
 - When vendoring code from another repository, add a `Co-Authored-By:` line crediting the upstream author and link the source repo in the commit body.

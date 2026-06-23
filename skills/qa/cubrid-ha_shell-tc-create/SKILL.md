@@ -1,305 +1,128 @@
 ---
 name: cubrid-ha_shell-tc-create
-description: "Use this skill whenever the user wants to create, draft, write, or scaffold a new HA shell testcase (.sh) for CUBRID CTP. This is the right skill any time someone needs a new HA replication test script produced from scratch for a CBRD issue. Common requests: \"ha shell tc 만들어줘\", \"ha shell tc 초안 작성해줘\", \"create ha shell tc\", \"draft HA shell test\", \"새 ha 테스트케이스\", \"HA shell 테스트케이스 작성\", \"create draft ha shell tc for CBRD-XXXXX\". NOT for: regular shell tests (use cubrid-shell-tc-create), ha_repl SQL-format tests (use cubrid-ha_repl-tc-create), debugging existing HA tests, or CTP configuration."
+description: "Create, draft, or scaffold a new CUBRID CTP HA shell testcase (.sh) from scratch — an HA replication test for a CBRD bug fix or feature. Use this whenever someone says \"ha shell tc 만들어줘\", \"ha shell tc 초안 작성해줘\", \"create ha shell tc\", \"draft HA shell test\", \"새 ha 테스트케이스\", \"HA shell 테스트케이스 작성\", or \"create draft ha shell tc for CBRD-XXXXX\", even if they don't say \"testcase\". They usually give a CBRD number, the HA behavior to test, and sometimes a target release dir. NOT for: regular shell tests (use cubrid-shell-tc-create), ha_repl SQL-format tests (use cubrid-ha_repl-tc-create), reviewing/debugging existing tests, running tests, or CTP configuration."
 ---
 
 # HA Shell Testcase Creator (CTP)
 
-Generate well-formed CUBRID CTP HA shell testcase scripts for high-availability replication testing.
+Generate a CUBRID CTP HA shell testcase that passes review on the first try. A good HA testcase is one self-contained `#!/bin/bash` script that drives a 1-master/1-slave cluster through **setup → action on master → wait for replication → verify slave → revert**, which CTP runs, collects, and regression-tracks.
 
-## Prerequisites — CTP Installation Check (mandatory first step)
+## Scope
 
-```bash
-# Detect CTP_HOME: $CTP_HOME env var → $HOME/CTP → ~/cubrid-testtools/CTP (in order)
-if [ -n "$CTP_HOME" ] && [ -f "$CTP_HOME/bin/ctp.sh" ]; then
-    echo "CTP found: $CTP_HOME"
-elif [ -f "$HOME/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/CTP
-elif [ -f "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then
-    export CTP_HOME=$HOME/cubrid-testtools/CTP
-else
-    echo "CTP not found"; exit 1
-fi
-# Verify HA helpers exist
-ls $CTP_HOME/shell/init_path/make_ha.sh
-ls $CTP_HOME/shell/init_path/ha_common.sh
+**Produces:** the entry `.sh` (owns the full HA lifecycle), correct directory paths under `cubrid-testcases-private/HA/shell/`, replication/failover/config-change logic against `hatestdb`.
+
+**Does NOT produce:** answer files (CTP generates these in `init answer` mode — never hand-write them), CTP framework changes, CI config. Route regular shell tests to `cubrid-shell-tc-create`, ha_repl SQL-format tests to `cubrid-ha_repl-tc-create`.
+
+## Before you start
+
+- **CTP with HA helpers must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/shell/init_path/make_ha.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`). HA tests also need an `HA.properties` with reachable slave-node credentials.
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
+
+## Directory convention
+
+The path is how CTP identifies and categorizes a test; the directory name and the script filename **must match** (`test_name/cases/test_name.sh`). HA tests live under `cubrid-testcases-private/HA/shell/` (not `cubrid-testcases`).
+
+```
+# Bug fix:   HA/shell/_{nn}_bts_issue/cbrd_xxxxx/cases/cbrd_xxxxx.sh
+# Feature:   HA/shell/_{nn}_{release_code}/{feature_name}/cases/{feature_name}.sh
 ```
 
-If `make_ha.sh` is not found, stop and display:
+`{nn}_bts_issue` buckets bug fixes (e.g. `_12_bts_issue`, `_16_bts_issue`); `{nn}_{release_code}` buckets features by release (e.g. `_38_fig`, `_39_fig_cake`). Multiple tests for one issue nest with a suffix: `cbrd_xxxxx/cbrd_xxxxx_1/cases/cbrd_xxxxx_1.sh`.
 
-> "CTP HA helpers not found. HA shell tests require make_ha.sh in CTP/shell/init_path/.
-> Installation: `git clone https://github.com/CUBRID/cubrid-testtools.git`"
+## Lifecycle contract
 
-## JIRA Issue Context (do this when a CBRD-XXXXX is referenced)
-
-When the request includes a `CBRD-XXXXX` ticket, **invoke the `jira` skill first** to fetch the issue background — title, description, reproduction steps, affected components, and comments — before generating the testcase. This grounds the test in the issue's actual requirements rather than guesswork.
-
-**Already fetched in this conversation?** Reuse the context — do not re-invoke. The fetcher caches issues, but the conversation should not redundantly re-display them.
-
-1. **Normalize the ticket ID** — `jira_search.py` requires the canonical `CBRD-NNNNN` form. Filenames typically use `cbrd_NNNNN`:
-
-   ```bash
-   TICKET=$(echo "$RAW_INPUT" | grep -oiE 'cbrd[-_ ]?[0-9]+' | head -1 \
-            | tr '[:lower:]' '[:upper:]' \
-            | sed -E 's/^CBRD[-_ ]?/CBRD-/')
-   ```
-
-2. **Locate the `jira` skill** — search project-scope, user-scope, plugin cache, and any `CLAUDE_PLUGIN_ROOT` install path. Do **not** rely on developer-specific paths:
-
-   ```bash
-   JIRA_SCRIPT=""
-   for d in \
-       "$(pwd)/.claude/skills/jira" \
-       "$HOME/.claude/skills/jira" \
-       "$HOME/.claude/plugins/skills/jira" \
-       "$HOME/skills/jira" \
-       "${CLAUDE_PLUGIN_ROOT:-}/skills/jira"
-   do
-       [ -n "$d" ] && [ -f "$d/scripts/jira_search.py" ] && JIRA_SCRIPT="$d/scripts/jira_search.py" && break
-   done
-   ```
-
-3. **If the skill is available** — prefer the slash form `/jira CBRD-XXXXX` when the harness exposes it (it honors the upstream `pandoc` prerequisite gate). Otherwise call the bundled script directly. Warn the user when `pandoc` is missing so they know the description/comments will fall back to raw Jira-wiki markup:
-
-   ```bash
-   command -v pandoc >/dev/null 2>&1 || \
-       echo "WARNING: pandoc not installed — JIRA description/comments will be raw wiki markup (degraded readability)."
-   python3 "$JIRA_SCRIPT" "$TICKET"
-   ```
-
-   Let the summary, description, and comments drive the testcase scope, expected behavior, and edge cases.
-
-4. **If the skill is missing** — **halt and ask the user**:
-
-   > The `jira` skill is required to fetch CBRD-XXXXX context for accurate testcase generation, but it is not installed. May I install it from this repo (`tw-kang/skills`) now?
-   > Suggested: `npx skills add tw-kang/skills -s jira -a claude-code`
-   >
-   > After install, re-run the discovery step above. If the script is still not found, the install path may differ on this system — please report which directory under `~/.claude/` or the plugin cache contains the new `jira/scripts/jira_search.py`.
-
-   Wait for explicit confirmation. If the user declines, proceed without JIRA context and warn them that issue-specific details may be missing.
-
-5. **No CBRD-XXXXX in the request** — skip this section.
-
-## HA Shell vs Regular Shell Tests
-
-| Aspect | Regular Shell | HA Shell |
-|--------|--------------|----------|
-| Shebang | `#!/bin/sh` | `#!/bin/bash` (always) |
-| Helper files | `. $init_path/init.sh` | `. $init_path/init.sh` + `. $init_path/make_ha.sh` |
-| DB setup | `cubrid_createdb $dbname` | `setup_ha_environment` |
-| DB name | Any name | Always `hatestdb` (set by make_ha.sh) |
-| Remote exec | Not needed | `run_on_slave -c "cmd"` |
-| Cleanup | `cubrid deletedb $dbname` | `revert_ha_environment` |
-| Testcases dir | `shell/` in cubrid-testcases | `HA/shell/` in cubrid-testcases-private |
-
-## Directory Path Convention
-
-HA shell testcases live in **`cubrid-testcases-private/HA/shell/`** (not `cubrid-testcases`).
-
-### Bug fixes
-```
-HA/shell/_12_bts_issue/<bug_id>/cases/<bug_id>.sh
-HA/shell/_16_bts_issue/<bug_id>/cases/<bug_id>.sh
-```
-Use `cbrd_XXXXX` naming for CBRD issues.
-
-### New features (use the appropriate release directory)
-```
-HA/shell/_31_cherry/<feature_name>/cases/<feature_name>.sh
-HA/shell/_36_damson/<feature_name>/cases/<feature_name>.sh
-HA/shell/_37_elderberry/<feature_name>/cases/<feature_name>.sh
-HA/shell/_38_fig/<feature_name>/cases/<feature_name>.sh
-HA/shell/_39_fig_cake/<feature_name>/cases/<feature_name>.sh
-```
-
-Multiple tests for the same issue:
-```
-HA/shell/_12_bts_issue/cbrd_XXXXX/cbrd_XXXXX_1/cases/cbrd_XXXXX_1.sh
-HA/shell/_12_bts_issue/cbrd_XXXXX/cbrd_XXXXX_2/cases/cbrd_XXXXX_2.sh
-```
-
-## HA Lifecycle Contract
-
-Every HA shell testcase must follow this exact sequence:
+Every entry script follows this skeleton. Missing a step fails review.
 
 ```bash
 #!/bin/bash
-# CBRD-XXXXX: Brief description of what this HA test verifies
-# HA config: 1 master + 1 slave
-# Tests: <HA behavior being verified>
+# CBRD-XXXXX: one-line statement of what this HA behavior verifies.
+# HA config: 1 master + 1 slave. Setup → action → expected replication outcome.
 
 . $init_path/init.sh
 . $init_path/make_ha.sh
 init test
 set -x
 
-# --- Setup HA (creates hatestdb on both nodes, configures HA, starts heartbeat) ---
+# --- Setup (creates hatestdb on both nodes, configures HA, starts heartbeat) ---
 setup_ha_environment
 
-# --- Test phase ---
-# (test logic here)
+# --- Test (act on master) ---
+csql -udba $dbname -c "CREATE TABLE t1(id INT PRIMARY KEY); INSERT INTO t1 VALUES(1); COMMIT;"
 
-# --- Verify phase ---
-if [ condition ]; then
-    write_ok
-else
-    write_nok
-fi
+# --- Verify (wait for replication, then compare) ---
+wait_for_slave
+if [ <condition> ]; then write_ok; else write_nok; fi
 
 # --- Cleanup ---
 revert_ha_environment
 finish
 ```
 
-### Phase details
+### Why each phase matters (not just ritual)
 
-**Shebang + summary**: Always `#!/bin/bash` (HA helpers require bash). Comment block: issue ID, what the test verifies, HA config.
+- `#!/bin/bash` is mandatory — the HA helpers rely on bash features.
+- `. init.sh` loads CTP core (`write_ok`/`write_nok`/`format_csql_output`/`finish`); `. make_ha.sh` reads `HA.properties`, defines `run_on_slave`, and sources the upper helpers. Source `init.sh` **first**. `set -x` gives reviewers a debuggable trace.
+- `setup_ha_environment` creates `hatestdb` on master **and** slave, uploads the conf files, starts heartbeat, waits for active mode, and auto-sets `$masterHostName`/`$slaveHostName`. Never `cubrid createdb` by hand.
+- `revert_ha_environment` destroys `hatestdb` on both nodes and reverts every conf change; `finish` must be the **last** call. Every exit path (including early `write_nok` returns) must reach them, or the next test inherits a dirty cluster.
+- Every code path ends at exactly one of `write_ok` / `write_nok`, then revert, then `finish`.
 
-**Source and init**:
-- `. $init_path/init.sh` — CTP core helpers (write_ok, write_nok, format_csql_output, finish)
-- `. $init_path/make_ha.sh` — HA helpers (reads HA.properties, defines run_on_slave, sources make_ha_upper.sh)
-- `init test` — initializes CTP test logging; `set -x` — enables debug output
+## Essential helpers (use these, not raw commands)
 
-**`setup_ha_environment`**: Creates `hatestdb` on master AND slave, modifies and uploads `cubrid.conf`/`cubrid_ha.conf`/`cubrid_broker.conf`, starts heartbeat on both nodes, waits for active mode, auto-sets `masterHostName`/`slaveHostName`.
+Raw equivalents fail review because these handle two-node orchestration, replication timing, and auto-revert.
 
-**Test logic**: Execute DML on master, use `wait_for_slave` before comparing, use `run_on_slave -c "..."` for all remote execution (never raw ssh).
+| Use | Instead of | Why |
+|---|---|---|
+| `setup_ha_environment` / `revert_ha_environment` | `cubrid createdb` + manual conf edits | builds/tears down both nodes; reverts conf automatically |
+| `run_on_slave -c "cmd"` | raw `ssh` | credentials from `HA.properties`, cross-host safe |
+| `wait_for_slave` / `wait_for_slave_failover` | `sleep` then read | blocks until replication (or failover) actually lands |
+| `wait_for_active` / `wait_for_slave_active` | grepping status in a loop | waits for a node to reach active HA mode |
+| `modify_cubrid_conf` / `modify_cubrid_ha` / `modify_cubrid_broker_conf` | editing `.conf` | edits + uploads to slave; reverted by `revert_ha_environment` |
+| `write_ok` / `write_nok [file]` | echoing PASS/FAIL | CTP result tracking |
 
-**Cleanup**: `revert_ha_environment` destroys hatestdb on both nodes and reverts all config files. `finish` must be the last call.
+`dbname` is always `hatestdb` and `$masterHostName`/`$slaveHostName`/`$currentPath` are set for you by setup. To call `ha_common.sh` functions on the slave: `run_on_slave -initfile $init_path/ha_common.sh -c "func arg"`. Full helper source: the CTP files listed under Examples & references.
 
-## HA Helper Functions Reference
+## Writing rules (principles, not ritual)
 
-### Setup and Teardown
-| Function | Source | Purpose |
-|----------|--------|---------|
-| `setup_ha_environment` | make_ha_upper.sh | Create DB on both nodes, configure HA, start heartbeat |
-| `revert_ha_environment` | make_ha_upper.sh | Destroy DB on both nodes, revert config files |
+- **Always `#!/bin/bash`**, source `init.sh` before `make_ha.sh`, keep `dbname=hatestdb`.
+- **`setup_ha_environment` before any DB op; `revert_ha_environment` before `finish`** — on every exit path, early branches included.
+- **`wait_for_slave` before reading the slave** — never compare master vs slave without waiting for replication.
+- **Remote work goes through `run_on_slave`**, never raw `ssh`.
+- **No hardcoded hostnames/IPs** — use `$masterHostName`/`$slaveHostName`. **No hardcoded paths** — use `$CUBRID`, `$init_path`, `$currentPath`, or `work=$(mktemp -d)` for scratch.
+- **Quote variables** (`"$dbname"`), space your tests (`[ "$x" -eq 0 ]`), check exit codes for things that can fail.
+- **Bounded loops only** — poll with a counter, never `while true`.
 
-### Remote Execution (aliases in make_ha.sh)
-| Alias | Purpose |
-|-------|---------|
-| `run_on_slave -c "cmd"` | Execute shell command on slave node |
-| `run_on_slave -initfile $init_path/ha_common.sh -c "func_name arg"` | Execute with ha_common.sh functions available |
-| `run_upload_on_slave -from <local> -to <remote>` | Upload file to slave |
-| `run_download_on_slave -from <remote> -to <local>` | Download file from slave |
+## House idioms (quick recipes)
 
-### HA Service Control
-| Function | Source | Purpose |
-|----------|--------|---------|
-| `stop_slave_hb` | make_ha_upper.sh | Stop heartbeat on slave (`cubrid hb stop`) |
-| `start_slave_hb` | make_ha_upper.sh | Start heartbeat on slave (`cubrid hb start`) |
-| `stop_slave_service` | make_ha_upper.sh | Stop CUBRID service on slave (`cubrid service stop`) |
-| `stop_ha_master` | make_ha_upper.sh | Stop HA master node |
+- **Compare master vs slave:** dump both to logs, normalize, diff.
+  ```bash
+  csql -udba $dbname@$masterHostName -c "SELECT * FROM t1 ORDER BY id;" > master.log
+  run_on_slave -c "csql -udba $dbname -c \"SELECT * FROM t1 ORDER BY id;\"" > slave.log
+  format_csql_output master.log; format_csql_output slave.log
+  compare_result_between_files master.log slave.log
+  ```
+- **Simulate master failure (failover):** `kill -19 $(pgrep -u $USER cub_server)` to suspend, then `wait_for_slave_active` and assert `current HA running mode is active`; `kill -18 ...` to resume.
+- **Config-change test:** apply the change *before* `setup_ha_environment` (it picks up and uploads the edit); `revert_ha_environment` undoes it.
+- **Run ha_common.sh helpers on the slave:** `run_on_slave -initfile $init_path/ha_common.sh -c "cleanup $dbname"`.
 
-### Wait/Polling
-| Function | Source | Purpose |
-|----------|--------|---------|
-| `wait_for_slave` | make_ha_upper.sh | Wait for DML replication to slave (creates/drops a sentinel table) |
-| `wait_for_slave_failover` | make_ha_upper.sh | Wait for replication after failover (slave→master direction) |
-| `wait_for_active` | ha_common.sh | Wait for master to reach active HA mode |
-| `wait_for_slave_active` | ha_common.sh | Wait for slave to become active (new master after failover) |
+## Verify before claiming done
 
-### Config Modification (auto-reverted by `revert_ha_environment`)
-| Function | Purpose |
-|----------|---------|
-| `modify_cubrid_conf $CUBRID/conf/cubrid.conf` | Modify cubrid.conf and upload to slave |
-| `modify_cubrid_ha $CUBRID/conf/cubrid_ha.conf` | Modify cubrid_ha.conf and upload to slave |
-| `modify_cubrid_broker_conf $CUBRID/conf/cubrid_broker.conf` | Modify broker config |
+After authoring, prove the testcase actually runs — don't just eyeball it.
 
-### Key Variables (set automatically)
-| Variable | Value |
-|----------|-------|
-| `masterHostName` | Local hostname (master node) — set by `setup_ha_environment` |
-| `slaveHostName` | Remote slave hostname — set by `setup_ha_environment` |
-| `dbname` | `hatestdb` (always, set by make_ha.sh) |
-| `currentPath` | Working directory at script start (set by make_ha.sh) |
+1. **Cluster-first:** if a real 1m/1s HA environment (or k8s HA pod pair) is reachable, run it there via `ctp.sh shell` and read `feedback.log` for `OK`/`NOK`. This is ground truth — HA timing bugs only surface against two live nodes.
+2. **Local fallback** (no cluster is an expected path): `bash -n` the script to catch syntax errors, and eyeball that every exit path reaches `revert_ha_environment` then `finish`.
 
-## Common HA Test Patterns
+## Self-review checklist
 
-### Replication verification
-```bash
-# 1. Create table and insert data on master
-csql -udba $dbname -c "
-CREATE TABLE t1 (id INT PRIMARY KEY, val VARCHAR(100));
-INSERT INTO t1 VALUES (1, 'data');
-COMMIT;
-"
+- `#!/bin/bash`, `init.sh` then `make_ha.sh`, `init test`, `set -x`?
+- `setup_ha_environment` before any DB op? `dbname` left as `hatestdb`?
+- `wait_for_slave` before every master/slave comparison?
+- Remote commands via `run_on_slave`, no raw `ssh`? No hardcoded hosts/IPs/paths?
+- Exactly one `write_ok`/`write_nok` per path, then `revert_ha_environment`, then `finish` last — on every exit path?
+- Bounded loops? Dir name == filename, in the right `_{nn}_bts_issue` / release bucket?
+- Verified (cluster-first, else `bash -n`)?
 
-# 2. Wait for replication to complete
-wait_for_slave
+## Examples & references
 
-# 3. Compare master vs slave data
-csql -udba $dbname@$masterHostName -c "SELECT * FROM t1 ORDER BY id;" > master.log
-run_on_slave -c "csql -udba $dbname -c \"SELECT * FROM t1 ORDER BY id;\"" > slave.log
-
-format_csql_output master.log
-format_csql_output slave.log
-compare_result_between_files master.log slave.log
-```
-
-### Failover test (kill master, slave becomes new master)
-```bash
-# Stop master heartbeat (simulate failure)
-kill -19 $(pgrep -u $USER cub_server)
-
-# Wait for slave to be promoted
-wait_for_slave_active > slave_status.log
-if grep -q "current HA running mode is active" slave_status.log; then
-    write_ok
-else
-    write_nok
-fi
-
-# Restore master
-kill -18 $(pgrep -u $USER cub_server)
-```
-
-### Config change test
-```bash
-# Modify config before setup (setup_ha_environment applies the changes)
-echo "ha_ping_hosts=127.0.0.1" >> $CUBRID/conf/cubrid_ha.conf
-setup_ha_environment
-# ... test ...
-revert_ha_environment  # automatically reverts cubrid_ha.conf
-```
-
-### Running ha_common.sh functions on slave
-```bash
-# To use functions defined in ha_common.sh on slave, use -initfile:
-run_on_slave -initfile $init_path/ha_common.sh -c "cleanup $dbname"
-```
-
-## Writing Rules
-
-1. **`#!/bin/bash`** — always bash, never `#!/bin/sh`
-2. **Source order**: `init.sh` first, then `make_ha.sh`
-3. **`dbname=hatestdb`** — never use a different DB name; it's set by make_ha.sh
-4. **`setup_ha_environment` before any DB operations** — never call `cubrid createdb` manually
-5. **`revert_ha_environment` before `finish`** — never skip cleanup
-6. **`run_on_slave` for remote commands** — never raw ssh; credentials come from HA.properties
-7. **`wait_for_slave` before comparing** — always wait for replication before reading slave
-8. **No hardcoded hostnames or IPs** — use `$masterHostName`, `$slaveHostName`
-9. **No hardcoded absolute paths** — use `$CUBRID`, `$currentPath`, `$init_path`
-10. **Bounded loops** — never `while true`; use `for ((i=0; i<N; i++))` with a limit
-
-## Generation Checklist
-
-- `#!/bin/bash`?
-- Both `init.sh` AND `make_ha.sh` sourced?
-- `setup_ha_environment` called before DB ops?
-- `wait_for_slave` before master/slave comparison?
-- `run_on_slave` (not ssh) for remote commands?
-- `$masterHostName`/`$slaveHostName` (not hardcoded)?
-- `revert_ha_environment` before `finish`?
-
-## Examples
-
-- `@examples/ha_replication_verify.sh` — INSERT/UPDATE/DELETE replication with master/slave comparison
-- `@examples/ha_failover_test.sh` — Failover scenario: kill master, verify slave promotion
-
-## References
-
-- `~/cubrid-testtools/CTP/shell/init_path/make_ha.sh` — HA entry: reads HA.properties, defines run_on_slave aliases, sources make_ha_upper.sh
-- `~/cubrid-testtools/CTP/shell/init_path/make_ha_upper.sh` — setup_ha_environment, revert_ha_environment, wait_for_slave, failover helpers
-- `~/cubrid-testtools/CTP/shell/init_path/ha_common.sh` — cleanup, wait_for_active, wait_for_slave_active
-- `~/cubrid-testtools/CTP/shell/init_path/init.sh` — CTP core helpers: write_ok, write_nok, format_csql_output, finish
-- `~/cubrid-testcases-private/HA/shell/` — Existing HA shell testcases for reference
+- `@examples/ha_replication_verify.sh` — INSERT/UPDATE/DELETE replication with master/slave comparison.
+- `@examples/ha_failover_test.sh` — kill master, verify slave promotion.
+- CTP helper source (read for exact signatures): `$CTP_HOME/shell/init_path/make_ha.sh` (run_on_slave, properties), `make_ha_upper.sh` (setup/revert, wait_for_slave, failover), `ha_common.sh` (cleanup, wait_for_active), `init.sh` (write_ok/write_nok/finish). Existing tests: `cubrid-testcases-private/HA/shell/`.
