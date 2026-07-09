@@ -88,3 +88,34 @@ sqlmedium pod가 build-cache에서 마운트할 CUBRID 빌드를 지정하는 �
 
 **Answer file**:
 TC의 기대 출력 기준선(`.answer`). CTP 실행 결과에서 승격해 만들며, 손으로 쓰지 않는다.
+
+### 롤아웃 단계 (자세히는 [staging.md](./docs/staging.md), 근거 [ADR 0007](./docs/adr/0007-rollout-stages.md))
+
+**Stage 1 / PoC**:
+로컬 Claude Code 세션으로 사람이 게이트마다 확인하며 단건 처리하는 현재 단계.
+
+**Stage 2 / 팀내 수동 트리거**:
+PoC의 로컬 흐름을 스킬·셋업 문서·hook으로 패키징해, 팀원이 각자 로컬에서 수동 기동하는 단계. 배포가 아니라 "공유". 검증은 여전히 로컬 CTP, Jira는 읽기 전용.
+_Avoid_: 배포(deploy — Stage 3와 혼동 금지)
+
+**Stage 3 / 무인 자동 서비스**:
+k8s CronJob·Indexed Job·dispatcher로 야간 스케줄에 무인 실행하는 단계. pod 검증·Jira 쓰기·self-healing이 여기서 켜진다. 현재 park.
+
+### 품질 게이트
+
+**fail→pass 회귀 계약**:
+버그수정 TC가 fix 이전 빌드에서 실제로 FAIL하고 fix 후 PASS함을 실측으로 증명하는 것. 둘 다 PASS면 버그를 못 잡는 TC. PoC부터 적용.
+_Avoid_: 회귀 검증(막연한 표현), 검출력(그 확률은 별개 개념)
+
+**결정성 게이트**:
+승격한 `.answer`로 TC를 N회(기본 3회) 반복 실행해 매회 PASS(출력 일치)함을 확인하는 게이트.
+
+**CCI 교차 검증**:
+CTP 공식 9단계 step 6 — `run_cci`로 CCI 드라이버에서도 실행해 csql 결과와 다르면 `.answer_cci`를 두는 것. Stage 2부터.
+
+**하드 게이트**:
+스킬·CLAUDE.md('요청')로는 우회 가능하므로, fail→pass·결정성 같은 필수 게이트를 hook/CI로 '보장'하는 것. Stage 2부터.
+
+**신뢰 빌드**:
+oracle(`.answer`) 생성·검증의 기준이 되는, fix가 포함된 CUBRID 빌드. PoC는 빌드서버 URL로 수동 pin, Stage 3는 커밋 SHA/빌드 ID로 결정적 pin.
+_Avoid_: 최신 빌드(fix 포함 여부가 불확실)

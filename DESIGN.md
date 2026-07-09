@@ -4,6 +4,8 @@ Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·�
 
 **추적 이슈**: [CUBRIDQA-1429](http://jira.cubrid.org/browse/CUBRIDQA-1429) — PoC 진행 현황을 이슈 description에 지속 반영한다. 원문은 `docs/jira/CUBRIDQA-1429-description.jira`에서 관리하고, 갱신은 `cubrid-jira update CUBRIDQA-1429 --description-file docs/jira/CUBRIDQA-1429-description.jira --yes`로 수행한다 (CUBRIDQA 프로젝트는 익명 읽기 불가 — 이 파일이 사실상의 사본이다).
 
+**롤아웃 단계**: 이 문서는 Stage 1(PoC) 설계다. Stage 2(팀내 수동 트리거)·Stage 3(무인 자동 서비스) 분류와 외부 핸드오버 문서 정리는 [docs/staging.md](./docs/staging.md), 근거는 [ADR 0007](./docs/adr/0007-rollout-stages.md).
+
 ## 범위 (PoC)
 
 - **대상 카테고리**: SQL만 (`cubrid-testcases/sql`). shell/medium/CCI 등은 PoC 이후.
@@ -122,7 +124,9 @@ PoC용 conf `work/sql.poc.conf` = CTP `sql.conf`의 `scenario`를 `work/cubrid-t
 
 **결정성 실측**: 승격 후 최소 2회 더 실행해 매회 `Success:1`인지 확인(= 출력이 answer와 매회 일치, 비교는 개행 무시). 비결정 토큰이 있으면 해당 케이스를 제거/수정하도록 Author 피드백. **알려진 함정**: `EXECUTE … USING {컬렉션}`의 결과가 `[Ljava.lang.Integer;@<hash>`처럼 Java 객체 해시로 렌더되어 매회 달라진다 → 컬렉션 값을 결과로 반환하는 케이스는 피한다(스칼라/에러로 검증).
 
-`.answer`는 release 빌드(=CI mode) 출력으로 확정된다. debug 진단이 필요하면 같은 버전 `-debug.sh`를 추가 설치해 병행 확인한다(ADR 0006). 배포 단계에서는 이 절차를 pod 내부 실행으로 이식한다(ADR 0001).
+**fail→pass 회귀 계약 (PoC부터, ADR 0007)**: 승격·결정성 확인만으로는 "버그를 실제로 잡는지"가 증명되지 않는다. fix **이전** 빌드(fix commit의 부모 또는 그 직전 빌드서버 산출물)를 설치해 같은 TC를 돌려 **FAIL**함을 실측한다 — fix 후 PASS와 합쳐 fail→pass를 증명. 결정적 버그는 명확히 FAIL, race 버그는 반복 실행 best-effort로 FAIL을 관측하고 한계를 리뷰·PR에 명시. pre-fix 빌드를 못 구하면 이슈 Repro/Expected로 pre-fix 동작을 근거화하고 그 사실을 리포트에 남긴다.
+
+`.answer`는 release 빌드(=CI mode) 출력으로 확정된다. debug 진단이 필요하면 같은 버전 `-debug.sh`를 추가 설치해 병행 확인한다(ADR 0006). CCI 교차 검증(`run_cci`/`.answer_cci`)과 게이트의 hook 강제는 Stage 2부터 적용한다(ADR 0007). 배포 단계에서는 이 절차를 pod 내부 실행으로 이식한다(ADR 0001).
 
 ### 5. Review — 분리 lane 품질 평가
 
