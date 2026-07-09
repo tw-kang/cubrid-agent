@@ -24,22 +24,24 @@ Generate a CUBRID CTP SQL testcase that passes review on the first try. A good t
 The path is how CTP locates and categorizes a test. The `.sql` and its `.answer` share basename, split across sibling `cases/` and `answers/` dirs.
 
 ```
-# Bug fix:  $TC/sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
-#                                            answers/cbrd_XXXXX.answer
-# Feature:  $TC/sql/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
-#                                                        answers/cbrd_XXXXX.answer
-# Medium:   $TC/medium/...
+# Bug fix:            $TC/sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
+#                                                     answers/cbrd_XXXXX.answer
+# Bug fix (released):  $TC/sql/_{no}_{release_code}/cbrd_XXXXX/cases/cbrd_XXXXX.sql   # e.g. _36_guava/cbrd_25913/
+#                                                              answers/cbrd_XXXXX.answer
+# Feature:            $TC/sql/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
+#                                                                  answers/cbrd_XXXXX.answer
+# Medium:             $TC/medium/...
 ```
 
-`{yy}` = 2-digit year, `{1|2}h` = first/second half of year. Multiple tests for one issue get a suffix (`cbrd_27100_select.sql`, `cbrd_27100_update.sql`). All SQL files share one `cases/`+`answers/` pair — never make per-test subdirectories.
+`{yy}` = 2-digit year, `{1|2}h` = first/second half of year. Multiple tests for one issue get a suffix (`cbrd_27100_select.sql`, `cbrd_27100_update.sql`), all sharing one `cases/`+`answers/` pair — never make a subdirectory per individual `.sql`. When the issue targets a named release, prefer that release dir (`_{no}_{release_code}/cbrd_XXXXX/`, e.g. `_36_guava/cbrd_25913/` — one dir per issue) over `_13_issues`; check where sibling issues of the same release landed and match them.
 
 ## Lifecycle contract
 
 The `.answer` is the expected output and **must come from CTP**, not your keyboard — hand-written answers drift from real engine output and fail diffs.
 
 1. Write the `.sql` into `cases/`.
-2. Run it through CTP via the `cubrid-sql-tc-verify` skill (needs a build URL — use one given, else ask). This produces a `.result` next to the `.sql`.
-3. Promote it: `cp cases/cbrd_XXXXX.result answers/cbrd_XXXXX.answer`.
+2. **Seed an empty `answers/cbrd_XXXXX.answer` first** — CTP's interactive `run` skips any case that has no answer file (it runs nothing: `Total:1 / Success:0 / Fail:0`). With the empty answer present, run it through `cubrid-sql-tc-verify` (needs a build URL — use one given, else ask). The run diffs against the empty answer (`Fail:1`) and writes the real output to `$CTP_HOME/sql/result/<date>/schedule_…/sql/cbrd_XXXXX.result` — in the result tree, **not** next to the `.sql`.
+3. Promote it: copy that `.result` over the seeded answer (`answers/cbrd_XXXXX.answer`), then re-run to confirm `Success:1`.
 4. Read the `.answer` and confirm it matches intent — DDL/DML show affected row count; SELECT shows headers + rows; errors show `Error:-NNN\n<message>`; each statement's output is split by `===...===` lines.
 
 No build URL / no CUBRID env? Drop an empty `.answer` and tell the user to fill it later with `cubrid-sql-tc-verify`.
@@ -51,7 +53,7 @@ These directives are how CTP and reviewers read your intent. Skipping them chang
 | Use | For | Why |
 |---|---|---|
 | `evaluate 'Case N: ...'` | label each scenario | sole section marker CTP echoes into the answer; number sequentially |
-| `--+ server-message on` / `off` | negative tests asserting `-NNN` errors | makes error text part of the diff; always pair on/off |
+| `--+ server-message on` / `off` | PL/CSQL `DBMS_OUTPUT`, or asserting an error *message* (not just the code) | adds message text to the diff (only if `System.xml errorMessage=false`); plain SQL error tests conventionally omit it and assert the `-NNN` code alone; pair on/off when used |
 | `DROP TABLE IF EXISTS t` before `CREATE` | every table | keeps the test re-runnable |
 | empty `cbrd_XXXXX.queryPlan` sidecar | optimizer/plan tests | tells CTP to capture and diff the query plan |
 | `cubrid-sql-tc-verify` | generating `.answer` | only sanctioned source of expected output |
@@ -59,8 +61,10 @@ These directives are how CTP and reviewers read your intent. Skipping them chang
 ## Writing rules
 
 - **`evaluate 'Case N: description'`** before each scenario; this is the *only* section marker — do not add `-- === ...` style comment banners.
-- **Pair `server-message on/off`.** Enable only when asserting error messages; skip when checking result sets.
+- **`server-message` is not the default for error tests.** A plain SQL error case asserts the `-NNN` code alone (no `server-message`) — the corpus norm, and enough to catch regressions. Use `--+ server-message on/off` (paired) only for PL/CSQL `DBMS_OUTPUT`, or when you must pin the exact error *message* text (brittle to rewording).
 - **`DROP TABLE IF EXISTS` before every `CREATE TABLE`**, setup at top, cleanup at bottom. Keep setup minimal with simple names (`tbl1`, `col1`).
+- **Make each file self-contained — the full suite shares ONE database.** CI/regression creates the DB once and runs every SQL case in it back-to-back, so uncleaned state leaks into later tests. Undo everything at cleanup: `DROP TABLE IF EXISTS` (also at top), `deallocate prepare <name>` for any `prepare`, restore any `SET SYSTEM PARAMETERS`, drop any temp serial/view/procedure created.
+- **Keep the answer deterministic.** Output that varies run-to-run breaks the diff: `EXECUTE … USING {collection}` renders as `[Ljava.lang.Integer;@<hash>` (a Java object id), and OIDs, timestamps, and unordered result sets drift too. Return scalars, assert errors, or add `ORDER BY`; never bake a hash/OID/timestamp into a `.answer`.
 - **Simple, distinct data values** so answer diffs read cleanly; explicit column lists in `INSERT` when it aids readability.
 - **3–10 `evaluate` sections** per file is typical; one `evaluate` label per error case.
 - **No hardcoded paths.** SQL stays path-free; if a step needs scratch space use `work=$(mktemp -d)` or cwd, never `/tmp`/`/home`.
@@ -86,7 +90,9 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 - Header block present with CBRD number and `Coverage:`?
 - `evaluate 'Case N: ...'` on every scenario, numbered, no `-- ===` banners?
 - `DROP TABLE IF EXISTS` before each `CREATE TABLE`? Cleanup at bottom?
-- `server-message on/off` paired (only for error tests)?
+- `server-message` used only for PL/CSQL or message-text assertions — plain SQL errors assert the `-NNN` code alone — and paired on/off when present?
+- Fully self-contained? Every `prepare` deallocated, every `SET SYSTEM PARAMETERS` restored, every created object dropped at cleanup (the suite shares one DB)?
+- Answer free of non-deterministic tokens (object hashes/OIDs, timestamps, unordered rows)?
 - `.queryPlan` sidecar present for optimizer tests?
 - `.answer` generated via `cubrid-sql-tc-verify` (not hand-written), or left empty with a handoff note?
 - Dir/basename correct? Right `_{yy}_{1|2}h` bucket, shared `cases/`+`answers/`?
