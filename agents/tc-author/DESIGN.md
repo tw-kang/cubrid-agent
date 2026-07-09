@@ -173,7 +173,7 @@ jira-resolve-agent/
 │   ├── cubrid-testcases/         #   TC clone (origin=CUBRID, twkang=fork)
 │   ├── cubrid-testtools/         #   CTP
 │   └── sql.poc.conf              #   scenario→work/cubrid-testcases 로 덮어쓴 CTP conf
-└── reports/                      # run 리포트 (커밋 여부는 구현 시 결정)
+└── reports/                      # run 리포트 (gitignore — 커밋 안 함; PR Remarks·Jira에 요약)
 
 # CUBRID 검증 빌드: /home/dev/CUBRID (release 11.5.0.2300-04192d6, 소켓 경로 한계로 짧은 경로 필수)
 ```

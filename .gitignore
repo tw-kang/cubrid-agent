@@ -7,6 +7,9 @@ work/
 # OMC 상태 (임의 깊이)
 .omc/
 
+# run 리포트 — 로컬 작업 기록(내부 빌드 정보 포함). PR Remarks·Jira에만 남기고 repo엔 커밋 안 함
+reports/
+
 # Claude 개인 설정만 제외 — 에이전트 스킬(.claude/skills/**)은 커밋한다
 .claude/settings.local.json
 
