@@ -33,7 +33,9 @@ Work from a scratch dir so logs and temp structures never collide: `work=$(mktem
    ```
 2. **Build the locale library** — `sql.conf` does not auto-build it, and a missing one fails DB startup:
    ```bash
+   # JAVA_HOME must be a JDK (needs javac — CTP compiles Java SP classes at DB setup); `which java` may resolve to a JRE
    export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+   [ -x "$JAVA_HOME/bin/javac" ] || JAVA_HOME=$(dirname "$JAVA_HOME")   # jre/bin/java → up to the JDK root
    [ ! -f $CUBRID/lib/libcubrid_all_locales.so ] && sh $CUBRID/bin/make_locale.sh -t 64bit
    ```
 3. **Detect the category** from the user request and file path — picks the conf and run command:
@@ -106,5 +108,6 @@ On FAIL, gather evidence then classify — don't guess:
 - **"No Results!!"** → SQL file path not found; check the absolute path and the `cases/` dir.
 - **"Failed to connect to database server"** → missing locale lib (`make_locale.sh -t 64bit`), port conflict, or disk full.
 - **"Cannot connect to a broker"** → broker not running or port 33120 occupied.
-- **No answer file** → the test ran but needs a `.answer` baseline before a diff is meaningful.
-- **javac not found** → non-fatal unless the testcase uses Java stored procedures.
+- **"socket path is too long (>108)"** → the CUBRID install path is too deep; the Unix socket `$CUBRID/var/CUBRID_SOCK/…` exceeds the OS 108-char limit, so broker/master won't start. Install to a short path (e.g. `~/CUBRID`), not a deeply nested dir.
+- **No answer file** → interactive `run` **skips** the case (`Total:1 / Success:0 / Fail:0`) — it does not run. To generate a baseline: seed an empty `answers/<name>.answer`, run it (Fails vs empty and writes the real output to `$CTP_HOME/sql/result/…/sql/<name>.result`), then promote that `.result` to the answer.
+- **javac not found** → `JAVA_HOME` points at a JRE, not a JDK (CTP compiles Java SP classes at DB setup). Fix `JAVA_HOME` to a JDK (Run step 2). Truly harmless only when no test uses Java SP.
