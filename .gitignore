@@ -1,0 +1,8 @@
+# 봇 전용 작업 공간 (repo clone + 격리 CUBRID 설치본, ~1.2GB) — 커밋 금지
+work/
+
+# run 산출 로그/임시
+*.log
+
+# OMC 상태
+.omc/
