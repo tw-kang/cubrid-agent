@@ -4,18 +4,22 @@ cubrid-agent는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이�
 
 ## Contexts (에이전트)
 
-- [resolve-gate](./agents/resolve-gate/) — **Handoff→Resolved 게이트**: 개발자 fix를 QA가 Resolved로 받기 전 심사. (설계 전)
-- [tc-author](./agents/tc-author/) — **Resolved→Test**: 이슈 fix에 대한 CTP 테스트케이스 산출물 생성. (PoC 진행 중, 1호 완료)
-- [test-runner](./agents/test-runner/) — **Test→Tested**: TC/회귀 실행·검증 작업. (설계 전)
-- [close-backport](./agents/close-backport/) — **Tested→Closed/Backport**: 종결 또는 백포트 작업. (설계 전)
+- [resolve-gate](./agents/resolve-gate/) — **Handover→Resolved** ("Accept the fix"): 개발자 fix를 Resolved로 받기 전 완결성 게이트. (설계 전)
+- [tc-author](./agents/tc-author/) — **Resolved→Test** ("Start Test"): 이슈 fix에 대한 CTP 테스트케이스 산출물 생성. (PoC 진행 중, 1호 완료)
+- [test-runner](./agents/test-runner/) — **Test→Tested** ("Verify"): TC/회귀 실행·검증. (설계 전)
+- [close-backport](./agents/close-backport/) — **Tested→Closed / Backport** ("Close" / "Need Backport"): 종결 또는 백포트. (설계 전)
 
-## 파이프라인 (CBRD 이슈 상태)
+## 파이프라인 (CBRD 이슈 상태 — 공식 워크플로)
 
 ```
-Handoff → [resolve-gate] → Resolved → [tc-author] → Test → [test-runner] → Tested → [close-backport] → Closed / Backport
+# Dev 팀 (우리 범위 밖): Open → Confirmed → Analysis → Develop → Handover
+Handover ─[resolve-gate: Accept the fix]→ Resolved
+         ─[tc-author: Start Test]→ Test
+         ─[test-runner: Verify]→ Tested
+         ─[close-backport: Close / Need Backport]→ Closed / Backport
 ```
 
-각 에이전트는 앞 단계의 상태/산출물을 입력으로, 다음 상태로의 전이를 출력으로 한다. 이슈 키(`cbrd_xxxxx`)가 에이전트 간 조인 키.
+각 에이전트는 앞 상태/산출물을 입력으로, 다음 상태로의 전이를 출력으로 한다. 이슈 키(`cbrd_xxxxx`)가 에이전트 간 조인 키. 공식 상태·전이·운영 규칙(Description/Handover/Merge/Backport)은 [docs/handover/dev-process-v2.4.md](./docs/handover/dev-process-v2.4.md).
 
 ## 공유 (시스템 전역)
 

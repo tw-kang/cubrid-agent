@@ -26,3 +26,6 @@ core.*
 *~
 .idea/
 .vscode/
+
+# 첨부 PDF 원본(도식) — 텍스트 요약 md만 커밋
+*.pdf
