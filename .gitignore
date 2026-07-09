@@ -1,8 +1,25 @@
-# 봇 전용 작업 공간 (repo clone + 격리 CUBRID 설치본, ~1.2GB) — 커밋 금지
+# 봇 전용 작업 공간 (repo clone + 격리 CUBRID 설치본 + CTP 산출물, ~1.5GB+) — 커밋 금지
 work/
 
-# run 산출 로그/임시
+# 실행 로그/임시
 *.log
 
-# OMC 상태
+# OMC 상태 (임의 깊이)
 .omc/
+
+# Claude 개인 설정만 제외 — 에이전트 스킬(.claude/skills/**)은 커밋한다
+.claude/settings.local.json
+
+# Python 헬퍼 부산물
+__pycache__/
+*.pyc
+
+# CUBRID/CTP coredump (work/ 밖에 생기더라도)
+core.*
+
+# OS / 에디터
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
