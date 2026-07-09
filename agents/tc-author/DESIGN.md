@@ -2,9 +2,9 @@
 
 Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·검증·리뷰하고 upstream Draft PR까지 제출하는 agent bot. 용어는 [CONTEXT.md](./CONTEXT.md), 주요 결정 근거는 [docs/adr/](./docs/adr/)를 따른다.
 
-**추적 이슈**: [CUBRIDQA-1429](http://jira.cubrid.org/browse/CUBRIDQA-1429) — PoC 진행 현황을 이슈 description에 지속 반영한다. 원문은 `docs/jira/CUBRIDQA-1429-description.jira`에서 관리하고, 갱신은 `cubrid-jira update CUBRIDQA-1429 --description-file docs/jira/CUBRIDQA-1429-description.jira --yes`로 수행한다 (CUBRIDQA 프로젝트는 익명 읽기 불가 — 이 파일이 사실상의 사본이다).
+**추적 이슈**: [CUBRIDQA-1429](http://jira.cubrid.org/browse/CUBRIDQA-1429) — PoC 진행 현황을 이슈 description에 지속 반영한다. 원문은 `agents/tc-author/docs/jira/CUBRIDQA-1429-description.jira`에서 관리하고, 갱신은 `cubrid-jira update CUBRIDQA-1429 --description-file agents/tc-author/docs/jira/CUBRIDQA-1429-description.jira --yes`로 수행한다 (CUBRIDQA 프로젝트는 익명 읽기 불가 — 이 파일이 사실상의 사본이다).
 
-**롤아웃 단계**: 이 문서는 Stage 1(PoC) 설계다. Stage 2(팀내 수동 트리거)·Stage 3(무인 자동 서비스) 분류와 외부 핸드오버 문서 정리는 [docs/staging.md](./docs/staging.md), 근거는 [ADR 0007](./docs/adr/0007-rollout-stages.md).
+**롤아웃 단계**: 이 문서는 Stage 1(PoC) 설계다. Stage 2(팀내 수동 트리거)·Stage 3(무인 자동 서비스) 분류와 외부 핸드오버 문서 정리는 [staging.md](../../docs/staging.md), 근거는 [ADR 0007](../../docs/adr/0007-rollout-stages.md).
 
 ## 범위 (PoC)
 

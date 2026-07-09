@@ -1,6 +1,6 @@
 # Rollout 단계와 핸드오버 문서 분류
 
-두 외부 핸드오버 문서(v1 배포 설계, v2 TC 작성 웹검증판)를 재료로, 각 항목을 **PoC / Stage 2 / Stage 3**로 나눈 정리본. Stage 2(팀내 수동 트리거)를 이번 설계 대상으로 하고, Stage 3(무인 자동 서비스)은 park한다. 결정 근거는 [ADR 0007](./adr/0007-rollout-stages.md), 용어는 [CONTEXT.md](../CONTEXT.md).
+두 외부 핸드오버 문서(v1 배포 설계, v2 TC 작성 웹검증판)를 재료로, 각 항목을 **PoC / Stage 2 / Stage 3**로 나눈 정리본. Stage 2(팀내 수동 트리거)를 이번 설계 대상으로 하고, Stage 3(무인 자동 서비스)은 park한다. 결정 근거는 [ADR 0007](./adr/0007-rollout-stages.md), 용어 지도는 [CONTEXT-MAP.md](../CONTEXT-MAP.md).
 
 ## 3단계 모델
 

@@ -89,7 +89,7 @@ sqlmedium pod가 build-cache에서 마운트할 CUBRID 빌드를 지정하는 �
 **Answer file**:
 TC의 기대 출력 기준선(`.answer`). CTP 실행 결과에서 승격해 만들며, 손으로 쓰지 않는다.
 
-### 롤아웃 단계 (자세히는 [staging.md](./docs/staging.md), 근거 [ADR 0007](./docs/adr/0007-rollout-stages.md))
+### 롤아웃 단계 (자세히는 [staging.md](../../docs/staging.md), 근거 [ADR 0007](../../docs/adr/0007-rollout-stages.md))
 
 **Stage 1 / PoC**:
 로컬 Claude Code 세션으로 사람이 게이트마다 확인하며 단건 처리하는 현재 단계.
