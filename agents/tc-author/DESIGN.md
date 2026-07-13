@@ -91,7 +91,7 @@ Select ─► Ground ─► ┌── Author ──► Verify ──► Review �
 이슈 내용이 단일진실원천이되, 작성 근거를 코드로 보강한다.
 
 - `~/cubrid`(fetch 후 origin/develop 기준)에서 `git log --grep=CBRD-XXXXX`로 fix 커밋/PR을 찾고 merge diff를 읽는다. 필요시 `gh pr view`로 PR 본문·리뷰 보강.
-- `work/cubrid-testcases`에서 관련 기존 TC·history를 검색해 유사 TC 스타일과 중복 여부를 파악.
+- `work/cubrid-testcases`에서 관련 기존 TC·history를 검색해 유사 TC 스타일과 중복 여부를 파악. **커버리지 검색은 cbrd 번호가 아니라 이슈 repro(테이블/쿼리 패턴·기능 영역) 기준으로** — 같은 repro가 이미 다른 이름으로 있을 수 있다(PoC 2호: `_03_iss_700000`/`_08_..._with_null`). 있으면 중복 대신 차별화(ADR 0009).
 - 산출: 재현 시나리오, fix 후 기대 동작, 커버할 케이스 목록 (Author 입력).
 
 ### 3. Author — TC 작성
@@ -104,6 +104,11 @@ Select ─► Ground ─► ┌── Author ──► Verify ──► Review �
 - **파일 독립성 필수**: 머지 후 CI/regression은 DB를 한 번 만들고 그 안에서 전체 SQL TC를 연속 실행한다(테스트마다 DB 생성 아님). 따라서 각 `.sql`이 공유 DB·세션을 오염시키지 않아야 한다 — 모든 `CREATE TABLE` 앞에 `DROP TABLE IF EXISTS`, cleanup에서 만든 것 되돌리기, `prepare` 했으면 cleanup에서 `deallocate prepare <name>`.
 - **server-message는 반사적으로 쓰지 않는다**: `--+ server-message on`은 (1) PL/CSQL의 `DBMS_OUTPUT` 출력, (2) `System.xml errorMessage=false`일 때 에러 코드 뒤 **메시지 텍스트**를 붙인다. corpus 사용의 98%가 `_05_plcsql`이고, plain SQL 에러 TC는 대개 `Error:-NNN` 코드만 검증한다(off). 에러 코드만으로 회귀가 잡히면 off가 관례. 메시지 문구까지 고정하려면 on(단 문구 변경에 취약).
 - **비결정 출력 회피**: `EXECUTE ... USING {컬렉션}`의 결과는 `[Ljava.lang.Integer;@<hash>`로 렌더되어 매회 달라진다. 컬렉션 값을 결과로 반환하는 케이스는 answer에 부적합 — 스칼라 결과나 에러로 검증.
+
+**PoC 2호(CBRD-26799)에서 추가된 작성 주의 (ADR 0009):**
+- **fix 코드 경로를 실제로 타게 하라**: 결정적 PASS여도 다른(무관) 경로를 돌면 무의미하다. 데이터 크기로 경로를 유도한다 — 병렬 인덱스 빌드는 평범한 `CREATE INDEX` + `parallelism`≥2 + heap≥`parallel_sort_page_threshold`(2048)일 때만(WITH ONLINE PARALLEL은 딴 경로). 700K는 serial → ~2.1M로 병렬 유도. Verify의 경로 게이트로 확인.
+- **기대값은 `.answer`에만**: 주석에도, SQL 판정(`CASE 'OK'/'NOK'`)으로도 두지 않는다. 라벨은 `evaluate 'Case N'` 디렉티브(answer echo).
+- **언어**: `.sql` 주석·커밋 메시지는 영문(PR 본문만 한글).
 
 ### 4. Verify — 로컬 CTP 검증 (ADR 0006)
 
@@ -124,7 +129,9 @@ PoC용 conf `work/sql.poc.conf` = CTP `sql.conf`의 `scenario`를 `work/cubrid-t
 
 **결정성 실측**: 승격 후 최소 2회 더 실행해 매회 `Success:1`인지 확인(= 출력이 answer와 매회 일치, 비교는 개행 무시). 비결정 토큰이 있으면 해당 케이스를 제거/수정하도록 Author 피드백. **알려진 함정**: `EXECUTE … USING {컬렉션}`의 결과가 `[Ljava.lang.Integer;@<hash>`처럼 Java 객체 해시로 렌더되어 매회 달라진다 → 컬렉션 값을 결과로 반환하는 케이스는 피한다(스칼라/에러로 검증).
 
-**fail→pass 회귀 계약 (PoC부터, ADR 0007)**: 승격·결정성 확인만으로는 "버그를 실제로 잡는지"가 증명되지 않는다. fix **이전** 빌드(fix commit의 부모 또는 그 직전 빌드서버 산출물)를 설치해 같은 TC를 돌려 **FAIL**함을 실측한다 — fix 후 PASS와 합쳐 fail→pass를 증명. 결정적 버그는 명확히 FAIL, race 버그는 반복 실행 best-effort로 FAIL을 관측하고 한계를 리뷰·PR에 명시. pre-fix 빌드를 못 구하면 이슈 Repro/Expected로 pre-fix 동작을 근거화하고 그 사실을 리포트에 남긴다.
+**경로 커버리지 게이트 (PoC 2호, ADR 0009)**: 결정성 PASS만으론 부족 — TC가 **fix 코드 경로를 실제로 탔는지** plan/trace(`;plan detail`, `.queryPlan`, `SET TRACE ON`)로 확인한다. 데이터가 작아 serial로 돌면 병렬 fix 경로를 안 타고 조용히 통과한다(700K=serial, ~2.1M=병렬). config가 경로를 바꿈: `test_mode=yes`가 `parallel_sort_page_threshold`를 0으로 강제.
+
+**fail→pass 회귀 계약 (PoC부터, ADR 0007)**: 승격·결정성 확인만으로는 "버그를 실제로 잡는지"가 증명되지 않는다. fix **이전** 빌드(fix commit의 부모 또는 그 직전 빌드서버 산출물)를 설치해 같은 TC를 돌려 **FAIL**함을 실측한다 — fix 후 PASS와 합쳐 fail→pass를 증명. 결정적 버그는 명확히 FAIL, race 버그는 반복 실행 best-effort로 FAIL을 관측하고 한계를 리뷰·PR에 명시. **함정(ADR 0009)**: race를 코어 경합으로 유도하려 `taskset`으로 ≤2코어에 묶으면 `system_core_count`(affinity-aware)가 2가 되어 병렬 자체가 disable된다 → **≥4코어**로 해야 유효. pre-fix 빌드를 못 구하면 이슈 Repro/Expected로 pre-fix 동작을 근거화하고 그 사실을 리포트에 남긴다.
 
 `.answer`는 release 빌드(=CI mode) 출력으로 확정된다. debug 진단이 필요하면 같은 버전 `-debug.sh`를 추가 설치해 병행 확인한다(ADR 0006). CCI 교차 검증(`run_cci`/`.answer_cci`)과 게이트의 hook 강제는 Stage 2부터 적용한다(ADR 0007). 배포 단계에서는 이 절차를 pod 내부 실행으로 이식한다(ADR 0001).
 
