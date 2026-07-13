@@ -14,7 +14,9 @@
 
 ## Stage 2 설계 (팀내 수동 트리거)
 
-목표: PoC에서 검증된 파이프라인을, 팀원이 **자기 로컬에서 커맨드 하나로** 돌리고 Draft PR까지 내되, 필수 게이트는 우회 불가하게 만든다.
+> 상세 구현 스펙(오케스트레이터·manifest·hook·셋업·CCI): [stage2-design.md](./stage2-design.md). 아래는 요약.
+
+목표: PoC에서 검증된 파이프라인을, 팀원이 **자기 로컬에서 커맨드 하나로** 돌리고 Draft PR까지 내되, 필수 게이트는 우회 불가하게 만든다. 형태 결정: **얇은 오케스트레이터**(`resolve-next`가 Select/Ground/Review/loop/Submit, Author/Verify는 기존 create/verify 스킬 호출).
 
 구성:
 - **기동 스킬** `.claude/skills/resolve-next/` — `/resolve-next [N | CBRD-XXXXX]`. Select→Ground→Author→Verify→Review→(loop)→Submit 오케스트레이션. 팀과 git으로 공유(버전관리).
@@ -78,6 +80,16 @@ Stage 2에서 **하지 않는 것**: k8s Job/pod 검증, dispatcher, 병렬 fan-
 | S5 | 하드 게이트 hook 강제 | Stage 2부터 |
 
 기본값(질문 없이 확정, 이견 시 조정): 결정성 반복 **N=3**; SQLancer 오라클 park; 모든 k8s/CronJob/dispatcher/GlusterFS/rate-limit/self-healing/관측/야간배치 = Stage 3 park.
+
+## PoC 마무리 판정 (2026-07)
+
+tc-author PoC를 두 축으로 검증 완료 → Stage 2 진행.
+- **결정적 케이스** CBRD-25913 (EXECUTE…USING 서브쿼리 거부): Draft PR #3041.
+- **race 케이스** CBRD-26799 (병렬 인덱스 빌드 행유실, 자급 2.1M): Draft PR #3049.
+- 파이프라인(Select→Ground→Author→Verify→Review→loop→Submit)이 로컬 end-to-end 동작 확인: 답지 자동생성(empty-answer)·결정성 N=3·경로 커버리지·독립 리뷰·Draft PR까지.
+- 두 PoC 교훈을 스킬(create/verify)·에이전트(DESIGN + ADR 0009)에 반영 완료.
+- **graduation**: 결정적·race 두 유형을 파이프라인이 처리함을 확인 → Stage 2(팀 수동 트리거) 설계 착수.
+- Stage 2로 이월된 열린 항목: fail→pass 실측(26799 race=CI/저사양 몫, 25913 소급), PR 리뷰·머지·머지 후 regression 1~2일 확인.
 
 ## PoC 잔여 작업 (S2 채택의 소급 영향)
 - **CBRD-25913**: 이미 제출(PR #3041)됐으나 fail→pass 실측은 안 함 → fix 이전 빌드로 소급 확인 필요(결정적이라 명확히 FAIL 예상).
