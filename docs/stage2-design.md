@@ -26,6 +26,7 @@ PoC(Stage 1)에서 검증된 tc-author 파이프라인을, **팀원이 자기 �
 
 hook이 게이트 통과를 기계적으로 확인하려면, 파이프라인이 결과를 남긴 파일이 필요하다.
 
+- 작성 주체: **오케스트레이터가 직접 기록**(Q1) — 각 단계 결과를 취합. `create`/`verify` 스킬은 무수정.
 - 위치: `work/<CBRD-XXXXX>/manifest.json`(gitignore된 `work/` 아래).
 - 스키마(초안):
   ```json
@@ -38,7 +39,7 @@ hook이 게이트 통과를 기계적으로 확인하려면, 파이프라인이 
       "cci": {"checked": true, "matches_csql": true},
       "fail_to_pass": {"status": "confirmed|best_effort|deferred", "prefix_build": "...", "note": "race, 로컬 미재현"}
     },
-    "review": {"verdict": "PASS", "loops": 2},
+    "review": {"verdict": "PASS", "loops": 2, "failpass_approved": true},
     "lint": {"header": true, "evaluate": true, "cleanup": true, "answer_not_handwritten": true, "english_comments": true}
   }
   ```
@@ -50,7 +51,7 @@ hook이 게이트 통과를 기계적으로 확인하려면, 파이프라인이 
 
 | hook 이벤트 | 검사 | 동작 |
 |---|---|---|
-| **PreToolUse** (Bash가 `gh pr create` 매칭) | manifest의 `verify.determinism.all_pass`, `verify.fail_to_pass.status ∈ {confirmed, best_effort(+note)}`, `review.verdict=PASS`, `lint.*` | 미충족 시 **제출 차단**(deny) + 사유 출력 |
+| **PreToolUse** (Bash가 `gh pr create` 매칭) | manifest의 `verify.determinism.all_pass`, fail→pass = `confirmed` **또는** (`best_effort` **&&** `review.failpass_approved=true` **&&** `note` 존재)(Q4), `review.verdict=PASS`, `lint.*` | 미충족 시 **제출 차단**(deny) + 사유 출력 |
 | **PreToolUse** (Bash가 `git push` 매칭, 선택) | 위와 동일(브랜치→이슈 매핑) | push 차단 |
 | **PostToolUse** (Write/Edit가 `cases/*.sql`) | 컨벤션 린트(헤더·`evaluate`·DROP-before-CREATE·answer 손작성 아님·영문 주석) → manifest.lint 갱신 | 위반 경고 + manifest 기록 |
 | **Stop** (세션 종료) | manifest 미완(게이트 누락) 경고 | 미완 항목 리마인드 |
@@ -84,10 +85,14 @@ hook이 게이트 통과를 기계적으로 확인하려면, 파이프라인이 
 
 k8s Job/pod 검증, dispatcher, 병렬 fan-out, 자동 스케줄, Jira 쓰기, self-healing 재시도/에스컬레이션, 무인 관측, rate-limit 분리 — 전부 park.
 
-## 8. 열린 질문 (구현 전 결정 필요)
+## 8. 결정 (2026-07, 구현 전 확정)
 
-- manifest를 오케스트레이터가 직접 쓸지, 각 스킬이 자기 몫을 append할지.
-- hook이 브랜치명→이슈→manifest 경로를 어떻게 해석할지(명명 규칙 의존).
-- 컨벤션 린트를 hook(셸)로 할지, Review 서브에이전트로 할지, 둘 다.
-- best_effort fail→pass의 승인 기준(note만으로 충분한지 vs 리뷰어 승인 필요).
-- resolve-next를 tc-author 전용으로 둘지, 4개 에이전트 공용 오케스트레이터로 일반화할지.
+| # | 질문 | 결정 |
+|---|---|---|
+| Q1 | manifest 작성 주체 | **오케스트레이터가 직접 기록**. 각 단계 결과를 취합해 씀 → 기존 create/verify 스킬 무수정(재사용성 유지). |
+| Q2 | hook의 이슈→manifest 매핑 | 명령의 브랜치/`--head`에서 `tc/cbrd-XXXXX` → `CBRD-XXXXX` → `work/CBRD-XXXXX/manifest.json`(명명 규칙 의존). |
+| Q3 | 컨벤션 린트 위치 | **둘 다, 역할 분담**. 기계적 규칙(헤더·`evaluate`·DROP-before-CREATE·영문·answer 손작성 아님)=hook(PostToolUse 셸, 우회불가). 의미적 판단(회귀 가치·커버리지·answer 타당성)=Review 서브에이전트. |
+| Q4 | best_effort fail→pass 승인 | **note + 리뷰어 승인 둘 다**. Review가 best_effort 사유(예: race 미재현) 타당성을 판정해 manifest에 승인 기록, hook은 `review.failpass_approved=true` **및** `note` 존재를 확인해야 제출 통과. 빈 best_effort·미승인은 차단. |
+| Q5 | resolve-next 일반화 | **tc-author 전용**으로 시작. 두 번째 에이전트(test-runner 등) 설계 때 공통 오케스트레이션 패턴을 추출(YAGNI — 에이전트 1개뿐인데 공용 프레임 선설계는 과설계). |
+
+네이밍 재고 여지: `resolve-next`는 resolve-**gate**(Handover→Resolved)와 혼동 가능 — 구현 착수 전 이름 확정(후보: `tc-next`/`author-next`).
