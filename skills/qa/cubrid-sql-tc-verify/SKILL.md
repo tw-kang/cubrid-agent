@@ -84,6 +84,14 @@ On FAIL, gather evidence then classify — don't guess:
 - **bug-report** (CUBRID regressed): a crash/core, a wrong query result, or a lock/deadlock change. Raise it with the evidence.
 - **Cross-check with JIRA** when available: if the CBRD issue describes an *intentional* output change for this release, prefer answer-fix; if it describes this very failure mode, prefer bug-report and cite the issue.
 
+## Regression coverage — is the PASS meaningful? (fix verification)
+
+PASS is necessary but **not sufficient**. When the point is to verify a *fix*, also confirm the test actually exercises the fixed code path and would catch a regression — a test can pass deterministically while running a different, unaffected path.
+
+- **Path coverage.** Confirm the intended path is taken: dump the plan (`;plan detail`, or an empty `.queryPlan` sidecar) or `SET TRACE ON; <query>; SHOW TRACE;`. Example: a plain `CREATE INDEX` uses the offline **parallel** index-build path only when `parallelism`≥2 (default 4) and the table has ≥ `parallel_sort_page_threshold` heap pages (default 2048) — too little data runs serial and silently tests nothing.
+- **Config can flip the path.** Hidden/server params change behavior: `test_mode=yes` forces `parallel_sort_page_threshold` to 0 (so even small tables go parallel). Verify under the config CI actually uses, not just defaults.
+- **fail→pass check (best-effort).** To prove the test catches the bug, run it on a *pre-fix* build (expect FAIL) and the fixed build (expect PASS). Get a pre-fix binary from the build server — a commit *before* the fix but *after* the feature that introduced the bug. For a **race**, reproduction is timing-sensitive and may not occur on a fast multi-core box; repeat and document it as best-effort. Pitfall: pinning the server to ≤2 cores (`taskset`) *disables* parallelism (`system_core_count` is affinity-aware, `≤2 → serial`), so a "few-core" repro needs **≥4 cores**.
+
 ## Output format
 
 **Pass:**
