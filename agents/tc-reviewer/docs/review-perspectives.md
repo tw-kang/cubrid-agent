@@ -83,6 +83,8 @@ L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로
 
 ## few-shot 앵커 (L2 프롬프트 투입용 실례)
 
+> 정식 few-shot bank(렌즈별 44 엔트리, 5년 마이닝 선별): [few-shot-bank.md](./few-shot-bank.md). 각 엔트리는 상황→지적(실제 인용)→패턴(재사용 규칙)→출처 구조이며 백테스트 시 출처 PR 엔트리를 제외한다. 아래는 대표 발췌.
+
 - **P4**: "prepare, execute 구문을 사용하는 케이스를 추가해 주세요 (Invalid, valid 케이스 추가)" — PR2431, kwonhoil / "scalar subquery in SELECT list - should not run in parallel; ... 추가 시나리오" — PR2497, bagus-kim
 - **P7**: "이전 답지가 올바른 처리로 보여집니다. 위 답지가 어떤 이유로 변경된 건가요?" — PR2464, kwonhoil / "조인순서가 변경된 이유는?" — PR2462, kwonhoil
 - **P6**: "answer file에서 테스트 위치를 확인할 수 있도록 각 주석에 evaluate 구문 추가... 나머지 sql tc도 동일" — PR2501, ssihil
