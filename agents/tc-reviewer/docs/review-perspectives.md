@@ -70,7 +70,7 @@ L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로
 | 렌즈 | PR 성격 | 담는 관점 | 질문셋(요지) | 대표(few-shot 출처) |
 |---|---|---|---|---|
 | **coverage-expansion** | 신규형 (새 TC) | P4·P8·P9·P14 | positive↔negative 대칭? 경계 3점(직전/경계/직후)? 조합 매트릭스(JOIN×함수×방향)? 상위/형제 개념(orderby_num이면 rownum·inst_num·group_num도)? 대칭 연산(delete 힌트를 update/select에도)? 다단계 체인(권한 위임→유저 삭제 후 잔존)? 결과 검증 데이터/쿼리(에러만 말고 성공 후 상태)? 변별력(분포·통계·규모)? 최소성(불필요 힌트·중복 제거)? 카테고리 적합성(OOM·서버다운은 shell로)? | bagus-kim, ssihil |
-| **answer-vs-spec** | 변경형 (답지/TC 수정) | P7·P11·P12·P15 | answer가 왜 바뀌었나·이전이 틀렸나? 실행과 answer가 일치하나(성공인데 fail 등)? 이슈가 규정한 정확한 범위인가? 결과값 의미가 맞나(반올림·잘림·타입변환·NULL)? 의존 이슈 머지 후 답지 변경을 예고·주석했나? 스펙인가 버그인가(개발자 확인)? .sql 수정 시 .answer·주석도 갱신됐나? | kwonhoil, swi0110 |
+| **answer-vs-spec** | 변경형 (답지/TC 수정) | P7·P11·P12·P15 | answer가 왜 바뀌었나·이전이 틀렸나? 실행과 answer가 일치하나(성공인데 fail 등)? 이슈가 규정한 정확한 범위인가? 결과값 의미가 맞나(반올림·잘림·타입변환·NULL)? 의존 이슈 머지 후 답지 변경을 예고·주석했나? 스펙인가 버그인가(개발자 확인)? .sql 수정 시 .answer·주석도 갱신됐나? **답지 死단언 방지**: .answer만 바꾸고 .sql의 비교 리터럴/단언(`if(…=target,'ok','nok')`)을 방치하면 검증이 "옛 값과 다르다"만 확인하는 무의미로 퇴화 — 새 정답 기준으로 .sql 단언도 고쳤나? **.answer_cci 짝**도 함께 갱신됐나? | kwonhoil, swi0110 |
 | **determinism-convention** | 공통 | P2·P5·P6·P10 | 다행 SELECT에 ORDER BY? cleanup 복원? trace/evaluate 페어? 시간·연도 의존 값 아닌가? 주석↔answer 정합? | ssihil |
 | **plan-stability** | 공통(플랜 TC) | P3·P13 | fix 경로를 타나? 힌트가 실제 적용됐나(오타·뷰머징·모호한 인덱스명으로 무시 안 됨)? plan을 evaluate로 라벨(select 남발로 불필요 plan 출력 억제)? 통계·인덱스로 plan 고정(tie/flaky)? 조인순서 변경이 의도된 것? | youngjinj, shparkcubrid |
 
@@ -78,6 +78,7 @@ L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로
 - 렌즈를 **독립 서브에이전트로 병렬 실행**하면 관점 다양성이 재현율을 높인다(perspective-diverse verify).
 - **철학의 성격에 따라 담기는 층이 다르다**: coverage-expansion은 예측 가능한 패턴이라 규칙·템플릿화(create 스킬 P4)해 **작성 예방**에도 쓰고, answer-vs-spec은 케이스별 판단이라 규칙 불가 → **L2 판정 각도로만** 재현. 전자는 author, 후자는 reviewer.
 - **질문셋·few-shot은 5년(1,358건) 분류로 보강 완료**. 각 렌즈 질문셋은 실제 반복 지적에서 도출.
+- **백테스트 7건으로 렌즈 재현 검증 완료(2026-07-16)**: answer-vs-spec(P7·P12·P15)·coverage-expansion(P4)이 실제 사람 지적을 재현하고 성격 라우팅 7/7 정확, 오탐 실질 0. 봇이 사람 미지적 valid를 다수 추가(2464 死단언, 1688 물리값 근거). 상세 [../reports/backtest-poc.md](../reports/backtest-poc.md).
 - **coverage-expansion은 "부족"만 지적하지 말고 추가할 케이스를 실행 가능한 `evaluate`+SQL로 제시**한다(백테스트 PoC 개선점 1): 봇이 "negative 케이스 부재" 같은 *범주*는 재현했으나, bagus-kim처럼 구체 케이스를 대량 제안하는 볼륨은 약했다 → 렌즈 프롬프트에서 구체 SQL 제안을 강제.
 
 ## few-shot 앵커 (L2 프롬프트 투입용 실례)
