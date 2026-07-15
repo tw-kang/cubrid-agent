@@ -1,6 +1,6 @@
 # 관점 카탈로그 (review perspectives) — L2 정본
 
-**상태: 마이닝 반영 (사람 리뷰어 600건 분류, 2025-07~2026-07 머지 PR, 2026-07-15).**
+**상태: 5년 마이닝 반영 (사람 라인 코멘트 1,358건 분류, 2021-07~2026-07 머지 PR, 2026-07-16). 1년 600건 → 5년 확장 완료.**
 
 tc-reviewer L2와 tc-author Review lane이 공유하는 단일 정본. 목적은 "관점 목록"이 아니라 **각 관점을 어떻게 처리하는가**의 지정: 어느 층(L1 정적 린트 / L2 LLM 판정 / L3 실행)에서 잡는가, greptile/codex 봇과 중복되는가, 어느 리뷰어 렌즈가 강한가, few-shot 앵커는 무엇인가.
 
@@ -21,6 +21,8 @@ tc-reviewer L2와 tc-author Review lane이 공유하는 단일 정본. 목적은
 | P9 | 러닝타임·성능 | 낮음 | **L3**(elapse) | 아니오 | bagus-kim |
 | P1 | answer 무결성 | 낮음(사람) | L3 | **강함(봇)** | — |
 | P10 | 언어(주석·커밋 영문) | 낮음 | **L1** | 부분 | — |
+| P14 | 최소성 — 불필요 힌트·설정·중복 케이스 제거, 최소 재현 *(신규)* | 중간 | **L2** | 아니오 | youngjinj, ssihil |
+| P15 | 불변식만 단언 — 환경/빌드 의존 값(page id·시작값·시간) 회피 *(신규)* | 중간 | **L2**+L3 | 부분 | shparkcubrid, ssihil |
 
 ## L1로 승격할 자동 린트 규칙 (마이닝이 짚은 반복 지적)
 
@@ -53,21 +55,29 @@ greptile/codex 봇은 **P1(answer 무결성)·P2(결정성 일부)·P3(fix 경�
 > "동률이라 run마다 plan이 바뀌는 flaky 상태... tie 안정화를 위해 ta 인덱스만 고정" — PR2871, shparkcubrid
 > "플랜 고정 및 안정성 확보 차원에서, 옵티마이저 변화에 영향받지 않도록 인덱스를 추가" — PR2466, shparkcubrid
 
+**P14 — 최소성**: 이슈 재현·검증에 불필요한 힌트·파라미터·중복 케이스를 덜어 최소 재현으로. 무관한 요소는 검증을 흐리고 유지보수 부담만 는다(5년 확장에서 뚜렷해진 관점).
+> "USE_MERGE 힌트를 사용했기 때문에 통계정보 갱신도 필요하지 않습니다" — PR1777, youngjinj
+> "힌트 사용 없이 한 번씩만 테스트 하는 것이 좋을 것 같습니다" — PR1791, youngjinj
+
+**P15 — 불변식만 단언**: 환경·빌드·시간마다 달라질 수 있는 값(page id, 시작값, 올해 연도)을 answer에 박지 말고 *보장되는 불변식*만 단언. P2(출력 순서)와 달리 "값 자체가 비보장이면 단언하지 말라"는 각도.
+> "The p_cur_volumeid may not be 0... What can be guaranteed is that when next is -1, cur page has the maximum value. Adding only guaranteed test cases will prevent unnecessary errors later" — PR1688, shparkcubrid
+> "년도가 포함되어 있지 않아 현재는 2025년으로 answer와 동일하지만 내년에는 2026년으로 처리되면서 실패합니다" — PR2010, ssihil
+
 ## L2 페르소나 렌즈 (PR 성격별 지배 렌즈)
 
 L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로 돌린다. 마이닝에서 드러난 두 주 렌즈가 tc-reviewer가 받는 두 PR 성격에 대응한다(DESIGN D5). **렌즈명은 기능으로 두고 사람 이름은 few-shot 출처로만** 기록한다 — 개인 박제 금지(사람이 바뀌어도 철학이 남게).
 
 | 렌즈 | PR 성격 | 담는 관점 | 질문셋(요지) | 대표(few-shot 출처) |
 |---|---|---|---|---|
-| **coverage-expansion** | 신규형 (새 TC) | P4·P8·P9 | positive↔negative 대칭? 경계 3점(직전/경계/직후)? 조합 매트릭스(JOIN×함수×방향)? 이슈 영향범위 밖 케이스? 변별력(데이터 분포·통계·규모)? | bagus-kim |
-| **answer-vs-spec** | 변경형 (답지/TC 수정) | P7·P11·P12 | answer가 왜 바뀌었나·이전이 틀렸나? 이슈가 규정한 정확한 범위인가? 결과의 원인을 이해했나? 회귀 은폐 아닌가? | kwonhoil |
-| **determinism-convention** | 공통 | P2·P5·P6·P10 | 다행 SELECT에 ORDER BY? cleanup 복원? trace/evaluate 페어? | ssihil |
-| **plan-stability** | 공통(플랜 TC) | P3·P13 | fix 경로를 타나? plan tie/flaky 고정됐나? | shparkcubrid, youngjinj |
+| **coverage-expansion** | 신규형 (새 TC) | P4·P8·P9·P14 | positive↔negative 대칭? 경계 3점(직전/경계/직후)? 조합 매트릭스(JOIN×함수×방향)? 상위/형제 개념(orderby_num이면 rownum·inst_num·group_num도)? 대칭 연산(delete 힌트를 update/select에도)? 다단계 체인(권한 위임→유저 삭제 후 잔존)? 결과 검증 데이터/쿼리(에러만 말고 성공 후 상태)? 변별력(분포·통계·규모)? 최소성(불필요 힌트·중복 제거)? 카테고리 적합성(OOM·서버다운은 shell로)? | bagus-kim, ssihil |
+| **answer-vs-spec** | 변경형 (답지/TC 수정) | P7·P11·P12·P15 | answer가 왜 바뀌었나·이전이 틀렸나? 실행과 answer가 일치하나(성공인데 fail 등)? 이슈가 규정한 정확한 범위인가? 결과값 의미가 맞나(반올림·잘림·타입변환·NULL)? 의존 이슈 머지 후 답지 변경을 예고·주석했나? 스펙인가 버그인가(개발자 확인)? .sql 수정 시 .answer·주석도 갱신됐나? | kwonhoil, swi0110 |
+| **determinism-convention** | 공통 | P2·P5·P6·P10 | 다행 SELECT에 ORDER BY? cleanup 복원? trace/evaluate 페어? 시간·연도 의존 값 아닌가? 주석↔answer 정합? | ssihil |
+| **plan-stability** | 공통(플랜 TC) | P3·P13 | fix 경로를 타나? 힌트가 실제 적용됐나(오타·뷰머징·모호한 인덱스명으로 무시 안 됨)? plan을 evaluate로 라벨(select 남발로 불필요 plan 출력 억제)? 통계·인덱스로 plan 고정(tie/flaky)? 조인순서 변경이 의도된 것? | youngjinj, shparkcubrid |
 
 - 지배 렌즈는 PR 성격이 정하고, **determinism-convention은 성격 무관 항상 적용**.
 - 렌즈를 **독립 서브에이전트로 병렬 실행**하면 관점 다양성이 재현율을 높인다(perspective-diverse verify).
 - **철학의 성격에 따라 담기는 층이 다르다**: coverage-expansion은 예측 가능한 패턴이라 규칙·템플릿화(create 스킬 P4)해 **작성 예방**에도 쓰고, answer-vs-spec은 케이스별 판단이라 규칙 불가 → **L2 판정 각도로만** 재현. 전자는 author, 후자는 reviewer.
-- **질문셋·few-shot은 5년 마이닝 수집 후 보강**(현재는 1년 600건 기반 뼈대).
+- **질문셋·few-shot은 5년(1,358건) 분류로 보강 완료**. 각 렌즈 질문셋은 실제 반복 지적에서 도출.
 
 ## few-shot 앵커 (L2 프롬프트 투입용 실례)
 
@@ -83,13 +93,16 @@ L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로
 - 시나리오마다 evaluate 라벨, trace on/off 페어 (P6)
 - CREATE 앞 DROP IF EXISTS, prepare 후 deallocate, 만든 것 전부 cleanup (P5)
 - 이슈 repro의 경계·부정 케이스까지 (P4)
+- 불필요한 힌트·설정·중복 제거, 최소 재현 (P14)
+- 환경/시간 의존 값 대신 불변식만 단언 (P15)
 
 ## 관찰 (마이닝 부수 발견)
 
 - **언어**: 리뷰 코멘트 한국어 90%+ (영어는 junsklee/hyunikn 일부·봇). → tc-reviewer 코멘트 초안 기본 = 한국어.
 - **리뷰어 편중**: ssihil(결정성·컨벤션·cleanup), kwonhoil(답지 사유·케이스), bagus-kim(케이스 SQL 제안), shparkcubrid(플랜 안정화), youngjinj(인덱스 경로·중복). → L2를 페르소나 렌즈로 분할 시 재현율 향상 여지.
 - **분포 왜곡 주의**: PR2738(NUMERIC draft) 하나가 P7 지적 다수를 생성. 빈도는 PR 편중 감안한 등급(최다/매우높음/높음/중간/낮음)으로 표기.
+- **5년 렌즈 분포**(유효 1,358건): coverage-expansion 247·answer-vs-spec 215·determinism-convention 149·plan-stability 83·미분류 664. 미분류 대부분은 기존 렌즈로 재귀속되며, 여기서 신규 P14(최소성)·P15(불변식 단언)를 발견. 5년 상위 리뷰어: kwonhoil·ssihil·hyunikn·swi0110·youngjinj.
 
 ## 데이터 출처
 
-`work/tc-review-mining/`(gitignore, 2026-07-15 수집): chunk_0..4.jsonl(사람 라인 600건), greptile.jsonl(118건, 봇 대조), issue_human.jsonl(149), merged_prs/pr_reviews.json. chunk_2는 서브에이전트 분류, chunk_0/1/3/4는 직접 분류. 백테스트(재현율 측정) 시 같은 데이터가 정답지.
+`work/tc-review-mining/`(gitignore). **1년(2025-07~2026-07)**: chunk_0..4.jsonl(사람 라인 600건), greptile.jsonl(118, 봇 대조), issue_human.jsonl(149). **5년(2021-07~2026-07)**: review_comments_5y_raw.json(라인 2,958/사람 2,800), merged_prs_5y.json, 렌즈 버킷(bucket_5y.py로 유효 1,358건 자동 태깅 → 렌즈별 샘플 정제). 백테스트(재현율 측정) 시 같은 데이터가 정답지.
