@@ -11,7 +11,7 @@ fix를 실행해 검증하는 게 아니라, **"이 이슈를 Resolved로 올려
 ## 용어
 
 - **Handover**: Jira 상태. 개발자가 fix를 머지·인계한 직후, QA가 받기 전.
-- **Accept the fix**: Handover→Resolved 전이(=Check-in Fix). 반대편은 반려(ask recommendation / Resolve without fix = Bug Invalid). **dev→QA 핸드오프 지점**이라 이 시점 assignee=개발자. **resolve-gate 실행 주체 = 개발자 자신** — 자기 fix를 Resolved로 올리기 전 self-check이므로, NOT-READY는 개발자 본인이 보완할 체크리스트다(외부 @멘션 호출이 아님).
+- **Accept the fix**: Handover→Resolved 전이(=Check-in Fix). 반대편은 반려(ask recommendation / Resolve without fix = Bug Invalid). **dev→QA 핸드오프 지점**이라 이 시점 assignee=개발자. **resolve-gate 실행(self-check) 주체 = 개발자 자신** — 자기 fix를 Resolved로 올리기 전 스스로 점검하므로, NOT-READY는 개발자 본인이 보완할 체크리스트다(외부 @멘션 호출이 아님). **단 게이트 통과 후 실제 Resolved 전이(check-in-fix)를 누가 하는지는 미확정**(2026-07-17 결정 예정) — resolve-gate는 판정만 하고 전이는 안 한다.
 - **test-plannability(테스트 플랜 작성 가능성)**: 이슈 내용(특히 description)만으로 QA가 테스트 플랜/케이스를 짤 수 있는가. 게이트의 **차단 기준**. **이슈 성격별 이원 판정**(PoC 발견): 버그 이슈는 repro 자기완결+Expected/Actual로, 기능 이슈는 Spec 구체성+AC 검증가능성으로. 버그 기준을 기능 이슈에 적용하면 대다수 오판(PoC 23/27).
 - **핸드오버 hygiene**: Fixed version·Need Manual·QA Scenario 등 dev-process p18 필드 충족. 게이트의 **경고**(차단 아님).
 - **gate report**: 이슈별 `READY`(accept 권고) / `NOT-READY`(reject + gap 체크리스트). 읽기전용 — 사람이 Jira 전이.

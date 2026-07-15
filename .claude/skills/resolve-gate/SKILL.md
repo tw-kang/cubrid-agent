@@ -7,7 +7,7 @@ description: "Gate a CBRD Handover issue for QA-readiness before it moves to Res
 
 **Run by the developer** on their own fix before moving it to Resolved — a self-check that the issue's content lets QA write a test plan (chiefly the **description**, plus **comments and attachments**). This is the gate in front of tc-author: a `READY` verdict means tc-author's Ground will have material to work with.
 
-**Read-only.** You produce a gate report + a self-remediation checklist (what to fix before Resolved). The developer reviews, fixes the gaps, and does the Jira transition. Do **not** write to Jira or run the fix.
+**Read-only.** You produce a gate report + a self-remediation checklist (what to fix before Resolved). The developer reviews and fixes the gaps. resolve-gate itself does **not** transition — and **who performs the actual Handover→Resolved transition (check-in-fix) is not yet decided (TBD 2026-07-17)**; the developer running this self-check is a separate matter. Do **not** write to Jira or run the fix.
 
 Design rationale and the 27-issue PoC that validated these criteria: `agents/resolve-gate/DESIGN.md` and `agents/resolve-gate/reports/poc-guava-handover.md`.
 
@@ -96,5 +96,5 @@ Write the gate report to `agents/resolve-gate/reports/resolve-gate-<date>.md` (g
 
 ## Staging
 
-- **PoC (now):** the developer reads the checklist, fixes gaps, and does the transition; the skill drafts only (no Jira write).
+- **PoC (now):** the developer reads the checklist and fixes gaps; the skill drafts only (no Jira write). Who performs the Handover→Resolved transition (check-in-fix) is TBD (2026-07-17).
 - **Later:** optional auto-post of the checklist to the issue, then automated transition (Stage 3). Draft-first rollout mirrors tc-author, so a false positive never lands on the issue prematurely.

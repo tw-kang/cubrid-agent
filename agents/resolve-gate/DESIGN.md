@@ -12,7 +12,7 @@ Handover→Resolved("Accept the fix") 전이 앞의 **평가형 게이트**. **�
 ## 확정 결정 (2026-07 grilling)
 
 - **D1 초점 = test-plannability**: 이슈 내용만으로 테스트 플랜을 작성 가능한지가 중점. **fix가 실제로 동작하는지(실행검증)는 범위 밖**(추후 옵션).
-- **D2 출력 = 읽기전용 게이트 리포트/권고**: accept/보완 + 사유. Jira 전이는 개발자(실행 주체)가 수행(S4: Jira 쓰기=Stage 3).
+- **D2 출력 = 읽기전용 게이트 리포트/권고**: accept/보완 + 사유. resolve-gate는 **판정만** 하고 Jira 전이는 하지 않음. **check-in-fix(Handover→Resolved 전이) 주체는 미확정**(개발자/QA — 2026-07-17 결정 예정) — 게이트를 **돌리는** self-check 실행 주체가 개발자인 것과는 별개다. (S4: Jira 쓰기=Stage 3)
 - **D3 검사 2계층**: **차단**=test-plannability(C0~C2), **경고**=핸드오버 hygiene(C3/C5/C6). (근거: dry-run에서 실제 Handover 3건 모두 Fixed version·QA Scenario 미기입 — 이를 차단하면 전부 탈락하므로 경고로.)
 - **D4 로컬 CTP 불요**: fix를 실행하지 않으므로 tc-author보다 가벼운 read-only 에이전트.
 
@@ -45,7 +45,7 @@ _기능 이슈_ (버그 repro 개념이 없어 재해석)
    - ⓑ **내용 gap** — repro 자기완결·expected/actual 등(C0~C2)
    - ⓒ **필드 gap** — Fixed version·QA Scenario·Need Manual 중 미기입(C3~C6)
    - ⓓ **보완 항목** — 개발자 본인이 Resolved로 올리기 전 고칠 gap. 실행 주체가 개발자라 외부 @멘션 호출이 아닌 **self 보완 체크리스트**다(다른 개발자 이슈를 점검하는 경우에만 @멘션).
-   게시 주체: **개발자 본인** — self-check 결과를 보고 이슈를 보완한 뒤 Resolved로 올린다. Jira 코멘트 게시는 재량(QA 소통·기록용). 자동 게시·전이는 Stage 3.
+   게시 주체: **개발자 본인** — self-check 결과를 보고 이슈를 보완한다. (보완 후 **Resolved 전이=check-in-fix 주체는 미확정**, 2026-07-17 결정 예정.) Jira 코멘트 게시는 재량(QA 소통·기록용). 자동 게시·전이는 Stage 3.
 
 ## 재료
 
@@ -85,6 +85,7 @@ resolve-gate의 `READY` = tc-author Select의 입력 품질 보장. tc-author의
 - **hygiene(C3/C5/C6)** → **경고 유지**(차단 안 함). 실제 Handover가 대개 미기입이라 차단하면 전부 탈락.
 - **반려 산출물** → NOT-READY 시 **개발자 본인 보완 체크리스트**(Resolved 불가 사유 + 내용/필드 gap) 산출. 실행 주체가 개발자라 self-check — 개발자가 보고 보완 후 Resolved로 올린다. Jira 게시는 재량, 자동화는 Stage 3.
 - **fix 실행검증** → **범위 밖 유지**(후속 옵션). repro 재실행(fixed 빌드)은 tc-author 로컬검증 인프라를 재사용해 CBRD-27052처럼 "fix가 실제론 미해결"인 케이스를 잡는 향후 확장.
+- **check-in-fix 전이 주체** → **미확정**(2026-07-17 결정 예정). resolve-gate를 돌리는 self-check 실행은 개발자로 확정됐으나, 게이트 통과 후 Handover→Resolved 전이(check-in-fix)를 누가 하는지(개발자/QA)는 아직 정해지지 않음. resolve-gate는 읽기전용이라 전이 자체는 범위 밖(판정만) — 주체가 정해지면 D2·SKILL에 반영.
 
 ## 남은 리스크
 
