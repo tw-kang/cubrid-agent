@@ -1,4 +1,4 @@
-# jira-resolve-agent
+# tc-author (Resolved → Test) — 도메인 용어집
 
 Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·검증하고 PR까지 제출하는 agent bot의 컨텍스트. PoC 범위는 SQL 카테고리 단일 파이프라인이다.
 

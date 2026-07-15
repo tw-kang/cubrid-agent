@@ -167,20 +167,18 @@ fresh-context 리뷰 서브에이전트에 이슈 본문, fix diff 요약, `.sql
 ## 프로젝트 구조 (구현 시)
 
 ```
-jira-resolve-agent/
-├── CLAUDE.md                     # 오케스트레이터 지침: 파이프라인 규칙·게이트·금지사항
-├── CONTEXT.md                    # 도메인 용어 (완료)
-├── DESIGN.md                     # 이 문서
-├── docs/adr/                     # 결정 기록 (0001~0006 완료)
-├── docs/jira/                    # CUBRIDQA-1429 description 사본 (지속 갱신)
-├── .claude/skills/
-│   └── resolve-next/SKILL.md     # 기동 커맨드: /resolve-next [N | CBRD-XXXXX]
-├── work/                         # 봇 전용 (gitignore) — 준비 완료
-│   ├── cubrid/                   #   엔진 clone (Ground: fix diff)
-│   ├── cubrid-testcases/         #   TC clone (origin=CUBRID, twkang=fork)
-│   ├── cubrid-testtools/         #   CTP
-│   └── sql.poc.conf              #   scenario→work/cubrid-testcases 로 덮어쓴 CTP conf
-└── reports/                      # run 리포트 (gitignore — 커밋 안 함; PR Remarks·Jira에 요약)
+cubrid-agent/                        # 모노레포 (ADR 0008)
+├── CONTEXT-MAP.md                   # 에이전트 지도
+├── CLAUDE.md                        # 오케스트레이터 지침(구현 시): 파이프라인 규칙·게이트·금지사항
+├── agents/tc-author/
+│   ├── CONTEXT.md                   # 도메인 용어집
+│   ├── DESIGN.md                    # 이 문서
+│   ├── docs/adr/                    # tc-author ADR (0001~0006·0009)
+│   ├── docs/jira/                   # CUBRIDQA-1429 description 사본 (지속 갱신)
+│   └── reports/                     # run 리포트 (gitignore — 커밋 안 함; PR Remarks·Jira에 요약)
+├── docs/                            # 전역: staging·design-principles·adr(0007·0008)·handover
+├── .claude/skills/resolve-next/     # 기동 커맨드 /resolve-next [N | CBRD-XXXXX] (Stage 2 구현 시)
+└── work/                            # 봇 전용 (gitignore): cubrid·cubrid-testcases·cubrid-testtools·sql.poc.conf
 
 # CUBRID 검증 빌드: /home/dev/CUBRID (release 11.5.0.2300-04192d6, 소켓 경로 한계로 짧은 경로 필수)
 ```
@@ -193,8 +191,8 @@ Required+Not Yet 8건의 본문·댓글 판독 결과 (과거 수동 triage `~/w
 
 | 이슈 | repro | SQL 재현성 | 처분 |
 |---|---|---|---|
-| CBRD-25913 (Not Yet) | 있음 (q-1~q-6 순수 SQL, 기대값=syntax error) | 적격 — 결정적, 검출력 100% | **PoC 1호 대상** |
-| CBRD-26799 | 있음 (완전한 csql 스크립트+기대값) | 적격 (race — fix 후 결정성 기준) | **PoC 2호 대상** |
+| CBRD-25913 (Not Yet) | 있음 (q-1~q-6 순수 SQL, 기대값=syntax error) | 적격 — 결정적, 검출력 100% | **PoC 1호 — 완료 (Draft PR #3041)** |
+| CBRD-26799 | 있음 (완전한 csql 스크립트+기대값) | 적격 (race — fix 후 결정성 기준) | **PoC 2호 — 완료 (Draft PR #3049)** |
 | CBRD-26797 | 있음 | 적격 (동일 버그) | 26799에 통합 |
 | CBRD-25741 | 있음 | 부적격 — 관측이 `cubrid plandump` 유틸 필요 | 스킵 (plan cache 관측을 SQL로 대체 가능해지면 재검토) |
 | CBRD-26213 | 있음 | 부적격 — ulimit·conf 수정·서버 재시작·로그 검사 | 스킵 (shell 카테고리 후보) |

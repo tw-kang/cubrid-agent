@@ -2,7 +2,7 @@ h2. 개요
 
 Resolved 처리된 CBRD 이슈의 내용을 읽어 CTP SQL 테스트케이스를 자동으로 작성·검증·리뷰하고, cubrid-testcases에 Draft PR 제출까지 수행하는 agent bot의 PoC.
 
-이 이슈는 PoC 진행 현황을 추적하며, 진행에 따라 본 설명을 지속 갱신한다. (최종 갱신: 2026-07-09 — PoC 1호 CBRD-25913 Draft PR 생성)
+이 이슈는 PoC 진행 현황을 추적하며, 진행에 따라 본 설명을 지속 갱신한다. (최종 갱신: 2026-07-16 — PoC 1·2호 완료; 프로젝트가 모노레포 cubrid-agent로 이관)
 
 h2. PoC 범위
 
@@ -46,7 +46,7 @@ h2. 대상 이슈 판정 현황 (2026-07-06 전수 판독, 수동 triage 문서�
 
 ||이슈||판정||처분||
 |CBRD-25913|repro q-1~q-6 순수 SQL, 기대값=syntax error — 결정적|✅ 완료 — Draft PR [#3041|https://github.com/CUBRID/cubrid-testcases/pull/3041]|
-|CBRD-26799|완전한 SQL repro, 단 race(재현율 ~6%) — fix 후 결정성 기준 적격|*PoC 2호 대상 (다음)*|
+|CBRD-26799|완전한 SQL repro, 단 race(재현율 ~6%) — fix 후 결정성 기준 적격|✅ 완료 — Draft PR [#3049|https://github.com/CUBRID/cubrid-testcases/pull/3049]|
 |CBRD-26797|CBRD-26799와 동일 버그|26799에 통합|
 |CBRD-25741|증상 관측에 plandump 유틸 필요|스킵 (shell 후보)|
 |CBRD-26213|ulimit·conf 수정·서버 재시작·로그 검사 필요|스킵 (shell 후보)|
@@ -58,9 +58,10 @@ h2. 진행 이력
 * 2026-07-06: 설계 완료. 파이프라인·결정 사항·대상 판정을 확정하고 설계 문서(DESIGN.md, CONTEXT.md, ADR 0001~0005)로 기록. 후보 전수 판독 결과를 과거 수동 triage와 대조해 선정 필터 개정(Not Yet 포함).
 * 2026-07-08~09: PoC를 *로컬 검증*으로 전환(ADR 0006). work/에 repo 3종 clone, /home/dev/CUBRID에 release 빌드 설치, 기존 CTP TC로 로컬 검증 경로 스모크 통과. CTP answer 생성 메커니즘(빈-answer 트릭)·소켓 경로 한계·JDK 요구를 규명해 문서화.
 * 2026-07-09: PoC 1호 CBRD-25913 end-to-end 완료. Author(8케이스) → Verify(로컬 CTP, 결정적 PASS) → 독립 Review(PASS) → 루프 2회차 → *Draft PR #3041* 생성. 작성 중 컬렉션 결과의 비결정 렌더링을 발견·회피, 직접 서브쿼리 케이스가 fix가 아닌 문법 단계에서 거부됨을 실측해 라벨 정정.
-* 다음 단계: PoC 2호 CBRD-26799(race 버그) → 회고 → (이후) /resolve-next 기동 스킬화·배포 형태.
+* 2026-07-15: PoC 2호 CBRD-26799(병렬 인덱스 빌드 행유실, race) 완료. 자급 2.1M rows로 병렬 경로를 유도, 결정적 PASS·경로 커버리지 확인·독립 Review 통과 → *Draft PR #3049*. race 재현은 로컬 미재현이라 best-effort로 문서화(ADR 0004/0009).
+* 다음 단계: PR #3041·#3049 리뷰·머지 → fail→pass 실측 → /resolve-next 기동 스킬화(Stage 2)·배포 형태.
 
 h2. 산출물
 
-* 설계 문서: 로컬 프로젝트 jira-resolve-agent/ (DESIGN.md, CONTEXT.md, docs/adr/0001~0006, reports/CBRD-25913.md)
-* PoC 1호 Draft PR: https://github.com/CUBRID/cubrid-testcases/pull/3041 (CBRD-25913)
+* 설계 문서: 모노레포 *cubrid-agent* `agents/tc-author/` (DESIGN.md, CONTEXT.md, docs/adr/0001~0006·0009, reports/CBRD-25913.md·CBRD-26799.md)
+* PoC Draft PR: [#3041|https://github.com/CUBRID/cubrid-testcases/pull/3041] (CBRD-25913) · [#3049|https://github.com/CUBRID/cubrid-testcases/pull/3049] (CBRD-26799)

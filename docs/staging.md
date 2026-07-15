@@ -6,7 +6,7 @@
 
 | 단계 | 형태 | 트리거 | 검증 환경 | Jira | 상태 |
 |---|---|---|---|---|---|
-| **Stage 1 — PoC** | 로컬 Claude Code 세션 | 사람이 세션에서 수동, 게이트마다 확인 | 로컬 CTP (`/home/dev/CUBRID`) | 읽기 전용 | 진행 중 (1호 완료) |
+| **Stage 1 — PoC** | 로컬 Claude Code 세션 | 사람이 세션에서 수동, 게이트마다 확인 | 로컬 CTP (`/home/dev/CUBRID`) | 읽기 전용 | tc-author 1·2호 완료 (CBRD-25913·26799) |
 | **Stage 2 — 팀내 수동 트리거** | 로컬 세션 **팀 공유**(스킬+셋업+hook) | 팀원이 각자 로컬에서 기동 커맨드 | 로컬 CTP | 읽기 전용 | 이번 설계 대상 |
 | **Stage 3 — 무인 자동 서비스** | k8s CronJob → (Indexed) Job | 야간 스케줄 자동 | pod + build-cache overlay (ADR 0001) | 쓰기(전이+코멘트) | **park** |
 
