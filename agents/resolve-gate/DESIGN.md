@@ -1,18 +1,18 @@
 # resolve-gate — 설계 v1 + PoC 검증 (cubrid-agent)
 
-**상태: 설계 v1 + guava Handover pool 27건 전수 PoC 검증 (2026-07-16). 구현 전.**
+**상태: 설계 v1 + PoC 검증 + Stage 2 게이트 스킬 구현 (2026-07-16).**
 
-Handover→Resolved("Accept the fix") 전이를 맡는 **평가형 게이트**. 개발자가 인계한 fix를 QA가 받기 전, **QA-readiness(테스트 플랜 작성 가능성)** 를 심사해 accept/reject를 권고한다. 용어·초점은 [CONTEXT.md](./CONTEXT.md).
+Handover→Resolved("Accept the fix") 전이 앞의 **평가형 게이트**. **실행 주체는 개발자** — 자기 fix를 Resolved로 올리기 전 **QA-readiness(테스트 플랜 작성 가능성)** 를 스스로 점검하는 self-check다. accept/보완을 판정한다. 용어·초점은 [CONTEXT.md](./CONTEXT.md).
 
 ## 범위 (PoC)
 
-- **한다**: Handover 이슈를 읽고 "이 내용(특히 description)으로 QA가 테스트 플랜을 짤 수 있는가"를 판정 → 읽기전용 게이트 리포트.
+- **한다**: Handover 이슈의 description·comment·첨부를 읽고 "이 내용으로 QA가 테스트 플랜을 짤 수 있는가"를 판정 → 읽기전용 게이트 리포트.
 - **안 한다**: Jira 전이·코멘트 쓰기(사람이), fix 실행 검증(repro 재실행), 로컬 CTP, TC 작성.
 
 ## 확정 결정 (2026-07 grilling)
 
 - **D1 초점 = test-plannability**: 이슈 내용만으로 테스트 플랜을 작성 가능한지가 중점. **fix가 실제로 동작하는지(실행검증)는 범위 밖**(추후 옵션).
-- **D2 출력 = 읽기전용 게이트 리포트/권고**: accept/reject + 사유. Jira 전이는 사람이 수행(S4: Jira 쓰기=Stage 3).
+- **D2 출력 = 읽기전용 게이트 리포트/권고**: accept/보완 + 사유. Jira 전이는 개발자(실행 주체)가 수행(S4: Jira 쓰기=Stage 3).
 - **D3 검사 2계층**: **차단**=test-plannability(C0~C2), **경고**=핸드오버 hygiene(C3/C5/C6). (근거: dry-run에서 실제 Handover 3건 모두 Fixed version·QA Scenario 미기입 — 이를 차단하면 전부 탈락하므로 경고로.)
 - **D4 로컬 CTP 불요**: fix를 실행하지 않으므로 tc-author보다 가벼운 read-only 에이전트.
 
@@ -23,8 +23,8 @@ Handover→Resolved("Accept the fix") 전이를 맡는 **평가형 게이트**. 
 **차단(pass/fail 핵심) — test-plannability**
 
 _버그 이슈_
-- **C1 Repro 존재·자기완결**: 재현 절차/스크립트가 있고, 빠진 스키마·데이터·오타 없이 그대로 실행 가능.
-- **C2 Expected/Actual 명시**: fix 후 기대 동작 + fix 전 버그 동작.
+- **C1 Repro 존재·자기완결**: 재현 절차/스크립트가 있고, 빠진 스키마·데이터·오타 없이 그대로 실행 가능. **regression·core 리포팅 예외**: core나 regression fail을 유발한 TC가 이슈에 **첨부**돼 있으면 그 TC가 곧 repro이므로 별도 reproduction step이 없어도 C1 충족. 이런 이슈는 재현 정보·첨부 TC가 **comment에 있는 경우가 많아 description뿐 아니라 comment·첨부까지 확인**한다.
+- **C2 Expected/Actual 명시**: fix 후 기대 동작 + fix 전 버그 동작. (regression/core는 "그 TC가 fail/core → fix 후 pass"가 곧 Expected/Actual.)
 
 _기능 이슈_ (버그 repro 개념이 없어 재해석)
 - **C1′ Spec 구체성**: Specification Changes가 입출력·오류조건·예시로 구체적인가.
@@ -38,14 +38,14 @@ _기능 이슈_ (버그 repro 개념이 없어 재해석)
 
 ## 파이프라인
 
-1. **Select** — `planned=guava & status=Handover` 풀 조회(cubrid-jira jql **배치 read**: `--fields summary,issuetype,description,fixVersions,customfield_210565,assignee --output json`로 전건 본문·필드를 1콜에). QA Assignee 미설정이라 쓰지 않고, 카테고리 무관(readiness는 SQL 제한 불필요). **issuetype으로 버그/기능 분기**(검사 기준 이원 적용). **QA Scenario=Not Required**는 TC 미대상이라 판정 실익이 적음 → 판정하되 "TC 미대상" 태그만 달고 차단하지 않는다(개선점 4, PoC: Not Required 6건).
-2. **검사** — 각 이슈의 description·comment·fields를 읽어 C0~C6 판정. merge diff(cubrid repo)는 스펙 변경 이해·description 대조에 참고.
+1. **Select** — 실행 주체가 개발자이므로 주 용법은 **자기 이슈 지정**(Resolved로 올리려는 `CBRD-XXXXX`). pool 전체 조회(`planned=guava & status=Handover` 배치 read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee --output json`)는 QA·관리자용 부차 용법. **issuetype으로 버그/기능 분기**(검사 기준 이원 적용). **QA Scenario=Not Required**는 TC 미대상이라 판정하되 "TC 미대상" 태그만 달고 차단하지 않는다(개선점 4, PoC: Not Required 6건).
+2. **검사** — 각 이슈의 description·comment·**첨부(첨부 TC)**·fields를 읽어 C0~C6 판정. **regression/core 이슈는 첨부된 실패 TC를 repro로 인정**(C1 예외). merge diff(cubrid repo)는 스펙 변경 이해·대조에 참고.
 3. **Gate report + 반려 코멘트** — 이슈별 `READY`(accept 권고) / `NOT-READY`. **READY에는 적합 러너 태그(SQL/shell/CCI/perftool)를 함께 단다**(개선점 2) — READY라도 CCI/JDBC·성능·statdump·내부저장 관측은 SQL TC 부적합이므로, 다운스트림(tc-author=SQL 전용)이 헛집기 않게 미리 라우팅한다. NOT-READY 시 **반려 Jira 코멘트**를 산출:
    - ⓐ "Resolved로 상태변경 불가" 명시
    - ⓑ **내용 gap** — repro 자기완결·expected/actual 등(C0~C2)
    - ⓒ **필드 gap** — Fixed version·QA Scenario·Need Manual 중 미기입(C3~C6)
-   - ⓓ **assignee(개발자) @멘션** — 확인·보완 요청
-   게시 주체: **PoC=사람이 검토·게시(봇은 @멘션 포함 완성 초안까지), 이후=봇 자동게시**(오탐으로 실제 개발자를 잘못 호출하는 리스크를 PoC에서 차단하는 단계적 접근).
+   - ⓓ **보완 항목** — 개발자 본인이 Resolved로 올리기 전 고칠 gap. 실행 주체가 개발자라 외부 @멘션 호출이 아닌 **self 보완 체크리스트**다(다른 개발자 이슈를 점검하는 경우에만 @멘션).
+   게시 주체: **개발자 본인** — self-check 결과를 보고 이슈를 보완한 뒤 Resolved로 올린다. Jira 코멘트 게시는 재량(QA 소통·기록용). 자동 게시·전이는 Stage 3.
 
 ## 재료
 
@@ -83,7 +83,7 @@ resolve-gate의 `READY` = tc-author Select의 입력 품질 보장. tc-author의
 
 - **Select 필터** → **`planned=guava & status=Handover` 전체**(카테고리 무관 — readiness 검사는 SQL 제한 불필요). QA Assignee는 이 시점 미설정이라 쓰지 않음.
 - **hygiene(C3/C5/C6)** → **경고 유지**(차단 안 함). 실제 Handover가 대개 미기입이라 차단하면 전부 탈락.
-- **반려 산출물** → NOT-READY 시 반려 Jira 코멘트(Resolved 불가 + 내용/필드 gap + **개발자 @멘션**) 산출. **게시 주체: PoC=사람이 게시(봇은 완성 초안), 이후=봇 자동게시**(단계적 — PoC는 오탐으로 실제 개발자 오호출 방지).
+- **반려 산출물** → NOT-READY 시 **개발자 본인 보완 체크리스트**(Resolved 불가 사유 + 내용/필드 gap) 산출. 실행 주체가 개발자라 self-check — 개발자가 보고 보완 후 Resolved로 올린다. Jira 게시는 재량, 자동화는 Stage 3.
 - **fix 실행검증** → **범위 밖 유지**(후속 옵션). repro 재실행(fixed 빌드)은 tc-author 로컬검증 인프라를 재사용해 CBRD-27052처럼 "fix가 실제론 미해결"인 케이스를 잡는 향후 확장.
 
 ## 남은 리스크

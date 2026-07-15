@@ -1,6 +1,9 @@
 # resolve-gate verdict examples (27-issue PoC, 2026-07-16)
 
-Few-shot for the skill: how each issue kind maps to a verdict, runner tag, and rejection draft. Full source: `agents/resolve-gate/reports/poc-guava-handover.md`.
+Few-shot for the skill: how each issue kind maps to a verdict, runner tag, and remediation draft. Full source: `agents/resolve-gate/reports/poc-guava-handover.md`.
+
+> **실행 주체 = 개발자(self-check).** 아래 NOT-READY 초안은 개발자 본인이 Resolved로 올리기 전 보완할 체크리스트다 — `@멘션`은 **다른 개발자의 이슈를 점검하는 경우에만** 붙인다(본인 이슈면 생략).
+> **regression/core 예외:** core나 regression fail을 유발한 TC가 이슈에 첨부돼 있으면 그 TC가 repro이므로 별도 repro step 없이 READY. 이런 이슈는 description뿐 아니라 comment·첨부까지 확인한다(CBRD-27052 참조).
 
 ## READY (accept-recommended + runner tag)
 
@@ -25,6 +28,7 @@ AC 절반이 성능(CPU%)이라 SQL TC 부적합 → perftool. 단 "결과 동�
 - 필드: Fixed version 미기입.
 @byungwook.kim 재현 절차(또는 최소 유발 조건)를 description에 보강해 주시면 다시 검토하겠습니다.
 ```
+→ **regression/core 예외**: 이런 이슈는 comment·첨부를 반드시 확인한다 — core 유발 TC가 첨부돼 있었다면 그 TC=repro로 READY가 된다. 27052는 스택트레이스만 있고 첨부 실패 TC가 없어 NOT-READY.
 
 ### CBRD-26909 (bug) — repro 오타 (확인형 반려, 오탐 회피)
 ```
