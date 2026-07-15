@@ -6,6 +6,7 @@ cubrid-agent는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이�
 
 - [resolve-gate](./agents/resolve-gate/) — **Handover→Resolved** ("Accept the fix"): 개발자 fix를 Resolved로 받기 전 **QA-readiness(테스트 플랜 작성 가능성)** 게이트. (설계 v0)
 - [tc-author](./agents/tc-author/) — **Resolved→Test** ("Start Test"): 이슈 fix에 대한 CTP 테스트케이스 산출물 생성. (PoC 진행 중, 1호 완료)
+- [tc-reviewer](./agents/tc-reviewer/) — **PR 리뷰 (횡단)**: cubrid-testcases의 sql TC PR(사람·봇 무관)을 3층(컨벤션/마이닝된 도메인 관점/실행)으로 심사 → 권고 판정 + 리뷰 초안. 상태 전이가 아니라 PR 머지 구간의 리뷰어 병목을 줄이는 첫 리뷰어. (설계 v1)
 - [test-runner](./agents/test-runner/) — **Test→Tested** ("Verify"): TC/회귀 실행·검증. (설계 전)
 - [close-backport](./agents/close-backport/) — **Tested→Closed / Backport** ("Close" / "Need Backport"): 종결 또는 백포트. (설계 전)
 
@@ -20,6 +21,8 @@ Handover ─[resolve-gate: Accept the fix]→ Resolved
 ```
 
 각 에이전트는 앞 상태/산출물을 입력으로, 다음 상태로의 전이를 출력으로 한다. 이슈 키(`cbrd_xxxxx`)가 에이전트 간 조인 키. 공식 상태·전이·운영 규칙(Description/Handover/Merge/Backport)은 [docs/handover/dev-process-v2.4.md](./docs/handover/dev-process-v2.4.md).
+
+예외적으로 **tc-reviewer는 상태 전이가 아니라 PR 수명주기에 붙는 횡단 에이전트**다: tc-author(또는 사람)가 낸 TC PR이 머지되기 전 구간(`PR open ─[tc-reviewer 심사]→ 사람 approve·merge`)에서 첫 리뷰어 역할을 한다.
 
 ## 공유 (시스템 전역)
 

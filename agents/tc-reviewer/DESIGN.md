@@ -1,0 +1,79 @@
+# tc-reviewer — 설계 v1 (cubrid-agent)
+
+cubrid-testcases의 sql TC PR을 심사하는 **평가형 횡단 에이전트**. 사람 리뷰어의 병목(왕복)을 줄이는 첫 리뷰어. 용어·위치는 [CONTEXT.md](./CONTEXT.md), 관점 정본은 [docs/review-perspectives.md](./docs/review-perspectives.md).
+
+## 범위 (PoC)
+
+- **한다**: 지정한 sql TC PR 1건을 3층(L1 컨벤션 / L2 도메인 관점 / L3 실행)으로 심사 → 권고 판정 + 라인 코멘트·종합 리뷰 **초안** 산출(게시는 사람).
+- **안 한다**: GitHub 직접 게시(초안까지만), approve/merge, sql 외 카테고리(medium/isolation/shell), PR 자동 감시(webhook), Jira 쓰기.
+
+## 확정 결정 (2026-07-15 인터뷰)
+
+- **D1 대상 = 모든 sql TC PR**: 사람·봇 구분 없음. 병목 해소 목적에 직접 부합하고, 마이닝(사람 PR 리뷰 데이터)의 관점을 그대로 재사용.
+- **D2 깊이 = 3층**: 정적+실행 검증에 더해, **마이닝으로 추출한 사람 리뷰어의 경험적 도메인 관점(L2)을 별도 층**으로 둔다. answer 정합성·결정성은 실행(L3)으로만 확실.
+- **D3 게시 = PoC 초안, 이후 자동**: resolve-gate와 동일한 단계적 패턴. 오탐이 실제 PR 작성자에게 노출되는 리스크를 PoC에서 차단.
+- **D4 판정 = 권고 + 지적 목록**: READY-TO-MERGE / NEEDS-WORK + 심각도별 지적. approve·merge는 항상 사람.
+
+## 3층 리뷰
+
+**L1 컨벤션 (정적 린트)** — `cubrid-sql-tc-create` 스킬 체크리스트 재사용: 헤더 블록(≤200자, 영문), `evaluate 'Case N'` 넘버링, DROP-before-CREATE, cleanup(만든 것 되돌리기, `deallocate prepare`), 경로·네이밍(`sql/_36_guava/cbrd_XXXXX/{cases,answers}/`), 주석 영문, 기대값이 주석/SQL 판정에 새어 있지 않은가.
+
+**L2 도메인 관점 (정적, 마이닝 기반)** — [review-perspectives.md](./docs/review-perspectives.md) 카탈로그를 순회하며 판정. 시드: 기대값 자체의 정합성(스펙 관점), 케이스 커버리지(경계값·부정 케이스·fix 영향 범위), fix 경로 커버리지(데이터 크기·파라미터가 경로를 실제로 유도하는가), 비결정 패턴, 기존 TC 중복, 러닝타임. **카탈로그 본문은 리뷰 마이닝 세션이 채운다**(아래 핸드오프).
+
+**L3 실행 검증 (동적)** — PR 브랜치를 `work/cubrid-testcases`에 **worktree**로 체크아웃(작업 clone 불오염) 후 로컬 CTP 실행. tc-author Verify 인프라(`/home/dev/CUBRID` release 빌드, `work/sql.poc.conf`, 비기본 포트) 재사용:
+1. **answer 정합성**: PR 상태 그대로 실행 → `Success`면 `.answer`=실제 실행 산출물, `Fail`이면 불일치 diff 확보. (신규 answer 생성이 아니라 검증이므로 빈-answer 트릭 불요.)
+2. **결정성**: 연속 3회 실행 매회 Success (tc-author의 N=3과 동일 기준).
+3. **경로 커버리지** (해당 시): plan/trace로 fix 코드 경로를 실제로 타는지 확인 (ADR 0009 게이트 준용).
+4. **러닝타임**: CTP elapse 기록 — 과대 TC 지적 근거.
+
+주의: 로컬 빌드에 PR이 전제하는 fix가 없으면 Fail이 가짜 신호다 → 이슈의 Fixed version과 로컬 빌드를 대조하고, 리포트·초안에 검증 빌드를 항상 명시한다.
+
+## 파이프라인
+
+```
+Select ─► Ground ─► L1 ─► L2 ─► L3 ─► Verdict ─► 리뷰 초안 + 리포트
+```
+
+1. **Select** — 인자로 PR 번호 지정(기본: 열린 sql TC PR 중 최고령 1건). tc-author 봇 PR·사람 PR 무관.
+2. **Ground** — PR diff·본문, 제목의 `[CBRD-XXXXX]` 키로 이슈 본문(cubrid-jira jql json), cubrid repo에서 fix merge diff, corpus에서 유사·중복 TC 검색.
+3. **L1→L2→L3** — 위 3층. L3는 변경된 케이스 파일 각각에 수행.
+4. **Verdict** — 지적을 심각도로 묶어 판정:
+   - **blocker**: 실행 실패, answer 불일치, 비결정(3회 중 상이), 기대값이 이슈/스펙과 모순 → NEEDS-WORK
+   - **major**: fix 경로 미커버, 격리 위반(공유 DB 오염·cleanup 누락), 기존 TC와 실질 중복 → NEEDS-WORK
+   - **minor**: 컨벤션·스타일·러닝타임 권고 → READY-TO-MERGE 가능(지적 포함)
+5. **리뷰 초안** — GitHub 리뷰 형식: 라인 코멘트(파일:라인 + 지적 + 근거)+ 종합 코멘트(판정, 검증 빌드, 실행 증거 요약). **PoC에선 사람이 검토 후 게시.**
+6. **리포트** — `reports/PR-NNNN.md`(gitignore): 층별 결과, 실행 로그 요약, 판정 근거.
+
+## 근거 — 1년 실측 (2025-07-15~2026-07-15, CUBRID/cubrid-testcases)
+
+| 항목 | 값 | 설계 반영 |
+|---|---|---|
+| 머지 PR | 381건 (사람 작성 대다수 + sync 봇 38) | 물량 = 주 ~7건, tc-author 가세 시 증가 |
+| 머지 소요 | 중앙값 3.8일, p75 11일, p90 25.8일, 30일 초과 31건 | 병목은 첫 리뷰(중앙값 0.3일)가 아니라 **왕복** — 봇이 왕복 소재를 선제 제거 |
+| 사람 라인 코멘트 | 600건 / 87 PR (전체의 23%) | L2 관점의 원천(마이닝 대상) |
+| 리뷰 제출 | approve 904 / commented 523 / **changes-requested 1** | 반려는 공식 상태가 아닌 코멘트로 이뤄지는 문화 → 봇도 코멘트 기반 권고가 부합 |
+| 리뷰 본문 | 1,428건 중 비어있지 않은 것 17건 | 리뷰 내용은 전부 라인 코멘트에 → 초안도 라인 코멘트 중심 |
+| greptile 봇 | 라인 코멘트 149건(1년) | 범용 지적은 이미 존재 → L2·L3가 차별화 |
+
+## 리뷰 마이닝 핸드오프 (별도 세션)
+
+- **목표**: L2 관점 카탈로그([review-perspectives.md](./docs/review-perspectives.md))를 실제 리뷰 데이터로 채운다 — 관점별 빈도·대표 인용·검출 방법.
+- **원본 데이터**: `work/tc-review-mining/`(gitignore)에 수집 완료 — 머지 PR 381건(`merged_prs.json`), 사람 라인 코멘트 600건(분류용 청크 `chunk_0..4.jsonl`, diff hunk 포함), 대화 코멘트 149건(`issue_human.jsonl`), greptile 118건(`greptile.jsonl`, 중복 회피 대조용), 리뷰 제출 1,428건(`pr_reviews.json`).
+- **산출 계약**: review-perspectives.md의 스키마(관점 id·정의·검출법·심각도·빈도·인용)를 갱신. greptile이 이미 잡는 관점은 표시(봇 중복 지적 회피).
+- **백테스트 겸용**: 같은 데이터가 PoC 검증의 정답지 — 머지 PR 2~3건에 tc-reviewer를 돌려 사람 지적과의 재현율/오탐을 대조.
+
+## tc-author와의 관계
+
+- tc-author **Submit의 다음 단계**가 tc-reviewer 심사다(봇 PR도 예외 없음 — 내부 self-review와 별개의 fresh-context 심사).
+- **관점 카탈로그 공유**: L2 카탈로그는 tc-author Review lane의 체크리스트로도 쓰인다. 마이닝으로 카탈로그가 좋아지면 작성 품질도 같이 올라간다.
+
+## 열린 질문
+
+- **리뷰 코멘트 언어**: 저장소 실제 리뷰 관례(한/영 비율)를 마이닝에서 확인 후 결정.
+- **greptile 중복 처리**: greptile이 이미 단 지적과 겹칠 때 생략할지 참조할지 — PoC에선 관찰만.
+- **재리뷰 트리거**: PR 업데이트(push) 시 증분 리뷰 — PoC는 수동 재실행.
+- **검증 빌드 선정**: PR이 전제하는 엔진(fix 포함 develop)과 로컬 빌드의 정합 — PoC는 수동 확인+명시, 이후 빌드서버 최신 develop 자동 추적.
+
+## PoC 이후로 미룬 것
+
+자동 게시(단계적 승격), PR opened/updated 자동 트리거(webhook/CI), sql 외 카테고리, 자동 approve(정족수 기여 — Stage 3 성격), 마이닝 주기 갱신(카탈로그 재추출).
