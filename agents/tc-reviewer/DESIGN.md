@@ -13,6 +13,7 @@ cubrid-testcases의 sql TC PR을 심사하는 **평가형 횡단 에이전트**.
 - **D2 깊이 = 3층**: 정적+실행 검증에 더해, **마이닝으로 추출한 사람 리뷰어의 경험적 도메인 관점(L2)을 별도 층**으로 둔다. answer 정합성·결정성은 실행(L3)으로만 확실.
 - **D3 게시 = PoC 초안, 이후 자동**: resolve-gate와 동일한 단계적 패턴. 오탐이 실제 PR 작성자에게 노출되는 리스크를 PoC에서 차단.
 - **D4 판정 = 권고 + 지적 목록**: READY-TO-MERGE / NEEDS-WORK + 심각도별 지적. approve·merge는 항상 사람.
+- **D5 PR 성격 2종 × 렌즈 라우팅**: 받는 PR은 ①**변경형**(이슈 동작 변경에 따른 답지/기존 TC 수정) ②**신규형**(새 TC 추가) 두 가지. Ground에서 diff로 판별하고 L2를 성격별 지배 렌즈로 라우팅 — 변경형=**answer-vs-spec 심문 렌즈**(P7·P11), 신규형=**coverage-expansion 확장 렌즈**(P4). L1·P2·P5·P6·봇 분업은 공통 적용. 상세는 아래 'PR 성격 2종과 렌즈 라우팅'.
 
 ## 3층 리뷰
 
@@ -30,6 +31,21 @@ cubrid-testcases의 sql TC PR을 심사하는 **평가형 횡단 에이전트**.
 
 주의: 로컬 빌드에 PR이 전제하는 fix가 없으면 Fail이 가짜 신호다 → 이슈의 Fixed version과 로컬 빌드를 대조하고, 리포트·초안에 검증 빌드를 항상 명시한다.
 
+## PR 성격 2종과 렌즈 라우팅
+
+tc-reviewer가 받는 sql TC PR은 두 성격이고 리뷰 관점이 성격마다 다르다. 마이닝에서 드러난 두 리뷰 철학(coverage-expansion / answer-vs-spec)이 정확히 이 두 성격에 대응한다.
+
+| PR 성격 | diff 신호 | 지배 렌즈 | 핵심 질문 |
+|---|---|---|---|
+| **① 변경형** — 이슈 동작 변경에 따른 답지/기존 TC 수정 | 기존 `.sql`/`.answer` **modified** | **answer-vs-spec 심문**(P7·P11) | answer가 왜 바뀌었나? 이전이 틀렸었나? 이슈가 규정한 변경과 일치하나? 회귀를 은폐하는 변경 아닌가? |
+| **② 신규형** — 새 TC 추가 | 신규 `cbrd_XXXXX.sql`/`.answer` **added** | **coverage-expansion 확장**(P4) | 시나리오가 충분히 넓은가? positive마다 negative가 있나? 경계값(직전/경계/직후)은? 조합·이슈 영향범위 밖 케이스는? |
+
+- **판별**: Ground에서 PR diff의 파일 상태(added vs modified)로 성격을 기계적으로 분류. 한 PR이 둘을 섞으면(신규 추가 + 기존 답지 수정) 두 렌즈를 모두 적용.
+- **라우팅**: L2가 성격에 맞는 지배 렌즈를 돌리되, **공통층**(L1 컨벤션, P2 결정성, P5 격리, P6 trace/evaluate, 봇 분업)은 성격 무관하게 항상 적용.
+- **비대칭(중요)**: ①변경형의 "왜 바뀌었나"는 **작성자가 스스로 못 던지는 질문**(자기 answer는 정당하다 여김)이라 fresh-context 리뷰어(L2) 전용. ②신규형의 "더 넓게"는 작성자가 미리 할 수 있어 **create 스킬에서 예방**(P4 매트릭스, skills 74f1ba3)하고 리뷰어가 보강. 즉 예방은 author, 심문은 reviewer.
+
+렌즈의 질문셋·few-shot은 [review-perspectives.md](./docs/review-perspectives.md)의 'L2 페르소나 렌즈'에 둔다(5년 마이닝 수집 후 보강 예정).
+
 ## 파이프라인
 
 ```
@@ -37,7 +53,7 @@ Select ─► Ground ─► L1 ─► L2 ─► L3 ─► Verdict ─► 리뷰 
 ```
 
 1. **Select** — 인자로 PR 번호 지정(기본: 열린 sql TC PR 중 최고령 1건). tc-author 봇 PR·사람 PR 무관.
-2. **Ground** — PR diff·본문, 제목의 `[CBRD-XXXXX]` 키로 이슈 본문(cubrid-jira jql json), cubrid repo에서 fix merge diff, corpus에서 유사·중복 TC 검색.
+2. **Ground** — PR diff·본문, 제목의 `[CBRD-XXXXX]` 키로 이슈 본문(cubrid-jira jql json), cubrid repo에서 fix merge diff, corpus에서 유사·중복 TC 검색. **PR diff 파일 상태(added/modified)로 PR 성격(변경형/신규형)을 판별해 L2 렌즈 라우팅에 넘긴다**(D5).
 3. **L1→L2→L3** — 위 3층. L3는 변경된 케이스 파일 각각에 수행.
 4. **Verdict** — 지적을 심각도로 묶어 판정:
    - **blocker**: 실행 실패, answer 불일치, 비결정(3회 중 상이), 기대값이 이슈/스펙과 모순 → NEEDS-WORK

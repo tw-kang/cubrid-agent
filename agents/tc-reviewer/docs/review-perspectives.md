@@ -53,6 +53,22 @@ greptile/codex 봇은 **P1(answer 무결성)·P2(결정성 일부)·P3(fix 경�
 > "동률이라 run마다 plan이 바뀌는 flaky 상태... tie 안정화를 위해 ta 인덱스만 고정" — PR2871, shparkcubrid
 > "플랜 고정 및 안정성 확보 차원에서, 옵티마이저 변화에 영향받지 않도록 인덱스를 추가" — PR2466, shparkcubrid
 
+## L2 페르소나 렌즈 (PR 성격별 지배 렌즈)
+
+L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로 돌린다. 마이닝에서 드러난 두 주 렌즈가 tc-reviewer가 받는 두 PR 성격에 대응한다(DESIGN D5). **렌즈명은 기능으로 두고 사람 이름은 few-shot 출처로만** 기록한다 — 개인 박제 금지(사람이 바뀌어도 철학이 남게).
+
+| 렌즈 | PR 성격 | 담는 관점 | 질문셋(요지) | 대표(few-shot 출처) |
+|---|---|---|---|---|
+| **coverage-expansion** | 신규형 (새 TC) | P4·P8·P9 | positive↔negative 대칭? 경계 3점(직전/경계/직후)? 조합 매트릭스(JOIN×함수×방향)? 이슈 영향범위 밖 케이스? 변별력(데이터 분포·통계·규모)? | bagus-kim |
+| **answer-vs-spec** | 변경형 (답지/TC 수정) | P7·P11·P12 | answer가 왜 바뀌었나·이전이 틀렸나? 이슈가 규정한 정확한 범위인가? 결과의 원인을 이해했나? 회귀 은폐 아닌가? | kwonhoil |
+| **determinism-convention** | 공통 | P2·P5·P6·P10 | 다행 SELECT에 ORDER BY? cleanup 복원? trace/evaluate 페어? | ssihil |
+| **plan-stability** | 공통(플랜 TC) | P3·P13 | fix 경로를 타나? plan tie/flaky 고정됐나? | shparkcubrid, youngjinj |
+
+- 지배 렌즈는 PR 성격이 정하고, **determinism-convention은 성격 무관 항상 적용**.
+- 렌즈를 **독립 서브에이전트로 병렬 실행**하면 관점 다양성이 재현율을 높인다(perspective-diverse verify).
+- **철학의 성격에 따라 담기는 층이 다르다**: coverage-expansion은 예측 가능한 패턴이라 규칙·템플릿화(create 스킬 P4)해 **작성 예방**에도 쓰고, answer-vs-spec은 케이스별 판단이라 규칙 불가 → **L2 판정 각도로만** 재현. 전자는 author, 후자는 reviewer.
+- **질문셋·few-shot은 5년 마이닝 수집 후 보강**(현재는 1년 600건 기반 뼈대).
+
 ## few-shot 앵커 (L2 프롬프트 투입용 실례)
 
 - **P4**: "prepare, execute 구문을 사용하는 케이스를 추가해 주세요 (Invalid, valid 케이스 추가)" — PR2431, kwonhoil / "scalar subquery in SELECT list - should not run in parallel; ... 추가 시나리오" — PR2497, bagus-kim
