@@ -26,6 +26,7 @@ Handover ─[resolve-gate: Accept the fix]→ Resolved
 
 ## 공유 (시스템 전역)
 
+- [docs/design-principles.md](./docs/design-principles.md) — 전 에이전트 공통 설계 원칙(DP1 병렬 실행: 순차 의존 없는 단위는 병렬로 쪼개 수행).
 - [docs/staging.md](./docs/staging.md) — 롤아웃 3단계 모델(PoC / Stage 2 팀 수동 트리거 / Stage 3 무인 자동), 전 에이전트 공통.
 - [docs/adr/](./docs/adr/) — 시스템 전역 ADR.
 - [docs/handover/](./docs/handover/) — 외부 핸드오버 재료(v1 배포 설계, v2 TC 작성).
