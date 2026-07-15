@@ -6,12 +6,12 @@
 
 ## 초점 — QA-readiness(테스트 플랜 작성 가능성)
 
-fix를 실행해 검증하는 게 아니라, **"이 Handover 이슈가 QA가 테스트 플랜/케이스를 작성할 수 있을 만큼 준비됐는가"** — 특히 **description(필수)** 이 그 재료로 충분한가 — 를 심사한다. 부족하면 accept 대신 "무엇이 빠졌는지" **반려 권고**. 사실상 **tc-author의 Ground가 성공할 재료가 있는지를 미리 거르는 관문**이다.
+fix를 실행해 검증하는 게 아니라, **"이 Handover 이슈가, 첨부 내용으로 QA가 repro 재현 및 테스트 작성이 가능할 만큼 준비됐는가"** — 특히 **description(필수)** 이 그 재료로 충분한가 — 를 심사한다. 부족하면 accept 대신 "무엇이 빠졌는지" **반려 권고**. 사실상 **tc-author의 Ground가 성공할 재료가 있는지를 미리 거르는 관문**이다.
 
 ## 용어
 
 - **Handover**: Jira 상태. 개발자가 fix를 머지·인계한 직후, QA가 받기 전.
-- **Accept the fix**: Handover→Resolved 전이. 반대편은 반려(ask recommendation / Resolve without fix = Bug Invalid).
+- **Accept the fix**: Handover→Resolved 전이(=Check-in Fix). 반대편은 반려(ask recommendation / Resolve without fix = Bug Invalid). **dev→QA 핸드오프 지점**이라 이 시점 QA는 미배정(assignee=개발자, QA 배정은 다음 "Assign QA/Start Test") → resolve-gate 반려 @멘션 대상 = **개발자(현 assignee)**.
 - **test-plannability(테스트 플랜 작성 가능성)**: 이슈 내용(특히 description)만으로 QA가 테스트 플랜/케이스를 짤 수 있는가. 게이트의 **차단 기준**.
 - **핸드오버 hygiene**: Fixed version·Need Manual·QA Scenario 등 dev-process p18 필드 충족. 게이트의 **경고**(차단 아님).
 - **gate report**: 이슈별 `READY`(accept 권고) / `NOT-READY`(reject + gap 체크리스트). 읽기전용 — 사람이 Jira 전이.

@@ -28,7 +28,12 @@ Handover→Resolved("Accept the fix") 전이를 맡는 **평가형 게이트**. 
 
 1. **Select** — `planned=guava & status=Handover` 풀 조회(cubrid-jira jql). QA Assignee 미설정이라 쓰지 않고, 카테고리 무관(readiness는 SQL 제한 불필요).
 2. **검사** — 각 이슈의 description·comment·fields를 읽어 C0~C6 판정. merge diff(cubrid repo)는 스펙 변경 이해·description 대조에 참고.
-3. **Gate report** — 이슈별 `READY`(accept 권고) / `NOT-READY`(reject + 빠진 항목 체크리스트). NOT-READY 시 **반려 Jira 코멘트 초안**까지 첨부(사람이 검토·게시). 읽기전용.
+3. **Gate report + 반려 코멘트** — 이슈별 `READY`(accept 권고) / `NOT-READY`. NOT-READY 시 **반려 Jira 코멘트**를 산출:
+   - ⓐ "Resolved로 상태변경 불가" 명시
+   - ⓑ **내용 gap** — repro 자기완결·expected/actual 등(C0~C2)
+   - ⓒ **필드 gap** — Fixed version·QA Scenario·Need Manual 중 미기입(C3~C6)
+   - ⓓ **assignee(개발자) @멘션** — 확인·보완 요청
+   게시 주체: **PoC=사람이 검토·게시(봇은 @멘션 포함 완성 초안까지), 이후=봇 자동게시**(오탐으로 실제 개발자를 잘못 호출하는 리스크를 PoC에서 차단하는 단계적 접근).
 
 ## 재료
 
@@ -55,7 +60,7 @@ resolve-gate의 `READY` = tc-author Select의 입력 품질 보장. tc-author의
 
 - **Select 필터** → **`planned=guava & status=Handover` 전체**(카테고리 무관 — readiness 검사는 SQL 제한 불필요). QA Assignee는 이 시점 미설정이라 쓰지 않음.
 - **hygiene(C3/C5/C6)** → **경고 유지**(차단 안 함). 실제 Handover가 대개 미기입이라 차단하면 전부 탈락.
-- **반려 산출물** → NOT-READY 시 **반려 Jira 코멘트 초안까지 작성**(사람이 검토·게시, 읽기전용).
+- **반려 산출물** → NOT-READY 시 반려 Jira 코멘트(Resolved 불가 + 내용/필드 gap + **개발자 @멘션**) 산출. **게시 주체: PoC=사람이 게시(봇은 완성 초안), 이후=봇 자동게시**(단계적 — PoC는 오탐으로 실제 개발자 오호출 방지).
 - **fix 실행검증** → **범위 밖 유지**(후속 옵션). repro 재실행(fixed 빌드)은 tc-author 로컬검증 인프라를 재사용해 CBRD-27052처럼 "fix가 실제론 미해결"인 케이스를 잡는 향후 확장.
 
 ## 남은 리스크
