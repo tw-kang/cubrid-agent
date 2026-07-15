@@ -1,4 +1,4 @@
-# jira-resolve-agent — PoC 설계
+# tc-author — PoC 설계 (cubrid-agent)
 
 Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·검증·리뷰하고 upstream Draft PR까지 제출하는 agent bot. 용어는 [CONTEXT.md](./CONTEXT.md), 주요 결정 근거는 [docs/adr/](./docs/adr/)를 따른다.
 
