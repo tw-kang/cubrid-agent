@@ -83,7 +83,7 @@ resolve-gate의 `READY` = tc-author Select의 입력 품질 보장. tc-author의
 
 - **Select 필터** → **`planned=guava & status=Handover` 전체**(카테고리 무관 — readiness 검사는 SQL 제한 불필요). QA Assignee는 이 시점 미설정이라 쓰지 않음.
 - **hygiene(C3/C5/C6)** → **경고 유지**(차단 안 함). 실제 Handover가 대개 미기입이라 차단하면 전부 탈락.
-- **반려 산출물** → NOT-READY 시 **개발자 본인 보완 체크리스트**(Resolved 불가 사유 + 내용/필드 gap) 산출. 실행 주체가 개발자라 self-check — 개발자가 보고 보완 후 Resolved로 올린다. Jira 게시는 재량, 자동화는 Stage 3.
+- **반려 산출물** → NOT-READY 시 **개발자 본인 보완 체크리스트**(Resolved 불가 사유 + 내용/필드 gap) 산출. 실행 주체가 개발자라 self-check — 개발자가 보고 보완한다. (보완 후 Resolved 전이=check-in-fix 주체는 미확정, 2026-07-17 결정 예정.) Jira 게시는 재량, 자동화는 Stage 3.
 - **fix 실행검증** → **범위 밖 유지**(후속 옵션). repro 재실행(fixed 빌드)은 tc-author 로컬검증 인프라를 재사용해 CBRD-27052처럼 "fix가 실제론 미해결"인 케이스를 잡는 향후 확장.
 - **check-in-fix 전이 주체** → **미확정**(2026-07-17 결정 예정). resolve-gate를 돌리는 self-check 실행은 개발자로 확정됐으나, 게이트 통과 후 Handover→Resolved 전이(check-in-fix)를 누가 하는지(개발자/QA)는 아직 정해지지 않음. resolve-gate는 읽기전용이라 전이 자체는 범위 밖(판정만) — 주체가 정해지면 D2·SKILL에 반영.
 
