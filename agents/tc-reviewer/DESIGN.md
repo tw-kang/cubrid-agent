@@ -25,7 +25,7 @@ cubrid-testcases의 sql TC PR을 심사하는 **평가형 횡단 에이전트**.
 
 **L3 실행 검증 (동적)** — PR 브랜치를 `work/cubrid-testcases`에 **worktree**로 체크아웃(작업 clone 불오염) 후 로컬 CTP 실행. tc-author Verify 인프라(`/home/dev/CUBRID` release 빌드, `work/sql.poc.conf`, 비기본 포트) 재사용:
 1. **answer 정합성**: PR 상태 그대로 실행 → `Success`면 `.answer`=실제 실행 산출물, `Fail`이면 불일치 diff 확보. (신규 answer 생성이 아니라 검증이므로 빈-answer 트릭 불요.)
-2. **결정성**: 연속 3회 실행 매회 Success (tc-author의 N=3과 동일 기준). plan/trace를 출력하는 TC는 **실행계획도 3회 동일**한지 확인 — P13(동률 인덱스 tie로 plan이 흔들리는 flaky) 검출은 반복 실행으로만 가능(마이닝 발견).
+2. **결정성**: 연속 3회 실행 매회 Success (tc-author의 N=3과 동일 기준). plan/trace를 출력하는 TC는 **실행계획도 3회 동일**한지 확인 — P13(동률 인덱스 tie로 plan이 흔들리는 flaky) 검출은 반복 실행으로만 가능(마이닝 발견). **L2가 정적으로 비결정을 의심한 케이스(예: ORDER BY 없는 다행, `LIMIT`이 동률 블록을 절단)는 여기서 반복 실행으로 확증**(백테스트 개선점 3: 봇이 정적으로 P2 blocker를 추정 → L3 실측으로 신뢰도↑).
 3. **경로 커버리지** (해당 시): plan/trace로 fix 코드 경로를 실제로 타는지 확인 (ADR 0009 게이트 준용).
 4. **러닝타임**: CTP elapse 기록 — 과대 TC 지적 근거.
 
@@ -53,13 +53,13 @@ Select ─► Ground ─► L1 ─► L2 ─► L3 ─► Verdict ─► 리뷰 
 ```
 
 1. **Select** — 인자로 PR 번호 지정(기본: 열린 sql TC PR 중 최고령 1건). tc-author 봇 PR·사람 PR 무관.
-2. **Ground** — PR diff·본문, 제목의 `[CBRD-XXXXX]` 키로 이슈 본문(cubrid-jira jql json), cubrid repo에서 fix merge diff, corpus에서 유사·중복 TC 검색. **PR diff 파일 상태(added/modified)로 PR 성격(변경형/신규형)을 판별해 L2 렌즈 라우팅에 넘긴다**(D5).
+2. **Ground** — PR diff·본문, 제목의 `[CBRD-XXXXX]` 키로 이슈 본문(cubrid-jira jql json), cubrid repo에서 fix merge diff, corpus에서 유사·중복 TC 검색. **PR diff 파일 상태(added/modified)로 PR 성격(변경형/신규형)을 판별해 L2 렌즈 라우팅에 넘긴다**(D5). **fix merge diff로 어느 케이스가 fix 코드 경로를 타는지 표식**(P3)해 L2·L3에 넘긴다(백테스트 개선점 4: 봇의 fix 경로 분석이 강점이었음 — Ground에서 fix diff를 더 적극 활용).
 3. **L1→L2→L3** — 위 3층. L3는 변경된 케이스 파일 각각에 수행.
 4. **Verdict** — 지적을 심각도로 묶어 판정:
    - **blocker**: 실행 실패, answer 불일치, 비결정(3회 중 상이), 기대값이 이슈/스펙과 모순 → NEEDS-WORK
    - **major**: fix 경로 미커버, 격리 위반(공유 DB 오염·cleanup 누락), 기존 TC와 실질 중복 → NEEDS-WORK
    - **minor**: 컨벤션·스타일·러닝타임 권고 → READY-TO-MERGE 가능(지적 포함)
-5. **리뷰 초안** — GitHub 리뷰 형식: 라인 코멘트(파일:라인 + 지적 + 근거)+ 종합 코멘트(판정, 검증 빌드, 실행 증거 요약). **PoC에선 사람이 검토 후 게시.**
+5. **리뷰 초안** — GitHub 리뷰 형식: 라인 코멘트(파일:라인 + 지적 + 근거)+ 종합 코멘트(판정, 검증 빌드, 실행 증거 요약). **게시 볼륨: blocker/major 우선, minor는 묶어 '참고'로**(백테스트 개선점 2: 봇이 minor를 남발해 소음 → 우선순위 필터). **PoC에선 사람이 검토 후 게시.**
 6. **리포트** — `reports/PR-NNNN.md`(gitignore): 층별 결과, 실행 로그 요약, 판정 근거.
 
 ## 근거 — 1년 실측 (2025-07-15~2026-07-15, CUBRID/cubrid-testcases)
@@ -83,6 +83,13 @@ Select ─► Ground ─► L1 ─► L2 ─► L3 ─► Verdict ─► 리뷰 
 3. **tc-author 선제 개선 피드백** — 최다 지적(P2 ORDER BY·P6 evaluate/trace·P5 cleanup·P4 케이스)을 create 단계에서 방지 → 왕복 근본 축소. `cubrid-sql-tc-create` 스킬 반영 대상.
 
 **원본**: `work/tc-review-mining/`(gitignore) — 머지 PR 381건, 사람 라인 600건(`chunk_0..4.jsonl`), greptile 118건(대조), 대화 149건, 리뷰 제출 1,428건. **백테스트**: 같은 데이터가 재현율/오탐 정답지 — PoC 검증 시 머지 PR 2~3건에 tc-reviewer를 돌려 사람 지적과 대조.
+
+## 백테스트 검증 (2026-07-16)
+
+머지 PR 2건(PR2433 신규형·PR2462 변경형)의 리뷰-전 diff를 fresh-context 서브에이전트가 렌즈로 심사(정답지 blind)해 당시 사람 지적과 대조. 상세 [reports/backtest-poc.md](./reports/backtest-poc.md).
+- **재현**: 두 PR 모두 사람 핵심 지적 재현(2462 조인순서 사유→P11, 2433 negative 케이스→P4). PR 성격 판별·렌즈 라우팅 정상 작동, 오탐 거의 없음.
+- **강점**: 봇이 사람이 놓친 비결정 blocker(2433 `LIMIT` 동률 절단)를 발견 — 정적·논리 분석(결정성·fix경로·최소성)이 사람보다 철저. 신규 관점 P12·P13·P14도 실제로 작동.
+- **반영된 개선점 4**: ① coverage-expansion 렌즈에 구체 SQL 제안 강제(카탈로그), ② 게시 볼륨 우선순위(리뷰 초안 5), ③ 정적 비결정 의심→L3 확증(L3 결정성), ④ Ground의 fix-diff 경로 표식(Ground 2).
 
 ## tc-author와의 관계
 
