@@ -1,6 +1,6 @@
 # resolve-gate (Handover → Resolved)
 
-**상태: 설계 v0 (2026-07 grilling·dry-run).**
+**상태: 설계 v1 (2026-07 grilling·dry-run·열린 질문 결정).**
 
 역할: 개발자가 Handover한 fix를, QA가 Resolved로 받기("Accept the fix") 전에 심사하는 **평가형 게이트** 에이전트. tc-author(생성형)와 달리 산출물을 만들지 않고 **판정(권고)** 을 낸다.
 

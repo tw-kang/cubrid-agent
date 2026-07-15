@@ -1,4 +1,4 @@
-# resolve-gate — 설계 v0 (cubrid-agent)
+# resolve-gate — 설계 v1 (cubrid-agent)
 
 Handover→Resolved("Accept the fix") 전이를 맡는 **평가형 게이트**. 개발자가 인계한 fix를 QA가 받기 전, **QA-readiness(테스트 플랜 작성 가능성)** 를 심사해 accept/reject를 권고한다. 용어·초점은 [CONTEXT.md](./CONTEXT.md).
 
@@ -26,9 +26,9 @@ Handover→Resolved("Accept the fix") 전이를 맡는 **평가형 게이트**. 
 
 ## 파이프라인
 
-1. **Select** — `status=Handover` 풀 조회(cubrid-jira jql). QA Assignee는 이 시점 미설정 → 필터 기준은 열린 질문(§리스크).
+1. **Select** — `planned=guava & status=Handover` 풀 조회(cubrid-jira jql). QA Assignee 미설정이라 쓰지 않고, 카테고리 무관(readiness는 SQL 제한 불필요).
 2. **검사** — 각 이슈의 description·comment·fields를 읽어 C0~C6 판정. merge diff(cubrid repo)는 스펙 변경 이해·description 대조에 참고.
-3. **Gate report** — 이슈별 `READY`(accept 권고) / `NOT-READY`(reject + 빠진 항목 체크리스트). 읽기전용.
+3. **Gate report** — 이슈별 `READY`(accept 권고) / `NOT-READY`(reject + 빠진 항목 체크리스트). NOT-READY 시 **반려 Jira 코멘트 초안**까지 첨부(사람이 검토·게시). 읽기전용.
 
 ## 재료
 
@@ -51,13 +51,17 @@ Handover→Resolved("Accept the fix") 전이를 맡는 **평가형 게이트**. 
 
 resolve-gate의 `READY` = tc-author Select의 입력 품질 보장. tc-author의 Ground(이슈→TC 재료 추출)가 성공할 조건을 resolve-gate가 앞단에서 판정한다. 두 에이전트의 조인 키는 이슈 키(`CBRD-XXXXX`).
 
-## 리스크 / 열린 질문
+## 열린 질문 결정 (2026-07)
 
-- **Select 필터**: Handover 시점 QA Assignee 미설정 → 무엇으로 대상을 좁힐지(planned=guava 전체 / component / reporter=QA / 전 카테고리 vs SQL 계열).
-- **hygiene 처리**: C3/C5/C6를 경고로 두되, 언젠가 차단으로 승격할지.
-- **반려 산출물**: NOT-READY 시 Jira 코멘트 초안을 자동 작성할지(읽기전용이라 사람이 게시).
+- **Select 필터** → **`planned=guava & status=Handover` 전체**(카테고리 무관 — readiness 검사는 SQL 제한 불필요). QA Assignee는 이 시점 미설정이라 쓰지 않음.
+- **hygiene(C3/C5/C6)** → **경고 유지**(차단 안 함). 실제 Handover가 대개 미기입이라 차단하면 전부 탈락.
+- **반려 산출물** → NOT-READY 시 **반려 Jira 코멘트 초안까지 작성**(사람이 검토·게시, 읽기전용).
+- **fix 실행검증** → **범위 밖 유지**(후속 옵션). repro 재실행(fixed 빌드)은 tc-author 로컬검증 인프라를 재사용해 CBRD-27052처럼 "fix가 실제론 미해결"인 케이스를 잡는 향후 확장.
+
+## 남은 리스크
+
 - **판정 주관성**: test-plannability는 정성 판단 → fresh-context 리뷰/근거 패킷으로 보강(tc-author Review 방식 차용).
-- **fix 실행검증(범위 밖)**: 원하면 후속에 repro 재실행(fixed 빌드)으로 실제 해결까지 확인 — tc-author 로컬검증 인프라 재사용. CBRD-27052처럼 "fix가 실제론 미해결"인 케이스를 잡음.
+- **hygiene 승격 시점**: 조직이 p18 필드를 Handover에서 실제로 강제하면 경고→차단 재검토.
 
 ## PoC 이후로 미룬 것
 
