@@ -55,6 +55,7 @@ These directives are how CTP and reviewers read your intent. Skipping them chang
 |---|---|---|
 | `evaluate 'Case N: ...'` | label each scenario | sole section marker CTP echoes into the answer; number sequentially |
 | `--+ server-message on` / `off` | PL/CSQL `DBMS_OUTPUT`, or asserting an error *message* (not just the code) | adds message text to the diff (only if `System.xml errorMessage=false`); plain SQL error tests conventionally omit it and assert the `-NNN` code alone; pair on/off when used |
+| `SET TRACE ON` / `OFF` | plan/trace assertions | pair on/off — trace left on leaks into later cases; turn it off once trace checks end |
 | `DROP TABLE IF EXISTS t` before `CREATE` | every table | keeps the test re-runnable |
 | empty `cbrd_XXXXX.queryPlan` sidecar | optimizer/plan tests | tells CTP to capture and diff the query plan |
 | `cubrid-sql-tc-verify` | generating `.answer` | only sanctioned source of expected output |
@@ -62,11 +63,12 @@ These directives are how CTP and reviewers read your intent. Skipping them chang
 ## Writing rules
 
 - **`evaluate 'Case N: description'`** before each scenario; this is the *only* section marker — do not add `-- === ...` style comment banners.
-- **`server-message` is not the default for error tests.** A plain SQL error case asserts the `-NNN` code alone (no `server-message`) — the corpus norm, and enough to catch regressions. Use `--+ server-message on/off` (paired) only for PL/CSQL `DBMS_OUTPUT`, or when you must pin the exact error *message* text (brittle to rewording).
+- **`server-message` is not the default for error tests.** A plain SQL error case asserts the `-NNN` code alone (no `server-message`) — the corpus norm, and enough to catch regressions. Use `--+ server-message on/off` (paired) only for PL/CSQL `DBMS_OUTPUT`, or when you must pin the exact error *message* text (brittle to rewording). The same on/off pairing applies to `SET TRACE` — turn it off once its checks end so trace output doesn't leak into later cases (a frequent review nit).
 - **`DROP TABLE IF EXISTS` before every `CREATE TABLE`**, setup at top, cleanup at bottom. Keep setup minimal with simple names (`tbl1`, `col1`).
 - **Make each file self-contained — the full suite shares ONE database.** CI/regression creates the DB once and runs every SQL case in it back-to-back, so uncleaned state leaks into later tests. Undo everything at cleanup: `DROP TABLE IF EXISTS` (also at top), `deallocate prepare <name>` for any `prepare`, restore any `SET SYSTEM PARAMETERS`, drop any temp serial/view/procedure created.
-- **Keep the answer deterministic.** Output that varies run-to-run breaks the diff: `EXECUTE … USING {collection}` renders as `[Ljava.lang.Integer;@<hash>` (a Java object id), and OIDs, timestamps, and unordered result sets drift too. Return scalars, assert errors, or add `ORDER BY`; never bake a hash/OID/timestamp into a `.answer`.
+- **Keep the answer deterministic.** Output that varies run-to-run breaks the diff: `EXECUTE … USING {collection}` renders as `[Ljava.lang.Integer;@<hash>` (a Java object id), and OIDs, timestamps, and unordered result sets drift too. Return scalars, assert errors, or add `ORDER BY` — **any SELECT that can return more than one row needs an explicit `ORDER BY`** (the single most repeated review nit); never bake a hash/OID/timestamp into a `.answer`.
 - **Make the test actually exercise the fixed code path — a green test that never hits the fix is worthless.** A test can pass deterministically while running a *different*, unaffected path. Identify the path the fix touches and force the TC down it, then confirm with `cubrid-sql-tc-verify` (query plan / trace). Example: the offline **parallel** index build (`btree_sort_get_next_parallel`) is taken only by a plain `CREATE INDEX` when `parallelism`≥2 (default 4) **and** the table has ≥ `parallel_sort_page_threshold` heap pages (default 2048) — `WITH ONLINE PARALLEL` is a *different* (online) path. So size the data to clear the threshold (~2M rows here), don't just copy a small repro that runs serial under the default config.
+- **Cover boundaries and the negative side, not just the issue's exact repro — this is the #1 review ask.** Reviewers most often reply "please add this scenario." For every positive case add its negative/error counterpart; test just-below / at / just-above any limit; and cover the paths the fix affects beyond the one literal repro line. A test that only replays the single repro almost always comes back with case-addition requests (extra round-trip).
 - **Expected values live in the `.answer`, judged by CTP's diff — never compute pass/fail in the `.sql`.** Emit the raw result (a count, a row, an `Error:-NNN`); do **not** wrap it in `CASE … 'OK'/'FAIL'`, and do **not** put the expected value in a comment. The generated `.answer` is the single source of the expected result; scenario labels go in `evaluate '...'` (echoed into the answer), not in `--` comments.
 - **Language: `.sql` comments and commit messages are English; only the PR body is Korean** (user-perspective), per CUBRID repo convention.
 - **Simple, distinct data values** so answer diffs read cleanly; explicit column lists in `INSERT` when it aids readability.
@@ -78,7 +80,7 @@ These directives are how CTP and reviewers read your intent. Skipping them chang
 These match what the corpus and reviewers expect. See `@examples/` for full files.
 
 - **Header block** — start every file with `/** This test case verifies CBRD-XXXXX: <title> */` followed by a numbered `Coverage:` list.
-- **Query-plan test** — drop an empty `cbrd_XXXXX.queryPlan` beside the `.sql`; CTP then captures the optimizer plan into the answer.
+- **Query-plan test** — drop an empty `cbrd_XXXXX.queryPlan` beside the `.sql`; CTP then captures the optimizer plan into the answer. **Pin the plan against optimizer flakiness:** when two indexes tie on cost the optimizer can pick differently run-to-run, so add a decisive index or `UPDATE STATISTICS` (or fix the index set) so the chosen plan is stable across runs — otherwise the plan diff flakes.
 - **Parameter change (rare)** — `SET SYSTEM PARAMETERS 'k=v';` then restore the original value at the end of the test.
 - **`holdcas` (rare)** — wrap transaction-sensitive scenarios in `--+ holdcas on;` … `--+ holdcas off;`.
 
@@ -94,14 +96,16 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 - Header block present with CBRD number and `Coverage:`?
 - `evaluate 'Case N: ...'` on every scenario, numbered, no `-- ===` banners?
 - `DROP TABLE IF EXISTS` before each `CREATE TABLE`? Cleanup at bottom?
-- `server-message` used only for PL/CSQL or message-text assertions — plain SQL errors assert the `-NNN` code alone — and paired on/off when present?
+- `server-message` used only for PL/CSQL or message-text assertions — plain SQL errors assert the `-NNN` code alone — and paired on/off when present? `SET TRACE` turned off after its checks?
+- Every multi-row SELECT has an explicit `ORDER BY`?
+- Covers boundary and negative/error cases, not just the literal repro (the most common review ask)?
 - Fully self-contained? Every `prepare` deallocated, every `SET SYSTEM PARAMETERS` restored, every created object dropped at cleanup (the suite shares one DB)?
 - Answer free of non-deterministic tokens (object hashes/OIDs, timestamps, unordered rows)?
 - **Does the test actually exercise the fixed code path** (not just pass)? Confirmed via plan/trace, and data sized to trigger it (e.g. parallel path needs ≥2048 heap pages)?
 - Checked the corpus for existing coverage — not a duplicate of an existing test?
 - Expected results live only in the `.answer` (no `CASE … 'OK'/'FAIL'` verdict in SQL, no expected values in comments)?
 - Comments and commit message in English (PR body Korean)?
-- `.queryPlan` sidecar present for optimizer tests?
+- `.queryPlan` sidecar present for optimizer tests, and the plan pinned against optimizer tie/flakiness (decisive index or updated stats)?
 - `.answer` generated via `cubrid-sql-tc-verify` (not hand-written), or left empty with a handoff note?
 - Dir/basename correct? Right `_{yy}_{1|2}h` bucket, shared `cases/`+`answers/`?
 
