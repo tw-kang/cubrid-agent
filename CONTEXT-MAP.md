@@ -4,7 +4,7 @@ cubrid-agent는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이�
 
 ## Contexts (에이전트)
 
-- [resolve-gate](./agents/resolve-gate/) — **Handover→Resolved** ("Accept the fix"): 개발자 fix를 Resolved로 받기 전 완결성 게이트. (설계 전)
+- [resolve-gate](./agents/resolve-gate/) — **Handover→Resolved** ("Accept the fix"): 개발자 fix를 Resolved로 받기 전 **QA-readiness(테스트 플랜 작성 가능성)** 게이트. (설계 v0)
 - [tc-author](./agents/tc-author/) — **Resolved→Test** ("Start Test"): 이슈 fix에 대한 CTP 테스트케이스 산출물 생성. (PoC 진행 중, 1호 완료)
 - [test-runner](./agents/test-runner/) — **Test→Tested** ("Verify"): TC/회귀 실행·검증. (설계 전)
 - [close-backport](./agents/close-backport/) — **Tested→Closed / Backport** ("Close" / "Need Backport"): 종결 또는 백포트. (설계 전)
