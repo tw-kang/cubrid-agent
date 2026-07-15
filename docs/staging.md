@@ -12,6 +12,8 @@
 
 핵심: Stage 2는 "배포"가 아니라 PoC 로컬 흐름을 **팀이 재현하도록 패키징**한 것. 인프라(k8s·GlusterFS·CronJob)는 전부 Stage 3. Stage 2가 더하는 것은 **품질 게이트의 강제화**(hook)와 **CCI 교차**, 그리고 **팀 셋업 문서/스킬**이다.
 
+**에이전트 배포 우선순위**(2026-07-16 지정): ① **resolve-gate · tc-author · tc-reviewer** — PR 생성~머지 구간을 커버, 팀이 바로 쓸 3종 → ② **test-runner** — 머지 후 qaresu 회귀 판독 → ③ **close-backport** — 종결/백포트. test-runner는 판독형이라 PR 머지 후에야 동작하고, close-backport는 종결 단계라 뒤로 둔다. 1순위 3종을 먼저 Stage 2(팀 수동 트리거) 가능 상태로 만든다.
+
 ## Stage 2 설계 (팀내 수동 트리거)
 
 > 상세 구현 스펙(오케스트레이터·manifest·hook·셋업·CCI): [stage2-design.md](./stage2-design.md). 아래는 요약.
