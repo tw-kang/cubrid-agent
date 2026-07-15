@@ -1,6 +1,6 @@
 # resolve-gate (Handover → Resolved)
 
-**상태: 설계 v1 + guava Handover pool 27건 전수 PoC 검증 (2026-07-16). 구현 전.**
+**상태: 설계 v1 + PoC 검증 + Stage 2 게이트 스킬 구현 (2026-07-16). 구현체 `.claude/skills/resolve-gate/`.**
 
 역할: 개발자가 Handover한 fix를, QA가 Resolved로 받기("Accept the fix") 전에 심사하는 **평가형 게이트** 에이전트. tc-author(생성형)와 달리 산출물을 만들지 않고 **판정(권고)** 을 낸다.
 

@@ -91,6 +91,15 @@ resolve-gate의 `READY` = tc-author Select의 입력 품질 보장. tc-author의
 - **판정 주관성**: test-plannability는 정성 판단 → fresh-context 리뷰/근거 패킷으로 보강(tc-author Review 방식 차용).
 - **hygiene 승격 시점**: 조직이 p18 필드를 Handover에서 실제로 강제하면 경고→차단 재검토.
 
+## 구현 (Stage 2 게이트 스킬)
+
+오케스트레이션을 [`.claude/skills/resolve-gate/`](../../.claude/skills/resolve-gate/)로 스킬화(팀 git 공유, Stage 2). 이 에이전트의 첫 구현 산출물.
+- **SKILL.md**: Select(cubrid-jira 배치 read) → 성격 분류(버그/기능) → C0~C6 판정 → gate report + 반려 초안. 검사 기준·이원화·러너 태그·반려 템플릿·오탐 회피(확인형 반려)를 실행 지침으로 임베드.
+- **examples/verdicts.md**: 27건 PoC 판정 few-shot(READY+러너 태그, NOT-READY 반려 초안 4종).
+- 읽기전용이라 hook 하드게이트 불요, 셋업은 cubrid-jira 인증뿐(로컬 CTP·빌드 없음) → tc-author보다 가벼운 Stage 2.
+- **검증**: JQL 배치 read가 실 pool에 동작(27건) 확인. 판정 로직은 PoC(fork)에서 검증됨.
+- **남은 것**: 팀 셋업 문서(cubrid-jira 인증 가이드), 자동 게시·전이(Stage 3).
+
 ## PoC 이후로 미룬 것
 
 Jira 자동 전이·코멘트(Stage 3), fix 실행검증, 하드 게이트 hook(Stage 2 resolve-next류 오케스트레이션), 무인 스케줄.
