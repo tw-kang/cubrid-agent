@@ -27,7 +27,7 @@ Tested   ─[close-backport: Close / Need Backport]→ Closed / Backport
 
 ## 공유 (시스템 전역)
 
-- [docs/design-principles.md](./docs/design-principles.md) — 전 에이전트 공통 설계 원칙(DP1 병렬 실행; **DP2 사용자 관점·블랙박스 테스트** — TC·시나리오는 내부 구현이 아닌 관측 동작 기준. '사용자'=DBA 수준 전문가라 플랜·카탈로그·statdump는 블랙박스 안, C 내부는 제외).
+- [docs/design-principles.md](./docs/design-principles.md) — 전 에이전트 공통 설계 원칙(DP1 병렬 실행; **DP2 사용자 관점·블랙박스 테스트** — TC·시나리오는 내부 구현이 아닌 관측 동작 기준. '사용자'=DBA·DB engineer 전문가라 플랜·카탈로그·statdump는 블랙박스 안, C 내부는 제외. 관측 수단은 카테고리별(SQL→shell 등 확장 예정)).
 - [docs/staging.md](./docs/staging.md) — 롤아웃 3단계 모델(PoC / Stage 2 팀 수동 트리거 / Stage 3 무인 자동), 전 에이전트 공통.
 - [docs/adr/](./docs/adr/) — 시스템 전역 ADR.
 - [docs/handover/](./docs/handover/) — 외부 핸드오버 재료(v1 배포 설계, v2 TC 작성).
