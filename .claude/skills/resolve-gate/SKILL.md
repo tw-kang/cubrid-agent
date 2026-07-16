@@ -1,100 +1,94 @@
 ---
 name: resolve-gate
-description: "Gate a CBRD Handover issue for QA-readiness before it moves to Resolved (\"Accept the fix\") — run by the developer as a self-check on their own fix. Judges whether the issue's content (description + comments + attachments) lets QA write a test plan (test-plannability), then emits READY / NOT-READY plus a self-remediation checklist. Use whenever someone says \"resolve-gate 돌려줘\", \"handover 판정해줘\", \"내 이슈 Resolved로 올려도 되나\", \"QA readiness 심사\", \"Handover pool 게이트\", \"resolve gate\", even without the exact word. Read-only: it drafts a checklist and a report; the developer fixes gaps (who performs the Handover->Resolved transition, check-in-fix, is TBD). NOT for: writing testcases (cubrid-*-tc-create), running tests, executing the fix, or performing Jira status transitions itself."
+description: "Review a Resolved CBRD issue (a QA to-do) for QA-readiness and bounce back the ones QA can't turn into a test plan, via the 'Need Something' transition (Resolved->Handover). Run by QA. Two axes: (1) necessity — re-judge the QA Scenario field (a developer's 'Not Required' can be overturned by QA); (2) plannability — can a test plan be written from the content. Use whenever someone says \"resolve-gate 돌려줘\", \"Resolved 검토\", \"QA to-do 점검\", \"테스트 플랜 못 짜는 이슈 반려\", \"Need Something 반송\", even without the exact word. Read-oriented: drafts a report + rejection comments; Jira writes (field change, transition) are staged. NOT for: writing testcases (cubrid-*-tc-create), running tests, executing the fix, or the Check-in Fix (Handover->Resolved, which the developer does)."
 ---
 
-# resolve-gate — QA-readiness gate (Handover → Resolved)
+# resolve-gate — Resolved QA-readiness gate
 
-**Run by the developer** on their own fix before moving it to Resolved — a self-check that the issue's content lets QA write a test plan (chiefly the **description**, plus **comments and attachments**). This is the gate in front of tc-author: a `READY` verdict means tc-author's Ground will have material to work with.
+Review **Resolved (= QA to-do) issues** and **bounce back the ones QA can't turn into a test plan** to Handover via the `Need Something` transition. Passing issues continue to the tc-author stage. Run by **QA**.
 
-**Read-only.** You produce a gate report + a self-remediation checklist (what to fix before Resolved). The developer reviews and fixes the gaps. resolve-gate itself does **not** transition — and **who performs the actual Handover→Resolved transition (check-in-fix) is not yet decided (TBD 2026-07-17)**; the developer running this self-check is a separate matter. Do **not** write to Jira or run the fix.
-
-Design rationale and the 27-issue PoC that validated these criteria: `agents/resolve-gate/DESIGN.md` and `agents/resolve-gate/reports/poc-guava-handover.md`.
+Design + the transition map that grounds this: `agents/resolve-gate/DESIGN.md`. (v2 redefinition 2026-07-16 — v1 was a Handover→Resolved gate.)
 
 ## Scope
 
-**Produces:** a gate report — per issue `READY` (accept-recommended, with a suitable-runner tag) or `NOT-READY` (reject-recommended, with a rejection-comment draft).
+**Produces:** a gate report — per issue 통과(Start Test candidate) / 반송(Need Something) / 스킵(not needed), with a rejection-comment draft for 반송. Jira writes (QA Scenario field change, transition) are **staged** (see matrix).
 
-**Does NOT:** write to Jira (drafts only), transition status, run the fix / repro, use local CTP or a CUBRID build, or write testcases.
+**Does NOT:** write testcases, run the fix, use CTP/build, or do Check-in Fix (Handover→Resolved — the developer does that).
 
 ## Before you start
 
-- **cubrid-jira CLI installed + authenticated** (netrc). Sanity check: `cubrid-jira search CBRD-27052`. If it errors, stop and tell the user to authenticate.
-- **No CTP / CUBRID build needed** — fix execution is out of scope (verifying that the fix actually works is a future option, not this gate).
-- cubrid-jira usage notes worth remembering: batch read with `--output json`; `assignee.name` (login, e.g. `vimkim`) not `displayName`; `comment-list` truncates bodies (use a library GET for full comment text if needed).
+- cubrid-jira installed + authenticated. Sanity: `cubrid-jira search CBRD-XXXXX`.
+- No CTP / CUBRID build needed.
+
+## Two-axis judgment
+
+Each Resolved issue is judged on two axes:
+
+1. **Necessity — QA Scenario re-judgment.** The QA Scenario field (`cf[210565]`) is the developer's draft; QA re-judges it. A developer's **`Not Required` can be overturned** if QA sees a test is needed → treat as needed. Don't blindly skip Not Required.
+2. **Plannability — test-plannability.** If needed, can a test plan be written from description + **comments + attachments**? Bug/feature bifurcation (C0~C6), regression/core attached-TC exception.
+
+**Outcome → transition:**
+- **needed + plannable** → 통과: `Start Test` (→Test, tc-author stage). Set QA Scenario to Required per stage if re-judged.
+- **needed + NOT plannable** → **반송: `Need Something` (→Handover)** + rejection comment (the missing pieces).
+- **not needed (QA agrees)** → skip (not a test target).
 
 ## Pipeline
 
 ```
-Select (batch read) → Classify (bug vs feature) → Judge (C0~C6) → Gate report + rejection drafts
+Select (stage-scoped) → Necessity → Plannability → Transition + report
 ```
 
-## 1. Select — batch read the pool
+## 1. Select (stage-scoped)
 
-**Primary use** — the developer runs it on their own issue, the fix they're about to move to Resolved: `/resolve-gate CBRD-XXXXX`. Fetch its body, comments, and attachments:
+- **PoC**: `project = CBRD AND cf[210441] = guava AND status = Resolved AND cf[213834] = twkang` (QA assignee = twkang).
+- **팀내/자동화**: `project = CBRD AND cf[210441] = guava AND status = Resolved`.
+- Single issue: `/resolve-gate CBRD-XXXXX`.
 
-```
-cubrid-jira search CBRD-XXXXX
-# or, for structured fields incl. comments/attachments:
-cubrid-jira jql "project = CBRD AND key = CBRD-XXXXX" \
-  --fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565 --output json
-```
+Batch read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee --output json`. `cf[210441]`=Planned Version(guava), `cf[210565]`=QA Scenario, `cf[213834]`=QA Assignee. **Read comments + attachments** (regression/core repro lives there).
 
-**Secondary use (QA/admin batch)** — scan the whole pool in one call:
+## 2. Necessity — QA Scenario re-judgment
 
-```
-cubrid-jira jql "project = CBRD AND cf[210441] = guava AND status = Handover ORDER BY updated DESC" \
-  --fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee --output json
-```
+- `Not Required` + QA sees a test is needed → treat as **needed** (승격); QA Scenario should become Required (per stage: propose vs write).
+- `Required` / `Not Yet` → needed.
+- `Not Required` + QA agrees it's unneeded → **skip** (not a test target).
 
-- `cf[210441]` = Planned Version (guava), `cf[210565]` = QA Scenario.
-- **Read comments and attachments, not just the description** — regression/core issues carry their repro info and the failing/core-triggering testcase there (see C1). `comment-list` truncates bodies; use a library GET for full comment text if a comment looks load-bearing.
+## 3. Plannability — test-plannability (C0~C6)
 
-## 2. Classify — bug vs feature (critical; the PoC's key finding)
-
-Split by `issuetype` **before** judging:
-
-- **Correct Error** → **bug**
-- everything else (Improve Function / Sub-task / Development Subject / Internal Management …) → **feature**
-
-Why this matters: the blocking criteria are bug-shaped (repro + Expected/Actual). Applying them to feature issues misjudged ~85% (23/27) of the real pool. The original dry-run happened to be all bugs, which hid the bias.
-
-## 3. Judge — blocking criteria (test-plannability)
-
-Blocking = decides READY/NOT-READY. Apply the set that matches the issue kind:
+Bifurcate by `issuetype`: **Correct Error=bug**, else=feature.
 
 | Kind | Blocking criteria |
 |---|---|
-| **Bug** | **C1 Repro self-contained** — repro steps/script present and runnable as-is (no missing schema/data, no typos). **Regression/core exception:** if the testcase that triggered the core / regression fail is **attached** to the issue (often referenced in a comment), that TC *is* the repro — no separate reproduction step needed. Check comments + attachments, not just the description. **C2 Expected/Actual** — post-fix expected + pre-fix bug behavior; for regression/core, "that attached TC fails now → passes after the fix" is the Expected/Actual. |
-| **Feature** | **C1′ Spec concreteness** — Specification Changes are concrete (I/O, error conditions, examples). **C2′ AC verifiability** — Acceptance Criteria are observable and specific enough for QA to derive cases. |
+| **Bug** | **C1 Repro self-contained** (runnable as-is). *Regression/core exception:* if the TC that triggered the core/regression fail is **attached** (often referenced in a comment), that TC *is* the repro — no separate repro step. **C2 Expected/Actual** (post-fix + pre-fix; for regression/core, "attached TC fails → passes after fix"). |
+| **Feature** | **C1′ Spec concreteness** (I/O, error conditions, examples). **C2′ AC verifiability** (observable, specific enough to derive cases). |
 
-**C0 (both kinds):** can QA write a test plan from the description alone? Include **abstract-AC detection** as an explicit fail signal — "must not cause problems", "no performance regression", "verify with various scenarios" are the top NOT-READY reason for feature issues.
+**C0 (both):** can QA write a test plan from the content? Abstract AC ("must not cause problems", "no perf regression", "various scenarios") is the top 반송 reason for features.
 
-Warnings (report, don't block) — handover hygiene: **C3 Fixed version · C5 QA Scenario · C6 Need Manual · C4 spec/config reflected.** C3 is noisy — at Handover the merge version is often undecided (PoC: 25/27 blank), so keep C3 low-priority and revisit it after Resolved.
+**Warnings (report, don't bounce):** C3 Fixed version · C5 QA Scenario · C6 Need Manual · C4 spec reflected. **C6 manual is warning-only** — the manual is often written *after* Resolved, so a missing manual does not bounce the issue.
 
-**QA Scenario = Not Required:** judge but tag "TC 미대상"; don't block (a test plan isn't going to be written anyway).
+## 4. Transition + report + rejection draft
 
-## 4. Gate report + rejection drafts
+- **통과** → `Start Test` (PoC/팀내: propose; 자동화: auto-run + trigger tc-author).
+- **반송** → `Need Something`: `cubrid-jira transition <KEY> --to "Need Something" --yes` (PoC/팀내: draft + manual; 자동화: auto). Rejection comment in Korean, to the developer.
 
-**READY** → attach a suitable-runner tag: `SQL` / `shell` / `CCI` / `perftool`. A `READY` issue can still be observable only outside SQL (CCI/JDBC, performance, statdump, internal storage) — tag it so downstream tc-author (SQL-only) doesn't pick it up in vain.
+Transition map (2026-07-16 실측): **Need Something→Handover** (반송), **Start Test→Test** (통과), Assign QA→Resolved(제자리), QA Not Satisfied→Confirmed(fix 부적절, 범위 밖), Ask Reconfirmation→Open(범위 밖).
 
-**NOT-READY** → produce a **self-remediation checklist**: what the developer must fix before moving the issue to Resolved (Korean, user-facing perspective — describe the gap, not code). The developer runs this on their own issue, so it's a self-check, not a call to someone else. Template:
-
+반송 코멘트 템플릿:
 ```
-[resolve-gate] 이 이슈는 Resolved로 올리기 전에 보완이 필요합니다 (QA가 검증 시나리오를 짤 수 있도록).
-- 내용: {C0~C2 (버그) 또는 C1'~C2' (기능) 중 무엇이 왜 부족한지 — repro 자기완결/Expected·Actual/추상 AC 등, 구체적으로}
-- 필드: {Fixed version·QA Scenario 등 미기입 항목 (경고)}
+[resolve-gate] 현재 내용으로는 QA가 테스트 플랜을 짤 수 없어 Handover로 되돌립니다 (Need Something).
+- 부족: {C0~C2(버그) 또는 C1'~C2'(기능) 중 무엇이 왜 — repro 자기완결/Expected·Actual/추상 AC 등, 구체적으로}
+- (필드: Fixed version 등 미기입 — 경고)
+@{개발자 assignee} 위 내용을 보완해 주시면 다시 검토하겠습니다.
 ```
+**Avoid false positives:** a repro "typo" can be the intended input for a line-accuracy bug (PoC CBRD-26909) — ask "is this intended?", don't auto-bounce.
 
-(다른 개발자의 이슈를 점검하는 경우에만 `@{fields.assignee.name}`으로 확인 요청을 붙인다.)
+## Stage matrix
 
-**Avoid false positives:** treat a repro "typo" as a **question, not a defect** — for a line-accuracy bug it can be the intended test input (PoC: CBRD-26909). Flag it for the developer to confirm, don't auto-fail.
+| | Select 범위 | QA Scenario 변경 | 전이 실행 | 통과분 |
+|---|---|---|---|---|
+| **PoC (Stage 1)** | assignee=twkang | 제안만 | 수동(초안) | 반송만 |
+| **팀내 배포 (Stage 2)** | guava Resolved 전체 | 제안만(수동) | 수동 | 반송 |
+| **자동화 (Stage 3)** | guava Resolved 전체 | 직접 변경 | 자동 전이 | tc-author 트리거(Start Test) |
 
 ## Output
 
-Write the gate report to `agents/resolve-gate/reports/resolve-gate-<date>.md` (gitignore). Sections: query + count; per-issue verdict table (key · summary · kind · C-criteria basis · READY/NOT-READY · runner tag · hygiene warnings); self-remediation checklist for each NOT-READY; stats (READY/NOT-READY ratio). Checklists stay in the report — **do not auto-post to Jira** (PoC). The developer reads the checklist, fixes the gaps, then moves the issue to Resolved.
-
-## Staging
-
-- **PoC (now):** the developer reads the checklist and fixes gaps; the skill drafts only (no Jira write). Who performs the Handover→Resolved transition (check-in-fix) is TBD (2026-07-17).
-- **Later:** optional auto-post of the checklist to the issue, then automated transition (Stage 3). Draft-first rollout mirrors tc-author, so a false positive never lands on the issue prematurely.
+Write the report to `agents/resolve-gate/reports/resolve-gate-<date>.md` (gitignore): query + count; per-issue table (key · summary · kind · necessity · plannability basis · 통과/반송/스킵 · runner tag · warnings); rejection drafts for 반송; stats. In PoC/팀내, transitions and comment posting are done by a human — the skill drafts only.

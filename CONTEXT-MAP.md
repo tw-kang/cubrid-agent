@@ -4,7 +4,7 @@ cubrid-agent는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이�
 
 ## Contexts (에이전트)
 
-- [resolve-gate](./agents/resolve-gate/) — **Handover→Resolved** ("Accept the fix"): 개발자 fix를 Resolved로 받기 전 **QA-readiness(테스트 플랜 작성 가능성)** 게이트. (설계 v1 + PoC 검증 + **Stage 2 게이트 스킬 구현** — [`.claude/skills/resolve-gate/`](./.claude/skills/resolve-gate/))
+- [resolve-gate](./agents/resolve-gate/) — **Resolved 검토 (QA-side 게이트)**: Resolved(=QA to-do) 이슈를 QA가 ①필요성 ②작성가능성 2축으로 검토 → 테스트 플랜 불가 이슈를 **Need Something(→Handover) 반송**, 통과분은 tc-author로. Check-in Fix(Handover→Resolved)는 개발자 몫(범위 밖). (v2 재정의 + Stage 2 스킬 — [`.claude/skills/resolve-gate/`](./.claude/skills/resolve-gate/))
 - [tc-author](./agents/tc-author/) — **Resolved→Test** ("Start Test"): 이슈 fix에 대한 CTP 테스트케이스 산출물 생성. (PoC 1·2호 완료 — CBRD-25913·26799, Draft PR #3041·#3049 리뷰 대기)
 - [tc-reviewer](./agents/tc-reviewer/) — **PR 리뷰 (횡단)**: cubrid-testcases의 sql TC PR(사람·봇 무관)을 3층(컨벤션/마이닝된 도메인 관점/실행)으로 심사 → 권고 판정 + 리뷰 초안. 상태 전이가 아니라 PR 머지 구간의 리뷰어 병목을 줄이는 첫 리뷰어. (설계 v1 + 5년 마이닝·백테스트 검증 완료, 구현 전)
 - [test-runner](./agents/test-runner/) — **Test→Tested** ("Verify"): 머지된 신규 TC가 야간 회귀(qaresu DB)에서 **연속 2일 안정 PASS** 하는지를 baseline 델타로 판독 → Tested 승격 권고. 회귀는 직접 안 돌리고 결과만 읽는 판독형. (설계 v1)
@@ -14,10 +14,11 @@ cubrid-agent는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이�
 
 ```
 # Dev 팀 (우리 범위 밖): Open → Confirmed → Analysis → Develop → Handover
-Handover ─[resolve-gate: Accept the fix]→ Resolved
-         ─[tc-author: Start Test]→ Test
-         ─[test-runner: Verify]→ Tested
-         ─[close-backport: Close / Need Backport]→ Closed / Backport
+Handover ─[Check-in Fix: 개발자]→ Resolved (QA to-do)
+Resolved ─[resolve-gate: QA 검토]→ ┬ 통과 ─[tc-author: Start Test]→ Test
+                                    └ 부적격 ─[Need Something]→ Handover (반송)
+Test     ─[test-runner: Verify]→ Tested
+Tested   ─[close-backport: Close / Need Backport]→ Closed / Backport
 ```
 
 각 에이전트는 앞 상태/산출물을 입력으로, 다음 상태로의 전이를 출력으로 한다. 이슈 키(`cbrd_xxxxx`)가 에이전트 간 조인 키. 공식 상태·전이·운영 규칙(Description/Handover/Merge/Backport)은 [docs/handover/dev-process-v2.4.md](./docs/handover/dev-process-v2.4.md).

@@ -2,8 +2,9 @@
 
 Few-shot for the skill: how each issue kind maps to a verdict, runner tag, and remediation draft. Full source: `agents/resolve-gate/reports/poc-guava-handover.md`.
 
-> **실행 주체 = 개발자(self-check).** 아래 NOT-READY 초안은 개발자 본인이 Resolved로 올리기 전 보완할 체크리스트다 — `@멘션`은 **다른 개발자의 이슈를 점검하는 경우에만** 붙인다(본인 이슈면 생략).
-> **regression/core 예외:** core나 regression fail을 유발한 TC가 이슈에 첨부돼 있으면 그 TC가 repro이므로 별도 repro step 없이 READY. 이런 이슈는 description뿐 아니라 comment·첨부까지 확인한다(CBRD-27052 참조).
+> **v2 재정의: 실행 주체 = QA, 대상 = Resolved(QA to-do).** 아래 "NOT-READY"는 QA가 `Need Something`(→Handover)로 되돌리는 **반송**이며, 초안은 개발자에게 보낼 부족분 코멘트다(개발자 assignee @멘션). "READY"는 통과 → `Start Test`(→Test, tc-author).
+> **regression/core 예외:** core나 regression fail을 유발한 TC가 이슈에 첨부돼 있으면 그 TC가 repro이므로 별도 repro step 없이 통과. description뿐 아니라 comment·첨부까지 확인한다(CBRD-27052 참조).
+> (아래 예시의 판정 로직은 v1 Handover PoC에서 뽑았지만 test-plannability 기준은 대상과 무관하게 그대로 유효하다. v2 Resolved pool 재검증은 예정.)
 
 ## READY (accept-recommended + runner tag)
 
