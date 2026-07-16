@@ -40,8 +40,8 @@ QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재
   → 즉 crash/core라고 무조건 승격이 아니라, comment·첨부로 "누가·어떻게 발견했나"를 확인한다. **또한 fix가 동작 변화 없는 debug-only assert 조건 추가·내부 리팩터링이면 SQL TC 대상이 아니다** — release 동작이 불변이라 사용자 관측 변화가 없고, debug 빌드 회귀가 assert를 커버한다.
   - **재판정 사례 — CBRD-26888**: PoC에서 core라는 이유로 승격했으나 **재확인 결과 Not Required**. comment 전문 확인 결과 fix가 `object_primitive.c:9386`의 debug assert 조건만 추가(개발자 명시 "동작 변화 없음", release 정상)라, SQL TC로 검증할 사용자 동작 변화가 없고 debug 빌드 회귀가 assert를 커버한다. '발견 경로 + 동작 변화'를 보면 PoC의 core=승격은 과승격이었다.
 
-**② 작성 가능성 — test-plannability** (v1 로직 유지)
-필요하다고 본 이슈가 내용으로 테스트 플랜을 짤 수 있는가. 이슈 성격 이원화(버그 C1/C2 · 기능 C1′/C2′) + C0 종합(추상 AC 감지) + regression/core 첨부TC 예외 + hygiene 경고. 상세는 아래 '검사 기준'.
+**② 작성 가능성 — test-plannability** (v1 로직 유지, [DP2](../../docs/design-principles.md) 블랙박스)
+필요하다고 본 이슈가 내용으로 **사용자 관점 블랙박스** 테스트 플랜을 짤 수 있는가 — 내부 assert·코드 경로가 아니라 입력→관측 동작(결과·에러·메시지)으로. 이슈 성격 이원화(버그 C1/C2 · 기능 C1′/C2′) + C0 종합(추상 AC 감지) + regression/core 첨부TC 예외 + hygiene 경고. 상세는 아래 '검사 기준'.
 
 ## 판정 → 전이
 
