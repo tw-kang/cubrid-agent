@@ -62,3 +62,6 @@ AC 절반이 성능(CPU%)이라 SQL TC 부적합 → perftool. 단 "결과 동�
 ### CBRD-26255 (sub-task, Connection Pool 재설계) — 반송 취소
 부모 **CBRD-26177 [EPIC]**(동시성/성능, connection·worker) 아래 형제 sub-task **26421(검증 케이스들 추가)**·26523(HA 테스트케이스)이 이 EPIC의 테스트를 담당한다. 구현 sub-task 26255를 개별 반송하면 개발자가 다시 Resolved로 올려 **핑퐁** → **반송하지 않고 스킵**(테스트는 26421이 커버). v2 PoC에서 "추상 성능 AC"로 반송했으나 sub-task 가드로 재판정. → **반송 결정 전 부모+형제 sub-task를 확인하라**(TC/검증 담당 형제가 있으면 구현 sub-task는 반송 X).
 
+### CBRD-26701 (sub-task, worker pool 변경) — 스킵(refactoring 부모)
+부모 **CBRD-26653 [리팩토링] Thread manager refactoring**의 7 sub-task는 전부 내부 리팩토링이고 검증 담당 sub-task가 없다. refactoring은 동작 무변 → 기존 regression 통과로 충분(신규 TC 불필요) → 26701 등 전부 Not Required. 26177(성능, 검증 sub-task 26421 有)과 대조 — **부모 issuetype + 검증 sub-task 유무가 판정을 가른다**(성능/기능 부모=검증 형제가 커버, refactoring 부모=전부 Not Required).
+
