@@ -46,7 +46,7 @@ QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재
 ## 판정 → 전이
 
 - **필요 + 작성가능** → 통과. `Start Test`(→Test)로 tc-author 단계 진행. (필요성 재판정으로 QA Scenario를 Required로 바꿔야 하면 D6 단계에 따라 변경/제안.)
-- **필요 + 작성불가** → **반송 전 sub-task 가드** 후 `Need Something`(→Handover) 반송. **이슈가 sub-task면 부모+형제 sub-task를 먼저 확인** — 형제 중 TC/시나리오 작성을 담당하는 sub-task가 있으면 그 형제가 테스트를 커버하므로 **반송하지 않는다**(이 sub-task는 스킵/통과 처리). 개별 sub-task만 보고 반송하면 개발자가 다시 Resolved로 올려 **status 왕복(핑퐁)**이 생긴다. 형제에 TC 담당이 없고 작성도 불가일 때만 반송하며, 부족분(repro 자기완결·Expected/Actual·추상 AC 등)을 코멘트로. (v2 PoC의 26421 "검증 케이스들 추가"는 이 가드로 재검토 대상 — TC 작성 담당 sub-task일 수 있음.)
+- **필요 + 작성불가** → **반송 전 sub-task 가드** 후 `Need Something`(→Handover) 반송. **이슈가 sub-task면 부모+형제 sub-task를 먼저 확인** — 형제 중 TC/시나리오 작성을 담당하는 sub-task가 있으면 그 형제가 테스트를 커버하므로 **반송하지 않는다**(이 sub-task는 스킵/통과 처리). 개별 sub-task만 보고 반송하면 개발자가 다시 Resolved로 올려 **status 왕복(핑퐁)**이 생긴다. 형제에 TC 담당이 없고 작성도 불가일 때만 반송하며, 부족분(repro 자기완결·Expected/Actual·추상 AC 등)을 코멘트로. (실증: 26421 "검증 케이스들 추가"는 EPIC 26177의 검증 담당 sub-task로 확인 — 형제 구현 sub-task 26255를 개별 반송하면 핑퐁이라 반송 취소했다.)
 - **불필요(QA도 동의)** → 테스트 대상 아님. 스킵(QA Scenario 확정).
 
 ## 전이 지도 (2026-07-16 실측, Resolved 이슈 available transitions)
@@ -116,6 +116,7 @@ fresh-context 에이전트가 v2 절차(2축 판정 + Need Something dry-run)를
 - **필요성 재판정 6건 뒤집힘(35%)** — v1에 없던 축이 실전 작동: Not Required→필요 4(26888·26963·26965·24838, crash/core·data-integrity), Not Yet→필요 1(25913 segfault), Required→불필요 1(26701 빌드-only). **후속 정정: 26888은 이슈 타입 규칙(동작 변화 없는 debug assert)으로 Not Required 재판정**(아래 이슈 타입 prior) → 실질 승격 3.
 - **Need Something dry-run**: 반송 3건 모두 전이 id 481→Handover(EXIT 0) — 전이 지도 실측 일치.
 - **5개 개선점 반영**(위): 필요성 양방향·resolution 선행 체크·필요성 스킵 카테고리·regression 판정선(repro TC 유무)·확률적 repro 규칙.
+- **sub-task 가드 재검토(connection pool EPIC 26177, 2026-07-16)**: 반송 3건 중 **26255(Connection Pool 재설계)는 반송 취소** — 부모 26177 [EPIC](동시성/성능) 아래 형제 sub-task 26421(검증 케이스 추가)·26523(HA TC)이 EPIC 테스트를 담당하므로, 구현 sub-task 26255를 개별 반송하면 핑퐁이다. 검증은 26421에 모인다 → sub-task 가드의 실증(26965 타이밍 crash 반송은 유지). 26701(worker pool)은 다른 부모 26653.
 
 ## 남은 것 / 미룬 것
 
