@@ -105,6 +105,14 @@ Select ─► Ground ─► L1 ─► L2 ─► L3 ─► Verdict ─► 리뷰 
 - **재리뷰 트리거**: PR 업데이트(push) 시 증분 리뷰 — PoC는 수동 재실행.
 - **검증 빌드 선정**: PR이 전제하는 엔진(fix 포함 develop)과 로컬 빌드의 정합 — PoC는 수동 확인+명시, 이후 빌드서버 최신 develop 자동 추적.
 
+## 구현 (Stage 2 리뷰 스킬)
+
+오케스트레이션을 [`.claude/skills/tc-reviewer/`](../../.claude/skills/tc-reviewer/)로 스킬화(팀 git 공유, Stage 2).
+- **SKILL.md**: Select→Ground(PR 성격 판별·fix diff 표식)→L1(컨벤션 린트)→L2(렌즈 4종 **DP1 병렬**, few-shot bank 주입, **DP2 블랙박스**, 봇 분업)→L3(worktree 로컬 CTP, 3회 결정성)→Verdict(blocker/major/minor)→리뷰 초안(볼륨 우선순위)+리포트.
+- **few-shot bank**([docs/few-shot-bank.md](./docs/few-shot-bank.md), 44 엔트리)가 L2 재료. 백테스트 7건으로 렌즈 재현 검증됨.
+- 게시 PoC=초안(사람 게시), 이후 자동(단계적). approve·merge는 항상 사람.
+- **남은 것**: 실 PR 라이브 리뷰 스모크, 자동 게시·트리거(Stage 3).
+
 ## PoC 이후로 미룬 것
 
 자동 게시(단계적 승격), PR opened/updated 자동 트리거(webhook/CI), sql 외 카테고리, 자동 approve(정족수 기여 — Stage 3 성격), 마이닝 주기 갱신(카탈로그 재추출).

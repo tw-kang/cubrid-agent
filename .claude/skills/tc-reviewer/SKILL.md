@@ -1,0 +1,78 @@
+---
+name: tc-reviewer
+description: "Review a cubrid-testcases SQL TC pull request as the first reviewer, to cut the human-review round-trip. Judges in 3 layers -- L1 convention lint, L2 mined domain lenses (few-shot bank), L3 local CTP execution -- and emits READY-TO-MERGE / NEEDS-WORK plus a draft line-comment review (Korean). Use whenever someone says \"tc-reviewer 돌려줘\", \"이 PR 리뷰해줘\", \"sql tc pr 심사\", \"PR NNNN 리뷰\", \"리뷰 초안 만들어줘\", even without the exact word. Draft only -- a human posts and approves/merges. NOT for: writing testcases (cubrid-*-tc-create), approving/merging, non-SQL categories (medium/shell/isolation), or Jira writes."
+---
+
+# tc-reviewer — SQL TC PR reviewer (3-layer)
+
+Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and produce a draft review, so the human reviewer's round-trip shrinks. Works on any SQL TC PR (human- or tc-author-authored). Verdict = READY-TO-MERGE / NEEDS-WORK + severity-tagged findings.
+
+Design + rationale: `agents/tc-reviewer/DESIGN.md`. Perspective catalog: `agents/tc-reviewer/docs/review-perspectives.md`. **Few-shot bank (L2 fuel)**: `agents/tc-reviewer/docs/few-shot-bank.md`. This agent applies the global principles [DP1 parallel](../../docs/design-principles.md) and **[DP2 black-box](../../docs/design-principles.md)**.
+
+## Scope
+
+**Produces:** a 3-layer review — L1 convention lint, L2 domain lenses, L3 local CTP execution → a verdict + a **draft** GitHub review (line comments + summary, Korean). A report under `agents/tc-reviewer/reports/PR-NNNN.md`.
+
+**Does NOT:** post to GitHub (draft only), approve/merge, review non-SQL categories, watch PRs (webhook), or write Jira.
+
+## Before you start
+
+- **gh** authenticated (`gh pr view <N> --repo CUBRID/cubrid-testcases`).
+- **cubrid-jira** for the issue body (`[CBRD-XXXXX]` in the PR title).
+- **Local CTP** for L3: reuse tc-author's Verify infra — `/home/dev/CUBRID` (release build), `work/sql.poc.conf`, non-default port. Check out the PR branch as a **git worktree** under `work/cubrid-testcases` (don't pollute the working clone).
+- No local build / no CTP env? Run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it).
+
+## Pipeline
+
+```
+Select → Ground → L1 → L2 → L3 → Verdict → draft review + report
+```
+
+## 1. Select
+PR number as arg (default: oldest open SQL TC PR). Author-agnostic.
+
+## 2. Ground
+- `gh pr diff`/`view` for the diff + body; `[CBRD-XXXXX]` → issue body via cubrid-jira; fix merge diff in the cubrid repo; corpus search for near-duplicate TCs.
+- **PR-kind classification (D5)** by diff file state: new `cbrd_XXXXX.sql/.answer` **added** = 신규형; existing `.sql`/`.answer` **modified** = 변경형; a PR may be both → apply both lenses.
+- **Mark which cases hit the fix code path** from the fix merge diff (feeds L2/L3, P3).
+
+## 3. L1 — convention lint (static)
+Reuse the `cubrid-sql-tc-create` checklist + mining-promoted auto-lint (details in review-perspectives.md 'L1로 승격할 자동 린트'):
+- header block (≤200 chars, English), `evaluate 'Case N'` numbering, DROP-before-CREATE, cleanup (`deallocate prepare`, restore SET), path/naming, English comments, no expected value leaking into comments/SQL.
+- **auto-lint**: multi-row SELECT missing `ORDER BY` (only when a real tie is possible — a unique key or `COUNT(*)`/1-row is exempt), `set trace on`↔`off` imbalance, empty `.queryPlan` vs answer plan output, `evaluate` label missing, `prepare` without `deallocate`.
+
+## 4. L2 — domain lenses (static, few-shot-driven) — DP1 parallel
+
+Route by PR kind, **run the lenses as parallel subagents (DP1)**; each lens is fed its entries from `few-shot-bank.md` + its question set from review-perspectives.md ('L2 페르소나 렌즈'):
+- **신규형 → coverage-expansion** (P4·P8·P9·P14): positive↔negative symmetry, boundary 3-points, combination matrix, sibling concepts, minimality. **Propose concrete `evaluate`+SQL, not just "missing"** (backtest improvement 1).
+- **변경형 → answer-vs-spec** (P7·P11·P12·P15): why did the answer change / was the old one right? execution vs answer consistency? issue-intent match? spec-vs-bug (escalate)? **dead-assertion** (.answer flipped but .sql literal left, e.g. ok→nok) and **.answer_cci pair** updated? (backtest improvements 6·7).
+- **공통 (always) → determinism-convention** (P2·P5·P6·P10) + **plan-stability** (P3·P13) for plan/trace TCs.
+
+**Bot division**: greptile/codex already badge P1(answer)·P3(fix path) — reference/augment, don't re-file; focus L2 on bot-weak P4·P7·P11·P13.
+
+**DP2 (black-box)**: every lens checks that the TC verifies **DBA / DB engineer / AP-developer-observable behavior** (SQL/csql I/O, plan, catalog, driver output) and **flags dependence on C internals** a user can't observe (asserts, code paths, physical values like page id/offset — ties to P15). AP-developer/field angle → value non-expert misuse & edge cases (coverage-expansion negative/boundary).
+
+## 5. L3 — execution verification (dynamic)
+Check out the PR as a worktree, run CTP (reuse tc-author Verify infra):
+1. **answer consistency**: run as-is → `Success` means `.answer` = real output; `Fail` → capture the diff.
+2. **determinism**: 3 consecutive runs all Success (N=3); for plan/trace TCs the **plan must be identical across 3 runs** (P13 tie-flaky). **Confirm any nondeterminism L2 flagged statically** (e.g. ORDER-BY-less multi-row, `LIMIT` cutting a tie block) here by repetition (backtest improvement 3).
+3. **path coverage** (if applicable): plan/trace shows the fix path is actually hit.
+4. **runtime**: record CTP elapse (basis for over-sized-TC findings).
+- **Always state the verification build.** If the local build lacks the fix the PR assumes, a `Fail` is a false signal — reconcile with the issue's Fixed version and note the build.
+
+## 6. Verdict
+- **blocker** → NEEDS-WORK: execution failure, answer mismatch, nondeterminism (3-run diff), expected value contradicting issue/spec.
+- **major** → NEEDS-WORK: fix path uncovered, isolation breach (shared-DB pollution / missing cleanup), real duplicate of an existing TC.
+- **minor** → READY-TO-MERGE (with notes): convention/style/runtime.
+
+## 7. Draft review + report
+- **Draft GitHub review** (Korean, user-facing): line comments (file:line + finding + rationale) + summary (verdict, verification build, execution-evidence). **Posting volume: blocker/major first, minor bundled as '참고'** (backtest improvement 2 — don't spam minors).
+- **PoC: human reviews the draft, then posts.** No auto-post, no approve/merge.
+- **Report** to `agents/tc-reviewer/reports/PR-NNNN.md` (gitignore): per-layer results, execution log summary, verdict rationale.
+
+## Staging
+- **PoC (now)**: draft only; human posts. L2 lenses parallel, L3 local CTP.
+- **Later**: auto-post (staged), PR opened/updated trigger (webhook/CI), non-SQL categories, quorum-contributing auto-approve (Stage 3).
+
+## Note — backtest vs live
+The few-shot bank cites source PRs; that isolation matters only for **backtesting** (don't feed a target PR's own entries). On a **live** PR there's no answer key — use the whole bank freely.
