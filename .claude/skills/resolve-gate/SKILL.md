@@ -53,6 +53,11 @@ QA re-judges necessity in **both directions** (PoC: 6/17 flipped):
 - **Demote (Required → not needed)**: no test surface (e.g. build-only AC) → drop from needed. (PoC: CBRD-26701, AC = "build succeeds".)
 - **Precheck — resolution status**: Won't-do / Duplicate / Deferred → not a test target regardless of QA Scenario or severity; skip **before** necessity. (PoC: 26957 Won't-do — would be mis-promoted on severity alone.)
 - **Necessity skip categories** (not caught by the QA Scenario field): EPIC, build-only AC, internal not-yet-GA feature.
+- **Issue-type prior** (user rule): issue nature gives a prior —
+  - **new feature** (Improve Function): Required likely (new feature = new verification).
+  - **refactoring**: Required unlikely (developer test or existing regression suffices; no new scenario).
+  - **regression/core fail — the discovery path decides**: caused by the *regression suite* (a regression test caught it) → **Not Required** (existing TC already covers); a *new bug report* outside the suite → **Required likely** (new TC).
+  → So crash/core is not an automatic promote — check comments/attachments for who/how it was found.
 
 ## 3. Plannability — test-plannability (C0~C6)
 

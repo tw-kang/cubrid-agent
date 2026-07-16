@@ -33,6 +33,11 @@ QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재
 - **하향 (Required → 불필요)**: 테스트 표면이 없으면(빌드-only AC 등) 필요에서 내린다. (PoC: 26701 — AC가 "빌드 성공"뿐. *v2 최초안엔 승격만 있었으나 PoC에서 하향도 발견*.)
 - **선행 — resolution 상태 체크**: Won't-do/Duplicate/Deferred는 QA Scenario·severity와 무관하게 테스트 대상이 아니다 → 필요성 판정 **이전에** 스킵. (PoC: 26957 Won't-do — severity만 보면 오승격 위험.)
 - **필요성 스킵 카테고리**(QA Scenario로 걸러지지 않음): EPIC(26177)·build-only AC(26701)·internal 미GA 기능(26784).
+- **이슈 타입별 필요성 prior**(사용자 규칙): 필요성은 이슈 성격이 사전확률을 준다 —
+  - **신규 기능**(Improve Function 등): Required 높음 — 새 기능은 새 검증이 필요.
+  - **refactoring**: Required 낮음 — 개발자 테스트 또는 기존 regression 통과로 충분(신규 시나리오 불필요).
+  - **regression·core fail — 발견 경로가 가른다**: *regression 스위트가 원인*(회귀 테스트가 잡은 실패)이면 **Not Required**(기존 TC가 이미 커버); *회귀 스위트 밖 신규 버그 리포팅*이면 **Required 높음**(신규 TC 추가).
+  → 즉 crash/core라고 무조건 승격이 아니라, comment·첨부로 "누가·어떻게 발견했나"를 확인한다. (PoC에서 26888을 core라는 이유로 승격했으나, 이 규칙으론 발견 경로 재확인이 필요 — regression 스위트 원인이면 Not Required.)
 
 **② 작성 가능성 — test-plannability** (v1 로직 유지)
 필요하다고 본 이슈가 내용으로 테스트 플랜을 짤 수 있는가. 이슈 성격 이원화(버그 C1/C2 · 기능 C1′/C2′) + C0 종합(추상 AC 감지) + regression/core 첨부TC 예외 + hygiene 경고. 상세는 아래 '검사 기준'.
