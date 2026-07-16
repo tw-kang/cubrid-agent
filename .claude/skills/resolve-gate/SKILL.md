@@ -46,11 +46,13 @@ Select (stage-scoped) → Necessity → Plannability → Transition + report
 
 Batch read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee --output json`. `cf[210441]`=Planned Version(guava), `cf[210565]`=QA Scenario, `cf[213834]`=QA Assignee. **Read comments + attachments** (regression/core repro lives there).
 
-## 2. Necessity — QA Scenario re-judgment
+## 2. Necessity — QA Scenario re-judgment (bidirectional)
 
-- `Not Required` + QA sees a test is needed → treat as **needed** (승격); QA Scenario should become Required (per stage: propose vs write).
-- `Required` / `Not Yet` → needed.
-- `Not Required` + QA agrees it's unneeded → **skip** (not a test target).
+QA re-judges necessity in **both directions** (PoC: 6/17 flipped):
+- **Promote (Not Required / Not Yet → needed)**: crash / core / data-integrity / regression risk → needed even if the developer set Not Required. Set QA Scenario to Required per stage (propose vs write).
+- **Demote (Required → not needed)**: no test surface (e.g. build-only AC) → drop from needed. (PoC: CBRD-26701, AC = "build succeeds".)
+- **Precheck — resolution status**: Won't-do / Duplicate / Deferred → not a test target regardless of QA Scenario or severity; skip **before** necessity. (PoC: 26957 Won't-do — would be mis-promoted on severity alone.)
+- **Necessity skip categories** (not caught by the QA Scenario field): EPIC, build-only AC, internal not-yet-GA feature.
 
 ## 3. Plannability — test-plannability (C0~C6)
 
@@ -58,7 +60,7 @@ Bifurcate by `issuetype`: **Correct Error=bug**, else=feature.
 
 | Kind | Blocking criteria |
 |---|---|
-| **Bug** | **C1 Repro self-contained** (runnable as-is). *Regression/core exception:* if the TC that triggered the core/regression fail is **attached** (often referenced in a comment), that TC *is* the repro — no separate repro step. **C2 Expected/Actual** (post-fix + pre-fix; for regression/core, "attached TC fails → passes after fix"). |
+| **Bug** | **C1 Repro self-contained** (runnable as-is). *Regression/core exception:* if a **runnable repro TC is attached** (often via a comment), that TC *is* the repro — no separate step. **Decision line = a *runnable* repro TC exists**; an analysis doc or stack trace alone is not enough (PoC: 26888/24838 pass vs 26965 bounce). **C2 Expected/Actual** (post-fix + pre-fix). *Probabilistic/timing repro:* pass if a **positive assertion is verifiable** (always-succeeds after fix), bounce if the assertion is **negative + nondeterministic** (e.g. a race crash) — request a deterministic repro (PoC: 26799 pass vs 26965 bounce). |
 | **Feature** | **C1′ Spec concreteness** (I/O, error conditions, examples). **C2′ AC verifiability** (observable, specific enough to derive cases). |
 
 **C0 (both):** can QA write a test plan from the content? Abstract AC ("must not cause problems", "no perf regression", "various scenarios") is the top 반송 reason for features.

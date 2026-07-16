@@ -1,6 +1,6 @@
 # resolve-gate (Resolved QA-readiness 게이트)
 
-**상태: v2 재정의 (2026-07-16 grilling). Resolved(QA to-do) 대상, Need Something(→Handover) 반송. 구현체 `.claude/skills/resolve-gate/`.**
+**상태: v2 재정의 + PoC 검증 (2026-07-16, twkang assignee 17건). Resolved(QA to-do) 대상, Need Something(→Handover) 반송. 구현체 `.claude/skills/resolve-gate/`.**
 
 역할: **Resolved(=QA to-do) 이슈를 QA가 검토해, 테스트로 삼기 부적합한 것을 `Need Something`(→Handover)로 되돌려보내는 QA-side 진입 게이트.** 통과분은 tc-author 단계로 이어진다. tc-author(생성형)와 달리 산출물을 만들지 않고 **판정(권고)** 을 낸다.
 

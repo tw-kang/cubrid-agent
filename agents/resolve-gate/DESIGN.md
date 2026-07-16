@@ -1,6 +1,6 @@
 # resolve-gate — 설계 v2 (Resolved QA-readiness 게이트)
 
-**상태: v2 재정의 (2026-07-16 grilling 확정). v1(Handover→Resolved 게이트)에서 대상·방향·주체·판정축 전환. v2 PoC 전.**
+**상태: v2 재정의 + PoC 검증 완료 (2026-07-16, twkang assignee 17건). v1(Handover 게이트)에서 대상·방향·주체·판정축 전환.**
 
 **Resolved(=QA to-do) 이슈를 QA가 검토해, 테스트로 삼기 부적합한 것을 `Need Something`(→Handover)로 되돌려보내는 QA-side 진입 게이트.** 통과분은 tc-author 단계로 이어진다. 용어·초점은 [CONTEXT.md](./CONTEXT.md).
 
@@ -27,8 +27,12 @@
 
 ## 판정 2축
 
-**① 필요성 — QA Scenario 재판정**
-QA Scenario 필드는 최초 개발자가 작성한다. QA가 Resolved에서 이슈를 검토해 이 필드를 바꾸기도 한다 — 개발자가 Not Required로 뒀어도 QA가 "테스트 필요" 판정하면 Required로 바꾸고 테스트를 작성한다. 따라서 resolve-gate(QA 주체)는 **Not Required를 무조건 스킵하지 않고** QA 관점에서 테스트 필요성을 재판정한다.
+**① 필요성 — QA Scenario 재판정 (양방향)**
+QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재검토해 바꾸기도 한다. resolve-gate(QA 주체)는 이를 무조건 신뢰하지 않고 필요성을 **양방향으로 재판정**한다(PoC 실측: 17건 중 6건=35% 뒤집힘).
+- **승격 (Not Required/Not Yet → 필요)**: crash·core·data-integrity·회귀 위험이면 개발자가 불필요로 뒀어도 필요로 올린다. (PoC: 26888 regression core·26963·26965·24838·25913)
+- **하향 (Required → 불필요)**: 테스트 표면이 없으면(빌드-only AC 등) 필요에서 내린다. (PoC: 26701 — AC가 "빌드 성공"뿐. *v2 최초안엔 승격만 있었으나 PoC에서 하향도 발견*.)
+- **선행 — resolution 상태 체크**: Won't-do/Duplicate/Deferred는 QA Scenario·severity와 무관하게 테스트 대상이 아니다 → 필요성 판정 **이전에** 스킵. (PoC: 26957 Won't-do — severity만 보면 오승격 위험.)
+- **필요성 스킵 카테고리**(QA Scenario로 걸러지지 않음): EPIC(26177)·build-only AC(26701)·internal 미GA 기능(26784).
 
 **② 작성 가능성 — test-plannability** (v1 로직 유지)
 필요하다고 본 이슈가 내용으로 테스트 플랜을 짤 수 있는가. 이슈 성격 이원화(버그 C1/C2 · 기능 C1′/C2′) + C0 종합(추상 AC 감지) + regression/core 첨부TC 예외 + hygiene 경고. 상세는 아래 '검사 기준'.
@@ -67,8 +71,9 @@ QA Scenario 필드는 최초 개발자가 작성한다. QA가 Resolved에서 이
 **차단(pass/fail 핵심) — test-plannability**
 
 _버그 이슈_
-- **C1 Repro 존재·자기완결**: 재현 절차/스크립트가 있고, 빠진 스키마·데이터·오타 없이 그대로 실행 가능. **regression·core 리포팅 예외**: core나 regression fail을 유발한 TC가 이슈에 **첨부**돼 있으면 그 TC가 곧 repro이므로 별도 reproduction step이 없어도 C1 충족. 재현 정보·첨부 TC가 **comment에 있는 경우가 많아 description뿐 아니라 comment·첨부까지 확인**한다.
+- **C1 Repro 존재·자기완결**: 재현 절차/스크립트가 있고, 빠진 스키마·데이터·오타 없이 그대로 실행 가능. **regression·core 리포팅 예외**: core나 regression fail을 유발한 TC가 이슈에 **첨부**돼 있으면 그 TC가 곧 repro이므로 별도 reproduction step이 없어도 C1 충족. **판정선 = "실행 가능한 repro TC"의 유무** — analysis 문서·스택트레이스만으론 불충족(PoC 승격 오탐 방지: 26888·24838은 자기완결 repro 첨부→통과 / 26965는 실행 TC 없는 타이밍 레이스→반송). 재현 정보·첨부 TC가 **comment에 있는 경우가 많아 comment·첨부까지 확인**한다.
 - **C2 Expected/Actual 명시**: fix 후 기대 동작 + fix 전 버그 동작. (regression/core는 "그 TC가 fail → fix 후 pass"가 곧 Expected/Actual.)
+- **확률적·타이밍 repro**(PoC 발견): 재현이 확률적이어도 **양성 단언이 검증 가능하면 통과**(fix 후 항상 성공함을 단언), **음성 단언 + 비결정이면 반송**(레이스 crash 재현이 불확정 → 결정적 재현 수단 요청). PoC: 26799(병렬 row 유실 ~6%지만 양성 검증)=통과 / 26965(타이밍 crash)=반송.
 
 _기능 이슈_ (버그 repro 개념이 없어 재해석)
 - **C1′ Spec 구체성**: Specification Changes가 입출력·오류조건·예시로 구체적인가.
@@ -98,8 +103,15 @@ Select ─► 필요성 판정 ─► 작성가능성 판정 ─► 전이 + 리
 
 v1 PoC(guava **Handover** 27건, 2026-07-16, [reports/poc-guava-handover.md](./reports/poc-guava-handover.md))는 test-plannability 검사 기준(C0~C6·성격 이원화·러너 태그)을 실증 — 이 로직은 대상 상태와 무관하게 v2에 그대로 유효하다. 단 **v2는 대상이 Resolved라 재검증이 필요**하다(Resolved pool + 필요성 축 + Need Something 전이 실행).
 
+## v2 PoC 검증 (2026-07-16, twkang assignee 17건)
+
+fresh-context 에이전트가 v2 절차(2축 판정 + Need Something dry-run)를 17건에 실행. 상세 [reports/resolve-gate-poc-v2.md](./reports/resolve-gate-poc-v2.md)(gitignore).
+- **처분**: 통과 8 / 반송 3 / 스킵 6.
+- **필요성 재판정 6건 뒤집힘(35%)** — v1에 없던 축이 실전 작동: Not Required→필요 4(26888 regression core·26963·26965·24838, 전부 crash/core·data-integrity), Not Yet→필요 1(25913 segfault), Required→불필요 1(26701 빌드-only).
+- **Need Something dry-run**: 반송 3건 모두 전이 id 481→Handover(EXIT 0) — 전이 지도 실측 일치.
+- **5개 개선점 반영**(위): 필요성 양방향·resolution 선행 체크·필요성 스킵 카테고리·regression 판정선(repro TC 유무)·확률적 repro 규칙.
+
 ## 남은 것 / 미룬 것
 
-- **v2 PoC**: Resolved pool(twkang assignee) 재판정, 필요성 축 실측, Need Something 전이 dry-run 확인.
 - **자동화(Stage 3)**: QA Scenario 필드 직접 변경·자동 전이·tc-author 트리거.
 - **Check-in Fix(Handover→Resolved)**: 개발자가 이슈를 머지하고 직접 Resolved로 넘긴다(확정). resolve-gate는 그 이후 Resolved 큐를 검토 — Check-in Fix 자체는 범위 밖. (매뉴얼은 우선 Resolved 후 추후 작성하기도 하므로 미완성이 Resolved를 막지 않는다.)
