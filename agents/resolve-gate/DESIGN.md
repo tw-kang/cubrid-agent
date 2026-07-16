@@ -37,7 +37,8 @@ QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재
   - **신규 기능**(Improve Function 등): Required 높음 — 새 기능은 새 검증이 필요.
   - **refactoring**: Required 낮음 — 개발자 테스트 또는 기존 regression 통과로 충분(신규 시나리오 불필요).
   - **regression·core fail — 발견 경로가 가른다**: *regression 스위트가 원인*(회귀 테스트가 잡은 실패)이면 **Not Required**(기존 TC가 이미 커버); *회귀 스위트 밖 신규 버그 리포팅*이면 **Required 높음**(신규 TC 추가).
-  → 즉 crash/core라고 무조건 승격이 아니라, comment·첨부로 "누가·어떻게 발견했나"를 확인한다. (PoC에서 26888을 core라는 이유로 승격했으나, 이 규칙으론 발견 경로 재확인이 필요 — regression 스위트 원인이면 Not Required.)
+  → 즉 crash/core라고 무조건 승격이 아니라, comment·첨부로 "누가·어떻게 발견했나"를 확인한다. **또한 fix가 동작 변화 없는 debug-only assert 조건 추가·내부 리팩터링이면 SQL TC 대상이 아니다** — release 동작이 불변이라 사용자 관측 변화가 없고, debug 빌드 회귀가 assert를 커버한다.
+  - **재판정 사례 — CBRD-26888**: PoC에서 core라는 이유로 승격했으나 **재확인 결과 Not Required**. comment 전문 확인 결과 fix가 `object_primitive.c:9386`의 debug assert 조건만 추가(개발자 명시 "동작 변화 없음", release 정상)라, SQL TC로 검증할 사용자 동작 변화가 없고 debug 빌드 회귀가 assert를 커버한다. '발견 경로 + 동작 변화'를 보면 PoC의 core=승격은 과승격이었다.
 
 **② 작성 가능성 — test-plannability** (v1 로직 유지)
 필요하다고 본 이슈가 내용으로 테스트 플랜을 짤 수 있는가. 이슈 성격 이원화(버그 C1/C2 · 기능 C1′/C2′) + C0 종합(추상 AC 감지) + regression/core 첨부TC 예외 + hygiene 경고. 상세는 아래 '검사 기준'.
@@ -112,7 +113,7 @@ v1 PoC(guava **Handover** 27건, 2026-07-16, [reports/poc-guava-handover.md](./r
 
 fresh-context 에이전트가 v2 절차(2축 판정 + Need Something dry-run)를 17건에 실행. 상세 [reports/resolve-gate-poc-v2.md](./reports/resolve-gate-poc-v2.md)(gitignore).
 - **처분**: 통과 8 / 반송 3 / 스킵 6.
-- **필요성 재판정 6건 뒤집힘(35%)** — v1에 없던 축이 실전 작동: Not Required→필요 4(26888 regression core·26963·26965·24838, 전부 crash/core·data-integrity), Not Yet→필요 1(25913 segfault), Required→불필요 1(26701 빌드-only).
+- **필요성 재판정 6건 뒤집힘(35%)** — v1에 없던 축이 실전 작동: Not Required→필요 4(26888·26963·26965·24838, crash/core·data-integrity), Not Yet→필요 1(25913 segfault), Required→불필요 1(26701 빌드-only). **후속 정정: 26888은 이슈 타입 규칙(동작 변화 없는 debug assert)으로 Not Required 재판정**(아래 이슈 타입 prior) → 실질 승격 3.
 - **Need Something dry-run**: 반송 3건 모두 전이 id 481→Handover(EXIT 0) — 전이 지도 실측 일치.
 - **5개 개선점 반영**(위): 필요성 양방향·resolution 선행 체크·필요성 스킵 카테고리·regression 판정선(repro TC 유무)·확률적 repro 규칙.
 

@@ -57,7 +57,7 @@ QA re-judges necessity in **both directions** (PoC: 6/17 flipped):
   - **new feature** (Improve Function): Required likely (new feature = new verification).
   - **refactoring**: Required unlikely (developer test or existing regression suffices; no new scenario).
   - **regression/core fail — the discovery path decides**: caused by the *regression suite* (a regression test caught it) → **Not Required** (existing TC already covers); a *new bug report* outside the suite → **Required likely** (new TC).
-  → So crash/core is not an automatic promote — check comments/attachments for who/how it was found.
+  → So crash/core is not an automatic promote — check comments/attachments for who/how it was found. **Also: if the fix has no behavior change (debug-only assert addition, internal refactoring), it is not an SQL-TC target** — release behavior is unchanged (no user-observable diff) and debug regression covers the assert. (CBRD-26888 re-check: promoted in PoC as "core", but Not Required on review — the fix only adds a debug assert condition, release unchanged.)
 
 ## 3. Plannability — test-plannability (C0~C6)
 
