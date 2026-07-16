@@ -44,7 +44,7 @@ Select (stage-scoped) → Necessity → Plannability → Transition + report
 - **팀내/자동화**: `project = CBRD AND cf[210441] = guava AND status = Resolved`.
 - Single issue: `/resolve-gate CBRD-XXXXX`.
 
-Batch read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee --output json`. `cf[210441]`=Planned Version(guava), `cf[210565]`=QA Scenario, `cf[213834]`=QA Assignee. **Read comments + attachments** (regression/core repro lives there).
+Batch read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee,parent,subtasks --output json`. `cf[210441]`=Planned Version(guava), `cf[210565]`=QA Scenario, `cf[213834]`=QA Assignee. **Read comments + attachments** (regression/core repro lives there), and **parent/subtasks** (sub-task bounce guard, step 4).
 
 ## 2. Necessity — QA Scenario re-judgment (bidirectional)
 
@@ -75,7 +75,7 @@ Bifurcate by `issuetype`: **Correct Error=bug**, else=feature.
 ## 4. Transition + report + rejection draft
 
 - **통과** → `Start Test` (PoC/팀내: propose; 자동화: auto-run + trigger tc-author).
-- **반송** → `Need Something`: `cubrid-jira transition <KEY> --to "Need Something" --yes` (PoC/팀내: draft + manual; 자동화: auto). Rejection comment in Korean, to the developer.
+- **반송** → **sub-task guard first**, then `Need Something`. If the issue is a **sub-task**, check parent + sibling sub-tasks: if a sibling handles TC/scenario authoring, that sibling covers the test → **do not bounce** (skip/pass this one). Bouncing per-individual-sub-task causes **status ping-pong** (dev re-resolves → bounce again). Only bounce when no sibling covers it and it's not plannable: `cubrid-jira transition <KEY> --to "Need Something" --yes` (PoC/팀내: draft + manual; 자동화: auto). Rejection comment in Korean, to the developer.
 
 Transition map (2026-07-16 실측): **Need Something→Handover** (반송), **Start Test→Test** (통과), Assign QA→Resolved(제자리), QA Not Satisfied→Confirmed(fix 부적절, 범위 밖), Ask Reconfirmation→Open(범위 밖).
 

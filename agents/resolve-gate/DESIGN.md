@@ -46,7 +46,7 @@ QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재
 ## 판정 → 전이
 
 - **필요 + 작성가능** → 통과. `Start Test`(→Test)로 tc-author 단계 진행. (필요성 재판정으로 QA Scenario를 Required로 바꿔야 하면 D6 단계에 따라 변경/제안.)
-- **필요 + 작성불가** → **`Need Something`(→Handover) 반송**. 부족분(repro 자기완결·Expected/Actual·추상 AC 등)을 코멘트로.
+- **필요 + 작성불가** → **반송 전 sub-task 가드** 후 `Need Something`(→Handover) 반송. **이슈가 sub-task면 부모+형제 sub-task를 먼저 확인** — 형제 중 TC/시나리오 작성을 담당하는 sub-task가 있으면 그 형제가 테스트를 커버하므로 **반송하지 않는다**(이 sub-task는 스킵/통과 처리). 개별 sub-task만 보고 반송하면 개발자가 다시 Resolved로 올려 **status 왕복(핑퐁)**이 생긴다. 형제에 TC 담당이 없고 작성도 불가일 때만 반송하며, 부족분(repro 자기완결·Expected/Actual·추상 AC 등)을 코멘트로. (v2 PoC의 26421 "검증 케이스들 추가"는 이 가드로 재검토 대상 — TC 작성 담당 sub-task일 수 있음.)
 - **불필요(QA도 동의)** → 테스트 대상 아님. 스킵(QA Scenario 확정).
 
 ## 전이 지도 (2026-07-16 실측, Resolved 이슈 available transitions)
@@ -96,7 +96,7 @@ _기능 이슈_ (버그 repro 개념이 없어 재해석)
 Select ─► 필요성 판정 ─► 작성가능성 판정 ─► 전이 + 리포트
 ```
 
-1. **Select** — 단계별 범위(PoC: QA assignee=twkang, 팀내·자동화: guava Resolved 전체). cubrid-jira 배치 read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee --output json`.
+1. **Select** — 단계별 범위(PoC: QA assignee=twkang, 팀내·자동화: guava Resolved 전체). cubrid-jira 배치 read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee,parent,subtasks --output json`. **sub-task면 부모·형제 관계도 확보**(반송 가드용).
 2. **필요성 판정** — QA Scenario를 QA 관점에서 재검토(개발자 초안 무관). 불필요(QA 동의)면 스킵.
 3. **작성가능성 판정** — C0~C6(성격 이원화, regression/core 예외). merge diff(cubrid repo)는 스펙 변경 대조 참고.
 4. **전이 + 리포트** — 필요+가능→Start Test(단계별 실행), 필요+불가→Need Something 반송(부족분 코멘트 초안), 불필요→스킵. 리포트는 `reports/resolve-gate-<date>.md`(gitignore).
