@@ -29,6 +29,7 @@ Tested   ─[close-backport: Close / Need Backport]→ Closed / Backport
 
 - [docs/design-principles.md](./docs/design-principles.md) — 전 에이전트 공통 설계 원칙(DP1 병렬 실행; **DP2 사용자 관점·블랙박스 테스트** — TC·시나리오는 내부 구현이 아닌 관측 동작 기준. '사용자'=DBA·DB engineer(전문가)~AP 개발자(비전문가) 스펙트럼이라 플랜·카탈로그·statdump·드라이버 입출력은 블랙박스 안, C 내부는 제외. 목적에 **필드에서 마주칠 상황 미리 검출** 포함. 관측 수단은 카테고리별(SQL→shell·CCI/JDBC 등 확장 예정)).
 - [docs/staging.md](./docs/staging.md) — 롤아웃 3단계 모델(PoC / Stage 2 팀 수동 트리거 / Stage 3 무인 자동), 전 에이전트 공통.
+- [docs/stage2-setup.md](./docs/stage2-setup.md) — Stage 2 팀 셋업 가이드: 1순위 3종 스킬(resolve-gate·resolve-next·tc-reviewer)을 팀원이 로컬에서 기동하는 실전 셋업(공통 전제·로컬 CTP·함정 체크리스트).
 - [docs/adr/](./docs/adr/) — 시스템 전역 ADR.
 - [docs/handover/](./docs/handover/) — 외부 핸드오버 재료(v1 배포 설계, v2 TC 작성).
 - 공유 자산(코드 아님): `cubrid-jira` CLI, `~/skills`, 소스 repo(cubrid, cubrid-testcases, cubrid-testtools 등), 사내 빌드서버, 로컬/pod 검증 환경.

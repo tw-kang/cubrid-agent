@@ -22,7 +22,7 @@
 
 구성:
 - **기동 스킬** `.claude/skills/resolve-next/` — `/resolve-next [N | CBRD-XXXXX]`. Select→Ground→Author→Verify→Review→(loop)→Submit 오케스트레이션. 팀과 git으로 공유(버전관리).
-- **팀 셋업 문서** — 로컬 CTP·CUBRID 설치(짧은 경로, JDK), 빌드서버 URL 규칙, `cubrid-jira`/`gh` 인증. PoC에서 규명한 함정(소켓 108자, JRE≠JDK, empty-answer)을 셋업 가이드로.
+- **팀 셋업 문서** ([stage2-setup.md](./stage2-setup.md), 1순위 3종 공통) — 로컬 CTP·CUBRID 설치(짧은 경로, JDK), 빌드서버 URL 규칙, `cubrid-jira`/`gh` 인증. PoC에서 규명한 함정(소켓 108자, JRE≠JDK, empty-answer)을 셋업 가이드로.
 - **하드 게이트 = hook** — 스킬/CLAUDE.md는 '요청'이라 우회 가능하므로, 필수 게이트는 hook으로 강제:
   - fail→pass 미확인 TC의 Submit 차단
   - 결정성 반복(N회) 미통과 차단

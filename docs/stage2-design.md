@@ -65,9 +65,9 @@ hook이 게이트 통과를 기계적으로 확인하려면, 파이프라인이 
 - csql 결과와 다르면 `.answer_cci` 생성(인터페이스별 답지). 같으면 불필요.
 - `cubrid-sql-tc-verify`가 이미 `sql_by_cci`/`run_cci`를 지원 → 오케스트레이터가 Verify에서 한 번 더 호출.
 
-## 5. 팀 셋업 문서 (구조)
+## 5. 팀 셋업 문서
 
-`agents/tc-author/SETUP.md`(신규, 다음 단계 작성). 담을 것 — PoC에서 규명한 함정을 셋업 가이드로:
+**작성됨: [docs/stage2-setup.md](./stage2-setup.md)** — 1순위 3종(resolve-gate·resolve-next·tc-reviewer) 공통 셋업. (이 설계 당시엔 tc-author 전용 시점이라 `agents/tc-author/SETUP.md`로 계획했으나, resolve-gate·tc-reviewer도 Stage 2 스킬로 서면서 위치를 `docs/` 전역·3종 공통으로 조정.) 담긴 것 — PoC에서 규명한 함정을 셋업 가이드로:
 - 로컬 CTP·CUBRID 설치: **짧은 경로**(소켓 108자 한계), release + 필요 시 `-debug`, `make_locale.sh`.
 - `JAVA_HOME`은 **JDK**(javac) — JRE 아님(Java SP 컴파일).
 - 빌드서버 URL 규칙(`192.168.1.91:8080/REPO_ROOT/store_01/<ver>/drop/...`), pre-fix 빌드 찾는 법(fix 직전 커밋).
