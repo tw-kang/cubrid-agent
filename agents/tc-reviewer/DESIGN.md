@@ -111,7 +111,9 @@ Select ─► Ground ─► L1 ─► L2 ─► L3 ─► Verdict ─► 리뷰 
 - **SKILL.md**: Select→Ground(PR 성격 판별·fix diff 표식)→L1(컨벤션 린트)→L2(렌즈 4종 **DP1 병렬**, few-shot bank 주입, **DP2 블랙박스**, 봇 분업)→L3(worktree 로컬 CTP, 3회 결정성)→Verdict(blocker/major/minor)→리뷰 초안(볼륨 우선순위)+리포트.
 - **few-shot bank**([docs/few-shot-bank.md](./docs/few-shot-bank.md), 44 엔트리)가 L2 재료. 백테스트 7건으로 렌즈 재현 검증됨.
 - 게시 PoC=초안(사람 게시), 이후 자동(단계적). approve·merge는 항상 사람.
-- **남은 것**: 실 PR 라이브 리뷰 스모크, 자동 게시·트리거(Stage 3).
+- **라이브 스모크 완료(2026-07-20, PR#3091 [CBRD-26825], 신규형 SQL TC)**: 전 파이프라인 실행 → **NEEDS-WORK**. **L3 로컬 CTP가 정적 diff로는 "오타 고친 개선"으로 보이는 실제 blocker를 확증** — `.sql`의 evaluate 라벨(case #1/#5/#9)만 `order siblings by`로 고치고 짝 `.answer`는 `order by siblings by` 잔존 → CTP가 라벨을 echo·비교하므로 3회 결정적 Fail(데이터는 100% 일치). 검증 빌드 11.5.0(fix #7209·#7220 포함 확인 → false-signal 아님). = L3 가치 입증.
+- **스모크에서 도출·반영한 5개 개선**(SKILL.md·review-perspectives.md): ① cubrid-jira 명령 정정(`show`/`get` 없음 → `search`+`comment-list`; 재현이 comment-only일 수 있음) ② L3 CTP 커맨드·`scenario=` conf 오버라이드 인라인 ③ `.sql`↔`.answer` evaluate 라벨 짝 일치를 **성격 무관 공통**으로 승격 ④ fix-in-build 판정법(`merge-base --is-ancestor`) 명문화·Verdict 필수항목 ⑤ 동치키(tie) 순서 비보장 가이드(로컬 3회 ≠ 스펙 보장). 리포트 `reports/PR-3091.md`.
+- **남은 것**: 자동 게시·트리거(Stage 3).
 
 ## PoC 이후로 미룬 것
 

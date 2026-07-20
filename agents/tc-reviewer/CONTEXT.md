@@ -1,6 +1,6 @@
 # tc-reviewer (sql TC PR 리뷰 — 횡단)
 
-**상태: 설계 v1 + 5년 마이닝·백테스트 + few-shot bank + Stage 2 리뷰 스킬 구현 (2026-07-16). 구현체 `.claude/skills/tc-reviewer/`.**
+**상태: 설계 v1 + 5년 마이닝·백테스트 + few-shot bank + Stage 2 리뷰 스킬 구현 + 라이브 스모크(PR#3091) 검증·정련 (2026-07-20). 구현체 `.claude/skills/tc-reviewer/`.**
 
 역할: cubrid-testcases에 올라온 **sql TC PR을 심사하는 평가형 에이전트**. Jira 상태 전이를 맡는 다른 4개 에이전트와 달리, **PR 머지 구간을 가속하는 횡단 에이전트**다. tc-author가 PR을 기계 속도로 만들면 사람 리뷰어의 왕복이 병목이 된다(최근 1년 실측: 머지까지 중앙값 3.8일, p90 25.8일, 30일 초과 31건) — tc-reviewer가 **첫 리뷰어** 역할을 맡아, 사람 리뷰어에게 도달하는 PR의 품질을 끌어올리고 왕복 횟수를 줄인다.
 

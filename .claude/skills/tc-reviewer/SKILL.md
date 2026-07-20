@@ -18,8 +18,8 @@ Design + rationale: `agents/tc-reviewer/DESIGN.md`. Perspective catalog: `agents
 ## Before you start
 
 - **gh** authenticated (`gh pr view <N> --repo CUBRID/cubrid-testcases`).
-- **cubrid-jira** for the issue body (`[CBRD-XXXXX]` in the PR title).
-- **Local CTP** for L3: reuse tc-author's Verify infra — `/home/dev/CUBRID` (release build), `work/sql.poc.conf`, non-default port. Check out the PR branch as a **git worktree** under `work/cubrid-testcases` (don't pollute the working clone).
+- **cubrid-jira** for the issue body — `cubrid-jira search <KEY>` (full markdown) **and `cubrid-jira comment-list <KEY> --output json`** (there is no `show`/`get`). ⚠ Repro/scenario is often **only in comments** (empty description) — read them; that's where P11 (issue intent) lives.
+- **Local CTP** for L3: reuse tc-author's Verify infra — `/home/dev/CUBRID` (release build), `work/sql.poc.conf`, non-default port. Check out the PR branch as a **git worktree** under `work/cubrid-testcases` (don't pollute the working clone). **Copy the conf and override `scenario=` to the worktree path** — the stock `sql.poc.conf` points at the working clone, so as-is it verifies the wrong branch.
 - No local build / no CTP env? Run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it).
 
 ## Pipeline
@@ -32,7 +32,7 @@ Select → Ground → L1 → L2 → L3 → Verdict → draft review + report
 PR number as arg (default: oldest open SQL TC PR). Author-agnostic.
 
 ## 2. Ground
-- `gh pr diff`/`view` for the diff + body; `[CBRD-XXXXX]` → issue body via cubrid-jira; fix merge diff in the cubrid repo; corpus search for near-duplicate TCs.
+- `gh pr diff`/`view` for the diff + body; `[CBRD-XXXXX]` → issue body via `cubrid-jira search <KEY>` **+ `comment-list <KEY> --output json`** (repro may be comment-only); fix merge diff in the cubrid repo; corpus search for near-duplicate TCs.
 - **PR-kind classification (D5)** by diff file state: new `cbrd_XXXXX.sql/.answer` **added** = 신규형; existing `.sql`/`.answer` **modified** = 변경형; a PR may be both → apply both lenses.
 - **Mark which cases hit the fix code path** from the fix merge diff (feeds L2/L3, P3).
 
@@ -53,12 +53,18 @@ Route by PR kind, **run the lenses as parallel subagents (DP1)**; each lens is f
 **DP2 (black-box)**: every lens checks that the TC verifies **DBA / DB engineer / AP-developer-observable behavior** (SQL/csql I/O, plan, catalog, driver output) and **flags dependence on C internals** a user can't observe (asserts, code paths, physical values like page id/offset — ties to P15). AP-developer/field angle → value non-expert misuse & edge cases (coverage-expansion negative/boundary).
 
 ## 5. L3 — execution verification (dynamic)
-Check out the PR as a worktree, run CTP (reuse tc-author Verify infra):
-1. **answer consistency**: run as-is → `Success` means `.answer` = real output; `Fail` → capture the diff.
-2. **determinism**: 3 consecutive runs all Success (N=3); for plan/trace TCs the **plan must be identical across 3 runs** (P13 tie-flaky). **Confirm any nondeterminism L2 flagged statically** (e.g. ORDER-BY-less multi-row, `LIMIT` cutting a tie block) here by repetition (backtest improvement 3).
+Check out the PR as a worktree and run CTP (reuse tc-author Verify infra). Concrete steps (fill `<...>`):
+- **env**: `source ~/.cubrid.sh`; ensure `CTP_HOME`/`JAVA_HOME` are set (tc-author `DESIGN.md` → Verify section is the source of the exact invocation).
+- **worktree**: `git -C work/cubrid-testcases fetch origin pull/<N>/head:pr-<N>` → `git -C work/cubrid-testcases worktree add ../ct-pr-<N> pr-<N>`.
+- **conf**: copy `work/sql.poc.conf` → `work/sql.pr<N>.conf`, set `scenario=` to the worktree (else you verify the wrong branch).
+- **run**: `printf "run <case-dir>\nquit\n" | ctp.sh sql -c work/sql.pr<N>.conf --interactive` (adapt to tc-author's exact command).
+
+Checks:
+1. **answer consistency**: run as-is → `Success` means `.answer` = real output; `Fail` → capture the diff. **CTP echoes each `evaluate` label into the result and compares it**, so a `.sql` label edit **not mirrored in `.answer`** Fails regardless of data (PR#3091 blocker) — check the diff is data, not just a stale label.
+2. **determinism**: 3 consecutive runs all Success (N=3); **byte-diff the 3 `.result` files** (under `$CTP_HOME/.../schedule_<ts>/sql/*.result`) — identical = deterministic. Plan/trace TCs: **plan identical across 3 runs** (P13 tie-flaky). **Confirm any nondeterminism L2 flagged statically** (ORDER-BY-less multi-row, tie-equal `ORDER (SIBLINGS) BY` keys, `LIMIT` cutting a tie block) here by repetition (backtest improvement 3) — but local 3-run stability is **not** a spec guarantee; still flag the tie.
 3. **path coverage** (if applicable): plan/trace shows the fix path is actually hit.
 4. **runtime**: record CTP elapse (basis for over-sized-TC findings).
-- **Always state the verification build.** If the local build lacks the fix the PR assumes, a `Fail` is a false signal — reconcile with the issue's Fixed version and note the build.
+- **Always state the verification build AND whether it contains the fix** (mandatory Verdict input): build SHA from `cubrid_rel`, then `git -C <cubrid-src> merge-base --is-ancestor <fix-sha> <build-sha>` → ancestor = fix included. **Post-fix build failing = real defect; pre-fix build failing = false signal.** Reconcile with the issue's Fixed version.
 
 ## 6. Verdict
 - **blocker** → NEEDS-WORK: execution failure, answer mismatch, nondeterminism (3-run diff), expected value contradicting issue/spec.
