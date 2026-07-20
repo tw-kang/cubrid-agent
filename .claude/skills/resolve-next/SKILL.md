@@ -60,6 +60,7 @@ Run on the fix-including release build; **generate then confirm** the answer:
 2. **determinism gate**: ≥3 runs all `Success:1` (diff ignores newlines). Nondeterministic token (`[Ljava...@hash`, OID, timestamp, ORDER-BY-less multi-row) → feed back to Author.
 3. **path-coverage gate**: plan/trace (`;plan detail`, `.queryPlan`, `SET TRACE ON`) proves the **fix path is actually hit** — a green TC on an unaffected path is worthless (size data to clear thresholds; `test_mode=yes` can flip the path).
 4. **fail→pass contract**: install a **pre-fix** build → the TC should **FAIL**; fixed build → PASS. Race repro is timing-sensitive (best-effort; document the limit); pin the server to **≥4 cores** (≤2 disables parallelism). If no pre-fix build, ground pre-fix behavior from the issue Repro/Expected and note it.
+5. **CCI cross-check (Stage 2, S3)**: re-run the same `.sql` via `cubrid-sql-tc-verify` in **sql_by_cci** mode (`run_cci`; copy `sql_by_cci.conf` → `work/sql_by_cci.poc.conf` with `scenario=` overridden). If the CCI output **differs** from csql, promote it to `answers/cbrd_XXXXX.answer_cci` (same empty-answer trick); if identical, no `.answer_cci` needed. Record `verify.cci.{checked,matches_csql}` — the submit gate requires `cci.checked`.
 - `.answer` is confirmed on the **release** build (= CI mode); debug only for diagnosis.
 
 ## 5. Review (delegated — separate lane, no self-approve)

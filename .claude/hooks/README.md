@@ -26,6 +26,7 @@ resolve-next 파이프라인의 필수 품질 게이트를 Claude Code hook으�
 - `verify.determinism.all_pass == true`
 - `verify.fail_to_pass.status == "confirmed"` **또는** (`"best_effort"` **&&** `review.failpass_approved == true` **&&** `verify.fail_to_pass.note` 존재) — §8 Q4
 - `review.verdict == "PASS"`
+- `verify.cci.checked == true` (CCI 교차 수행 — csql과 다르면 `.answer_cci`)
 - `lint.{header,evaluate,cleanup,answer_not_handwritten,english_comments}` 전부 true
 
 ## 로컬 확인 (세션에 걸지 않고 스크립트만 시험)

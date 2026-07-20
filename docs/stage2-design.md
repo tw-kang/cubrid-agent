@@ -63,6 +63,8 @@ hook이 게이트 통과를 기계적으로 확인하려면, 파이프라인이 
 
 ## 4. CCI 교차 검증 (S3, Stage 2 채택)
 
+> **구현됨(2026-07-21)**: resolve-next Verify에 CCI 교차 단계(step 5) + `gate-pr-submit`이 `verify.cci.checked` 강제. `sql_by_cci.poc.conf`(scenario override)로 `run_cci` 재실행, csql과 다르면 `.answer_cci`.
+
 - Verify에 공식 9단계 step 6 추가: `run_cci`로 동일 `.sql`을 CCI 인터페이스로 실행.
 - csql 결과와 다르면 `.answer_cci` 생성(인터페이스별 답지). 같으면 불필요.
 - `cubrid-sql-tc-verify`가 이미 `sql_by_cci`/`run_cci`를 지원 → 오케스트레이터가 Verify에서 한 번 더 호출.

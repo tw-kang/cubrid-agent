@@ -67,7 +67,7 @@ git -C work/cubrid-testcases remote add twkang https://github.com/tw-kang/cubrid
 git clone https://github.com/CUBRID/cubrid.git work/cubrid                        # Ground용(fix diff)
 [ -f $CUBRID/lib/libcubrid_all_locales.so ] || sh $CUBRID/bin/make_locale.sh -t 64bit
 ```
-- **CTP conf**: `work/sql.poc.conf` = CTP `sql.conf` 사본에서 `scenario=`를 `work/cubrid-testcases/sql`로 덮은 것. 비기본 포트(1822/33120)를 써 호스트와 충돌하지 않는다. tc-reviewer는 PR 브랜치 worktree를 검증하므로 **conf 사본을 하나 더 만들어 `scenario=`를 worktree로** 덮는다(스킬이 안내).
+- **CTP conf**: `work/sql.poc.conf` = CTP `sql.conf` 사본에서 `scenario=`를 `work/cubrid-testcases/sql`로 덮은 것. 비기본 포트(1822/33120)를 써 호스트와 충돌하지 않는다. tc-reviewer는 PR 브랜치 worktree를 검증하므로 **conf 사본을 하나 더 만들어 `scenario=`를 worktree로** 덮는다(스킬이 안내). **CCI 교차**(resolve-next Verify)는 `sql_by_cci.conf` 사본(`work/sql_by_cci.poc.conf`, scenario 동일 override)을 쓴다.
 
 ### 3.4 gh (설치 + 인증)
 ```bash
@@ -112,6 +112,6 @@ gh auth status
 
 - **hook 하드 게이트**(§3·[`.claude/hooks/`](../.claude/hooks/)) — ✅ 구현. `gate-pr-submit`(제출 차단)·`lint-sql-tc`(컨벤션 린트→manifest 기록)·`gate-stop`(리마인드). `.claude/settings.json`에 등록돼 clone만으로 팀 공유.
 - **run manifest**(§2) — ✅ 구현. `work/CBRD-XXXXX/manifest.json`(gitignore), resolve-next가 기록·hook이 검사. 스키마 [`.claude/hooks/manifest.example.json`](../.claude/hooks/manifest.example.json).
-- **CCI 교차 검증**(§4) — ⏳ 미구현. `run_cci`/`.answer_cci`. 현재는 csql만.
+- **CCI 교차 검증**(§4·resolve-next Verify step 5) — ✅ 구현. `sql_by_cci.poc.conf`로 `run_cci` 재실행, csql과 다르면 `.answer_cci`(corpus 컨벤션 2119개). `gate-pr-submit`이 `cci.checked` 강제.
 
 hook은 **신뢰된 팀원의 실수 방지 가드레일**(적대적 우회 방지 아님) — 자세히 [`.claude/hooks/README.md`](../.claude/hooks/README.md).
