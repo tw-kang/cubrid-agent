@@ -1,0 +1,95 @@
+---
+name: resolve-next
+description: "Run the tc-author pipeline end-to-end for one Resolved CBRD issue: pick the next queued issue (or a given key), ground it against the fix, author a CTP SQL testcase, verify it on a local build, review it in a separate lane, and open an upstream Draft PR. Use whenever someone says \"resolve-next 돌려줘\", \"tc-author 돌려줘\", \"다음 이슈 tc 작성\", \"CBRD-XXXXX tc 만들어서 PR까지\", \"sql tc 파이프라인 돌려\", \"Resolved 이슈 테스트케이스 작성해서 제출\", even without the exact word. Orchestrator: it drives cubrid-sql-tc-create (author) + cubrid-sql-tc-verify (run) + a separate review subagent, then submits. Draft PR only; a human approves/merges. Jira is read-only (no transition). NOT for: reviewing someone else's PR (tc-reviewer), gating Resolved issues / bouncing to Handover (resolve-gate), reading nightly regression (test-runner), non-SQL categories, or authoring a single .sql with no verify/PR (call cubrid-sql-tc-create directly)."
+---
+
+# resolve-next — tc-author Run (Resolved → Test)
+
+Process **one Resolved CBRD issue end-to-end** into an upstream Draft SQL-TC PR: Select → Ground → (Author → Verify → Review, looped) → Submit → report. This is tc-author's **Run** packaged as a Stage-2 skill — the main session is the **orchestrator**; authoring and reviewing are delegated to separate lanes.
+
+Design + rationale: `agents/tc-author/DESIGN.md`. Terms: `agents/tc-author/CONTEXT.md`. Applies the global principles [DP1 parallel](../../docs/design-principles.md) and **[DP2 black-box](../../docs/design-principles.md)**. It sits **after** [resolve-gate](../resolve-gate/SKILL.md) (which bounces un-plannable issues) and feeds [tc-reviewer](../tc-reviewer/SKILL.md).
+
+## Scope
+
+**Produces:** one issue processed to a Draft PR (`tw-kang:tc/cbrd-XXXXX` → `CUBRID/cubrid-testcases:develop`) — a verified `.sql`+generated `.answer`, and a report at `agents/tc-author/reports/CBRD-XXXXX.md`. Default 1 issue/run; arg = N issues or a specific `CBRD-XXXXX`.
+
+**Does NOT:** merge/approve (draft only), write Jira (read-only — no `Start Test` transition in Stage 2), touch `~/cubrid-testcases` (bot uses `work/cubrid-testcases`), run non-SQL categories, or do the Review pass in the author's context (separate lane — no self-approve).
+
+## Before you start (env — re-establish idempotently every run)
+
+The pipeline depends on a local verify env; **re-establish it each run** (idempotent) — DESIGN risk item:
+- **Build under test** = a CUBRID **release** build that **contains the issue's fix** (the "신뢰 빌드"). PoC issues (25913/26799) are covered by `/home/dev/CUBRID` (`11.5.0.2300-04192d6`). A **new** issue needs a fix-including build — install from the build server (`192.168.1.91:8080`) via `cubrid-sql-tc-verify`. A build lacking the fix makes `.answer` wrong — never verify on it.
+- **env**: `export HOME=/home/dev; source /home/dev/.cubrid.sh` (→ `CUBRID=/home/dev/CUBRID`); `JAVA_HOME` = a JDK with `javac` (not a JRE — CTP compiles Java SP); `CTP_HOME=<abs>/work/cubrid-testtools/CTP`.
+- **work clone** (bot-only, never `~/cubrid-testcases`): `work/cubrid-testcases` on `origin`(CUBRID)/`twkang`(tw-kang) remotes; `work/sql.poc.conf` = CTP `sql.conf` with `scenario=` overridden to `work/cubrid-testcases/sql` (non-default port 1822/33120, host-collision-free).
+- **CTP + cubrid-jira** present. gh authenticated (`gh pr view --repo CUBRID/cubrid-testcases`).
+- No build / no CTP env? Do Select→Ground→Author, leave `.answer` empty, and hand off with `cubrid-sql-tc-verify` instructions (don't fake verification).
+
+## Pipeline
+
+```
+Select → Ground → ┌─ Author → Verify → Review ─┐ → Submit → report
+                  └──── feedback loop (2–5x) ◄──┘
+```
+
+## 1. Select
+Queue = Select-passing issues, oldest-resolved first; process `run` arg (default 1).
+- **JQL** (anonymous): `project = CBRD AND cf[213834] = twkang AND cf[210441] = guava AND status = Resolved AND cf[210565] in ("Required","Not Yet") ORDER BY resolved ASC`. (`cf[213834]`=QA Assignee, `cf[210441]`=Planned Version, `cf[210565]`=QA Scenario — Not Required excluded.)
+- **Read the body via `cubrid-jira jql --output json --fields 'summary,description,comment,...'`** — the `search` markdown drops the body (DESIGN). Then judge per candidate: **Reproduction** (concrete SQL/steps in body or comments), **SQL-reproducibility** (observable via csql alone, output identical every run **on the post-fix build**; probabilistic/race bug OK if post-fix output is deterministic — detection power is a Review concern, not a Select gate), **duplicate** (skip if `tc/cbrd-XXXXX` branch/PR exists or a `cbrd_xxxxx` TC already covers the repro).
+- **Idempotency**: GitHub is the source of truth — a fork/upstream `tc/cbrd-XXXXX` branch or PR ⇒ already processed ⇒ drop from queue.
+- **Queue exhaustion**: the JQL returns ~8 candidates but the **processable** queue can still be empty — 25913/26799 already have PRs (idempotency), 26797 is merged into 26799 (duplicate), 25741/26213/26739 are not csql-observable, and 26255/26701 have no repro (Select-rejected; also resolve-gate sub-task/refactoring cases). After the body-judgment + idempotency pass leaves nothing, **say so and stop** — don't silently widen. Broadening Select (other Planned Version / QA Assignee) is a user decision.
+- Single issue: `/resolve-next CBRD-XXXXX` (skip the queue).
+
+## 2. Ground
+Issue content is the source of truth; back it with code facts.
+- `work/cubrid` (fetch, `origin/develop`): `git log --grep=CBRD-XXXXX` → fix commit/PR merge diff; `gh pr view` for PR body/reviews.
+- `work/cubrid-testcases`: search existing TCs by **the repro (tables/query pattern, feature area), not the cbrd number** — the same repro may exist under another name (PoC2: `_03_iss_700000`). If so, **differentiate** (self-sufficient variant that hits the path in the standard suite), don't duplicate.
+- **Mark the fix code path** the TC must exercise (feeds Author's path-forcing + Verify's path gate).
+- Output: repro scenario, post-fix expected behavior, case list (Author input).
+
+## 3. Author (delegated — cubrid-sql-tc-create)
+- Refresh `work/cubrid-testcases` to `origin/develop`, create branch `tc/cbrd-XXXXX` (continue the existing branch on retry).
+- Author `.sql` **by the `cubrid-sql-tc-create` skill rules** (header block, `evaluate 'Case N'`, DROP-before-CREATE, self-contained cleanup, English comments, expected values only in `.answer`). TC path = `sql/_36_guava/cbrd_XXXXX/{cases,answers}/` (guava corpus convention).
+- **DP2 (black-box, user-perspective)**: author the TC as a **DBA / DB engineer / AP-developer** would observe the bug — csql SQL I/O, plan, catalog. Cover boundary + negative cases and field-misuse angles (non-expert), **not** C-internal signals (asserts, page ids) a user can't see. If the fix has no user-observable behavior change (debug-only assert), it's not an SQL-TC target — bounce back to Select judgment.
+- `.answer` is **generated by Verify, never hand-written**.
+
+## 4. Verify (delegated — cubrid-sql-tc-verify, local CTP)
+Run on the fix-including release build; **generate then confirm** the answer:
+1. **answer generation (empty-answer trick)**: seed an empty `answers/cbrd_XXXXX.answer` (CTP's interactive `run` skips a case with no answer), run → real output lands in `$CTP_HOME/sql/result/.../cbrd_XXXXX.result`, check it matches intent (error code / row count / message), promote (`cp`) to `.answer`, re-run → `Success:1`.
+2. **determinism gate**: ≥3 runs all `Success:1` (diff ignores newlines). Nondeterministic token (`[Ljava...@hash`, OID, timestamp, ORDER-BY-less multi-row) → feed back to Author.
+3. **path-coverage gate**: plan/trace (`;plan detail`, `.queryPlan`, `SET TRACE ON`) proves the **fix path is actually hit** — a green TC on an unaffected path is worthless (size data to clear thresholds; `test_mode=yes` can flip the path).
+4. **fail→pass contract**: install a **pre-fix** build → the TC should **FAIL**; fixed build → PASS. Race repro is timing-sensitive (best-effort; document the limit); pin the server to **≥4 cores** (≤2 disables parallelism). If no pre-fix build, ground pre-fix behavior from the issue Repro/Expected and note it.
+- `.answer` is confirmed on the **release** build (= CI mode); debug only for diagnosis.
+
+## 5. Review (delegated — separate lane, no self-approve)
+Spawn a **fresh-context review subagent** (opus) with the issue body, fix-diff summary, `.sql`/`.answer`, and verify logs. It judges:
+- create-skill self-review checklist (header, evaluate numbering, cleanup, server-message pairing, path rule);
+- **regression value** (would this FAIL on the pre-fix engine?), **coverage** (repro + fix blast radius), **`.answer` validity** (matches the issue's post-fix behavior), **DP2** (asserts user-observable behavior, not internals).
+- Output: PASS or a fix-request list (Author feedback). **Approval is never in the author's context.**
+
+## 6. Feedback loop (2–5x)
+- Round 1: Author → Verify → Review.
+- **Force ≥1 improvement round even on a clean review** (min 2 rounds) — apply review comments, re-verify, re-review.
+- From round 2, Submit when all three gates pass (author completeness · verify PASS · review PASS).
+- **5 rounds without passing** → keep the branch locally, record the skip reason + diagnosis in the report, move on.
+
+## 7. Submit — commit · push · Draft PR
+- Commit `[CBRD-XXXXX] Add SQL testcase for <English summary>` + Claude trailer; push branch `tc/cbrd-XXXXX` to the `twkang` remote (`.result` is gitignored).
+- `gh pr create --repo CUBRID/cubrid-testcases --base develop --head tw-kang:tc/cbrd-XXXXX --draft`.
+  - **Title**: English, `[CBRD-XXXXX]` header.
+  - **Body**: Korean, user-perspective, the `~/cubrid/.github/PULL_REQUEST_TEMPLATE.md` shape (jira link + `### Purpose` / `### Implementation` / `### Remarks`). Remarks = verify evidence (build id, loop count, determinism N, fail→pass result/limit).
+- **PoC/Stage 2 = Draft PR + human approves/merges.** No Jira transition.
+
+## 8. Report
+`agents/tc-author/reports/CBRD-XXXXX.md` (gitignored): Select basis (field values · repro location), Ground summary (fix PR/commit), per-round loop history (verify result · review nits · what changed), final PR link or skip reason.
+
+## Stage matrix
+| | Select 범위 | 검증 | Jira | 산출 |
+|---|---|---|---|---|
+| **PoC (Stage 1)** | assignee=twkang, 사람이 게이트 확인 | 로컬 CTP | 읽기전용 | Draft PR |
+| **Stage 2 (팀내 수동)** | 위와 동일, 스킬로 패키징 | 로컬 CTP | 읽기전용 | Draft PR |
+| **Stage 3 (무인)** | guava Resolved 전체 | pod·build-cache | 쓰기(`Start Test` 전이) | PR + 전이 |
+
+CCI 교차검증(`.answer_cci`)·게이트 hook 강제는 Stage 2+; pod 검증·Jira 쓰기·다건 병렬은 Stage 3 (park).
+
+## Note — orchestrator, not author
+The main session **drives** the loop and does Select/Ground/Verify/Submit; it **delegates** authoring to `cubrid-sql-tc-create` and reviewing to a separate subagent. Keep author and review in **different contexts** — a green light the author gave itself doesn't count.

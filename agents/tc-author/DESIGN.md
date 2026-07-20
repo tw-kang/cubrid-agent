@@ -177,7 +177,7 @@ cubrid-agent/                        # 모노레포 (ADR 0008)
 │   ├── docs/jira/                   # CUBRIDQA-1429 description 사본 (지속 갱신)
 │   └── reports/                     # run 리포트 (gitignore — 커밋 안 함; PR Remarks·Jira에 요약)
 ├── docs/                            # 전역: staging·design-principles·adr(0007·0008)·handover
-├── .claude/skills/resolve-next/     # 기동 커맨드 /resolve-next [N | CBRD-XXXXX] (Stage 2 구현 시)
+├── .claude/skills/resolve-next/     # 기동 커맨드 /resolve-next [N | CBRD-XXXXX] (Stage 2 — 구현됨)
 └── work/                            # 봇 전용 (gitignore): cubrid·cubrid-testcases·cubrid-testtools·sql.poc.conf
 
 # CUBRID 검증 빌드: /home/dev/CUBRID (release 11.5.0.2300-04192d6, 소켓 경로 한계로 짧은 경로 필수)
@@ -206,6 +206,13 @@ Required+Not Yet 8건의 본문·댓글 판독 결과 (과거 수동 triage `~/w
 - **대기열 소진**: 25913·26799 처리 후 현 필터로는 대상이 없다. Select 조건 확장(다른 planned version, 다른 QA Assignee 등)은 사용자와 재논의 사항.
 - **로컬 검증 env 재현성**: 검증은 `work/cubrid-rel`의 격리 설치본 + `HOME`/`CTP_HOME`/`JAVA_HOME`/scenario 심링크 env에 의존한다. 이 env 구성은 `/resolve-next` 스킬이 매 run 시작 시 멱등하게 재수립해야 한다(스킬 구현 항목).
 - **debug/release 차이**: 로컬은 release 단일로 진행하므로, 이슈 재현이 debug assertion에 의존하는 경우에만 `-debug.sh`를 추가 설치한다. `.answer`는 항상 release로 확정.
+
+## 구현 (Stage 2 오케스트레이터 스킬)
+
+Run을 [`.claude/skills/resolve-next/`](../../.claude/skills/resolve-next/)로 스킬화(팀 git 공유, Stage 2). 기동 `/resolve-next [N | CBRD-XXXXX]`.
+- **SKILL.md**: 메인 세션=오케스트레이터(Select·Ground·Verify·Submit·루프 제어), Author=`cubrid-sql-tc-create` lane, Review=분리 fresh-context 서브에이전트(self-approve 금지). env 멱등 재수립, 멱등성(GitHub 진실원천), DP2(블랙박스·사용자 관점) 명시. resolve-gate 뒤·tc-reviewer 앞에 위치.
+- **Select 스모크(2026-07-21)**: 위 JQL은 8건 반환하나 본문 판정+멱등성 후 **처리가능 대기열=0** — 25913/26799 PR 존재(멱등), 26797 통합(중복), 25741/26213/26739(csql 관측 불가)·26255/26701(repro 없음) Select 탈락. → 스킬의 "대기열 소진 감지·중단" 동작 실증. 라이브 end-to-end Run은 대기열 확장(사용자 결정) 후에만 가능(현 필터로는 대상 없음).
+- **남은 것**: 대기열 확장 후 라이브 end-to-end Run, 자동 전이(`Start Test`)·pod 검증(Stage 3).
 
 ## PoC 이후로 미룬 것
 
