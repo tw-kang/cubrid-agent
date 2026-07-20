@@ -47,6 +47,8 @@ hook이 게이트 통과를 기계적으로 확인하려면, 파이프라인이 
 
 ## 3. 하드 게이트 = hook (우회 불가)
 
+> **구현됨: [`.claude/hooks/`](../.claude/hooks/)** (2026-07-21) — 아래 설계대로 `gate-pr-submit`·`lint-sql-tc`·`gate-stop` 3종 + `.claude/settings.json` 등록. 스모크 검증 완료. 세부 [.claude/hooks/README.md](../.claude/hooks/README.md).
+
 스킬·CLAUDE.md는 '요청'이라 우회 가능 → 필수 게이트는 Claude Code hook으로 강제.
 
 | hook 이벤트 | 검사 | 동작 |

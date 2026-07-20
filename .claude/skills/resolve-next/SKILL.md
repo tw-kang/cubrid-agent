@@ -31,6 +31,8 @@ Select → Ground → ┌─ Author → Verify → Review ─┐ → Submit → 
                   └──── feedback loop (2–5x) ◄──┘
 ```
 
+**Run manifest (Stage 2 hard gate)**: as each stage completes, record its gate result into `work/CBRD-XXXXX/manifest.json` (schema: [`.claude/hooks/manifest.example.json`](../../hooks/manifest.example.json)). The `lint.*` mechanical fields are written by the `lint-sql-tc` PostToolUse hook; **you** write the rest (author / verify / review + `lint.answer_not_handwritten`). Submit's `gh pr create` is **blocked by the `gate-pr-submit` hook** unless the manifest confirms determinism · fail→pass · review PASS · lint (see [`.claude/hooks/README.md`](../../hooks/README.md)).
+
 ## 1. Select
 Queue = Select-passing issues, oldest-resolved first; process `run` arg (default 1).
 - **JQL** (anonymous): `project = CBRD AND cf[213834] = twkang AND cf[210441] = guava AND status = Resolved AND cf[210565] in ("Required","Not Yet") ORDER BY resolved ASC`. (`cf[213834]`=QA Assignee, `cf[210441]`=Planned Version, `cf[210565]`=QA Scenario — Not Required excluded.)

@@ -21,11 +21,14 @@
    git clone https://github.com/tw-kang/cubrid-agent.git && cd cubrid-agent
    ls .claude/skills/    # resolve-gate  resolve-next  tc-reviewer
    ```
-2. **cubrid-jira CLI** — 설치 후 인증(`~/.netrc`에 jira.cubrid.org 자격). 세 스킬 모두 이슈 본문을 읽는다.
+2. **cubrid-jira CLI** ([github.com/vimkim/cubrid-jira](https://github.com/vimkim/cubrid-jira)) — 세 스킬 모두 이슈 본문을 읽는다. 전제: **Python 3.14+**, **pandoc**.
    ```bash
-   which cubrid-jira || echo "install: ~/.local/bin/cubrid-jira (별도 배포)"
-   cubrid-jira search CBRD-25913     # sanity — 본문 markdown이 나오면 OK
+   sudo dnf install -y pandoc          # Debian/Ubuntu: sudo apt install pandoc  /  macOS: brew install pandoc
+   # (uv가 없으면) curl -LsSf https://astral.sh/uv/install.sh | sh
+   uv tool install git+https://github.com/vimkim/cubrid-jira.git    # 대안: pipx install git+…  (⚠ pip install -e . 금지)
+   cubrid-jira search CBRD-25913       # sanity — 본문 markdown이 나오면 OK
    ```
+   - 인증(둘 중 하나): 환경변수 `CUBRID_JIRA_USER`/`CUBRID_JIRA_PASSWORD`(에이전트 권장), 또는 `~/.netrc`(`machine jira.cubrid.org`, `chmod 600`). 갱신 `uv tool upgrade cubrid-jira`.
    - ⚠ `show`/`get` 서브커맨드는 **없다**. 읽기는 `search <KEY>`(md) + `comment-list <KEY> --output json`(코멘트) + `jql '<query>' --output json`(대량/본문). **재현 절차가 description이 아니라 comment에만 있는 이슈가 많으니 comment까지 읽어라.**
 
 ## 2. resolve-gate 셋업 (가장 가벼움)
@@ -66,9 +69,14 @@ git clone https://github.com/CUBRID/cubrid.git work/cubrid                      
 ```
 - **CTP conf**: `work/sql.poc.conf` = CTP `sql.conf` 사본에서 `scenario=`를 `work/cubrid-testcases/sql`로 덮은 것. 비기본 포트(1822/33120)를 써 호스트와 충돌하지 않는다. tc-reviewer는 PR 브랜치 worktree를 검증하므로 **conf 사본을 하나 더 만들어 `scenario=`를 worktree로** 덮는다(스킬이 안내).
 
-### 3.4 gh 인증
+### 3.4 gh (설치 + 인증)
 ```bash
-gh auth status    # fork=tw-kang, base=CUBRID. PR: tw-kang:<branch> → CUBRID/<repo>:develop
+# 설치 — Rocky/RHEL 8 계열(dnf). Debian/Ubuntu는 apt, 그 외는 cli.github.com/manual 참조
+sudo dnf install -y 'dnf-command(config-manager)'
+sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+sudo dnf install -y gh
+gh auth login     # 이후 fork=tw-kang, base=CUBRID. PR: tw-kang:<branch> → CUBRID/<repo>:develop
+gh auth status
 ```
 
 ### 3.5 resolve-next 전용 — 부품 스킬 (⚠ 배포 blocker)
@@ -100,11 +108,10 @@ gh auth status    # fork=tw-kang, base=CUBRID. PR: tw-kang:<branch> → CUBRID/<
 
 세 스킬 모두 **Jira에 쓰지 않는다**. resolve-gate의 전이(Need Something/Start Test)·반송 코멘트, resolve-next의 `Start Test` 전이는 **사람이 초안을 검토한 뒤 수동**으로 한다. 자동 전이·코멘트는 Stage 3.
 
-## 7. 아직 미구현 (구현 예정 — 셋업엔 영향 없음)
+## 7. 구현 상태
 
-stage2-design.md가 설계했으나 아직 코드로 없는 것:
-- **hook 하드 게이트**(§3) — fail→pass·결정성 미통과 시 `gh pr create` 차단. 현재는 사람이 게이트 확인.
-- **run manifest**(§2) — 게이트 근거 파일. 현재는 리포트로 대체.
-- **CCI 교차 검증**(§4) — `run_cci`/`.answer_cci`. 현재는 csql만.
+- **hook 하드 게이트**(§3·[`.claude/hooks/`](../.claude/hooks/)) — ✅ 구현. `gate-pr-submit`(제출 차단)·`lint-sql-tc`(컨벤션 린트→manifest 기록)·`gate-stop`(리마인드). `.claude/settings.json`에 등록돼 clone만으로 팀 공유.
+- **run manifest**(§2) — ✅ 구현. `work/CBRD-XXXXX/manifest.json`(gitignore), resolve-next가 기록·hook이 검사. 스키마 [`.claude/hooks/manifest.example.json`](../.claude/hooks/manifest.example.json).
+- **CCI 교차 검증**(§4) — ⏳ 미구현. `run_cci`/`.answer_cci`. 현재는 csql만.
 
-이 셋이 붙기 전까지 Stage 2는 **신뢰된 팀원의 수동 확인**에 의존한다(가드레일 없이도 셋업·기동은 가능).
+hook은 **신뢰된 팀원의 실수 방지 가드레일**(적대적 우회 방지 아님) — 자세히 [`.claude/hooks/README.md`](../.claude/hooks/README.md).
