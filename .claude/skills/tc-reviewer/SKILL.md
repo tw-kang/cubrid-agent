@@ -19,7 +19,7 @@ Design + rationale: `agents/tc-reviewer/DESIGN.md`. Perspective catalog: `agents
 
 - **gh** authenticated (`gh pr view <N> --repo CUBRID/cubrid-testcases`).
 - **cubrid-jira** for the issue body — `cubrid-jira search <KEY>` (full markdown) **and `cubrid-jira comment-list <KEY> --output json`** (there is no `show`/`get`). ⚠ Repro/scenario is often **only in comments** (empty description) — read them; that's where P11 (issue intent) lives.
-- **Local CTP** for L3: reuse tc-author's Verify infra — `/home/dev/CUBRID` (release build), `work/sql.poc.conf`, non-default port. Check out the PR branch as a **git worktree** under `work/cubrid-testcases` (don't pollute the working clone). **Copy the conf and override `scenario=` to the worktree path** — the stock `sql.poc.conf` points at the working clone, so as-is it verifies the wrong branch.
+- **Local CTP** for L3: reuse tc-author's Verify infra — `$HOME/CUBRID` (release build), `work/sql.poc.conf`, non-default port (`./setup.sh` provisions; env via `source work/agent-env.sh`). Check out the PR branch as a **git worktree** under `work/cubrid-testcases` (don't pollute the working clone). **Copy the conf and override `scenario=` to the worktree path** — the stock `sql.poc.conf` points at the working clone, so as-is it verifies the wrong branch.
 - No local build / no CTP env? Run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it).
 
 ## Pipeline
