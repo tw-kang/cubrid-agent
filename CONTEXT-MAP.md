@@ -29,7 +29,7 @@ Tested   ─[close-backport: Close / Need Backport]→ Closed / Backport
 
 - [docs/design-principles.md](./docs/design-principles.md) — 전 에이전트 공통 설계 원칙(DP1 병렬 실행; **DP2 사용자 관점·블랙박스 테스트** — TC·시나리오는 내부 구현이 아닌 관측 동작 기준. '사용자'=DBA·DB engineer(전문가)~AP 개발자(비전문가) 스펙트럼이라 플랜·카탈로그·statdump·드라이버 입출력은 블랙박스 안, C 내부는 제외. 목적에 **필드에서 마주칠 상황 미리 검출** 포함. 관측 수단은 카테고리별(SQL→shell·CCI/JDBC 등 확장 예정)).
 - [docs/staging.md](./docs/staging.md) — 롤아웃 3단계 모델(PoC / Stage 2 팀 수동 트리거 / Stage 3 무인 자동), 전 에이전트 공통.
-- [docs/deployment.md](./docs/deployment.md) — **배포 구조 정본**: 자산 3계층(clone이 나른다/스크립트가 만든다/사람이 넣는다), 확정 결정 D1~D6, Stage 3 매핑. 원칙: *문서는 사람에게, 스크립트는 머신에게, 자격은 Secret에게*. Tier 2 자동화 = 루트 `setup.sh`(멱등). 부품 스킬 경계는 [ADR 0010](./docs/adr/0010-part-skills-boundary.md).
+- [docs/deployment.md](./docs/deployment.md) — **배포 구조 정본**: 자산 3계층(clone이 나른다/스크립트가 만든다/사람이 넣는다), 확정 결정 D1~D6, Stage 3 매핑. 원칙: *문서는 사람에게, 스크립트는 머신에게, 자격은 Secret에게*. Tier 2 자동화 = 루트 `setup.sh`(멱등). 부품 스킬 경계는 [ADR 0011](./docs/adr/0011-part-skills-boundary.md).
 - [docs/stage2-setup.md](./docs/stage2-setup.md) — Stage 2 팀 셋업 실행 가이드: `git clone` → `./setup.sh` → 자격 주입 → 기동. 함정 체크리스트 포함.
 - [docs/adr/](./docs/adr/) — 시스템 전역 ADR.
 - [docs/handover/](./docs/handover/) — 외부 핸드오버 재료(v1 배포 설계, v2 TC 작성).
@@ -38,10 +38,18 @@ Tested   ─[close-backport: Close / Need Backport]→ Closed / Backport
 ## ADR 번호 규칙
 
 ADR 번호는 **전역 유일 단일 시퀀스**. 생성 순서로 매기되 범위에 따라 위치가 갈린다:
-- `0001`~`0006` = tc-author PoC에서 나온 tc-author 전용 결정 → `agents/tc-author/docs/adr/`
-- `0007`(롤아웃 단계), `0008`(모노레포) = 시스템 전역 → `docs/adr/`
-- 이후: 전역 결정은 `docs/adr/`, 에이전트 전용은 `agents/<name>/docs/adr/`.
+- `0001`~`0006`·`0009` = tc-author 전용 → `agents/tc-author/docs/adr/`
+- `0007`(롤아웃 단계)·`0008`(모노레포)·`0011`(부품 스킬 경계) = 시스템 전역 → `docs/adr/`
+- `0010`(판정 원천·baseline 델타) = test-runner 전용 → `agents/test-runner/docs/adr/`
+- 이후: 전역 결정은 `docs/adr/`, 에이전트 전용은 `agents/<name>/docs/adr/`. **새 번호를 매기기 전 전 시퀀스(전역+에이전트)를 확인한다** — 0010이 전역/에이전트 양쪽에 매겨질 뻔한 충돌 전례(2026-07-21 정정).
 
 ## 용어
 
-현재 도메인 용어집은 [agents/tc-author/CONTEXT.md](./agents/tc-author/CONTEXT.md)에 있다(PoC에서 정립). 다른 에이전트가 설계되면 각자 `CONTEXT.md`에 자기 용어를 두고, 여러 에이전트가 공유하는 용어는 이 맵으로 승격한다.
+각 에이전트는 자기 `CONTEXT.md`에 자기 용어를 두고, **여러 에이전트가 공유하는 용어는 이 맵으로 승격한다**. 승격분(2026-07-21):
+
+| 용어 | 뜻 |
+|---|---|
+| **Planned Version** | 이슈가 편입되기로 계획된 릴리스를 담는 Jira 커스텀 필드(`cf[210441]`). Fix Version(이미 편입된 릴리스)과 다르다. 파이프라인 Select 공통 축(현재 값 guava) |
+| **QA Assignee** | 이슈의 QA 검증 담당자 Jira 커스텀 필드(`cf[213834]`). 개발 담당자(assignee)와 다르다 |
+| **QA Scenario** | TC(시나리오) 작성 필요 여부의 공식 판단 Jira 커스텀 필드(`cf[210565]`). 값: `Required`/`Not Required`/`Not Yet`. 개발자가 초안을 쓰고 resolve-gate(QA)가 재판정한다 |
+| **신뢰 빌드** | oracle(`.answer`) 생성·검증의 기준이 되는, **대상 이슈의 fix가 포함된** CUBRID 빌드. 위치 규약 `$HOME/CUBRID`(deployment.md D7). fix 미포함 빌드의 검증 결과는 false signal |

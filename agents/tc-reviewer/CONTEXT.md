@@ -11,7 +11,7 @@
 ## 용어
 
 - **횡단 에이전트**: Jira 상태 전이가 아니라 PR 수명주기(open→review→merge)에 붙는 에이전트. 대상은 작성자 무관(사람 PR + tc-author 봇 PR) 전체 sql TC PR.
-- **관점 카탈로그(review perspectives)**: 사람 리뷰어들이 실제로 지적해 온 리뷰 관점의 정본 목록. [docs/review-perspectives.md](./docs/review-perspectives.md) — 1년 사람 리뷰 600건 분류로 채웠고, 5년(2,800건) 확장 수집 완료(철학 보강 예정).
+- **관점 카탈로그(review perspectives)**: 사람 리뷰어들이 실제로 지적해 온 리뷰 관점의 정본 목록. [.claude/skills/tc-reviewer/references/review-perspectives.md](../../.claude/skills/tc-reviewer/references/review-perspectives.md) — 1년 사람 리뷰 600건 분류로 채웠고, 5년(2,800건) 확장 수집 완료. (스킬 자기완결을 위해 스킬 references/로 이동, 2026-07-21.)
 - **3층 리뷰(L1/L2/L3)**: L1=컨벤션 린트(정적), L2=관점 카탈로그 기반 도메인 리뷰(정적), L3=로컬 CTP 실행 검증(동적).
 - **READY-TO-MERGE / NEEDS-WORK**: 권고 판정. blocker/major 지적이 있으면 NEEDS-WORK. **approve·merge 권한은 항상 사람** — 봇은 사람 리뷰어가 볼 PR을 걸러 주는 역할.
 - **리뷰 초안(staged posting)**: PoC에서는 봇이 라인 코멘트+종합 리뷰를 완성 초안까지만 만들고 사람이 검토 후 게시. 오탐이 PR 작성자에게 직접 노출되는 리스크를 차단. 이후 자동 게시(resolve-gate와 동일한 단계적 패턴).

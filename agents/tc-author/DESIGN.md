@@ -43,23 +43,15 @@ Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·�
 |---|---|---|
 | T1 | Select 필터 개정 | QA Scenario는 **Not Required만 제외** (Required + Not Yet 포함, ADR 0002 개정). **PoC 1호 = CBRD-25913**(결정적 syntax error 재현, resolved 2025-07-23으로 최고령), **2호 = CBRD-26799** |
 
-### 로컬 전환 (4차) — 구현 착수 시 결정
+### 검증 환경 — 로컬 CTP, $HOME 표준
 
-PoC 검증을 pod 대신 **로컬 CTP 실행**으로 수행하기로 결정(ADR 0006). Q3/Q4의 pod 접근은 **배포 단계로 이연**된다(pod·build-cache 마운트는 그때 사용).
-
-| # | 결정 사항 | 내용 |
-|---|---|---|
-| L1 | 검증 환경 | 로컬 CTP 단건 실행 (ADR 0006). Q3의 pod interactive를 PoC 범위에서 대체 |
-| L2 | 검증 빌드 확보 | `run_cubrid_install <release-url>`로 **`/home/dev/CUBRID` 표준 설치**(사내 빌드서버 `192.168.1.91:8080`). 격리(HOME override) 설치는 소켓 경로 108자 한계로 폐기; jdbc 정리로 위치 확보 (ADR 0006) |
-| L3 | 검증 빌드 | release `11.5.0.2300-04192d6` (두 fix 포함). Q4의 pod SHA(a569 계열)를 로컬 URL 빌드로 대체. debug는 진단 시에만 |
-| L4 | 작업 위치 | repo clone은 `work/`에 격리(`cubrid`, `cubrid-testcases`, `cubrid-testtools`). CUBRID 설치본은 소켓 한계상 짧은 경로 `/home/dev/CUBRID`. scenario는 PoC conf에서 `work/cubrid-testcases/sql`로 지정 → 사용자 `~/cubrid-testcases` 불가침 유지 |
-| L5 | 포트/JDK | CTP sql.conf가 비기본 포트(1822/33120) 사용 → 호스트 무충돌. Java SP 컴파일에 JDK 필요 → `JAVA_HOME`=javac 있는 JDK(예: `/usr/lib/jvm/java-1.8.0-openjdk-…`, jre 하위 아님). (jdbc 인스턴스는 사용자 승인 하 정리됨) |
+PoC 검증을 pod 대신 **로컬 CTP 실행**으로 수행(ADR 0006 — pod·build-cache 마운트는 Stage 3로 이연). 환경 배치는 전역 배포 계약 [deployment.md](../../docs/deployment.md) **D7($HOME 런타임 표준)**을 따른다: 신뢰 빌드 `$HOME/CUBRID`(소켓 108자 한계상 짧은 경로), testcases `$TC`(=`$CUBRID_TESTCASES` 오버라이드, 기본 `~/cubrid-testcases`), CTP `$CTP_HOME`(기본 `~/cubrid-testtools/CTP`), env `~/.cubrid-agent/env.sh`(JDK `JAVA_HOME` 포함 — `./setup.sh` 생성). CTP 원본 conf가 이미 `${HOME}/cubrid-testcases/sql`·비기본 포트(1822/33120)라 **conf 사본 불필요**. (PoC 당시의 work/ 격리·빌드 pin 경위는 git history·ADR 0006 참조.)
 
 ### 설계 기본값 (인터뷰 없이 확정한 것 — 이견 시 조정)
 
-- **작업 공간 격리**: `~/cubrid-testcases`는 사용자의 수동 작업 공간(현재 다른 브랜치 작업 중)이므로 봇은 절대 건드리지 않는다. 봇 전용 clone을 `work/cubrid-testcases`에 두고 origin(CUBRID)/twkang(tw-kang) 리모트로 운용.
+- **작업 공간 규약**: 봇은 `$TC`(기본 `~/cubrid-testcases`, origin/twkang 리모트)에서 **`tc/cbrd-XXXXX` 브랜치로만** 작업한다 — 사람이 체크아웃한 브랜치에는 커밋하지 않는다. 사람 작업장과 격리가 필요한 머신은 `CUBRID_TESTCASES`로 별도 clone 지정(deployment.md D7).
 - **TC 경로**: `sql/_36_guava/cbrd_XXXXX/{cases,answers}/` — origin/develop에 확립된 guava 컨벤션 (스킬 문서의 `_13_issues` 경로 대신 corpus 우선).
-- **TC 배치**: 루프 중에는 push 없이 `work/cubrid-testcases`의 `cases/`에 직접 두고 로컬 CTP로 검증 (ADR 0006). 배포 단계에선 `kubectl cp` 주입 (ADR 0001).
+- **TC 배치**: 루프 중에는 push 없이 `$TC`의 `cases/`에 직접 두고 로컬 CTP로 검증 (ADR 0006). 배포 단계에선 `kubectl cp` 주입 (ADR 0001).
 - **Review lane 분리**: 리뷰는 작성자와 분리된 fresh-context 서브에이전트가 수행 (OMC self-approve 금지 원칙).
 - **멱등성**: fork/upstream에 `tc/cbrd-XXXXX` 브랜치 또는 PR이 이미 있으면 처리된 이슈로 간주하고 대기열에서 제외. GitHub이 진실 원천, 로컬 state 파일은 캐시일 뿐.
 - **Jira 본문 읽기 경로**: `cubrid-jira jql --output json --fields 'summary,description,comment,...'`만 사용. `search` 서브커맨드의 markdown은 본문이 비는 문제가 있어 정본으로 쓰지 않는다.
@@ -112,13 +104,7 @@ Select ─► Ground ─► ┌── Author ──► Verify ──► Review �
 
 ### 4. Verify — 로컬 CTP 검증 (ADR 0006)
 
-전제: PoC 전용 CUBRID가 `/home/dev/CUBRID`에 설치돼 있다(release `11.5.0.2300-04192d6`, 두 fix 포함). CTP는 sql.conf에서 비기본 포트(1822/33120)를 써 호스트와 충돌하지 않는다. env:
-```
-export HOME=/home/dev; source /home/dev/.cubrid.sh          # CUBRID=/home/dev/CUBRID
-export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-…          # JDK(javac 포함), jre 아님 — Java SP 컴파일용
-export CTP_HOME=<abs>/work/cubrid-testtools/CTP
-```
-PoC용 conf `work/sql.poc.conf` = CTP `sql.conf`의 `scenario`를 `work/cubrid-testcases/sql`로 덮어쓴 사본(사용자 `~/cubrid-testcases` 불가침).
+전제: **신뢰 빌드**(대상 이슈 fix 포함 release)가 `$HOME/CUBRID`에 설치돼 있다. CTP는 **원본 `sql.conf` 그대로** 사용(비기본 포트 1822/33120, `scenario=${HOME}/cubrid-testcases/sql`; `$TC`가 비기본이면 사본에 scenario만 덮음). env는 `source ~/.cubrid-agent/env.sh`(`./setup.sh` 생성 — `.cubrid.sh`+`CTP_HOME`+JDK `JAVA_HOME`).
 
 **answer 생성 (핵심 — 비자명)**: CTP 인터랙티브 `run`은 MODE_RESULT라 **`.answer`가 없는 케이스를 스킵**한다(실행조차 안 함 → Total:1 / Success:0 / Fail:0). 새 TC의 answer는 *빈-answer 트릭*으로 만든다:
 1. 빈 `answers/cbrd_XXXXX.answer`를 만든다 → 케이스가 실행된다.
@@ -164,24 +150,9 @@ fresh-context 리뷰 서브에이전트에 이슈 본문, fix diff 요약, `.sql
 
 `reports/CBRD-XXXXX.md`: 선정 근거(필드 값·repro 위치), Ground 요약(fix PR/커밋), 루프 회차별 이력(검증 결과·리뷰 지적·반영 내용), 최종 PR 링크 또는 스킵 사유.
 
-## 프로젝트 구조 (구현 시)
+## 프로젝트 구조
 
-```
-cubrid-agent/                        # 모노레포 (ADR 0008)
-├── CONTEXT-MAP.md                   # 에이전트 지도
-├── CLAUDE.md                        # 오케스트레이터 지침(구현 시): 파이프라인 규칙·게이트·금지사항
-├── agents/tc-author/
-│   ├── CONTEXT.md                   # 도메인 용어집
-│   ├── DESIGN.md                    # 이 문서
-│   ├── docs/adr/                    # tc-author ADR (0001~0006·0009)
-│   ├── docs/jira/                   # CUBRIDQA-1429 description 사본 (지속 갱신)
-│   └── reports/                     # run 리포트 (gitignore — 커밋 안 함; PR Remarks·Jira에 요약)
-├── docs/                            # 전역: staging·design-principles·adr(0007·0008)·handover
-├── .claude/skills/resolve-next/     # 기동 커맨드 /resolve-next [N | CBRD-XXXXX] (Stage 2 — 구현됨)
-└── work/                            # 봇 전용 (gitignore): cubrid·cubrid-testcases·cubrid-testtools·sql.poc.conf
-
-# CUBRID 검증 빌드: /home/dev/CUBRID (release 11.5.0.2300-04192d6, 소켓 경로 한계로 짧은 경로 필수)
-```
+repo 구조·에이전트 배치의 정본은 [CONTEXT-MAP.md](../../CONTEXT-MAP.md)(ADR 0008), 배포 자산 계층·런타임 배치($HOME 표준)의 정본은 [deployment.md](../../docs/deployment.md) — 여기 중복하지 않는다.
 
 역할 분담: 메인 세션 = 오케스트레이터(Select·Ground·Verify·Submit 및 루프 제어), Author = `cubrid-sql-tc-create` 스킬 지침을 따르는 실행 lane, Review = 분리된 서브에이전트 lane.
 
@@ -204,7 +175,7 @@ Required+Not Yet 8건의 본문·댓글 판독 결과 (과거 수동 triage `~/w
 
 - **검출력 한계**: CBRD-26799 TC는 재발을 확률적(~6%/회)으로만 잡는다. Author는 반복 rebuild·데이터 패턴 조정 등으로 검출력 증폭을 시도하고, 리뷰는 검출력을 평가 항목으로 삼으며, 한계는 PR Remarks에 명시한다 (ADR 0004).
 - **대기열 소진**: 25913·26799 처리 후 현 필터로는 대상이 없다. Select 조건 확장(다른 planned version, 다른 QA Assignee 등)은 사용자와 재논의 사항.
-- **로컬 검증 env 재현성**: 검증은 `work/cubrid-rel`의 격리 설치본 + `HOME`/`CTP_HOME`/`JAVA_HOME`/scenario 심링크 env에 의존한다. 이 env 구성은 `/resolve-next` 스킬이 매 run 시작 시 멱등하게 재수립해야 한다(스킬 구현 항목).
+- **로컬 검증 env 재현성**: env는 `./setup.sh`가 멱등 수립(`~/.cubrid-agent/env.sh`)하고 `/resolve-next`가 매 run 시작 시 전제를 확인한다(구현됨 — deployment.md D7).
 - **debug/release 차이**: 로컬은 release 단일로 진행하므로, 이슈 재현이 debug assertion에 의존하는 경우에만 `-debug.sh`를 추가 설치한다. `.answer`는 항상 release로 확정.
 
 ## 구현 (Stage 2 오케스트레이터 스킬)

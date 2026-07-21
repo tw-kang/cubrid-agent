@@ -22,7 +22,7 @@ english=true
 grep -E '^[[:space:]]*--' "$FILE" | LC_ALL=C grep -q '[^[:print:][:blank:]]' && english=false
 
 # Record into manifest.lint (create skeleton if absent).
-MDIR="${CLAUDE_PROJECT_DIR:-$(pwd)}/work/$KEY"
+MDIR="$HOME/.cubrid-agent/$KEY"
 MANIFEST="$MDIR/manifest.json"
 mkdir -p "$MDIR"
 [ -f "$MANIFEST" ] || printf '{}' > "$MANIFEST"

@@ -2,7 +2,7 @@
 # Stage 2 stop reminder — if a run manifest exists but its gates are incomplete and it
 # hasn't been submitted, remind. Non-blocking (exit 0) to avoid stop loops. stage2-design §3.
 set -u
-DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}/work"
+DIR="$HOME/.cubrid-agent"
 [ -d "$DIR" ] || exit 0
 pending=""
 for m in "$DIR"/CBRD-*/manifest.json; do

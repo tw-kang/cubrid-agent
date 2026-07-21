@@ -16,7 +16,7 @@ resolve-next 파이프라인의 필수 품질 게이트를 Claude Code hook으�
 
 ## run manifest
 
-- 위치: `work/<CBRD-XXXXX>/manifest.json` (gitignore됨).
+- 위치: **`$HOME/.cubrid-agent/<CBRD-XXXXX>/manifest.json`** (프로젝트 디렉토리 무관 — $HOME 런타임 표준, docs/deployment.md).
 - 작성: **resolve-next 오케스트레이터가 각 단계 결과를 기록**(§8 Q1). 단 `lint.{header,evaluate,cleanup,english_comments}`는 `lint-sql-tc.sh`가 갱신(우회불가), `lint.answer_not_handwritten`은 provenance라 오케스트레이터가 기록.
 - 스키마 예시: [manifest.example.json](./manifest.example.json).
 
@@ -31,12 +31,15 @@ resolve-next 파이프라인의 필수 품질 게이트를 Claude Code hook으�
 
 ## 로컬 확인 (세션에 걸지 않고 스크립트만 시험)
 
+`HOME`을 임시 디렉토리로 바꿔 실제 manifest를 건드리지 않고 시험한다:
 ```bash
-# 미충족(manifest 없음) → deny
+SM=$(mktemp -d)
+# 미충족(manifest 없음) → deny(exit 2)
 echo '{"tool_input":{"command":"gh pr create --repo CUBRID/cubrid-testcases --head tw-kang:tc/cbrd-99999 --draft"}}' \
-  | CLAUDE_PROJECT_DIR="$PWD" .claude/hooks/gate-pr-submit.sh; echo "exit=$?"
+  | HOME="$SM" bash .claude/hooks/gate-pr-submit.sh; echo "exit=$?"
 # 비대상(cubrid-agent 자체) → 통과(exit 0)
 echo '{"tool_input":{"command":"gh pr create --repo tw-kang/cubrid-agent"}}' \
-  | CLAUDE_PROJECT_DIR="$PWD" .claude/hooks/gate-pr-submit.sh; echo "exit=$?"
+  | HOME="$SM" bash .claude/hooks/gate-pr-submit.sh; echo "exit=$?"
+rm -rf "$SM"
 ```
 exit 2 = 차단(+deny JSON), exit 0 = 통과.

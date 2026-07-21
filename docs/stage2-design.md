@@ -6,14 +6,14 @@ PoC(Stage 1)에서 검증된 tc-author 파이프라인을, **팀원이 자기 �
 
 ## 1. `resolve-next` 스킬 (오케스트레이터)
 
-- 배치: `cubrid-agent/agents/tc-author/.claude/skills/resolve-next/`(git으로 팀 공유·버전관리).
+- 배치: `.claude/skills/resolve-next/`(repo 루트 — git으로 팀 공유·버전관리; 설계 당시 agents/ 하위 계획을 구현에서 루트로 조정).
 - 호출: `/resolve-next [N | CBRD-XXXXX]` — N건 처리(기본 1) 또는 특정 이슈.
 - 흐름(각 단계가 호출하는 자산):
 
   | 단계 | 하는 일 | 재사용 자산 |
   |---|---|---|
   | Select | JQL 후보 조회 → repro/SQL재현성/중복 판정 → 대기열 | `cubrid-jira`, DESIGN §Select |
-  | Ground | fix 커밋/PR diff·기존 TC(동작기준 커버리지 검색) 대조 | `~/cubrid`, `work/cubrid-testcases`, ADR 0009 |
+  | Ground | fix 커밋/PR diff·기존 TC(동작기준 커버리지 검색) 대조 | `~/cubrid`, `$TC`(기본 `~/cubrid-testcases`), ADR 0009 |
   | Author | `.sql` 작성(경로 유도·evaluate·독립성·영문) | **`cubrid-sql-tc-create`** |
   | Verify | 로컬 CTP: answer 생성·결정성 N=3·경로 커버리지·(CCI 교차)·fail→pass | **`cubrid-sql-tc-verify`** |
   | Review | fresh-context 서브에이전트 심사 | DESIGN §Review |
@@ -27,7 +27,7 @@ PoC(Stage 1)에서 검증된 tc-author 파이프라인을, **팀원이 자기 �
 hook이 게이트 통과를 기계적으로 확인하려면, 파이프라인이 결과를 남긴 파일이 필요하다.
 
 - 작성 주체: **오케스트레이터가 직접 기록**(Q1) — 각 단계 결과를 취합. `create`/`verify` 스킬은 무수정.
-- 위치: `work/<CBRD-XXXXX>/manifest.json`(gitignore된 `work/` 아래).
+- 위치: `$HOME/.cubrid-agent/<CBRD-XXXXX>/manifest.json`(설계 당시 `work/` 아래 → **D7 $HOME 런타임 표준으로 이동**, deployment.md — 프로젝트 디렉토리 무관).
 - 스키마(초안):
   ```json
   {
@@ -47,7 +47,7 @@ hook이 게이트 통과를 기계적으로 확인하려면, 파이프라인이 
 
 ## 3. 하드 게이트 = hook (우회 불가)
 
-> **구현됨: [`.claude/hooks/`](../.claude/hooks/)** (2026-07-21) — 아래 설계대로 `gate-pr-submit`·`lint-sql-tc`·`gate-stop` 3종 + `.claude/settings.json` 등록. 스모크 검증 완료. 세부 [.claude/hooks/README.md](../.claude/hooks/README.md).
+> **구현됨: [`.claude/hooks/`](../.claude/hooks/)** (2026-07-21) — 아래 설계대로 `gate-pr-submit`·`lint-sql-tc`·`gate-stop` 3종 + `.claude/settings.json` 등록. 제출 게이트는 §4의 CCI(`verify.cci.checked`)도 검사. 스모크 검증 완료. 세부 [.claude/hooks/README.md](../.claude/hooks/README.md).
 
 스킬·CLAUDE.md는 '요청'이라 우회 가능 → 필수 게이트는 Claude Code hook으로 강제.
 
@@ -94,7 +94,7 @@ k8s Job/pod 검증, dispatcher, 병렬 fan-out, 자동 스케줄, Jira 쓰기, s
 | # | 질문 | 결정 |
 |---|---|---|
 | Q1 | manifest 작성 주체 | **오케스트레이터가 직접 기록**. 각 단계 결과를 취합해 씀 → 기존 create/verify 스킬 무수정(재사용성 유지). |
-| Q2 | hook의 이슈→manifest 매핑 | 명령의 브랜치/`--head`에서 `tc/cbrd-XXXXX` → `CBRD-XXXXX` → `work/CBRD-XXXXX/manifest.json`(명명 규칙 의존). |
+| Q2 | hook의 이슈→manifest 매핑 | 명령의 브랜치/`--head`에서 `tc/cbrd-XXXXX` → `CBRD-XXXXX` → `$HOME/.cubrid-agent/CBRD-XXXXX/manifest.json`(명명 규칙 의존; D7로 경로 이동). |
 | Q3 | 컨벤션 린트 위치 | **둘 다, 역할 분담**. 기계적 규칙(헤더·`evaluate`·DROP-before-CREATE·영문·answer 손작성 아님)=hook(PostToolUse 셸, 우회불가). 의미적 판단(회귀 가치·커버리지·answer 타당성)=Review 서브에이전트. |
 | Q4 | best_effort fail→pass 승인 | **note + 리뷰어 승인 둘 다**. Review가 best_effort 사유(예: race 미재현) 타당성을 판정해 manifest에 승인 기록, hook은 `review.failpass_approved=true` **및** `note` 존재를 확인해야 제출 통과. 빈 best_effort·미승인은 차단. |
 | Q5 | resolve-next 일반화 | **tc-author 전용**으로 시작. 두 번째 에이전트(test-runner 등) 설계 때 공통 오케스트레이션 패턴을 추출(YAGNI — 에이전트 1개뿐인데 공용 프레임 선설계는 과설계). |

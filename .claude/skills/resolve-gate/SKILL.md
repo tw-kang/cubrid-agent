@@ -7,7 +7,7 @@ description: "Review a Resolved CBRD issue (a QA to-do) for QA-readiness and bou
 
 Review **Resolved (= QA to-do) issues** and **bounce back the ones QA can't turn into a test plan** to Handover via the `Need Something` transition. Passing issues continue to the tc-author stage. Run by **QA**.
 
-Design + the transition map that grounds this: `agents/resolve-gate/DESIGN.md`. (v2 redefinition 2026-07-16 — v1 was a Handover→Resolved gate.)
+Verdict few-shots: [`examples/verdicts.md`](./examples/verdicts.md). (Design history — dev-only, not needed to run: cubrid-agent repo `agents/resolve-gate/`. v2 redefinition 2026-07-16 — v1 was a Handover→Resolved gate.)
 
 ## Scope
 
@@ -98,4 +98,4 @@ Transition map (2026-07-16 실측): **Need Something→Handover** (반송), **St
 
 ## Output
 
-Write the report to `agents/resolve-gate/reports/resolve-gate-<date>.md` (gitignore): query + count; per-issue table (key · summary · kind · necessity · plannability basis · 통과/반송/스킵 · runner tag · warnings); rejection drafts for 반송; stats. In PoC/팀내, transitions and comment posting are done by a human — the skill drafts only.
+Write the report to `$HOME/.cubrid-agent/reports/resolve-gate/resolve-gate-<date>.md`: query + count; per-issue table (key · summary · kind · necessity · plannability basis · 통과/반송/스킵 · runner tag · warnings); rejection drafts for 반송; stats. In PoC/팀내, transitions and comment posting are done by a human — the skill drafts only.

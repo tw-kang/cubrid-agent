@@ -1,14 +1,15 @@
 #!/bin/bash
-# cubrid-agent Stage 2 setup — Tier 2(스크립트가 만들어야 하는 머신 상태) 자동화.
-# 모델·결정: docs/deployment.md (3티어), ADR 0010(부품 스킬 clone+심링크).
-# 멱등·비대화식 — 재실행 안전, Stage 3 컨테이너에서 RUN ./setup.sh 재사용 가능.
+# cubrid-agent Stage 2 setup — Tier 2(머신 상태)를 $HOME 표준으로 프로비저닝.
+# 모델·결정: docs/deployment.md (3티어, $HOME 런타임 표준), ADR 0011(부품 스킬 clone+심링크).
+# 멱등·비대화식 — 재실행 안전, 기존 clone은 절대 건드리지 않음(없을 때만 생성).
+# Stage 3 컨테이너에서 RUN ./setup.sh 재사용 가능.
 # 하지 않는 것: sudo가 필요한 CLI 설치(명령만 안내), 자격 주입(Tier 3 — 사람 몫).
 set -u
 
-REPO="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_URL="https://github.com/tw-kang/skills.git"
 SKILLS_DIR="$HOME/skills"
 PART_SKILLS="cubrid-sql-tc-create cubrid-sql-tc-verify"
+AGENT_DIR="$HOME/.cubrid-agent"
 BUILD_URL=""
 [ "${1:-}" = "--build" ] && BUILD_URL="${2:?사용법: ./setup.sh [--build <build-url>]}"
 
@@ -18,10 +19,10 @@ todo() { printf '  TODO %s\n' "$1"; TODOS=$((TODOS+1)); }
 fail() { printf '  FAIL %s\n' "$1" >&2; exit 1; }
 
 echo "== 필수 도구 =="
-for c in git jq sed grep; do command -v "$c" >/dev/null || fail "$c 없음(필수)"; done
-ok "git / jq / sed / grep"
+for c in git jq grep; do command -v "$c" >/dev/null || fail "$c 없음(필수)"; done
+ok "git / jq / grep"
 
-echo "== 부품 스킬 — tw-kang/skills clone + 심링크 (ADR 0010) =="
+echo "== 부품 스킬 — tw-kang/skills clone + 심링크 (ADR 0011) =="
 if [ -d "$SKILLS_DIR/.git" ]; then
   if git -C "$SKILLS_DIR" pull --ff-only >/dev/null 2>&1; then ok "skills pull ($SKILLS_DIR)"
   else todo "skills pull 실패(로컬 변경/네트워크) — git -C $SKILLS_DIR status 확인"; fi
@@ -36,34 +37,37 @@ for s in $PART_SKILLS; do
 done
 ok "심링크: $PART_SKILLS → ~/.claude/skills/"
 
-echo "== work clone — 봇 전용 (~/cubrid-testcases 불가침) =="
-mkdir -p "$REPO/work"
-clone_if_absent() { # <url> <dir>
-  if [ -d "$2/.git" ]; then ok "$(basename "$2") 있음"
-  else git clone "$1" "$2" || fail "clone 실패: $1"; ok "$(basename "$2") clone"; fi
+echo "== \$HOME 표준 자산 — 없을 때만 clone (기존 clone 불가침) =="
+clone_if_absent() { # <url> <dir> [extra git-clone args...]
+  local url=$1 dir=$2; shift 2
+  if [ -d "$dir/.git" ]; then ok "$(basename "$dir") 있음"
+  else git clone "$@" "$url" "$dir" || fail "clone 실패: $url"; ok "$(basename "$dir") clone"; fi
 }
-clone_if_absent https://github.com/CUBRID/cubrid-testtools.git "$REPO/work/cubrid-testtools"
-clone_if_absent https://github.com/CUBRID/cubrid-testcases.git "$REPO/work/cubrid-testcases"
-git -C "$REPO/work/cubrid-testcases" remote get-url twkang >/dev/null 2>&1 \
-  || git -C "$REPO/work/cubrid-testcases" remote add twkang https://github.com/tw-kang/cubrid-testcases.git
+clone_if_absent https://github.com/CUBRID/cubrid-testcases.git "$HOME/cubrid-testcases"
+git -C "$HOME/cubrid-testcases" remote get-url twkang >/dev/null 2>&1 \
+  || git -C "$HOME/cubrid-testcases" remote add twkang https://github.com/tw-kang/cubrid-testcases.git
 ok "cubrid-testcases twkang 리모트"
-if [ -d "$REPO/work/cubrid/.git" ]; then ok "cubrid 있음"
-else # 히스토리는 필요(Ground: log --grep·merge-base), blob은 지연 — 대용량 절감. 미지원 git이면 일반 clone.
-  git clone --filter=blob:none https://github.com/CUBRID/cubrid.git "$REPO/work/cubrid" 2>/dev/null \
-    || git clone https://github.com/CUBRID/cubrid.git "$REPO/work/cubrid" || fail "cubrid clone 실패"
+if [ -d "$HOME/cubrid/.git" ]; then ok "cubrid 있음"
+else # 히스토리는 필요(Ground: log --grep·merge-base), blob은 지연. 미지원 git이면 일반 clone.
+  git clone --filter=blob:none https://github.com/CUBRID/cubrid.git "$HOME/cubrid" 2>/dev/null \
+    || git clone https://github.com/CUBRID/cubrid.git "$HOME/cubrid" || fail "cubrid clone 실패"
   ok "cubrid clone"
 fi
+# CTP: 부품 스킬 해석 순서($CTP_HOME → ~/CTP → ~/cubrid-testtools/CTP)를 그대로 따른다
+if   [ -n "${CTP_HOME:-}" ] && [ -x "$CTP_HOME/bin/ctp.sh" ]; then CTP="$CTP_HOME"; ok "CTP: \$CTP_HOME=$CTP"
+elif [ -x "$HOME/CTP/bin/ctp.sh" ]; then CTP="$HOME/CTP"; ok "CTP: ~/CTP"
+elif [ -x "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then CTP="$HOME/cubrid-testtools/CTP"; ok "CTP: ~/cubrid-testtools/CTP"
+else
+  clone_if_absent https://github.com/CUBRID/cubrid-testtools.git "$HOME/cubrid-testtools"
+  CTP="$HOME/cubrid-testtools/CTP"; ok "CTP: $CTP"
+fi
+# conf 사본 불필요: CTP 원본 sql.conf·sql_by_cci.conf가 이미 scenario=${HOME}/cubrid-testcases/sql, 비기본 포트
 
-echo "== CTP conf 사본 — scenario 절대경로를 이 머신으로 =="
-gen_conf() { # <src> <dst>
-  if [ -f "$2" ]; then ok "$(basename "$2") 있음(유지)"
-  else sed -E "s|^scenario=.*|scenario=$REPO/work/cubrid-testcases/sql|" "$1" > "$2" || fail "conf 생성 실패: $2"
-       ok "$(basename "$2") 생성"; fi
-}
-gen_conf "$REPO/work/cubrid-testtools/CTP/conf/sql.conf"        "$REPO/work/sql.poc.conf"
-gen_conf "$REPO/work/cubrid-testtools/CTP/conf/sql_by_cci.conf" "$REPO/work/sql_by_cci.poc.conf"
+echo "== 실행 산출물 디렉토리 — \$HOME/.cubrid-agent =="
+mkdir -p "$AGENT_DIR/reports/resolve-gate" "$AGENT_DIR/reports/tc-author" "$AGENT_DIR/reports/tc-reviewer" "$AGENT_DIR/worktrees"
+ok "$AGENT_DIR/{<CBRD-XXXXX>/manifest.json, reports/, worktrees/}"
 
-echo "== env — JDK 탐지 + work/agent-env.sh 생성 =="
+echo "== env — JDK 탐지 + ~/.cubrid-agent/env.sh 생성 =="
 JH="${JAVA_HOME:-}"
 if [ -z "$JH" ] || [ ! -x "$JH/bin/javac" ]; then
   if command -v javac >/dev/null; then
@@ -73,24 +77,24 @@ fi
 if [ -n "$JH" ] && [ -x "$JH/bin/javac" ]; then ok "JDK: $JH"
 else todo "JDK(javac) 없음 — 예: sudo dnf install java-1.8.0-openjdk-devel 후 ./setup.sh 재실행"; fi
 {
-  echo "# generated by setup.sh — CTP 실행 세션마다 source work/agent-env.sh"
+  echo "# generated by setup.sh — CTP 실행 세션마다 source ~/.cubrid-agent/env.sh"
   echo '[ -f "$HOME/.cubrid.sh" ] && source "$HOME/.cubrid.sh"'
-  echo "export CTP_HOME=\"$REPO/work/cubrid-testtools/CTP\""
+  echo "export CTP_HOME=\"$CTP\""
   [ -n "$JH" ] && echo "export JAVA_HOME=\"$JH\""
-} > "$REPO/work/agent-env.sh"
-ok "work/agent-env.sh"
+} > "$AGENT_DIR/env.sh"
+ok "~/.cubrid-agent/env.sh"
 
 echo "== CUBRID 빌드 — 신뢰 빌드(이슈 의존이라 옵션) =="
 if [ -n "$BUILD_URL" ]; then
-  sh "$REPO/work/cubrid-testtools/CTP/common/script/run_cubrid_install" "$BUILD_URL" 2>&1 \
-    | tee "$REPO/work/install-build.log" | tail -3
-  grep -q '\[ERROR\]' "$REPO/work/install-build.log" && fail "빌드 설치 실패 — work/install-build.log 확인"
+  sh "$CTP/common/script/run_cubrid_install" "$BUILD_URL" 2>&1 \
+    | tee "$AGENT_DIR/install-build.log" | tail -3
+  grep -q '\[ERROR\]' "$AGENT_DIR/install-build.log" && fail "빌드 설치 실패 — ~/.cubrid-agent/install-build.log 확인"
   [ -f "$HOME/.cubrid.sh" ] && source "$HOME/.cubrid.sh"
   [ -n "${CUBRID:-}" ] && [ ! -f "$CUBRID/lib/libcubrid_all_locales.so" ] \
     && sh "$CUBRID/bin/make_locale.sh" -t 64bit >/dev/null 2>&1
   ok "빌드 설치: $BUILD_URL"
 elif [ -d "$HOME/CUBRID" ]; then
-  ok "CUBRID 있음: $HOME/CUBRID (대상 이슈의 fix 포함 여부는 파이프라인이 확인)"
+  ok "CUBRID 있음: \$HOME/CUBRID (대상 이슈의 fix 포함 여부는 파이프라인이 확인)"
 else
   todo "CUBRID 빌드 없음 — ./setup.sh --build <url> (빌드서버 192.168.1.91:8080; CTP 스킬 안 쓰면 불필요)"
 fi

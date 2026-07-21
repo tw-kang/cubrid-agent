@@ -52,15 +52,7 @@ Run이 이슈별로 남기는 처리 기록 — 선정 근거, 루프 이력, �
 
 ### Jira 개념
 
-**Planned Version**:
-이슈가 편입되기로 계획된 릴리스를 담는 Jira 커스텀 필드(`cf[210441]`). Fix Version(이미 편입된 릴리스)과 다르다.
-_Avoid_: fixVersion, Target Version
-
-**QA Assignee**:
-이슈의 QA 검증 담당자를 담는 Jira 커스텀 필드(`cf[213834]`). 개발 담당자(assignee)와 다르다.
-
-**QA Scenario**:
-TC(시나리오) 작성 필요 여부에 대한 조직의 공식 판단을 담는 Jira 커스텀 필드(`cf[210565]`). 값: `Required` / `Not Required` / `Not Yet`.
+> 공유 Jira 필드 용어(**Planned Version**·**QA Assignee**·**QA Scenario**)는 [CONTEXT-MAP](../../CONTEXT-MAP.md) 용어표로 승격됨(2026-07-21) — 여기서는 tc-author 고유 해석만 둔다.
 
 **Scenario Required**:
 QA Scenario=Required인 이슈. TC를 만들어야 한다는 공식 신호. Not Yet(판단 보류)인 이슈도 Select 대상이며, 이때 봇의 TC 초안은 판단 재료 역할을 한다. Not Required만 제외된다.
@@ -89,17 +81,9 @@ sqlmedium pod가 build-cache에서 마운트할 CUBRID 빌드를 지정하는 �
 **Answer file**:
 TC의 기대 출력 기준선(`.answer`). CTP 실행 결과에서 승격해 만들며, 손으로 쓰지 않는다.
 
-### 롤아웃 단계 (자세히는 [staging.md](../../docs/staging.md), 근거 [ADR 0007](../../docs/adr/0007-rollout-stages.md))
+### 롤아웃 단계
 
-**Stage 1 / PoC**:
-로컬 Claude Code 세션으로 사람이 게이트마다 확인하며 단건 처리하는 현재 단계.
-
-**Stage 2 / 팀내 수동 트리거**:
-PoC의 로컬 흐름을 스킬·셋업 문서·hook으로 패키징해, 팀원이 각자 로컬에서 수동 기동하는 단계. 배포가 아니라 "공유". 검증은 여전히 로컬 CTP, Jira는 읽기 전용.
-_Avoid_: 배포(deploy — Stage 3와 혼동 금지)
-
-**Stage 3 / 무인 자동 서비스**:
-k8s CronJob·Indexed Job·dispatcher로 야간 스케줄에 무인 실행하는 단계. pod 검증·Jira 쓰기·self-healing이 여기서 켜진다. 현재 park.
+Stage 1(PoC)·2(팀내 수동 트리거)·3(무인 자동)의 정의는 전역 정본 [staging.md](../../docs/staging.md)·[ADR 0007](../../docs/adr/0007-rollout-stages.md)을 따른다 — 이 문서는 재정의하지 않는다.
 
 ### 품질 게이트
 
@@ -113,9 +97,4 @@ _Avoid_: 회귀 검증(막연한 표현), 검출력(그 확률은 별개 개념)
 **CCI 교차 검증**:
 CTP 공식 9단계 step 6 — `run_cci`로 CCI 드라이버에서도 실행해 csql 결과와 다르면 `.answer_cci`를 두는 것. Stage 2부터.
 
-**하드 게이트**:
-스킬·CLAUDE.md('요청')로는 우회 가능하므로, fail→pass·결정성 같은 필수 게이트를 hook/CI로 '보장'하는 것. Stage 2부터.
-
-**신뢰 빌드**:
-oracle(`.answer`) 생성·검증의 기준이 되는, fix가 포함된 CUBRID 빌드. PoC는 빌드서버 URL로 수동 pin, Stage 3는 커밋 SHA/빌드 ID로 결정적 pin.
-_Avoid_: 최신 빌드(fix 포함 여부가 불확실)
+> **하드 게이트**(전역 — 정본 [stage2-design.md §3](../../docs/stage2-design.md)·[`.claude/hooks/`](../../.claude/hooks/))와 **신뢰 빌드**([CONTEXT-MAP](../../CONTEXT-MAP.md) 용어표 승격)는 전역 정본을 따른다 — 여기 재정의하지 않는다.

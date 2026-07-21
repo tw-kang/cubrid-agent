@@ -1,6 +1,6 @@
 # tc-reviewer — 설계 v1 (cubrid-agent)
 
-cubrid-testcases의 sql TC PR을 심사하는 **평가형 횡단 에이전트**. 사람 리뷰어의 병목(왕복)을 줄이는 첫 리뷰어. 용어·위치는 [CONTEXT.md](./CONTEXT.md), 관점 정본은 [docs/review-perspectives.md](./docs/review-perspectives.md).
+cubrid-testcases의 sql TC PR을 심사하는 **평가형 횡단 에이전트**. 사람 리뷰어의 병목(왕복)을 줄이는 첫 리뷰어. 용어·위치는 [CONTEXT.md](./CONTEXT.md), 관점 정본은 [.claude/skills/tc-reviewer/references/review-perspectives.md](../../.claude/skills/tc-reviewer/references/review-perspectives.md)(스킬 자기완결 — D8).
 
 ## 범위 (PoC)
 
@@ -21,7 +21,7 @@ cubrid-testcases의 sql TC PR을 심사하는 **평가형 횡단 에이전트**.
 
 **마이닝 승격 자동 린트** — 사람이 *반복*하던 기계적 지적을 규칙화(마이닝 발견): 다행 SELECT의 `ORDER BY` 누락(최다 반복 지적), `set trace on`↔`off` 페어 불균형, 빈 `.queryPlan` 유무 vs answer의 plan 출력, evaluate 라벨 없이 주석만, `prepare` 후 `deallocate` 누락. 상세는 카탈로그의 'L1로 승격할 자동 린트 규칙'.
 
-**L2 도메인 관점 (정적, 마이닝 기반)** — [review-perspectives.md](./docs/review-perspectives.md) 카탈로그를 순회하며 판정. 카탈로그는 사람 리뷰어 600건 분류로 채워졌다(2026-07-15). **봇 분업**: greptile/codex가 이미 badge로 잡는 P1(answer)·P3(fix 경로)는 봇 지적 참조/보강만 하고, L2 역량은 봇이 약한 **P4 케이스 커버리지·P7 답지 정당성·P11 이슈 의도 정합·P8 중복**에 집중(중복 코멘트 억제). **페르소나 렌즈**: 리뷰어별 강점(ssihil=결정성·컨벤션, kwonhoil=답지 사유·케이스, bagus-kim=케이스 SQL, shparkcubrid=플랜, youngjinj=인덱스 경로)을 렌즈로 나눠 재현율을 높일 여지. 신규 관점 **P11(이슈 의도)·P12(버그 판별 유보)·P13(플랜 flaky)** 은 마이닝이 발견(카탈로그 참조).
+**L2 도메인 관점 (정적, 마이닝 기반)** — [review-perspectives.md](../../.claude/skills/tc-reviewer/references/review-perspectives.md) 카탈로그를 순회하며 판정. 카탈로그는 사람 리뷰어 600건 분류로 채워졌다(2026-07-15). **봇 분업**: greptile/codex가 이미 badge로 잡는 P1(answer)·P3(fix 경로)는 봇 지적 참조/보강만 하고, L2 역량은 봇이 약한 **P4 케이스 커버리지·P7 답지 정당성·P11 이슈 의도 정합·P8 중복**에 집중(중복 코멘트 억제). **페르소나 렌즈**: 리뷰어별 강점(ssihil=결정성·컨벤션, kwonhoil=답지 사유·케이스, bagus-kim=케이스 SQL, shparkcubrid=플랜, youngjinj=인덱스 경로)을 렌즈로 나눠 재현율을 높일 여지. 신규 관점 **P11(이슈 의도)·P12(버그 판별 유보)·P13(플랜 flaky)** 은 마이닝이 발견(카탈로그 참조).
 
 **L3 실행 검증 (동적)** — PR 브랜치를 `work/cubrid-testcases`에 **worktree**로 체크아웃(작업 clone 불오염) 후 로컬 CTP 실행. tc-author Verify 인프라(`/home/dev/CUBRID` release 빌드, `work/sql.poc.conf`, 비기본 포트) 재사용:
 1. **answer 정합성**: PR 상태 그대로 실행 → `Success`면 `.answer`=실제 실행 산출물, `Fail`이면 불일치 diff 확보. (신규 answer 생성이 아니라 검증이므로 빈-answer 트릭 불요.)
@@ -44,7 +44,7 @@ tc-reviewer가 받는 sql TC PR은 두 성격이고 리뷰 관점이 성격마�
 - **라우팅**: L2가 성격에 맞는 지배 렌즈를 돌리되, **공통층**(L1 컨벤션, P2 결정성, P5 격리, P6 trace/evaluate, 봇 분업)은 성격 무관하게 항상 적용.
 - **비대칭(중요)**: ①변경형의 "왜 바뀌었나"는 **작성자가 스스로 못 던지는 질문**(자기 answer는 정당하다 여김)이라 fresh-context 리뷰어(L2) 전용. ②신규형의 "더 넓게"는 작성자가 미리 할 수 있어 **create 스킬에서 예방**(P4 매트릭스, skills 74f1ba3)하고 리뷰어가 보강. 즉 예방은 author, 심문은 reviewer.
 
-렌즈의 질문셋·few-shot은 [review-perspectives.md](./docs/review-perspectives.md)의 'L2 페르소나 렌즈'에 둔다(5년 마이닝 수집 후 보강 예정).
+렌즈의 질문셋·few-shot은 [review-perspectives.md](../../.claude/skills/tc-reviewer/references/review-perspectives.md)의 'L2 페르소나 렌즈'에 둔다(5년 마이닝 수집 후 보강 예정).
 
 ## 파이프라인
 
@@ -75,7 +75,7 @@ Select ─► Ground ─► L1 ─► L2 ─► L3 ─► Verdict ─► 리뷰 
 
 ## 리뷰 마이닝 (완료 2026-07-15)
 
-사람 리뷰어 600건을 분류해 [review-perspectives.md](./docs/review-perspectives.md)에 반영: 관점별 처리 층(L1/L2/L3)·봇 중복·담당 렌즈·few-shot 앵커. 신규 관점 P11(이슈 의도)·P12(버그 판별 유보)·P13(플랜 flaky) 발견.
+사람 리뷰어 600건을 분류해 [review-perspectives.md](../../.claude/skills/tc-reviewer/references/review-perspectives.md)에 반영: 관점별 처리 층(L1/L2/L3)·봇 중복·담당 렌즈·few-shot 앵커. 신규 관점 P11(이슈 의도)·P12(버그 판별 유보)·P13(플랜 flaky) 발견.
 
 **핵심 산출 3가지**(카탈로그가 아니라 이것이 실제 가치):
 1. **봇 분업 경계** — greptile/codex가 P1/P3을 badge로 커버 → L2는 봇 약한 P4/P7/P11에 집중, 중복 억제.
@@ -109,7 +109,7 @@ Select ─► Ground ─► L1 ─► L2 ─► L3 ─► Verdict ─► 리뷰 
 
 오케스트레이션을 [`.claude/skills/tc-reviewer/`](../../.claude/skills/tc-reviewer/)로 스킬화(팀 git 공유, Stage 2).
 - **SKILL.md**: Select→Ground(PR 성격 판별·fix diff 표식)→L1(컨벤션 린트)→L2(렌즈 4종 **DP1 병렬**, few-shot bank 주입, **DP2 블랙박스**, 봇 분업)→L3(worktree 로컬 CTP, 3회 결정성)→Verdict(blocker/major/minor)→리뷰 초안(볼륨 우선순위)+리포트.
-- **few-shot bank**([docs/few-shot-bank.md](./docs/few-shot-bank.md), 44 엔트리)가 L2 재료. 백테스트 7건으로 렌즈 재현 검증됨.
+- **few-shot bank**([.claude/skills/tc-reviewer/references/few-shot-bank.md](../../.claude/skills/tc-reviewer/references/few-shot-bank.md), 44 엔트리)가 L2 재료. 백테스트 7건으로 렌즈 재현 검증됨. **연료 2종(bank·카탈로그)은 스킬 자기완결을 위해 스킬 references/로 이동(2026-07-21)** — 이 디렉토리(agents/)는 dev-only 설계 기록.
 - 게시 PoC=초안(사람 게시), 이후 자동(단계적). approve·merge는 항상 사람.
 - **라이브 스모크 완료(2026-07-20, PR#3091 [CBRD-26825], 신규형 SQL TC)**: 전 파이프라인 실행 → **NEEDS-WORK**. **L3 로컬 CTP가 정적 diff로는 "오타 고친 개선"으로 보이는 실제 blocker를 확증** — `.sql`의 evaluate 라벨(case #1/#5/#9)만 `order siblings by`로 고치고 짝 `.answer`는 `order by siblings by` 잔존 → CTP가 라벨을 echo·비교하므로 3회 결정적 Fail(데이터는 100% 일치). 검증 빌드 11.5.0(fix #7209·#7220 포함 확인 → false-signal 아님). = L3 가치 입증.
 - **스모크에서 도출·반영한 5개 개선**(SKILL.md·review-perspectives.md): ① cubrid-jira 명령 정정(`show`/`get` 없음 → `search`+`comment-list`; 재현이 comment-only일 수 있음) ② L3 CTP 커맨드·`scenario=` conf 오버라이드 인라인 ③ `.sql`↔`.answer` evaluate 라벨 짝 일치를 **성격 무관 공통**으로 승격 ④ fix-in-build 판정법(`merge-base --is-ancestor`) 명문화·Verdict 필수항목 ⑤ 동치키(tie) 순서 비보장 가이드(로컬 3회 ≠ 스펙 보장). 리포트 `reports/PR-3091.md`.

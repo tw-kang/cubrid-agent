@@ -7,11 +7,11 @@ description: "Review a cubrid-testcases SQL TC pull request as the first reviewe
 
 Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and produce a draft review, so the human reviewer's round-trip shrinks. Works on any SQL TC PR (human- or tc-author-authored). Verdict = READY-TO-MERGE / NEEDS-WORK + severity-tagged findings.
 
-Design + rationale: `agents/tc-reviewer/DESIGN.md`. Perspective catalog: `agents/tc-reviewer/docs/review-perspectives.md`. **Few-shot bank (L2 fuel)**: `agents/tc-reviewer/docs/few-shot-bank.md`. This agent applies the global principles [DP1 parallel](../../docs/design-principles.md) and **[DP2 black-box](../../docs/design-principles.md)**.
+**Self-contained**: perspective catalog [`references/review-perspectives.md`](./references/review-perspectives.md) + **few-shot bank (L2 fuel)** [`references/few-shot-bank.md`](./references/few-shot-bank.md) live inside this skill. Applies the global principles [DP1 parallel](../../../docs/design-principles.md) and **[DP2 black-box](../../../docs/design-principles.md)**. (Design history — dev-only, not needed to run: cubrid-agent repo `agents/tc-reviewer/`.)
 
 ## Scope
 
-**Produces:** a 3-layer review — L1 convention lint, L2 domain lenses, L3 local CTP execution → a verdict + a **draft** GitHub review (line comments + summary, Korean). A report under `agents/tc-reviewer/reports/PR-NNNN.md`.
+**Produces:** a 3-layer review — L1 convention lint, L2 domain lenses, L3 local CTP execution → a verdict + a **draft** GitHub review (line comments + summary, Korean). A report at `$HOME/.cubrid-agent/reports/tc-reviewer/PR-NNNN.md`.
 
 **Does NOT:** post to GitHub (draft only), approve/merge, review non-SQL categories, watch PRs (webhook), or write Jira.
 
@@ -19,7 +19,7 @@ Design + rationale: `agents/tc-reviewer/DESIGN.md`. Perspective catalog: `agents
 
 - **gh** authenticated (`gh pr view <N> --repo CUBRID/cubrid-testcases`).
 - **cubrid-jira** for the issue body — `cubrid-jira search <KEY>` (full markdown) **and `cubrid-jira comment-list <KEY> --output json`** (there is no `show`/`get`). ⚠ Repro/scenario is often **only in comments** (empty description) — read them; that's where P11 (issue intent) lives.
-- **Local CTP** for L3: reuse tc-author's Verify infra — `$HOME/CUBRID` (release build), `work/sql.poc.conf`, non-default port (`./setup.sh` provisions; env via `source work/agent-env.sh`). Check out the PR branch as a **git worktree** under `work/cubrid-testcases` (don't pollute the working clone). **Copy the conf and override `scenario=` to the worktree path** — the stock `sql.poc.conf` points at the working clone, so as-is it verifies the wrong branch.
+- **Local CTP** for L3 — **$HOME standard** (`./setup.sh` provisions; env via `source ~/.cubrid-agent/env.sh`): `$HOME/CUBRID` (release build), testcases clone = `$CUBRID_TESTCASES` if set else `~/cubrid-testcases`, CTP = `$CTP_HOME` (else `~/CTP` → `~/cubrid-testtools/CTP`). Stock `$CTP_HOME/conf/sql.conf` already targets `${HOME}/cubrid-testcases/sql` (non-default ports). Check out the PR branch as a **git worktree** (don't pollute the clone) and **copy the stock conf with `scenario=` overridden to the worktree** — as-is it verifies the wrong branch.
 - No local build / no CTP env? Run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it).
 
 ## Pipeline
@@ -37,13 +37,13 @@ PR number as arg (default: oldest open SQL TC PR). Author-agnostic.
 - **Mark which cases hit the fix code path** from the fix merge diff (feeds L2/L3, P3).
 
 ## 3. L1 — convention lint (static)
-Reuse the `cubrid-sql-tc-create` checklist + mining-promoted auto-lint (details in review-perspectives.md 'L1로 승격할 자동 린트'):
+Reuse the `cubrid-sql-tc-create` checklist + mining-promoted auto-lint (details in [`references/review-perspectives.md`](./references/review-perspectives.md) 'L1로 승격할 자동 린트'):
 - header block (≤200 chars, English), `evaluate 'Case N'` numbering, DROP-before-CREATE, cleanup (`deallocate prepare`, restore SET), path/naming, English comments, no expected value leaking into comments/SQL.
 - **auto-lint**: multi-row SELECT missing `ORDER BY` (only when a real tie is possible — a unique key or `COUNT(*)`/1-row is exempt), `set trace on`↔`off` imbalance, empty `.queryPlan` vs answer plan output, `evaluate` label missing, `prepare` without `deallocate`.
 
 ## 4. L2 — domain lenses (static, few-shot-driven) — DP1 parallel
 
-Route by PR kind, **run the lenses as parallel subagents (DP1)**; each lens is fed its entries from `few-shot-bank.md` + its question set from review-perspectives.md ('L2 페르소나 렌즈'):
+Route by PR kind, **run the lenses as parallel subagents (DP1)**; each lens is fed its entries from [`references/few-shot-bank.md`](./references/few-shot-bank.md) + its question set from [`references/review-perspectives.md`](./references/review-perspectives.md) ('L2 페르소나 렌즈'):
 - **신규형 → coverage-expansion** (P4·P8·P9·P14): positive↔negative symmetry, boundary 3-points, combination matrix, sibling concepts, minimality. **Propose concrete `evaluate`+SQL, not just "missing"** (backtest improvement 1).
 - **변경형 → answer-vs-spec** (P7·P11·P12·P15): why did the answer change / was the old one right? execution vs answer consistency? issue-intent match? spec-vs-bug (escalate)? **dead-assertion** (.answer flipped but .sql literal left, e.g. ok→nok) and **.answer_cci pair** updated? (backtest improvements 6·7).
 - **공통 (always) → determinism-convention** (P2·P5·P6·P10) + **plan-stability** (P3·P13) for plan/trace TCs.
@@ -53,11 +53,11 @@ Route by PR kind, **run the lenses as parallel subagents (DP1)**; each lens is f
 **DP2 (black-box)**: every lens checks that the TC verifies **DBA / DB engineer / AP-developer-observable behavior** (SQL/csql I/O, plan, catalog, driver output) and **flags dependence on C internals** a user can't observe (asserts, code paths, physical values like page id/offset — ties to P15). AP-developer/field angle → value non-expert misuse & edge cases (coverage-expansion negative/boundary).
 
 ## 5. L3 — execution verification (dynamic)
-Check out the PR as a worktree and run CTP (reuse tc-author Verify infra). Concrete steps (fill `<...>`):
-- **env**: `source ~/.cubrid.sh`; ensure `CTP_HOME`/`JAVA_HOME` are set (tc-author `DESIGN.md` → Verify section is the source of the exact invocation).
-- **worktree**: `git -C work/cubrid-testcases fetch origin pull/<N>/head:pr-<N>` → `git -C work/cubrid-testcases worktree add ../ct-pr-<N> pr-<N>`.
-- **conf**: copy `work/sql.poc.conf` → `work/sql.pr<N>.conf`, set `scenario=` to the worktree (else you verify the wrong branch).
-- **run**: `printf "run <case-dir>\nquit\n" | ctp.sh sql -c work/sql.pr<N>.conf --interactive` (adapt to tc-author's exact command).
+Check out the PR as a worktree and run CTP. Concrete steps (fill `<...>`; `$TC` = testcases clone per Before-you-start):
+- **env**: `source ~/.cubrid-agent/env.sh` (generated by setup.sh — `.cubrid.sh` + `CTP_HOME` + JDK `JAVA_HOME`).
+- **worktree**: `git -C $TC fetch origin pull/<N>/head:pr-<N>` → `git -C $TC worktree add ~/.cubrid-agent/worktrees/pr-<N> pr-<N>`.
+- **conf**: copy `$CTP_HOME/conf/sql.conf` → `~/.cubrid-agent/sql.pr<N>.conf`, set `scenario=` to the worktree's `sql/` (else you verify the wrong branch).
+- **run**: `printf "run <case-dir>\nquit\n" | $CTP_HOME/bin/ctp.sh sql -c ~/.cubrid-agent/sql.pr<N>.conf --interactive`.
 
 Checks:
 1. **answer consistency**: run as-is → `Success` means `.answer` = real output; `Fail` → capture the diff. **CTP echoes each `evaluate` label into the result and compares it**, so a `.sql` label edit **not mirrored in `.answer`** Fails regardless of data (PR#3091 blocker) — check the diff is data, not just a stale label.
@@ -74,7 +74,7 @@ Checks:
 ## 7. Draft review + report
 - **Draft GitHub review** (Korean, user-facing): line comments (file:line + finding + rationale) + summary (verdict, verification build, execution-evidence). **Posting volume: blocker/major first, minor bundled as '참고'** (backtest improvement 2 — don't spam minors).
 - **PoC: human reviews the draft, then posts.** No auto-post, no approve/merge.
-- **Report** to `agents/tc-reviewer/reports/PR-NNNN.md` (gitignore): per-layer results, execution log summary, verdict rationale.
+- **Report** to `$HOME/.cubrid-agent/reports/tc-reviewer/PR-NNNN.md`: per-layer results, execution log summary, verdict rationale.
 
 ## Staging
 - **PoC (now)**: draft only; human posts. L2 lenses parallel, L3 local CTP.
