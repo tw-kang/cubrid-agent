@@ -7,7 +7,7 @@ description: "Review a cubrid-testcases SQL TC pull request as the first reviewe
 
 Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and produce a draft review, so the human reviewer's round-trip shrinks. Works on any SQL TC PR (human- or tc-author-authored). Verdict = READY-TO-MERGE / NEEDS-WORK + severity-tagged findings.
 
-**Self-contained**: perspective catalog [`references/review-perspectives.md`](./references/review-perspectives.md) + **few-shot bank (L2 fuel)** [`references/few-shot-bank.md`](./references/few-shot-bank.md) live inside this skill. Applies the global principles [DP1 parallel](../../../docs/design-principles.md) and **[DP2 black-box](../../../docs/design-principles.md)**. (Design history — dev-only, not needed to run: cubrid-agent repo `agents/tc-reviewer/`.)
+**Self-contained**: perspective catalog [`references/review-perspectives.md`](./references/review-perspectives.md) + **few-shot bank (L2 fuel)** [`references/few-shot-bank.md`](./references/few-shot-bank.md) live inside this skill. Run the L2 lenses in parallel (DP1); judge from the user's black-box perspective (DP2 — see L2).
 
 ## Scope
 

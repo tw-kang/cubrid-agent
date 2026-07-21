@@ -1,6 +1,6 @@
 #!/bin/bash
 # Stage 2 stop reminder — if a run manifest exists but its gates are incomplete and it
-# hasn't been submitted, remind. Non-blocking (exit 0) to avoid stop loops. stage2-design §3.
+# hasn't been submitted, remind. Non-blocking (exit 0) to avoid stop loops. 
 set -u
 DIR="$HOME/.cubrid-agent"
 [ -d "$DIR" ] || exit 0

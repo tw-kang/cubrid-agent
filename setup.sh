@@ -100,8 +100,8 @@ else
 fi
 
 echo "== CLI·자격 — Tier 3 (사람 몫, 여기선 확인만) =="
-command -v cubrid-jira >/dev/null && ok "cubrid-jira" || todo "cubrid-jira 설치 — docs/stage2-setup.md §3"
-command -v gh          >/dev/null && ok "gh"          || todo "gh 설치 — docs/stage2-setup.md §3"
+command -v cubrid-jira >/dev/null && ok "cubrid-jira" || todo "cubrid-jira 설치 — docs/guides/stage2-setup.md §3"
+command -v gh          >/dev/null && ok "gh"          || todo "gh 설치 — docs/guides/stage2-setup.md §3"
 command -v pandoc      >/dev/null && ok "pandoc"      || todo "pandoc 설치(cubrid-jira 의존) — sudo dnf install pandoc"
 if [ -n "${CUBRID_JIRA_USER:-}" ] && [ -n "${CUBRID_JIRA_PASSWORD:-}" ]; then ok "jira 자격(env — 표준)"
 elif grep -qs 'jira\.cubrid\.org' "$HOME/.netrc"; then ok "jira 자격(.netrc — 병행 허용)"
@@ -110,5 +110,5 @@ if [ -n "${GH_TOKEN:-}" ] || gh auth status >/dev/null 2>&1; then ok "gh 인증"
 else todo "gh 인증 — gh auth login (또는 GH_TOKEN)"; fi
 
 echo
-if [ "$TODOS" -eq 0 ]; then echo "셋업 완료 — 남은 TODO 없음. 기동: docs/stage2-setup.md §4"
+if [ "$TODOS" -eq 0 ]; then echo "셋업 완료 — 남은 TODO 없음. 기동: docs/guides/stage2-setup.md §4"
 else echo "셋업 완료 — TODO ${TODOS}건 (위 목록: CLI 설치·자격은 사람 몫)"; fi

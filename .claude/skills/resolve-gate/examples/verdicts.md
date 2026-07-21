@@ -1,10 +1,9 @@
-# resolve-gate verdict examples (27-issue PoC, 2026-07-16)
+# resolve-gate verdict examples
 
-Few-shot for the skill: how each issue kind maps to a verdict, runner tag, and remediation draft. Full source: `agents/resolve-gate/reports/poc-guava-handover.md`.
+Few-shot for the skill: how each issue kind maps to a verdict, runner tag, and remediation draft.
 
-> **v2 재정의: 실행 주체 = QA, 대상 = Resolved(QA to-do).** 아래 "NOT-READY"는 QA가 `Need Something`(→Handover)로 되돌리는 **반송**이며, 초안은 개발자에게 보낼 부족분 코멘트다(개발자 assignee @멘션). "READY"는 통과 → `Start Test`(→Test, tc-author).
+> **실행 주체 = QA, 대상 = Resolved(QA to-do).** 아래 "NOT-READY"는 QA가 `Need Something`(→Handover)로 되돌리는 **반송**이며, 초안은 개발자에게 보낼 부족분 코멘트다(개발자 assignee @멘션). "READY"는 통과 → `Start Test`(→Test, tc-author).
 > **regression/core 예외:** core나 regression fail을 유발한 TC가 이슈에 첨부돼 있으면 그 TC가 repro이므로 별도 repro step 없이 통과. description뿐 아니라 comment·첨부까지 확인한다(CBRD-27052 참조).
-> (아래 예시의 판정 로직은 v1 Handover PoC에서 뽑았지만 test-plannability 기준은 대상과 무관하게 그대로 유효하다. v2 Resolved pool 재검증은 예정.)
 
 ## READY (accept-recommended + runner tag)
 
@@ -60,7 +59,7 @@ AC 절반이 성능(CPU%)이라 SQL TC 부적합 → perftool. 단 "결과 동�
 ## sub-task 가드 — 형제가 테스트 담당 (반송 아님)
 
 ### CBRD-26255 (sub-task, Connection Pool 재설계) — 반송 취소
-부모 **CBRD-26177 [EPIC]**(동시성/성능, connection·worker) 아래 형제 sub-task **26421(검증 케이스들 추가)**·26523(HA 테스트케이스)이 이 EPIC의 테스트를 담당한다. 구현 sub-task 26255를 개별 반송하면 개발자가 다시 Resolved로 올려 **핑퐁** → **반송하지 않고 스킵**(테스트는 26421이 커버). v2 PoC에서 "추상 성능 AC"로 반송했으나 sub-task 가드로 재판정. → **반송 결정 전 부모+형제 sub-task를 확인하라**(TC/검증 담당 형제가 있으면 구현 sub-task는 반송 X).
+부모 **CBRD-26177 [EPIC]**(동시성/성능, connection·worker) 아래 형제 sub-task **26421(검증 케이스들 추가)**·26523(HA 테스트케이스)이 이 EPIC의 테스트를 담당한다. 구현 sub-task 26255를 개별 반송하면 개발자가 다시 Resolved로 올려 **핑퐁** → **반송하지 않고 스킵**(테스트는 26421이 커버). → **반송 결정 전 부모+형제 sub-task를 확인하라**(TC/검증 담당 형제가 있으면 구현 sub-task는 반송 X).
 
 ### CBRD-26701 (sub-task, worker pool 변경) — 스킵(refactoring 부모)
 부모 **CBRD-26653 [리팩토링] Thread manager refactoring**의 7 sub-task는 전부 내부 리팩토링이고 검증 담당 sub-task가 없다. refactoring은 동작 무변 → 기존 regression 통과로 충분(신규 TC 불필요) → 26701 등 전부 Not Required. 26177(성능, 검증 sub-task 26421 有)과 대조 — **부모 issuetype + 검증 sub-task 유무가 판정을 가른다**(성능/기능 부모=검증 형제가 커버, refactoring 부모=전부 Not Required).

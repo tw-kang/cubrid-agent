@@ -1,6 +1,6 @@
 # 관점 카탈로그 (review perspectives) — L2 정본
 
-**상태: 5년 마이닝 반영 (사람 라인 코멘트 1,358건 분류, 2021-07~2026-07 머지 PR, 2026-07-16). 1년 600건 → 5년 확장 완료.**
+**기반: 5년(2021-07~2026-07) 머지 PR의 사람 라인 코멘트 1,358건 분류.**
 
 tc-reviewer L2와 tc-author Review lane이 공유하는 단일 정본. 목적은 "관점 목록"이 아니라 **각 관점을 어떻게 처리하는가**의 지정: 어느 층(L1 정적 린트 / L2 LLM 판정 / L3 실행)에서 잡는가, greptile/codex 봇과 중복되는가, 어느 리뷰어 렌즈가 강한가, few-shot 앵커는 무엇인가.
 
@@ -79,7 +79,7 @@ L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로
 - 렌즈를 **독립 서브에이전트로 병렬 실행**하면 관점 다양성이 재현율을 높인다(perspective-diverse verify).
 - **철학의 성격에 따라 담기는 층이 다르다**: coverage-expansion은 예측 가능한 패턴이라 규칙·템플릿화(create 스킬 P4)해 **작성 예방**에도 쓰고, answer-vs-spec은 케이스별 판단이라 규칙 불가 → **L2 판정 각도로만** 재현. 전자는 author, 후자는 reviewer.
 - **질문셋·few-shot은 5년(1,358건) 분류로 보강 완료**. 각 렌즈 질문셋은 실제 반복 지적에서 도출.
-- **백테스트 7건으로 렌즈 재현 검증 완료(2026-07-16)**: answer-vs-spec(P7·P12·P15)·coverage-expansion(P4)이 실제 사람 지적을 재현하고 성격 라우팅 7/7 정확, 오탐 실질 0. 봇이 사람 미지적 valid를 다수 추가(2464 死단언, 1688 물리값 근거). 상세는 개발 repo `agents/tc-reviewer/reports/backtest-poc.md`(dev-only, gitignore).
+- **백테스트로 렌즈 재현이 검증됨**: answer-vs-spec(P7·P12·P15)·coverage-expansion(P4)이 실제 사람 지적을 재현, 성격 라우팅 정확, 오탐 실질 0. 봇이 사람 미지적 valid도 추가한다(死단언·물리값 근거류).
 - **coverage-expansion은 "부족"만 지적하지 말고 추가할 케이스를 실행 가능한 `evaluate`+SQL로 제시**한다(백테스트 PoC 개선점 1): 봇이 "negative 케이스 부재" 같은 *범주*는 재현했으나, bagus-kim처럼 구체 케이스를 대량 제안하는 볼륨은 약했다 → 렌즈 프롬프트에서 구체 SQL 제안을 강제.
 
 ## few-shot 앵커 (L2 프롬프트 투입용 실례)

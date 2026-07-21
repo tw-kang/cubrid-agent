@@ -7,7 +7,7 @@ description: "Review a Resolved CBRD issue (a QA to-do) for QA-readiness and bou
 
 Review **Resolved (= QA to-do) issues** and **bounce back the ones QA can't turn into a test plan** to Handover via the `Need Something` transition. Passing issues continue to the tc-author stage. Run by **QA**.
 
-Verdict few-shots: [`examples/verdicts.md`](./examples/verdicts.md). (Design history — dev-only, not needed to run: cubrid-agent repo `agents/resolve-gate/`. v2 redefinition 2026-07-16 — v1 was a Handover→Resolved gate.)
+Verdict few-shots: [`examples/verdicts.md`](./examples/verdicts.md).
 
 ## Scope
 

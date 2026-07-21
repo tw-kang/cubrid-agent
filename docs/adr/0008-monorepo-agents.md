@@ -11,6 +11,6 @@ CBRD 이슈 워크플로의 각 상태 전이를 맡는 4개 에이전트(resolv
 폴리레포가 유리한 조건(에이전트별 소유자/릴리스 주기/접근권한 분리)은 현재 해당 없음.
 
 ## Consequences
-- 루트: 시스템 전역(`CONTEXT-MAP.md`, `docs/adr/`, `docs/staging.md`, `docs/handover/`). 에이전트별: `agents/<name>/`에 자기 산출물.
-- ADR 번호는 전역 유일 단일 시퀀스(범위에 따라 루트 또는 에이전트 디렉토리에 위치).
-- repo 이름: `jira-resolve-agent` → `cubrid-agent`. 기존 PoC 내용은 `agents/tc-author/`로 이동.
+- 시스템 전역: `CONTEXT-MAP.md`, `docs/`(규범·adr). 에이전트별: `docs/agents/<name>/`에 자기 산출물(배치 기준은 [ADR 0012](./0012-doc-tree-by-nature.md)).
+- ADR 번호는 전역 유일 단일 시퀀스(범위에 따라 전역 또는 에이전트 디렉토리에 위치).
+- repo 이름: `cubrid-agent`.

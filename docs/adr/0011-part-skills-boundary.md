@@ -12,4 +12,3 @@ tc-author의 Author/Verify가 위임하는 부품 스킬(`cubrid-sql-tc-create`/
 - cubrid-agent는 외부 repo(tw-kang/skills) 가용성에 의존한다 — Stage 3 이미지는 빌드 시점에 clone을 bake해 런타임 의존을 없앤다.
 - `~/.claude/skills`의 심링크는 사용자 전역이라 다른 프로젝트 세션에서도 부품 스킬이 보인다(부작용 아님 — 단독 사용도 유효한 유스케이스).
 - skills repo의 파괴적 변경이 cubrid-agent 파이프라인을 깰 수 있다 — 신뢰된 단일 팀이 양쪽을 관리하는 동안은 수용; 분리 소유가 되면 버전 pin(태그 checkout)을 재논의.
-- `docs/stage2-setup.md`의 "부품 스킬 미배포 blocker" 서술은 이 결정으로 해소·정정된다.

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Stage 2 convention lint — after a TC .sql write, lint mechanical rules and record them
 # into the run manifest so the PreToolUse submit gate can't be silently bypassed.
-# Event: PostToolUse / Write|Edit. Non-blocking (feedback only). stage2-design §3/§8 Q3.
+# Event: PostToolUse / Write|Edit. Non-blocking (feedback only).
 set -u
 
 INPUT=$(cat)
