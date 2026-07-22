@@ -28,10 +28,11 @@ cubrid-jira attachment <KEY> [--out DIR] [--list] [--max-bytes N]
 
 **3) Interim(서브커맨드 배포 전) — curl fallback.** 각 스킬은 서브커맨드가 없을 때 다음으로 대체한다:
 ```
-cubrid-jira jql 'key=<KEY>' --fields attachment --output json  # 각 .content = 다운로드 URL
+cubrid-jira jql 'key=<KEY>' --fields attachment --output json  # 각 항목: .content(URL)·.size·.mimeType
+# 받기 전 .size로 게이트 — >5MB(코어·바이너리)는 curl skip, 메타+사유만 기록(서브커맨드 --max-bytes와 동일 취지)
 curl --netrc -o <out> "<content-url>"                          # jira 자격(.netrc: jira.cubrid.org, 또는 -u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD)
 ```
-검증됨(2026-07-22, CBRD-26864 첨부 http 200). 서브커맨드 배포 시 스킬 지시를 `cubrid-jira attachment <KEY>` 한 줄로 교체.
+검증됨(2026-07-22, CBRD-26864 첨부 http 200). **size 게이트를 curl 앞에 둔다** — 안 그러면 수 GB 코어를 받아버린다(interim의 실측 함정). 서브커맨드 배포 시 스킬 지시를 `cubrid-jira attachment <KEY>` 한 줄로 교체.
 
 ## Rollout
 

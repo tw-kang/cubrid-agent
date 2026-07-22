@@ -35,6 +35,8 @@
 
 기본값: 결정성 반복 **N=3**; SQLancer 오라클 park.
 
+**결정성 실행 방식 (2026-07-22 확정)**: N회는 **한 CTP 세션에서 `run <case>`×N**으로 돌린다(개별 ctp.sh N회 아님). 실측상 세션 setup(~85s: JVM+DB 생성+서버)이 비용을 지배하고 세션 내 추가 run은 ~1.5s라, N=3가 N=1과 사실상 동가(결정성블록 ~255s→~88s). 게다가 같은-DB 반복이라 regression(전 TC가 공유 DB 연속 실행)에 더 충실하고 cleanup 누락(비-self-contained TC)까지 잡는다. verify 전체는 6→3세션(생성/confirm+determinism/CCI).
+
 ## Stage 3 park 목록
 
 CronJob 야간 배치·Argo 판단·dispatcher/Indexed Job fan-out·BUILD_SHA 자동 pin·rate-limit 분리·상태전이=완료마커·self-healing 재시도/에스컬레이션·overlay 런타임 경합 관리·무인 관측·야간배치 vs 상시드레인·SQLancer 오라클. (pod 검증은 ADR 0001, 이미지 방향은 deployment.md D5.)

@@ -19,7 +19,7 @@ Verdict few-shots: [`examples/verdicts.md`](./examples/verdicts.md).
 
 - cubrid-jira installed + authenticated. Sanity: `cubrid-jira search CBRD-XXXXX`.
 - No CTP / CUBRID build needed.
-- **첨부 전부 다운로드+읽기(필수, 판정 전).** 재현·의도가 첨부에만 있는 이슈가 많다. `cubrid-jira attachment <KEY>`(미탑재 시 interim: `cubrid-jira jql 'key=<KEY>' --fields attachment --output json`의 각 `.content` URL을 `curl --netrc -o <file>` — 자격은 `.netrc`(jira.cubrid.org) 또는 `-u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD`). 읽기: 텍스트·코드(.sql/.txt/.log/.sh/.json 등) 정독 + 이미지 Read 멀티모달로 시각 판독 + 코어·바이너리·>5MB는 미정독 사유만 기록.
+- **첨부 전부 다운로드+읽기(필수, 판정 전).** 재현·의도가 첨부에만 있는 이슈가 많다. `cubrid-jira attachment <KEY>`(미탑재 시 interim: `cubrid-jira jql 'key=<KEY>' --fields attachment --output json`의 각 `.content` URL을 `curl --netrc -o <file>` — 자격은 `.netrc`(jira.cubrid.org) 또는 `-u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD`). **받기 전 `.size` 확인 — >5MB(코어·바이너리 포함)는 curl 자체를 skip**하고 메타+사유만 기록. 그 외만 받아 텍스트·코드(.sql/.txt/.log/.sh/.json 등) 정독 + 이미지는 Read 멀티모달로 시각 판독.
 
 ## Two-axis judgment
 
