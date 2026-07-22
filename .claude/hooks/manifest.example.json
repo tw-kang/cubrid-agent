@@ -8,7 +8,7 @@
     "success": true,
     "determinism": { "n": 3, "all_pass": true },
     "path_coverage": { "checked": true, "method": "queryplan", "on_path": true },
-    "cci": { "checked": true, "matches_csql": true },
+    "cci": { "checked": true, "matches_jdbc": true },
     "fail_to_pass": { "status": "best_effort", "prefix_build": "11.5.0.2211-12a1a05", "note": "race — 로컬 다중코어에서 미재현, CI/저사양 몫" }
   },
   "review": { "verdict": "PASS", "loops": 2, "failpass_approved": true },

@@ -51,7 +51,7 @@ Route by PR kind, **run the lenses as parallel subagents (DP1)**; each lens is f
 
 **Bot division**: greptile/codex already badge P1(answer)·P3(fix path) — reference/augment, don't re-file; focus L2 on bot-weak P4·P7·P11·P13.
 
-**DP2 (black-box)**: every lens checks that the TC verifies **DBA / DB engineer / AP-developer-observable behavior** (SQL/csql I/O, plan, catalog, driver output) and **flags dependence on C internals** a user can't observe (asserts, code paths, physical values like page id/offset — ties to P15). AP-developer/field angle → value non-expert misuse & edge cases (coverage-expansion negative/boundary).
+**DP2 (black-box)**: every lens checks that the TC verifies **DBA / DB engineer / AP-developer-observable behavior** (SQL I/O via the sql-category driver — JDBC, or CCI in sql_by_cci; csql shows the same — plan, catalog, driver output) and **flags dependence on C internals** a user can't observe (asserts, code paths, physical values like page id/offset — ties to P15). AP-developer/field angle → value non-expert misuse & edge cases (coverage-expansion negative/boundary).
 
 ## 5. L3 — execution verification (dynamic)
 Check out the PR as a worktree and run CTP. Concrete steps (fill `<...>`; `$TC` = testcases clone per Before-you-start):

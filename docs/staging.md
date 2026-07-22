@@ -19,7 +19,7 @@
 - **기동 스킬 3종** `.claude/skills/{resolve-gate,tc-author,tc-reviewer}/` — 스킬명 = 에이전트명. 팀과 git으로 공유. 자기완결(스킬은 docs/를 참조하지 않는다 — deployment.md D8).
 - **팀 셋업** — `git clone` → `./setup.sh` → 자격 주입. 가이드 [guides/stage2-setup.md](./guides/stage2-setup.md).
 - **하드 게이트 = hook** ([.claude/hooks/](../.claude/hooks/)) — 결정성·fail→pass·리뷰 PASS·CCI·컨벤션 린트가 run manifest로 확인되지 않으면 TC PR 제출 차단.
-- **CCI 교차 검증** — `run_cci`로 재실행, csql과 다르면 `.answer_cci`.
+- **CCI 교차 검증** — `run_cci`로 재실행, 기본 sql(JDBC) 출력과 다르면 `.answer_cci`.
 - **Jira 읽기 전용** — 전이·코멘트는 Stage 3. Stage 2는 사람이 PR 검토 후 수동 전이.
 - **멱등성** — 결정적 브랜치/PR 이름(`tc/cbrd-XXXXX`), 기존 존재 시 스킵.
 

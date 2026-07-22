@@ -36,7 +36,7 @@ if [ "$ftp" = confirmed ] || { [ "$ftp" = best_effort ] && [ "$appr" = true ] &&
   p="$p\n- fail→pass 미충족(status=$ftp, approved=$appr, note=$([ -n "$note" ] && echo 있음 || echo 없음)) — confirmed 또는 best_effort+리뷰승인+note 필요"
 fi
 [ "$verdict" = PASS ] || p="$p\n- 리뷰 미통과(review.verdict=$verdict)"
-[ "$cci" = true ] || p="$p\n- CCI 교차 미수행(verify.cci.checked≠true) — sql_by_cci로 교차, csql과 다르면 .answer_cci"
+[ "$cci" = true ] || p="$p\n- CCI 교차 미수행(verify.cci.checked≠true) — sql_by_cci로 교차, 기본 sql(JDBC) 출력과 다르면 .answer_cci"
 [ "$lint" = true ] || p="$p\n- 컨벤션 린트 미충족(lint.* 중 false — PostToolUse lint hook 참고)"
 
 [ -z "$p" ] || deny "$(printf 'TC PR 제출 게이트: %s 미충족:%b' "$KEY" "$p")"

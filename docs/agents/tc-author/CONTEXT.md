@@ -62,7 +62,7 @@ QA Scenario=Required인 이슈. TC를 만들어야 한다는 공식 신호. Not 
 _Avoid_: repro step(문서에서는 한글 용어 사용), 재현 경로
 
 **SQL 재현성**:
-이슈의 재현과 증상 관측이 csql SQL문만으로 가능하고, fix 후 빌드에서 출력이 매회 일치하는 성질. Select의 세 번째 게이트. 버그 발생이 확률적이어도 fix 후 출력이 결정적이면 충족.
+이슈의 재현과 증상 관측이 SQL문만으로(JDBC/CCI 드라이버 실행) 가능하고, fix 후 빌드에서 출력이 매회 일치하는 성질. Select의 세 번째 게이트. 버그 발생이 확률적이어도 fix 후 출력이 결정적이면 충족.
 _Avoid_: 재현 가능성(Reproduction과 혼동 금지)
 
 **검출력**:
@@ -95,6 +95,6 @@ _Avoid_: 회귀 검증(막연한 표현), 검출력(그 확률은 별개 개념)
 승격한 `.answer`로 TC를 N회(기본 3회) 반복 실행해 매회 PASS(출력 일치)함을 확인하는 게이트.
 
 **CCI 교차 검증**:
-CTP 공식 9단계 step 6 — `run_cci`로 CCI 드라이버에서도 실행해 csql 결과와 다르면 `.answer_cci`를 두는 것. Stage 2부터.
+CTP 공식 9단계 step 6 — `run_cci`로 CCI 드라이버로도 실행해 기본 sql(JDBC) 결과와 다르면 `.answer_cci`를 두는 것. Stage 2부터.
 
 > **하드 게이트**(전역 — 정본 [.claude/hooks/README.md](../../../.claude/hooks/README.md)·[`.claude/hooks/`](../../../.claude/hooks/))와 **신뢰 빌드**([CONTEXT-MAP](../../../CONTEXT-MAP.md) 용어표 승격)는 전역 정본을 따른다 — 여기 재정의하지 않는다.

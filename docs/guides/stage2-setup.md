@@ -83,6 +83,6 @@ gh auth login                                                       # 또는 GH_
 - **스킬 자기완결**(D8) — 스킬·hook은 `docs/`를 런타임 참조하지 않는다. tc-reviewer 연료(few-shot bank·카탈로그)는 스킬 `references/`에 내장.
 - **hook 하드 게이트**([`.claude/hooks/`](../../.claude/hooks/)) — `gate-pr-submit`(제출 차단)·`lint-sql-tc`(린트→manifest)·`gate-stop`(리마인드).
 - **run manifest** — `~/.cubrid-agent/CBRD-XXXXX/manifest.json`, 스키마 [`.claude/hooks/manifest.example.json`](../../.claude/hooks/manifest.example.json).
-- **CCI 교차 검증**(tc-author Verify) — 원본 `$CTP_HOME/conf/sql_by_cci.conf`로 `run_cci`, csql과 다르면 `.answer_cci`.
+- **CCI 교차 검증**(tc-author Verify) — 원본 `$CTP_HOME/conf/sql_by_cci.conf`로 `run_cci`, 기본 sql(JDBC) 출력과 다르면 `.answer_cci`.
 
 hook은 **신뢰된 팀원의 실수 방지 가드레일**(적대적 우회 방지 아님) — 자세히 [`.claude/hooks/README.md`](../../.claude/hooks/README.md).

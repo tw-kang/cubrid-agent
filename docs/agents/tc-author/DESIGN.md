@@ -58,7 +58,7 @@ Select ─► Ground ─► ┌── Author ──► Verify ──► Review �
    (`cf[213834]`=QA Assignee, `cf[210441]`=Planned Version, `cf[210565]`=QA Scenario)
 2. 각 후보의 `description`, `comment` 전문을 jql json으로 읽고 판정:
    - **Reproduction 존재**: 문제를 재현하는 구체적 SQL/절차가 본문·댓글에 있는가.
-   - **SQL 재현성**: 재현·관측이 csql SQL문만으로 가능하고, **fix 후 빌드에서 출력이 매회 일치**하는가(R3). 프로세스 조작·설정 파일 수정·외부 유틸 관측이 필요하면 스킵+사유 기록. 버그 발생이 확률적(race)이어도 fix 후 출력이 결정적이면 적격 — 재발 검출력은 리뷰에서 평가.
+   - **SQL 재현성**: 재현·관측이 SQL문만으로(JDBC/CCI 드라이버로 실행) 가능하고, **fix 후 빌드에서 출력이 매회 일치**하는가(R3). 프로세스 조작·설정 파일 수정·외부 유틸 관측이 필요하면 스킵+사유 기록. 버그 발생이 확률적(race)이어도 fix 후 출력이 결정적이면 적격 — 재발 검출력은 리뷰에서 평가.
    - **중복**: `tc/cbrd-XXXXX` 브랜치/PR 존재, 또는 testcases repo에 `cbrd_xxxxx` TC 기존재 시 스킵.
 3. 통과분을 resolved 오래된 순 대기열로 만들고, run 인자(기본 1건)만큼 처리. 처리가능 대기열이 비면 보고하고 중단 — Select 조건 확장은 사용자 결정.
 
@@ -101,7 +101,7 @@ Select ─► Ground ─► ┌── Author ──► Verify ──► Review �
 
 **fail→pass 회귀 계약 (ADR 0007)**: 승격·결정성만으로는 "버그를 실제로 잡는지" 증명이 안 된다. fix **이전** 빌드를 설치해 같은 TC가 **FAIL**함을 실측한다. 결정적 버그는 명확히 FAIL, race 버그는 반복 실행 best-effort + 한계를 리뷰·PR에 명시. **함정(ADR 0009)**: `taskset` ≤2코어는 `system_core_count`(affinity-aware)로 병렬 자체가 disable — **≥4코어**로. pre-fix 빌드를 못 구하면 이슈 Repro/Expected로 근거화하고 리포트에 남긴다.
 
-**CCI 교차 검증**: 같은 `.sql`을 `run_cci`로 재실행, csql과 다르면 `.answer_cci`. 게이트(결정성·fail→pass·리뷰·CCI·린트)는 hook이 run manifest로 강제한다(`.claude/hooks/`).
+**CCI 교차 검증**: 같은 `.sql`을 `run_cci`로 재실행, 기본 sql(JDBC) 출력과 다르면 `.answer_cci`. 게이트(결정성·fail→pass·리뷰·CCI·린트)는 hook이 run manifest로 강제한다(`.claude/hooks/`).
 
 ### 5. Review — 분리 lane 품질 평가
 

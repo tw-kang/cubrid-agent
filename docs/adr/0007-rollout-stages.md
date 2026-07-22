@@ -7,7 +7,7 @@
 ## 단계별로 언제 무엇이 켜지나 (grilling 확정)
 
 - **fail→pass 실측 회귀 계약**은 **PoC부터**. fix 이전 빌드에서 TC가 실제로 FAIL함을 확인(v2 §4.2). "뭘 해도 통과하는 TC"를 논리 판단이 아니라 실측으로 막는다.
-- **CCI 교차 검증**(`run_cci`/`.answer_cci`, 공식 9단계 step 6)은 **Stage 2부터**. PoC는 csql 단일 경로로 fail→pass·결정성에 집중.
+- **CCI 교차 검증**(`run_cci`/`.answer_cci`, 공식 9단계 step 6)은 **Stage 2부터**. PoC는 기본 sql(JDBC) 단일 경로로 fail→pass·결정성에 집중.
 - **Jira 쓰기**(Resolved→Test 전이 + 코멘트)는 **Stage 3부터**. 전이-as-완료마커는 무인 self-healing 루프의 장치라, 사람이 PR을 검토·전이하는 Stage 2까지는 읽기 전용.
 - **하드 게이트의 hook 강제**는 **Stage 2부터**. 스킬·CLAUDE.md는 '요청'이라 우회 가능하므로, 팀 공유 시점에 fail→pass·결정성 미통과 제출 차단을 hook으로 '보장'한다(v2 §7.6).
 
