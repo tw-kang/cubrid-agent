@@ -19,6 +19,7 @@ Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and 
 
 - **gh** authenticated (`gh pr view <N> --repo CUBRID/cubrid-testcases`).
 - **cubrid-jira** for the issue body — `cubrid-jira search <KEY>` (full markdown) **and `cubrid-jira comment-list <KEY> --output json`** (there is no `show`/`get`). ⚠ Repro/scenario is often **only in comments** (empty description) — read them; that's where P11 (issue intent) lives.
+- **첨부 전부 다운로드+읽기(필수, P11 판정 전).** 의도 시나리오·재현이 첨부에만 있으면 PR 커버리지 판단이 어긋난다. `cubrid-jira attachment <KEY>`(미탑재 시 interim: `cubrid-jira jql 'key=<KEY>' --fields attachment --output json`의 각 `.content` URL을 `curl --netrc -o <file>` — 자격 `.netrc`(jira.cubrid.org) 또는 `-u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD`). 텍스트·코드는 정독, 이미지는 Read 멀티모달, 코어·바이너리·>5MB는 미정독 사유만 기록.
 - **Local CTP** for L3 — **$HOME standard** (`./setup.sh` provisions; env via `source ~/.cubrid-agent/env.sh`): `$HOME/CUBRID` (release build), testcases clone = `$CUBRID_TESTCASES` if set else `~/cubrid-testcases`, CTP = `$CTP_HOME` (else `~/CTP` → `~/cubrid-testtools/CTP`). Stock `$CTP_HOME/conf/sql.conf` already targets `${HOME}/cubrid-testcases/sql` (non-default ports). Check out the PR branch as a **git worktree** (don't pollute the clone) and **copy the stock conf with `scenario=` overridden to the worktree** — as-is it verifies the wrong branch.
 - No local build / no CTP env? Run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it).
 
@@ -32,7 +33,7 @@ Select → Ground → L1 → L2 → L3 → Verdict → draft review + report
 PR number as arg (default: oldest open SQL TC PR). Author-agnostic.
 
 ## 2. Ground
-- `gh pr diff`/`view` for the diff + body; `[CBRD-XXXXX]` → issue body via `cubrid-jira search <KEY>` **+ `comment-list <KEY> --output json`** (repro may be comment-only); fix merge diff in the cubrid repo; corpus search for near-duplicate TCs.
+- `gh pr diff`/`view` for the diff + body; `[CBRD-XXXXX]` → issue body via `cubrid-jira search <KEY>` **+ `comment-list <KEY> --output json`** (repro may be comment-only) **+ download & read all attachments** (per Before-you-start — intended cases/repro may be attachment-only); fix merge diff in the cubrid repo; corpus search for near-duplicate TCs.
 - **PR-kind classification (D5)** by diff file state: new `cbrd_XXXXX.sql/.answer` **added** = 신규형; existing `.sql`/`.answer` **modified** = 변경형; a PR may be both → apply both lenses.
 - **Mark which cases hit the fix code path** from the fix merge diff (feeds L2/L3, P3).
 
@@ -61,7 +62,7 @@ Check out the PR as a worktree and run CTP. Concrete steps (fill `<...>`; `$TC` 
 
 Checks:
 1. **answer consistency**: run as-is → `Success` means `.answer` = real output; `Fail` → capture the diff. **CTP echoes each `evaluate` label into the result and compares it**, so a `.sql` label edit **not mirrored in `.answer`** Fails regardless of data (PR#3091 blocker) — check the diff is data, not just a stale label.
-2. **determinism**: 3 consecutive runs all Success (N=3); **byte-diff the 3 `.result` files** (under `$CTP_HOME/.../schedule_<ts>/sql/*.result`) — identical = deterministic. Plan/trace TCs: **plan identical across 3 runs** (P13 tie-flaky). **Confirm any nondeterminism L2 flagged statically** (ORDER-BY-less multi-row, tie-equal `ORDER (SIBLINGS) BY` keys, `LIMIT` cutting a tie block) here by repetition (backtest improvement 3) — but local 3-run stability is **not** a spec guarantee; still flag the tie.
+2. **determinism (single-session N-run)**: run the case **N (=3) times in ONE `ctp.sh --interactive` session** — `printf 'run <case-dir>\n'` repeated N times then `quit`. This same session also serves check 1 (run 1 = answer consistency). **All N `Success` = deterministic.** Each `ctp.sh` invocation pays ~85s setup (JVM + DB + server); an extra in-session `run` is ~1.5s, so **N=3 ≈ N=1 in wall time — never spawn N separate invocations** (~3×85s wasted). `.result` is overwritten each run, so **N-Success (CTP's masked compare = what regression uses) is the determinism signal, not byte-diffing 3 files**. Plan/trace TCs: plan identical across the N runs (P13 tie-flaky). **Confirm any nondeterminism L2 flagged statically** (ORDER-BY-less multi-row, tie-equal `ORDER (SIBLINGS) BY` keys, `LIMIT` cutting a tie block) here by repetition — but local N-run stability is **not** a spec guarantee; still flag the tie.
 3. **path coverage** (if applicable): plan/trace shows the fix path is actually hit.
 4. **runtime**: record CTP elapse (basis for over-sized-TC findings).
 - **Always state the verification build AND whether it contains the fix** (mandatory Verdict input): build SHA from `cubrid_rel`, then `git -C <cubrid-src> merge-base --is-ancestor <fix-sha> <build-sha>` → ancestor = fix included. **Post-fix build failing = real defect; pre-fix build failing = false signal.** Reconcile with the issue's Fixed version.

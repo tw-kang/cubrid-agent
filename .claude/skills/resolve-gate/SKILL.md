@@ -19,6 +19,7 @@ Verdict few-shots: [`examples/verdicts.md`](./examples/verdicts.md).
 
 - cubrid-jira installed + authenticated. Sanity: `cubrid-jira search CBRD-XXXXX`.
 - No CTP / CUBRID build needed.
+- **첨부 전부 다운로드+읽기(필수, 판정 전).** 재현·의도가 첨부에만 있는 이슈가 많다. `cubrid-jira attachment <KEY>`(미탑재 시 interim: `cubrid-jira jql 'key=<KEY>' --fields attachment --output json`의 각 `.content` URL을 `curl --netrc -o <file>` — 자격은 `.netrc`(jira.cubrid.org) 또는 `-u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD`). 읽기: 텍스트·코드(.sql/.txt/.log/.sh/.json 등) 정독 + 이미지 Read 멀티모달로 시각 판독 + 코어·바이너리·>5MB는 미정독 사유만 기록.
 
 ## Two-axis judgment
 
@@ -44,7 +45,7 @@ Select (stage-scoped) → Necessity → Plannability → Transition + report
 - **팀내/자동화**: `project = CBRD AND cf[210441] = guava AND status = Resolved`.
 - Single issue: `/resolve-gate CBRD-XXXXX`.
 
-Batch read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee,parent,subtasks --output json`. `cf[210441]`=Planned Version(guava), `cf[210565]`=QA Scenario, `cf[213834]`=QA Assignee. **Read comments + attachments** (regression/core repro lives there), and **parent/subtasks** (sub-task bounce guard, step 4).
+Batch read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee,parent,subtasks --output json`. `cf[210441]`=Planned Version(guava), `cf[210565]`=QA Scenario, `cf[213834]`=QA Assignee. **Read comments; download + read every attachment's content per Before-you-start** (not just filenames — the "runnable repro TC attached" plannability call needs the actual file), and **parent/subtasks** (sub-task bounce guard, step 4).
 
 ## 2. Necessity — QA Scenario re-judgment (bidirectional)
 
