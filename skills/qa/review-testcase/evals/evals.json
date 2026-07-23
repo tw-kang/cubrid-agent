@@ -1,0 +1,105 @@
+{
+  "skill_name": "review-testcase",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "PR 3120 리뷰해줘. CBRD-27210 LEAD/LAG 윈도우 함수가 NULL 파티션 경계에서 잘못된 값을 반환하는 버그 픽스인데, cbrd_27210.sql/.answer가 새로 추가된 PR이야.",
+      "expected_output": "3층 리뷰 산출 — L1 컨벤션 린트(헤더/evaluate 라벨/DROP-before-CREATE/cleanup), L2는 신규형이라 coverage-expansion 렌즈 지배(P4 positive↔negative 대칭·경계 3점·형제 함수 확장을 구체 evaluate+SQL로 제시)+determinism-convention 공통 적용, L3 로컬 CTP 워크트리 N(=3)회 단일세션 실행. 결과로 READY-TO-MERGE 또는 NEEDS-WORK 판정 + 심각도 태그 findings + 한글 draft 라인 코멘트 리뷰. 리포트는 $HOME/.cubrid-agent/reports/review-testcase/PR-3120.md. 자동 post/approve/merge 안 함.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "three_layer_report",
+          "description": "리포트가 L1 컨벤션 린트 / L2 도메인 렌즈 / L3 CTP 실행 세 층으로 구조화되어 있음"
+        },
+        {
+          "name": "pr_kind_classified_new",
+          "description": "diff에 cbrd_27210.sql/.answer가 added라 PR 성격을 신규형으로 분류"
+        },
+        {
+          "name": "coverage_expansion_lens",
+          "description": "L2 지배 렌즈가 coverage-expansion(P4·P8·P9·P14)으로 라우팅됨"
+        },
+        {
+          "name": "coverage_proposes_concrete_sql",
+          "description": "커버리지 부족을 '없음'만 지적하지 않고 추가할 케이스를 실행 가능한 evaluate+SQL로 제시"
+        },
+        {
+          "name": "verdict_enum",
+          "description": "판정이 정확히 READY-TO-MERGE 또는 NEEDS-WORK 중 하나로 표기"
+        },
+        {
+          "name": "draft_only_no_post",
+          "description": "GitHub 자동 post/approve/merge 없이 사람이 올릴 한글 draft만 생성"
+        },
+        {
+          "name": "report_path",
+          "description": "리포트가 $HOME/.cubrid-agent/reports/review-testcase/PR-3120.md 경로에 기록"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "PR 3145 sql tc pr 심사해줘. 기존 cbrd_26880.sql/.answer가 수정된 변경형 PR인데 답지 값이 바뀌었어. 답지가 왜 바뀌었는지랑 문제 없는지 봐줘.",
+      "expected_output": "3층 리뷰. L2는 변경형이라 answer-vs-spec 렌즈 지배(P7 답지 변경 정당성·P11 이슈 의도 정합성·P15 불변식) — .answer만 바꾸고 .sql 비교 리터럴/단언을 방치한 死단언, .answer_cci 짝 갱신 여부 점검. L3 로컬 CTP 실행에서 .sql evaluate 라벨과 .answer 불일치(라벨만 고치고 답지 미재생성)면 데이터 무관 Fail로 잡아 blocker → NEEDS-WORK. 검증 빌드 SHA와 fix 포함 여부(merge-base ancestor) 명시. blocker/major 우선·minor는 '참고' 묶음의 한글 draft 라인 코멘트 + summary. 리포트 PR-3145.md.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "pr_kind_classified_modified",
+          "description": ".sql/.answer가 modified라 PR 성격을 변경형으로 분류"
+        },
+        {
+          "name": "answer_vs_spec_lens",
+          "description": "L2가 answer-vs-spec 렌즈로 라우팅되어 답지 변경 사유·死단언·.answer_cci 짝을 점검"
+        },
+        {
+          "name": "l3_execution_evidence",
+          "description": "L3 CTP 실행 근거(answer consistency Success/Fail + 단일세션 N=3회 결정성)를 리포트에 기록"
+        },
+        {
+          "name": "verdict_needs_work_on_blocker",
+          "description": "실행 Fail/답지 모순 등 blocker가 있으면 판정이 NEEDS-WORK"
+        },
+        {
+          "name": "verification_build_stated",
+          "description": "검증 빌드와 그 빌드가 fix를 포함하는지(포함/미포함) 여부를 판정 입력으로 명시"
+        },
+        {
+          "name": "draft_korean_line_comments",
+          "description": "한글 draft 리뷰가 file:line + 근거 라인 코멘트와 summary로 구성되고 draft only"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "review-testcase 돌려줘. PR 3160은 옵티마이저 plan/trace를 검증하는 sql tc야. 근데 이 머신엔 로컬 빌드랑 CTP 환경이 없어.",
+      "expected_output": "L1+L2만 수행하고 L3는 NOT-RUN으로 표기(가짜 실행 금지). L2는 plan/trace TC라 plan-stability 렌즈(P3 fix 경로·P13 tie/flaky 플랜 안정성) 추가 + determinism-convention 공통 적용. DP2 블랙박스로 TC가 사용자 관찰 가능한 plan/출력을 단언하는지 보고, page id·offset 같은 C 내부/물리값 의존이면 flag. READY-TO-MERGE/NEEDS-WORK 판정을 L1+L2 근거로 내고 한글 draft 리뷰 + 리포트 PR-3160.md. 자동 post/approve/merge 안 함.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "l3_not_run_marked",
+          "description": "로컬 빌드/CTP 환경이 없어 L3를 NOT-RUN으로 표기하고 실행을 지어내지 않음"
+        },
+        {
+          "name": "plan_stability_lens",
+          "description": "plan/trace TC라 L2에 plan-stability 렌즈(P3·P13)가 추가됨"
+        },
+        {
+          "name": "determinism_convention_always",
+          "description": "PR 성격과 무관하게 determinism-convention 렌즈가 항상 적용됨"
+        },
+        {
+          "name": "dp2_black_box_check",
+          "description": "DP2 관점에서 사용자 관찰 가능한 plan/출력 단언인지 확인하고 C 내부·물리값 의존을 flag"
+        },
+        {
+          "name": "verdict_enum",
+          "description": "판정이 정확히 READY-TO-MERGE 또는 NEEDS-WORK 중 하나로 표기"
+        },
+        {
+          "name": "draft_only_no_post",
+          "description": "자동 post/approve/merge 없이 사람이 올릴 한글 draft만 생성"
+        }
+      ]
+    }
+  ]
+}

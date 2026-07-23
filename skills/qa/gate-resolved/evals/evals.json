@@ -1,0 +1,101 @@
+{
+  "skill_name": "gate-resolved",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "gate-resolved 돌려줘 CBRD-27052. crash 이슈인데 첨부에 core 파일이랑 스택트레이스만 있고 재현 절차(어떤 부하/종료 순서에서 assert가 터지는지)가 안 보여. QA가 받을 만한지 봐줘.",
+      "expected_output": "$HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md 에 gate report 작성. CBRD-27052를 needed지만 NOT-plannable로 판정 — core/스택트레이스만 있고 runnable repro TC가 없어 C1(repro 자기완결) 미충족 → 반송(Need Something→Handover). 개발자 assignee를 @멘션한 한글 반송 코멘트 초안 포함. Jira 전이(Need Something)와 필드 변경은 staged(초안)일 뿐 실제 실행하지 않음.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "report_file_written",
+          "description": "리포트를 $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md 경로에 작성한다"
+        },
+        {
+          "name": "two_axis_verdict",
+          "description": "판정이 necessity(QA Scenario 재판정)와 plannability 두 축을 모두 근거로 제시한다"
+        },
+        {
+          "name": "verdict_is_bounce_need_something",
+          "description": "CBRD-27052를 반송으로 표시하고 Need Something(→Handover) 전이에 매핑한다"
+        },
+        {
+          "name": "cites_missing_repro_criteria",
+          "description": "반송 사유로 runnable repro TC 부재(C1 자기완결) 또는 재현 절차 없음을 구체적으로 짚는다"
+        },
+        {
+          "name": "rejection_draft_korean_with_mention",
+          "description": "개발자 assignee를 @멘션한 한글 반송 코멘트 초안을 포함한다"
+        },
+        {
+          "name": "draft_only_no_real_transition",
+          "description": "실제 Jira 전이/필드 변경을 실행하지 않고 staged(초안)로만 남긴다"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "guava Resolved 큐 전체 QA to-do 점검해줘. 통과할 것/반송할 것/스킵할 것 표로 정리하고, 반송 대상은 개발자한테 보낼 코멘트 초안까지 뽑아줘. 팀내 배포 단계 기준으로.",
+      "expected_output": "guava Resolved 이슈 전체를 조회해 gate report 작성 — 쿼리 + 건수, 이슈별 표(key · summary · kind · necessity · plannability 근거 · 통과/반송/스킵 · runner tag · warnings), 반송분 반송 코멘트 초안, 통계. 팀내(Stage 2)이므로 QA Scenario 변경은 제안만, 전이는 수동 — skill은 초안만 만들고 실제 전이/코멘트 게시는 사람이 한다.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "report_file_written",
+          "description": "리포트를 $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md 경로에 작성한다"
+        },
+        {
+          "name": "query_and_count_present",
+          "description": "리포트 상단에 사용한 JQL 쿼리와 대상 이슈 건수를 명시한다"
+        },
+        {
+          "name": "per_issue_table_columns",
+          "description": "이슈별 표에 key·summary·kind·necessity·plannability 근거·통과/반송/스킵·runner tag·warnings 컬럼이 있다"
+        },
+        {
+          "name": "verdict_uses_three_values",
+          "description": "각 이슈 판정이 통과/반송/스킵 세 값 중 하나로 표기된다"
+        },
+        {
+          "name": "runner_tag_for_pass",
+          "description": "통과 이슈에 SQL/CCI/JDBC/perftool 등 runner tag가 붙는다"
+        },
+        {
+          "name": "stats_section_present",
+          "description": "리포트에 통과/반송/스킵 건수 등 통계 섹션이 있다"
+        },
+        {
+          "name": "draft_only_staged",
+          "description": "팀내 단계 기준으로 전이·코멘트 게시는 실행하지 않고 초안만 제시한다"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "CBRD-26255 Resolved 검토해서 테스트 플랜 못 짜면 Need Something으로 반송해줘. Connection Pool 재설계 구현 sub-task야.",
+      "expected_output": "CBRD-26255를 검토하되 sub-task 가드를 먼저 적용 — 부모 EPIC(CBRD-26177)과 형제 sub-task를 확인해 검증/TC 담당 형제(예: 26421)가 이 EPIC 테스트를 커버하므로, 구현 sub-task를 개별 반송하지 않고 스킵/통과로 처리(반송 시 dev 재-Resolved로 status 핑퐁 발생). 리포트에 부모+형제 확인 근거와 반송 취소 이유를 기록, 실제 Need Something 전이는 실행하지 않음.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "report_file_written",
+          "description": "리포트를 $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md 경로에 작성한다"
+        },
+        {
+          "name": "checks_parent_and_siblings",
+          "description": "반송 결정 전 부모 이슈와 형제 sub-task를 확인한다"
+        },
+        {
+          "name": "no_bounce_when_sibling_covers",
+          "description": "형제 sub-task가 TC/검증을 담당하면 이 구현 sub-task는 반송하지 않고 스킵/통과로 판정한다"
+        },
+        {
+          "name": "notes_pingpong_avoidance",
+          "description": "개별 sub-task 반송이 status 핑퐁(dev 재-Resolved)을 유발한다는 근거를 남긴다"
+        },
+        {
+          "name": "no_real_transition_executed",
+          "description": "사용자가 반송을 요청해도 실제 Need Something 전이를 실행하지 않는다(초안/판정만)"
+        }
+      ]
+    }
+  ]
+}
