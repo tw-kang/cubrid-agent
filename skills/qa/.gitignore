@@ -1,8 +1,0 @@
-state
-workspace
-.omc
-.claude
-__pycache__/
-*.pyc
-cubrid-jira-fetcher/
-*-workspace/
