@@ -1,9 +1,9 @@
-# tc-reviewer L2 few-shot bank
+# review-testcase L2 few-shot bank
 
 L2 도메인 리뷰 서브에이전트 프롬프트에 주입하는 **실제 사람 리뷰 예시 모음**. 5년 마이닝(2021-07~2026-07, `work/tc-review-mining/`)에서 렌즈별로 재사용 가능한 패턴이 뚜렷한 사례를 선별·구조화했다. 관점 카탈로그 정본은 [review-perspectives.md](./review-perspectives.md).
 
 ## 사용법
-- tc-reviewer L2가 PR 성격에 맞는 렌즈 섹션의 엔트리를 few-shot으로 프롬프트에 넣는다: **신규형→coverage-expansion**, **변경형→answer-vs-spec**, **공통→determinism-convention·plan-stability**(플랜 TC).
+- review-testcase L2가 PR 성격에 맞는 렌즈 섹션의 엔트리를 few-shot으로 프롬프트에 넣는다: **신규형→coverage-expansion**, **변경형→answer-vs-spec**, **공통→determinism-convention·plan-stability**(플랜 TC).
 - 각 엔트리: **상황**(맥락) → **지적**(실제 코멘트 인용) → **패턴**(LLM이 일반화할 재사용 규칙) → **출처**(PR/리뷰어).
 - **패턴이 핵심**이다 — 봇이 이 규칙을 새 PR에 적용하게 만드는 게 목적. 인용 문구를 그대로 복붙하는 게 아니라 패턴을 따르게 한다.
 

@@ -4,7 +4,7 @@ tc-author 파이프라인의 필수 품질 게이트를 Claude Code hook으로 *
 
 **신뢰 모델**: 신뢰된 팀원의 **실수 방지 가드레일**이지 적대적 우회 방지가 아니다. manifest는 파이프라인이 기록하고 hook이 검사 — 고의 조작은 못 막지만 게이트를 깜빡 건너뛰는 것은 막는다. (적대적 강제는 Stage 3에서 CTP 산출물 직접 검증으로.)
 
-## hook 3종 (settings.json 등록)
+## hook 3종 (플러그인 `hooks/hooks.json` 등록)
 
 | hook | 이벤트 | 트리거 | 동작 |
 |---|---|---|---|
@@ -18,7 +18,7 @@ tc-author 파이프라인의 필수 품질 게이트를 Claude Code hook으로 *
 
 - 위치: **`$HOME/.cubrid-agent/<CBRD-XXXXX>/manifest.json`** (프로젝트 디렉토리 무관 — $HOME 런타임 표준).
 - 작성: **tc-author 오케스트레이터가 각 단계 결과를 기록**. 단 `lint.{header,evaluate,cleanup,english_comments}`는 `lint-sql-tc.sh`가 갱신(우회불가), `lint.answer_not_handwritten`은 provenance라 오케스트레이터가 기록.
-- 스키마 예시: [manifest.example.json](./manifest.example.json).
+- 스키마 예시: [manifest.example.json](../scripts/manifest.example.json).
 
 ## 제출 게이트 통과 조건 (gate-pr-submit)
 
@@ -36,10 +36,10 @@ tc-author 파이프라인의 필수 품질 게이트를 Claude Code hook으로 *
 SM=$(mktemp -d)
 # 미충족(manifest 없음) → deny(exit 2)
 echo '{"tool_input":{"command":"gh pr create --repo CUBRID/cubrid-testcases --head tw-kang:tc/cbrd-99999 --draft"}}' \
-  | HOME="$SM" bash .claude/hooks/gate-pr-submit.sh; echo "exit=$?"
+  | HOME="$SM" bash scripts/gate-pr-submit.sh; echo "exit=$?"
 # 비대상(cubrid-agent 자체) → 통과(exit 0)
 echo '{"tool_input":{"command":"gh pr create --repo tw-kang/cubrid-agent"}}' \
-  | HOME="$SM" bash .claude/hooks/gate-pr-submit.sh; echo "exit=$?"
+  | HOME="$SM" bash scripts/gate-pr-submit.sh; echo "exit=$?"
 rm -rf "$SM"
 ```
 exit 2 = 차단(+deny JSON), exit 0 = 통과.

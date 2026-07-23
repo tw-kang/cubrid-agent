@@ -1,15 +1,15 @@
 ---
-name: tc-author
-description: "Run the tc-author pipeline end-to-end for one Resolved CBRD issue: pick the next queued issue (or a given key), ground it against the fix, author a CTP SQL testcase, verify it on a local build, review it in a separate lane, and open an upstream Draft PR. Use whenever someone says \"tc-author 돌려줘\", \"다음 이슈 tc 작성\", \"CBRD-XXXXX tc 만들어서 PR까지\", \"sql tc 파이프라인 돌려\", \"Resolved 이슈 테스트케이스 작성해서 제출\", even without the exact word. Orchestrator: it drives cubrid-sql-tc-create (author) + cubrid-sql-tc-verify (run) + a separate review subagent, then submits. Draft PR only; a human approves/merges. Jira is read-only (no transition). NOT for: reviewing someone else's PR (tc-reviewer), gating Resolved issues / bouncing to Handover (resolve-gate), reading nightly regression (test-runner), non-SQL categories, or authoring a single .sql with no verify/PR (call cubrid-sql-tc-create directly)."
+name: author-testcase
+description: "Run the author-testcase pipeline end-to-end for one Resolved CBRD issue: pick the next queued issue (or a given key), ground it against the fix, author a CTP SQL testcase, verify it on a local build, review it in a separate lane, and open an upstream Draft PR. Use whenever someone says \"author-testcase 돌려줘\", \"다음 이슈 tc 작성\", \"CBRD-XXXXX tc 만들어서 PR까지\", \"sql tc 파이프라인 돌려\", \"Resolved 이슈 테스트케이스 작성해서 제출\", even without the exact word. Orchestrator: it drives create-sql (author) + verify-sql (run) + a separate review subagent, then submits. Draft PR only; a human approves/merges. Jira is read-only (no transition). NOT for: reviewing someone else's PR (review-testcase), gating Resolved issues / bouncing to Handover (gate-resolved), reading nightly regression (test-runner), non-SQL categories, or authoring a single .sql with no verify/PR (call create-sql directly)."
 ---
 
-# tc-author — Resolved → Test (one issue, end-to-end)
+# author-testcase — Resolved → Test (one issue, end-to-end)
 
-Process **one Resolved CBRD issue end-to-end** into an upstream Draft SQL-TC PR: Select → Ground → (Author → Verify → Review, looped) → Submit → report. The main session is the **orchestrator**; authoring and reviewing are delegated to separate lanes. It sits **after** [resolve-gate](../resolve-gate/SKILL.md) (which bounces un-plannable issues) and feeds [tc-reviewer](../tc-reviewer/SKILL.md). Parallelize independent units (DP1); the TC itself must assert user-observable black-box behavior (DP2 — see Author).
+Process **one Resolved CBRD issue end-to-end** into an upstream Draft SQL-TC PR: Select → Ground → (Author → Verify → Review, looped) → Submit → report. The main session is the **orchestrator**; authoring and reviewing are delegated to separate lanes. It sits **after** [gate-resolved](../gate-resolved/SKILL.md) (which bounces un-plannable issues) and feeds [review-testcase](../review-testcase/SKILL.md). Parallelize independent units (DP1); the TC itself must assert user-observable black-box behavior (DP2 — see Author).
 
 ## Scope
 
-**Produces:** one issue processed to a Draft PR (`tw-kang:tc/cbrd-XXXXX` → `CUBRID/cubrid-testcases:develop`) — a verified `.sql`+generated `.answer`, and a report at `$HOME/.cubrid-agent/reports/tc-author/CBRD-XXXXX.md`. Default 1 issue/run; arg = N issues or a specific `CBRD-XXXXX`.
+**Produces:** one issue processed to a Draft PR (`tw-kang:tc/cbrd-XXXXX` → `CUBRID/cubrid-testcases:develop`) — a verified `.sql`+generated `.answer`, and a report at `$HOME/.cubrid-agent/reports/author-testcase/CBRD-XXXXX.md`. Default 1 issue/run; arg = N issues or a specific `CBRD-XXXXX`.
 
 **Does NOT:** merge/approve (draft only), write Jira (read-only — no `Start Test` transition in Stage 2), commit to a branch a human has checked out (work **only** on `tc/cbrd-XXXXX` branches in `$TC`), run non-SQL categories, or do the Review pass in the author's context (separate lane — no self-approve).
 
@@ -17,12 +17,12 @@ Process **one Resolved CBRD issue end-to-end** into an upstream Draft SQL-TC PR:
 
 Runtime is the **$HOME standard** (same resolution as the part-skills); **`./setup.sh` (repo root, idempotent) provisions it** — run it if anything below is missing:
 - **`$TC`** (testcases clone) = `$CUBRID_TESTCASES` if set, else `~/cubrid-testcases` — on `origin`(CUBRID)/`twkang`(tw-kang) remotes. On a machine where `~/cubrid-testcases` is a human's manual workspace, set `CUBRID_TESTCASES` to a separate clone.
-- **Build under test** = a CUBRID **release** build at **`$HOME/CUBRID`** that **contains the issue's fix** (the "신뢰 빌드"). A **new** issue needs a fix-including build — `./setup.sh --build <url>` or `cubrid-sql-tc-verify` installs from the build server (`192.168.1.91:8080`). A build lacking the fix makes `.answer` wrong — never verify on it.
+- **Build under test** = a CUBRID **release** build at **`$HOME/CUBRID`** that **contains the issue's fix** (the "신뢰 빌드"). A **new** issue needs a fix-including build — `./setup.sh --build <url>` or `verify-sql` installs from the build server (`192.168.1.91:8080`). A build lacking the fix makes `.answer` wrong — never verify on it.
 - **env**: `source ~/.cubrid-agent/env.sh` (generated by setup.sh — `.cubrid.sh` + `CTP_HOME` + JDK `JAVA_HOME`).
 - **conf**: stock `$CTP_HOME/conf/sql.conf`·`sql_by_cci.conf` already target `${HOME}/cubrid-testcases/sql` on non-default ports (1822/33120) — **no copies needed**. Only if `$TC` ≠ `~/cubrid-testcases`, copy the conf with `scenario=$TC/sql`.
 - **cubrid source** for Ground at `~/cubrid` (setup.sh clones if absent). **cubrid-jira** present; gh authenticated (`gh pr view --repo CUBRID/cubrid-testcases`).
 - **첨부 전부 다운로드+읽기(필수, Ground에서).** 개발자가 의도 테스트케이스·재현을 첨부로만 주는 이슈가 많다(예: `CBRD-XXXXX_testcases.sql`). `cubrid-jira attachment <KEY>`(미탑재 시 interim: `cubrid-jira jql 'key=<KEY>' --fields attachment --output json`의 각 `.content` URL을 `curl --netrc -o <file>` — 자격 `.netrc`(jira.cubrid.org) 또는 `-u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD`). **받기 전 `.size` 확인 — >5MB(코어·바이너리 포함)는 curl skip**하고 메타+사유만 기록. 그 외만 받아 텍스트·코드는 정독, 이미지는 Read 멀티모달.
-- No build / no CTP env? Do Select→Ground→Author, leave `.answer` empty, and hand off with `cubrid-sql-tc-verify` instructions (don't fake verification).
+- No build / no CTP env? Do Select→Ground→Author, leave `.answer` empty, and hand off with `verify-sql` instructions (don't fake verification).
 
 ## Pipeline
 
@@ -31,7 +31,7 @@ Select → Ground → ┌─ Author → Verify → Review ─┐ → Submit → 
                   └──── feedback loop (2–5x) ◄──┘
 ```
 
-**Run manifest (Stage 2 hard gate)**: as each stage completes, record its gate result into `$HOME/.cubrid-agent/CBRD-XXXXX/manifest.json` (schema: [`.claude/hooks/manifest.example.json`](../../hooks/manifest.example.json)). The `lint.*` mechanical fields are written by the `lint-sql-tc` PostToolUse hook; **you** write the rest (author / verify / review + `lint.answer_not_handwritten`). Submit's `gh pr create` is **blocked by the `gate-pr-submit` hook** unless the manifest confirms determinism · fail→pass · review PASS · lint (see [`.claude/hooks/README.md`](../../hooks/README.md)).
+**Run manifest (Stage 2 hard gate)**: as each stage completes, record its gate result into `$HOME/.cubrid-agent/CBRD-XXXXX/manifest.json` (schema: [`scripts/manifest.example.json`](../../../scripts/manifest.example.json)). The `lint.*` mechanical fields are written by the `lint-sql-tc` PostToolUse hook; **you** write the rest (author / verify / review + `lint.answer_not_handwritten`). Submit's `gh pr create` is **blocked by the `gate-pr-submit` hook** unless the manifest confirms determinism · fail→pass · review PASS · lint (see [`docs/stage2-hook-gates.md`](../../../docs/stage2-hook-gates.md)).
 
 ## 1. Select
 Queue = Select-passing issues, oldest-resolved first; process `run` arg (default 1).
@@ -39,7 +39,7 @@ Queue = Select-passing issues, oldest-resolved first; process `run` arg (default
 - **Read the body via `cubrid-jira jql --output json --fields 'summary,description,comment,...'`** — the `search` markdown drops the body (DESIGN). Then judge per candidate: **Reproduction** (concrete SQL/steps in body or comments), **SQL-reproducibility** (observable via SQL alone through the sql-category driver (JDBC; CCI for sql_by_cci) — no process/config/external-util observation, output identical every run **on the post-fix build**; probabilistic/race bug OK if post-fix output is deterministic — detection power is a Review concern, not a Select gate), **duplicate** (skip if `tc/cbrd-XXXXX` branch/PR exists or a `cbrd_xxxxx` TC already covers the repro).
 - **Idempotency**: GitHub is the source of truth — a fork/upstream `tc/cbrd-XXXXX` branch or PR ⇒ already processed ⇒ drop from queue.
 - **Queue exhaustion**: the JQL can return candidates that are all already-processed or unfit. When the body-judgment + idempotency pass leaves nothing, **say so and stop** — don't silently widen. Broadening Select (other Planned Version / QA Assignee) is a user decision.
-- Single issue: `/tc-author CBRD-XXXXX` (skip the queue).
+- Single issue: `/author-testcase CBRD-XXXXX` (skip the queue).
 
 ## 2. Ground
 Issue content is the source of truth; back it with code facts.
@@ -49,19 +49,19 @@ Issue content is the source of truth; back it with code facts.
 - **Mark the fix code path** the TC must exercise (feeds Author's path-forcing + Verify's path gate).
 - Output: repro scenario, post-fix expected behavior, case list (Author input).
 
-## 3. Author (delegated — cubrid-sql-tc-create)
+## 3. Author (delegated — create-sql)
 - In `$TC`: fetch `origin/develop`, create branch `tc/cbrd-XXXXX` from it (continue the existing branch on retry; never build on a human's checked-out branch).
-- Author `.sql` **by the `cubrid-sql-tc-create` skill rules** (header block, `evaluate 'Case N'`, DROP-before-CREATE, self-contained cleanup, English comments, expected values only in `.answer`). TC path = `sql/_36_guava/cbrd_XXXXX/{cases,answers}/` (guava corpus convention).
+- Author `.sql` **by the `create-sql` skill rules** (header block, `evaluate 'Case N'`, DROP-before-CREATE, self-contained cleanup, English comments, expected values only in `.answer`). TC path = `sql/_36_guava/cbrd_XXXXX/{cases,answers}/` (guava corpus convention).
 - **DP2 (black-box, user-perspective)**: author the TC as a **DBA / DB engineer / AP-developer** would observe the bug — SQL I/O (the sql category runs via the JDBC driver, sql_by_cci via CCI; csql shows a human the same), plan, catalog. Cover boundary + negative cases and field-misuse angles (non-expert), **not** C-internal signals (asserts, page ids) a user can't see. If the fix has no user-observable behavior change (debug-only assert), it's not an SQL-TC target — bounce back to Select judgment.
 - `.answer` is **generated by Verify, never hand-written**.
 
-## 4. Verify (delegated — cubrid-sql-tc-verify, local CTP)
+## 4. Verify (delegated — verify-sql, local CTP)
 Run on the fix-including release build; **generate then confirm** the answer. **Minimise CTP sessions** — each `ctp.sh` invocation pays ~85s setup (JVM + DB create + server start/stop/delete), while an extra `run` inside a live interactive session is ~1.5s. So the whole Verify is **3 sessions, not ~6**: (S1) generation, (S2) confirm+determinism in one session, (S3) CCI (needs its own conf).
 1. **answer generation (empty-answer trick, session S1)**: seed an empty `answers/cbrd_XXXXX.answer` (CTP's interactive `run` skips a case with no answer), run → real output lands in `$CTP_HOME/sql/result/.../cbrd_XXXXX.result`, check it matches intent (error code / row count / message), promote (`cp`) to `.answer`.
 2. **confirm + determinism gate (session S2 — single-session N-run)**: run the case **N (=3) times in ONE `ctp.sh --interactive` session** — `printf 'run <case>\n'` repeated N times then `quit`. **All N `Success:1` = deterministic** (run 1 is also the confirm; no separate confirm session). Setup dominates, so N=3 ≈ N=1 in wall time — **keep N=3; never spawn N separate `ctp.sh` (wastes ~3×85s)**. `.result` is overwritten each run, so **N-Success (CTP's masked compare — exactly what regression uses) is the determinism signal, not byte-diffing 3 files**. Nondeterministic token (`[Ljava...@hash`, OID, timestamp, ORDER-BY-less multi-row) → feed back to Author.
 3. **path-coverage gate**: plan/trace (`;plan detail`, `.queryPlan`, `SET TRACE ON`) proves the **fix path is actually hit** — a green TC on an unaffected path is worthless (size data to clear thresholds; `test_mode=yes` can flip the path).
 4. **fail→pass contract**: install a **pre-fix** build → the TC should **FAIL**; fixed build → PASS. Race repro is timing-sensitive (best-effort; document the limit); pin the server to **≥4 cores** (≤2 disables parallelism). If no pre-fix build, ground pre-fix behavior from the issue Repro/Expected and note it.
-5. **CCI cross-check**: re-run the same `.sql` via `cubrid-sql-tc-verify` in **sql_by_cci** mode (`run_cci`; stock `$CTP_HOME/conf/sql_by_cci.conf` — copy with `scenario=$TC/sql` only if `$TC` is non-default). If the CCI output **differs** from the default (JDBC) sql output, promote it to `answers/cbrd_XXXXX.answer_cci` (same empty-answer trick); if identical, no `.answer_cci` needed. Record `verify.cci.{checked,matches_jdbc}` — the submit gate requires `cci.checked`.
+5. **CCI cross-check**: re-run the same `.sql` via `verify-sql` in **sql_by_cci** mode (`run_cci`; stock `$CTP_HOME/conf/sql_by_cci.conf` — copy with `scenario=$TC/sql` only if `$TC` is non-default). If the CCI output **differs** from the default (JDBC) sql output, promote it to `answers/cbrd_XXXXX.answer_cci` (same empty-answer trick); if identical, no `.answer_cci` needed. Record `verify.cci.{checked,matches_jdbc}` — the submit gate requires `cci.checked`.
 - `.answer` is confirmed on the **release** build (= CI mode); debug only for diagnosis.
 
 ## 5. Review (delegated — separate lane, no self-approve)
@@ -84,7 +84,7 @@ Spawn a **fresh-context review subagent** (opus) with the issue body, fix-diff s
 - **PoC/Stage 2 = Draft PR + human approves/merges.** No Jira transition.
 
 ## 8. Report
-`$HOME/.cubrid-agent/reports/tc-author/CBRD-XXXXX.md`: Select basis (field values · repro location), Ground summary (fix PR/commit), per-round loop history (verify result · review nits · what changed), final PR link or skip reason.
+`$HOME/.cubrid-agent/reports/author-testcase/CBRD-XXXXX.md`: Select basis (field values · repro location), Ground summary (fix PR/commit), per-round loop history (verify result · review nits · what changed), final PR link or skip reason.
 
 ## Stage matrix
 | | Select 범위 | 검증 | Jira | 산출 |
@@ -96,4 +96,4 @@ Spawn a **fresh-context review subagent** (opus) with the issue body, fix-diff s
 CCI 교차검증(`.answer_cci`)·게이트 hook 강제는 Stage 2+; pod 검증·Jira 쓰기·다건 병렬은 Stage 3 (park).
 
 ## Note — orchestrator, not author
-The main session **drives** the loop and does Select/Ground/Verify/Submit; it **delegates** authoring to `cubrid-sql-tc-create` and reviewing to a separate subagent. Keep author and review in **different contexts** — a green light the author gave itself doesn't count.
+The main session **drives** the loop and does Select/Ground/Verify/Submit; it **delegates** authoring to `create-sql` and reviewing to a separate subagent. Keep author and review in **different contexts** — a green light the author gave itself doesn't count.

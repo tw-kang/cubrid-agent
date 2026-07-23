@@ -1,5 +1,5 @@
 ---
-name: cubrid-sql-tc-create
+name: create-sql
 description: "Create, draft, or scaffold a new CUBRID CTP SQL testcase (.sql + .answer) from scratch — for a CBRD bug fix or feature. Use this whenever someone says \"sql tc 만들어줘\", \"sql tc 초안 작성해줘\", \"create sql tc\", \"draft sql test\", \"새 sql testcase\", \"sql 테스트케이스 작성\", or \"create draft sql tc for CBRD-XXXXX\", even if they don't say the word \"testcase\". They usually give a CBRD number, the behavior to test, and sometimes a target release dir. NOT for: running existing SQL tests, reviewing diffs/PRs, CTP configuration, or SQL scripting unrelated to CTP test creation."
 ---
 
@@ -17,7 +17,7 @@ Generate a CUBRID CTP SQL testcase that passes review on the first try. A good t
 
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
 - **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES` if set, else discover the `cubrid-testcases` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below.
-- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy. **When you read the issue yourself (not handed grounded input by tc-author), also download + read every attachment** — `cubrid-jira attachment <KEY>` (interim until shipped: `curl --netrc -o <file>` each `.content` URL from `cubrid-jira jql 'key=<KEY>' --fields attachment --output json`). A `*_testcases.sql`/repro attachment often holds the developer's intended cases. **Check each `.size` first and skip the download for >5MB (cores/binaries), recording metadata + reason**; fetch the rest, read text/code, view images.
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy. **When you read the issue yourself (not handed grounded input by author-testcase), also download + read every attachment** — `cubrid-jira attachment <KEY>` (interim until shipped: `curl --netrc -o <file>` each `.content` URL from `cubrid-jira jql 'key=<KEY>' --fields attachment --output json`). A `*_testcases.sql`/repro attachment often holds the developer's intended cases. **Check each `.size` first and skip the download for >5MB (cores/binaries), recording metadata + reason**; fetch the rest, read text/code, view images.
 - **Check for existing coverage first.** Before authoring, grep the corpus for the same repro/behavior (the issue's tables/queries, sibling tests under the release dir and feature area). If it already exists — e.g. an older test that only flakes under a special CI mode — **differentiate** the new test (a distinct variant, or make it self-sufficient so it triggers the path in the standard suite) instead of duplicating it.
 
 ## Directory convention
@@ -41,11 +41,11 @@ The path is how CTP locates and categorizes a test. The `.sql` and its `.answer`
 The `.answer` is the expected output and **must come from CTP**, not your keyboard — hand-written answers drift from real engine output and fail diffs.
 
 1. Write the `.sql` into `cases/`.
-2. **Seed an empty `answers/cbrd_XXXXX.answer` first** — CTP's interactive `run` skips any case that has no answer file (it runs nothing: `Total:1 / Success:0 / Fail:0`). With the empty answer present, run it through `cubrid-sql-tc-verify` (needs a build URL — use one given, else ask). The run diffs against the empty answer (`Fail:1`) and writes the real output to `$CTP_HOME/sql/result/<date>/schedule_…/sql/cbrd_XXXXX.result` — in the result tree, **not** next to the `.sql`.
+2. **Seed an empty `answers/cbrd_XXXXX.answer` first** — CTP's interactive `run` skips any case that has no answer file (it runs nothing: `Total:1 / Success:0 / Fail:0`). With the empty answer present, run it through `verify-sql` (needs a build URL — use one given, else ask). The run diffs against the empty answer (`Fail:1`) and writes the real output to `$CTP_HOME/sql/result/<date>/schedule_…/sql/cbrd_XXXXX.result` — in the result tree, **not** next to the `.sql`.
 3. Promote it: copy that `.result` over the seeded answer (`answers/cbrd_XXXXX.answer`), then re-run to confirm `Success:1`.
 4. Read the `.answer` and confirm it matches intent — DDL/DML show affected row count; SELECT shows headers + rows; errors show `Error:-NNN\n<message>`; each statement's output is split by `===...===` lines.
 
-No build URL / no CUBRID env? Drop an empty `.answer` and tell the user to fill it later with `cubrid-sql-tc-verify`.
+No build URL / no CUBRID env? Drop an empty `.answer` and tell the user to fill it later with `verify-sql`.
 
 ## Essential helpers (use these, not raw SQL prose)
 
@@ -58,7 +58,7 @@ These directives are how CTP and reviewers read your intent. Skipping them chang
 | `SET TRACE ON` / `OFF` | plan/trace assertions | pair on/off — trace left on leaks into later cases; turn it off once trace checks end |
 | `DROP TABLE IF EXISTS t` before `CREATE` | every table | keeps the test re-runnable |
 | empty `cbrd_XXXXX.queryPlan` sidecar | optimizer/plan tests | tells CTP to capture and diff the query plan |
-| `cubrid-sql-tc-verify` | generating `.answer` | only sanctioned source of expected output |
+| `verify-sql` | generating `.answer` | only sanctioned source of expected output |
 
 ## Writing rules
 
@@ -67,7 +67,7 @@ These directives are how CTP and reviewers read your intent. Skipping them chang
 - **`DROP TABLE IF EXISTS` before every `CREATE TABLE`**, setup at top, cleanup at bottom. Keep setup minimal with simple names (`tbl1`, `col1`).
 - **Make each file self-contained — the full suite shares ONE database.** CI/regression creates the DB once and runs every SQL case in it back-to-back, so uncleaned state leaks into later tests. Undo everything at cleanup: `DROP TABLE IF EXISTS` (also at top), `deallocate prepare <name>` for any `prepare`, restore any `SET SYSTEM PARAMETERS`, drop any temp serial/view/procedure created.
 - **Keep the answer deterministic.** Output that varies run-to-run breaks the diff: `EXECUTE … USING {collection}` renders as `[Ljava.lang.Integer;@<hash>` (a Java object id), and OIDs, timestamps, and unordered result sets drift too. Return scalars, assert errors, or add `ORDER BY` — **any SELECT that can return more than one row needs an explicit `ORDER BY`** (the single most repeated review nit); never bake a hash/OID/timestamp into a `.answer`. **Assert only invariants:** values that vary by environment, build, or time (page ids, starting values, the current year) must not be baked into the answer — assert what is *guaranteed* (a count, an ordering, an error code, a min/max boundary), not a volatile exact value.
-- **Make the test actually exercise the fixed code path — a green test that never hits the fix is worthless.** A test can pass deterministically while running a *different*, unaffected path. Identify the path the fix touches and force the TC down it, then confirm with `cubrid-sql-tc-verify` (query plan / trace). Example: the offline **parallel** index build (`btree_sort_get_next_parallel`) is taken only by a plain `CREATE INDEX` when `parallelism`≥2 (default 4) **and** the table has ≥ `parallel_sort_page_threshold` heap pages (default 2048) — `WITH ONLINE PARALLEL` is a *different* (online) path. So size the data to clear the threshold (~2M rows here), don't just copy a small repro that runs serial under the default config.
+- **Make the test actually exercise the fixed code path — a green test that never hits the fix is worthless.** A test can pass deterministically while running a *different*, unaffected path. Identify the path the fix touches and force the TC down it, then confirm with `verify-sql` (query plan / trace). Example: the offline **parallel** index build (`btree_sort_get_next_parallel`) is taken only by a plain `CREATE INDEX` when `parallelism`≥2 (default 4) **and** the table has ≥ `parallel_sort_page_threshold` heap pages (default 2048) — `WITH ONLINE PARALLEL` is a *different* (online) path. So size the data to clear the threshold (~2M rows here), don't just copy a small repro that runs serial under the default config.
 - **Cover boundaries and the negative side, not just the issue's exact repro — this is the #1 review ask.** Reviewers most often reply "please add this scenario." For every positive case add its negative/error counterpart; test just-below / at / just-above any limit; and cover the paths the fix affects beyond the one literal repro line. A test that only replays the single repro almost always comes back with case-addition requests (extra round-trip).
 - **Keep it minimal — drop hints, parameters, and duplicate cases the repro doesn't need.** An unrelated hint, an unneeded `UPDATE STATISTICS`, or a case identical to another blurs what's verified and draws "please remove this" review asks. Aim for the smallest repro that still exercises the fix (this balances the coverage rule above — cover the fix's space, not noise).
 - **Expected values live in the `.answer`, judged by CTP's diff — never compute pass/fail in the `.sql`.** Emit the raw result (a count, a row, an `Error:-NNN`); do **not** wrap it in `CASE … 'OK'/'FAIL'`, and do **not** put the expected value in a comment. The generated `.answer` is the single source of the expected result; scenario labels go in `evaluate '...'` (echoed into the answer), not in `--` comments.
@@ -89,8 +89,8 @@ These match what the corpus and reviewers expect. See `@examples/` for full file
 
 After authoring, prove the testcase actually runs — don't just eyeball it.
 
-1. **Run it (ground truth):** push the `.sql` through `cubrid-sql-tc-verify` with a real build, generate the `.result`, promote it to `.answer`, and confirm the answer reflects intended behavior (right error codes, right row counts).
-2. **No-build fallback** (a clean, expected path): leave the `.answer` empty and hand off to the user with `cubrid-sql-tc-verify` instructions.
+1. **Run it (ground truth):** push the `.sql` through `verify-sql` with a real build, generate the `.result`, promote it to `.answer`, and confirm the answer reflects intended behavior (right error codes, right row counts).
+2. **No-build fallback** (a clean, expected path): leave the `.answer` empty and hand off to the user with `verify-sql` instructions.
 
 ## Self-review checklist
 
@@ -109,7 +109,7 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 - Expected results live only in the `.answer` (no `CASE … 'OK'/'FAIL'` verdict in SQL, no expected values in comments)?
 - Comments and commit message in English (PR body Korean)?
 - `.queryPlan` sidecar present for optimizer tests, and the plan pinned against optimizer tie/flakiness (decisive index or updated stats)?
-- `.answer` generated via `cubrid-sql-tc-verify` (not hand-written), or left empty with a handoff note?
+- `.answer` generated via `verify-sql` (not hand-written), or left empty with a handoff note?
 - Dir/basename correct? Right `_{yy}_{1|2}h` bucket, shared `cases/`+`answers/`?
 
 ## Examples & references

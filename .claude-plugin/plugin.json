@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "cubrid-agent",
+  "description": "CUBRID QA dev-process agents that drive CBRD issue state transitions: gate Resolved issues for QA-readiness, author and verify CTP SQL testcases against a local build, and first-review testcase PRs.",
+  "author": {
+    "name": "tw-kang",
+    "email": "twkang@cubrid.com"
+  },
+  "repository": "https://github.com/tw-kang/cubrid-agent",
+  "license": "Apache-2.0",
+  "keywords": ["cubrid", "qa", "testcase", "ctp", "sql"],
+  "skills": [
+    "./skills/qa/gate-resolved",
+    "./skills/qa/author-testcase",
+    "./skills/qa/review-testcase",
+    "./skills/qa/create-sql",
+    "./skills/qa/verify-sql"
+  ]
+}

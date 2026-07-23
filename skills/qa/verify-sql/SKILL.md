@@ -1,5 +1,5 @@
 ---
-name: cubrid-sql-tc-verify
+name: verify-sql
 description: "Run one CUBRID CTP SQL testcase on this machine, judge pass/fail, and on failure diagnose the root cause from the result diff. Use whenever someone wants to physically run a specific SQL test and know whether it passes and why — Korean: \"돌려봐\", \"수행해줘\", \"실행해봐\", \"SQL tc 한건 확인\", \"패스하는지 확인\", \"검증해줘\", \"실패 원인 알려줘\"; English: \"run\", \"execute\", \"verify\", \"sql tc\", \"check if it passes\". A CUBRID build URL alongside a .sql path is a strong signal — invoke this skill. Also handles sql_by_cci when the user says 'sqlbycci'/'sql_by_cci'. NOT for: reviewing/editing SQL test code, creating new tests, or full regression suites."
 ---
 

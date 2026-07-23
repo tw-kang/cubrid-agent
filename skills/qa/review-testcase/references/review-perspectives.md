@@ -2,7 +2,7 @@
 
 **기반: 5년(2021-07~2026-07) 머지 PR의 사람 라인 코멘트 1,358건 분류.**
 
-tc-reviewer L2와 tc-author Review lane이 공유하는 단일 정본. 목적은 "관점 목록"이 아니라 **각 관점을 어떻게 처리하는가**의 지정: 어느 층(L1 정적 린트 / L2 LLM 판정 / L3 실행)에서 잡는가, greptile/codex 봇과 중복되는가, 어느 리뷰어 렌즈가 강한가, few-shot 앵커는 무엇인가.
+review-testcase L2와 author-testcase Review lane이 공유하는 단일 정본. 목적은 "관점 목록"이 아니라 **각 관점을 어떻게 처리하는가**의 지정: 어느 층(L1 정적 린트 / L2 LLM 판정 / L3 실행)에서 잡는가, greptile/codex 봇과 중복되는가, 어느 리뷰어 렌즈가 강한가, few-shot 앵커는 무엇인가.
 
 ## 처리 층 배정 (마이닝의 핵심 산출)
 
@@ -38,7 +38,7 @@ tc-reviewer L2와 tc-author Review lane이 공유하는 단일 정본. 목적은
 
 ## 봇 분업 경계
 
-greptile/codex 봇은 **P1(answer 무결성)·P2(결정성 일부)·P3(fix 경로 커버리지)**를 P1/P2 심각도 badge로 이미 정교하게 잡는다(예: "NULL 결과값 오염", "샘플링 결과 고정값", "새 문법 미검증"·"DROP 경로 우회"). tc-reviewer는:
+greptile/codex 봇은 **P1(answer 무결성)·P2(결정성 일부)·P3(fix 경로 커버리지)**를 P1/P2 심각도 badge로 이미 정교하게 잡는다(예: "NULL 결과값 오염", "샘플링 결과 고정값", "새 문법 미검증"·"DROP 경로 우회"). review-testcase는:
 - 이 관점들은 **봇 지적을 참조/보강**만(중복 코멘트 억제).
 - L2 역량을 **봇이 약한 P4·P7·P11·P13·P6·P8**에 집중.
 
@@ -48,7 +48,7 @@ greptile/codex 봇은 **P1(answer 무결성)·P2(결정성 일부)·P3(fix 경�
 > "Not sure if you've grasped the JIRA issue fully.. This test case has little to do with the issue statement" — PR2271, junsklee
 > "테스트 의도(HA 모드 UNIQUE 제약)가 파티션 오류로 가려지지 않도록..." — PR2489, zionyun
 
-**P12 — 버그/스펙 판별 유보**: 리뷰 중 제품 버그를 발견하고 "스펙인가 버그인가" 판단 후 신규 이슈로 트래킹. 리뷰가 회귀 검증을 넘어 *버그 발견* 역할. 봇이 못 하는 영역 — tc-reviewer는 "이상 신호 + 사람 에스컬레이션"까지만.
+**P12 — 버그/스펙 판별 유보**: 리뷰 중 제품 버그를 발견하고 "스펙인가 버그인가" 판단 후 신규 이슈로 트래킹. 리뷰가 회귀 검증을 넘어 *버그 발견* 역할. 봇이 못 하는 영역 — review-testcase는 "이상 신호 + 사람 에스컬레이션"까지만.
 > "새로운 이슈를 수정했는데 기존 정상동작하던 TC가 fail... 스펙변경인지 버그인지 확인 필요" — PR2369, kwonhoil
 > "This is exponential growth. It exhausts memory (OOM) before the depth-32 guard... let's track... CBRD-27032" — PR2988, kangmin5505
 
@@ -66,7 +66,7 @@ greptile/codex 봇은 **P1(answer 무결성)·P2(결정성 일부)·P3(fix 경�
 
 ## L2 페르소나 렌즈 (PR 성격별 지배 렌즈)
 
-L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로 돌린다. 마이닝에서 드러난 두 주 렌즈가 tc-reviewer가 받는 두 PR 성격에 대응한다(DESIGN D5). **렌즈명은 기능으로 두고 사람 이름은 few-shot 출처로만** 기록한다 — 개인 박제 금지(사람이 바뀌어도 철학이 남게).
+L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로 돌린다. 마이닝에서 드러난 두 주 렌즈가 review-testcase가 받는 두 PR 성격에 대응한다(DESIGN D5). **렌즈명은 기능으로 두고 사람 이름은 few-shot 출처로만** 기록한다 — 개인 박제 금지(사람이 바뀌어도 철학이 남게).
 
 | 렌즈 | PR 성격 | 담는 관점 | 질문셋(요지) | 대표(few-shot 출처) |
 |---|---|---|---|---|
@@ -91,9 +91,9 @@ L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로
 - **P6**: "answer file에서 테스트 위치를 확인할 수 있도록 각 주석에 evaluate 구문 추가... 나머지 sql tc도 동일" — PR2501, ssihil
 - **P8**: "join_orderby_skip.sql의 Q130 테스트와 중복" — PR2427, youngjinj / "r_outer_join.sql에 동일한 right outer join 케이스가 존재" — PR2419, zionyun
 
-## tc-author 선제 개선 피드백 (왕복 근본 축소)
+## author-testcase 선제 개선 피드백 (왕복 근본 축소)
 
-리뷰 왕복을 줄이는 최선은 애초에 안 틀리게 하는 것. 사람이 가장 자주 지적하는 항목을 `cubrid-sql-tc-create` 스킬·tc-author Author 단계에서 선제 방지:
+리뷰 왕복을 줄이는 최선은 애초에 안 틀리게 하는 것. 사람이 가장 자주 지적하는 항목을 `create-sql` 스킬·author-testcase Author 단계에서 선제 방지:
 - 다행 SELECT엔 항상 ORDER BY (P2)
 - 시나리오마다 evaluate 라벨, trace on/off 페어 (P6)
 - CREATE 앞 DROP IF EXISTS, prepare 후 deallocate, 만든 것 전부 cleanup (P5)
@@ -103,7 +103,7 @@ L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로
 
 ## 관찰 (마이닝 부수 발견)
 
-- **언어**: 리뷰 코멘트 한국어 90%+ (영어는 junsklee/hyunikn 일부·봇). → tc-reviewer 코멘트 초안 기본 = 한국어.
+- **언어**: 리뷰 코멘트 한국어 90%+ (영어는 junsklee/hyunikn 일부·봇). → review-testcase 코멘트 초안 기본 = 한국어.
 - **리뷰어 편중**: ssihil(결정성·컨벤션·cleanup), kwonhoil(답지 사유·케이스), bagus-kim(케이스 SQL 제안), shparkcubrid(플랜 안정화), youngjinj(인덱스 경로·중복). → L2를 페르소나 렌즈로 분할 시 재현율 향상 여지.
 - **분포 왜곡 주의**: PR2738(NUMERIC draft) 하나가 P7 지적 다수를 생성. 빈도는 PR 편중 감안한 등급(최다/매우높음/높음/중간/낮음)으로 표기.
 - **5년 렌즈 분포**(유효 1,358건): coverage-expansion 247·answer-vs-spec 215·determinism-convention 149·plan-stability 83·미분류 664. 미분류 대부분은 기존 렌즈로 재귀속되며, 여기서 신규 P14(최소성)·P15(불변식 단언)를 발견. 5년 상위 리뷰어: kwonhoil·ssihil·hyunikn·swi0110·youngjinj.

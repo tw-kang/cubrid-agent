@@ -1,8 +1,8 @@
-# resolve-gate verdict examples
+# gate-resolved verdict examples
 
 Few-shot for the skill: how each issue kind maps to a verdict, runner tag, and remediation draft.
 
-> **실행 주체 = QA, 대상 = Resolved(QA to-do).** 아래 "NOT-READY"는 QA가 `Need Something`(→Handover)로 되돌리는 **반송**이며, 초안은 개발자에게 보낼 부족분 코멘트다(개발자 assignee @멘션). "READY"는 통과 → `Start Test`(→Test, tc-author).
+> **실행 주체 = QA, 대상 = Resolved(QA to-do).** 아래 "NOT-READY"는 QA가 `Need Something`(→Handover)로 되돌리는 **반송**이며, 초안은 개발자에게 보낼 부족분 코멘트다(개발자 assignee @멘션). "READY"는 통과 → `Start Test`(→Test, author-testcase).
 > **regression/core 예외:** core나 regression fail을 유발한 TC가 이슈에 첨부돼 있으면 그 TC가 repro이므로 별도 repro step 없이 통과. description뿐 아니라 comment·첨부까지 확인한다(CBRD-27052 참조).
 
 ## READY (accept-recommended + runner tag)
@@ -23,7 +23,7 @@ AC 절반이 성능(CPU%)이라 SQL TC 부적합 → perftool. 단 "결과 동�
 
 ### CBRD-27052 (bug) — repro 없음
 ```
-[resolve-gate] 현재 내용으로는 QA가 재현·검증 절차를 짤 수 없어 Resolved로 받기 어렵습니다.
+[gate-resolved] 현재 내용으로는 QA가 재현·검증 절차를 짤 수 없어 Resolved로 받기 어렵습니다.
 - 내용: core 파일과 스택트레이스만 있고, 재현 절차(어떤 부하/종료 순서에서 lock_uninit_resource assert가 나는지)가 없습니다. QA가 이 crash를 유발할 시나리오를 만들 수 없습니다.
 - 필드: Fixed version 미기입.
 @byungwook.kim 재현 절차(또는 최소 유발 조건)를 description에 보강해 주시면 다시 검토하겠습니다.
@@ -32,7 +32,7 @@ AC 절반이 성능(CPU%)이라 SQL TC 부적합 → perftool. 단 "결과 동�
 
 ### CBRD-26909 (bug) — repro 오타 (확인형 반려, 오탐 회피)
 ```
-[resolve-gate] Expected/Actual은 명확하나 재현 스키마가 그대로 실행되지 않아 현 상태로는 받기 어렵습니다.
+[gate-resolved] Expected/Actual은 명확하나 재현 스키마가 그대로 실행되지 않아 현 상태로는 받기 어렵습니다.
 - 내용: cubann-12.schema에서 [tbl2]를 만들지 않고 [tb2]를 ALTER(오타), [pk_tbl_id']에 불필요한 따옴표가 있어 로드가 중단됩니다. 이 이슈가 "line 정보 부정확"을 다루므로 오타가 의도된 테스트 입력인지 확인이 필요합니다.
 - 필드: Fixed version 미기입.
 @ctshim 의도된 오타라면 그 취지를, 실수라면 정정본을 알려주시면 바로 진행하겠습니다.
@@ -41,7 +41,7 @@ AC 절반이 성능(CPU%)이라 SQL TC 부적합 → perftool. 단 "결과 동�
 
 ### CBRD-27028 (feature) — AC 섹션 부재
 ```
-[resolve-gate] 현 description으로는 검증 시나리오를 도출하기 어려워 Resolved 보류합니다.
+[gate-resolved] 현 description으로는 검증 시나리오를 도출하기 어려워 Resolved 보류합니다.
 - 내용: Acceptance Criteria가 없고 code reference(assert 위치)만 있어, QA가 어떤 입력에서 무엇이 정상/실패인지 판단할 기준이 없습니다.
 - 필드: Fixed version 미기입, QA Scenario=Not Required.
 @vimkim 관측 가능한 수용 기준(정상 동작 조건 + 실패 조건)을 한 줄이라도 추가해 주세요.
@@ -49,7 +49,7 @@ AC 절반이 성능(CPU%)이라 SQL TC 부적합 → perftool. 단 "결과 동�
 
 ### CBRD-25779 (feature) — 추상 AC
 ```
-[resolve-gate] 수용 기준이 추상적이라 검증 케이스를 만들 수 없어 보류합니다.
+[gate-resolved] 수용 기준이 추상적이라 검증 케이스를 만들 수 없어 보류합니다.
 - 내용: AC "pgbuf_unfix/set_dirty 동작 중 문제가 발생하지 않아야"는 어떤 입력·상태에서 무엇을 확인하는지가 없습니다. 리팩터링 회귀를 드러낼 구체 시나리오(예: 특정 쿼리/temp 사용 경로)를 제시해 주세요.
 - 필드: Fixed version 미기입, QA Scenario=Not Yet.
 @youngjinj 위 시나리오를 보강해 주시면 다시 검토하겠습니다.

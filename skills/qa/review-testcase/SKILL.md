@@ -1,17 +1,17 @@
 ---
-name: tc-reviewer
-description: "Review a cubrid-testcases SQL TC pull request as the first reviewer, to cut the human-review round-trip. Judges in 3 layers -- L1 convention lint, L2 mined domain lenses (few-shot bank), L3 local CTP execution -- and emits READY-TO-MERGE / NEEDS-WORK plus a draft line-comment review (Korean). Use whenever someone says \"tc-reviewer 돌려줘\", \"이 PR 리뷰해줘\", \"sql tc pr 심사\", \"PR NNNN 리뷰\", \"리뷰 초안 만들어줘\", even without the exact word. Draft only -- a human posts and approves/merges. NOT for: writing testcases (cubrid-*-tc-create), approving/merging, non-SQL categories (medium/shell/isolation), or Jira writes."
+name: review-testcase
+description: "Review a cubrid-testcases SQL TC pull request as the first reviewer, to cut the human-review round-trip. Judges in 3 layers -- L1 convention lint, L2 mined domain lenses (few-shot bank), L3 local CTP execution -- and emits READY-TO-MERGE / NEEDS-WORK plus a draft line-comment review (Korean). Use whenever someone says \"review-testcase 돌려줘\", \"이 PR 리뷰해줘\", \"sql tc pr 심사\", \"PR NNNN 리뷰\", \"리뷰 초안 만들어줘\", even without the exact word. Draft only -- a human posts and approves/merges. NOT for: writing testcases (cubrid-*-tc-create), approving/merging, non-SQL categories (medium/shell/isolation), or Jira writes."
 ---
 
-# tc-reviewer — SQL TC PR reviewer (3-layer)
+# review-testcase — SQL TC PR reviewer (3-layer)
 
-Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and produce a draft review, so the human reviewer's round-trip shrinks. Works on any SQL TC PR (human- or tc-author-authored). Verdict = READY-TO-MERGE / NEEDS-WORK + severity-tagged findings.
+Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and produce a draft review, so the human reviewer's round-trip shrinks. Works on any SQL TC PR (human- or author-testcase-authored). Verdict = READY-TO-MERGE / NEEDS-WORK + severity-tagged findings.
 
 **Self-contained**: perspective catalog [`references/review-perspectives.md`](./references/review-perspectives.md) + **few-shot bank (L2 fuel)** [`references/few-shot-bank.md`](./references/few-shot-bank.md) live inside this skill. Run the L2 lenses in parallel (DP1); judge from the user's black-box perspective (DP2 — see L2).
 
 ## Scope
 
-**Produces:** a 3-layer review — L1 convention lint, L2 domain lenses, L3 local CTP execution → a verdict + a **draft** GitHub review (line comments + summary, Korean). A report at `$HOME/.cubrid-agent/reports/tc-reviewer/PR-NNNN.md`.
+**Produces:** a 3-layer review — L1 convention lint, L2 domain lenses, L3 local CTP execution → a verdict + a **draft** GitHub review (line comments + summary, Korean). A report at `$HOME/.cubrid-agent/reports/review-testcase/PR-NNNN.md`.
 
 **Does NOT:** post to GitHub (draft only), approve/merge, review non-SQL categories, watch PRs (webhook), or write Jira.
 
@@ -38,7 +38,7 @@ PR number as arg (default: oldest open SQL TC PR). Author-agnostic.
 - **Mark which cases hit the fix code path** from the fix merge diff (feeds L2/L3, P3).
 
 ## 3. L1 — convention lint (static)
-Reuse the `cubrid-sql-tc-create` checklist + mining-promoted auto-lint (details in [`references/review-perspectives.md`](./references/review-perspectives.md) 'L1로 승격할 자동 린트'):
+Reuse the `create-sql` checklist + mining-promoted auto-lint (details in [`references/review-perspectives.md`](./references/review-perspectives.md) 'L1로 승격할 자동 린트'):
 - header block (≤200 chars, English), `evaluate 'Case N'` numbering, DROP-before-CREATE, cleanup (`deallocate prepare`, restore SET), path/naming, English comments, no expected value leaking into comments/SQL.
 - **auto-lint**: multi-row SELECT missing `ORDER BY` (only when a real tie is possible — a unique key or `COUNT(*)`/1-row is exempt), `set trace on`↔`off` imbalance, empty `.queryPlan` vs answer plan output, `evaluate` label missing, `prepare` without `deallocate`.
 
@@ -75,7 +75,7 @@ Checks:
 ## 7. Draft review + report
 - **Draft GitHub review** (Korean, user-facing): line comments (file:line + finding + rationale) + summary (verdict, verification build, execution-evidence). **Posting volume: blocker/major first, minor bundled as '참고'** (backtest improvement 2 — don't spam minors).
 - **PoC: human reviews the draft, then posts.** No auto-post, no approve/merge.
-- **Report** to `$HOME/.cubrid-agent/reports/tc-reviewer/PR-NNNN.md`: per-layer results, execution log summary, verdict rationale.
+- **Report** to `$HOME/.cubrid-agent/reports/review-testcase/PR-NNNN.md`: per-layer results, execution log summary, verdict rationale.
 
 ## Staging
 - **PoC (now)**: draft only; human posts. L2 lenses parallel, L3 local CTP.

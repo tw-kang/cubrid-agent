@@ -1,11 +1,11 @@
 ---
-name: resolve-gate
-description: "Review a Resolved CBRD issue (a QA to-do) for QA-readiness and bounce back the ones QA can't turn into a test plan, via the 'Need Something' transition (Resolved->Handover). Run by QA. Two axes: (1) necessity — re-judge the QA Scenario field (a developer's 'Not Required' can be overturned by QA); (2) plannability — can a test plan be written from the content. Use whenever someone says \"resolve-gate 돌려줘\", \"Resolved 검토\", \"QA to-do 점검\", \"테스트 플랜 못 짜는 이슈 반려\", \"Need Something 반송\", even without the exact word. Read-oriented: drafts a report + rejection comments; Jira writes (field change, transition) are staged. NOT for: writing testcases (cubrid-*-tc-create), running tests, executing the fix, or the Check-in Fix (Handover->Resolved, which the developer does)."
+name: gate-resolved
+description: "Review a Resolved CBRD issue (a QA to-do) for QA-readiness and bounce back the ones QA can't turn into a test plan, via the 'Need Something' transition (Resolved->Handover). Run by QA. Two axes: (1) necessity — re-judge the QA Scenario field (a developer's 'Not Required' can be overturned by QA); (2) plannability — can a test plan be written from the content. Use whenever someone says \"gate-resolved 돌려줘\", \"Resolved 검토\", \"QA to-do 점검\", \"테스트 플랜 못 짜는 이슈 반려\", \"Need Something 반송\", even without the exact word. Read-oriented: drafts a report + rejection comments; Jira writes (field change, transition) are staged. NOT for: writing testcases (cubrid-*-tc-create), running tests, executing the fix, or the Check-in Fix (Handover->Resolved, which the developer does)."
 ---
 
-# resolve-gate — Resolved QA-readiness gate
+# gate-resolved — Resolved QA-readiness gate
 
-Review **Resolved (= QA to-do) issues** and **bounce back the ones QA can't turn into a test plan** to Handover via the `Need Something` transition. Passing issues continue to the tc-author stage. Run by **QA**.
+Review **Resolved (= QA to-do) issues** and **bounce back the ones QA can't turn into a test plan** to Handover via the `Need Something` transition. Passing issues continue to the author-testcase stage. Run by **QA**.
 
 Verdict few-shots: [`examples/verdicts.md`](./examples/verdicts.md).
 
@@ -29,7 +29,7 @@ Each Resolved issue is judged on two axes:
 2. **Plannability — test-plannability.** If needed, can a test plan be written from description + **comments + attachments**? Bug/feature bifurcation (C0~C6), regression/core attached-TC exception.
 
 **Outcome → transition:**
-- **needed + plannable** → 통과: `Start Test` (→Test, tc-author stage). Set QA Scenario to Required per stage if re-judged.
+- **needed + plannable** → 통과: `Start Test` (→Test, author-testcase stage). Set QA Scenario to Required per stage if re-judged.
 - **needed + NOT plannable** → **반송: `Need Something` (→Handover)** + rejection comment (the missing pieces).
 - **not needed (QA agrees)** → skip (not a test target).
 
@@ -43,7 +43,7 @@ Select (stage-scoped) → Necessity → Plannability → Transition + report
 
 - **PoC**: `project = CBRD AND cf[210441] = guava AND status = Resolved AND cf[213834] = twkang` (QA assignee = twkang).
 - **팀내/자동화**: `project = CBRD AND cf[210441] = guava AND status = Resolved`.
-- Single issue: `/resolve-gate CBRD-XXXXX`.
+- Single issue: `/gate-resolved CBRD-XXXXX`.
 
 Batch read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee,parent,subtasks --output json`. `cf[210441]`=Planned Version(guava), `cf[210565]`=QA Scenario, `cf[213834]`=QA Assignee. **Read comments; download + read every attachment's content per Before-you-start** (not just filenames — the "runnable repro TC attached" plannability call needs the actual file), and **parent/subtasks** (sub-task bounce guard, step 4).
 
@@ -75,14 +75,14 @@ Bifurcate by `issuetype`: **Correct Error=bug**, else=feature.
 
 ## 4. Transition + report + rejection draft
 
-- **통과** → `Start Test` (PoC/팀내: propose; 자동화: auto-run + trigger tc-author).
+- **통과** → `Start Test` (PoC/팀내: propose; 자동화: auto-run + trigger author-testcase).
 - **반송** → **sub-task guard first**, then `Need Something`. If the issue is a **sub-task**, check parent + sibling sub-tasks: if a sibling handles TC/scenario authoring, that sibling covers the test → **do not bounce** (skip/pass this one). Bouncing per-individual-sub-task causes **status ping-pong** (dev re-resolves → bounce again). Only bounce when no sibling covers it and it's not plannable: `cubrid-jira transition <KEY> --to "Need Something" --yes` (PoC/팀내: draft + manual; 자동화: auto). Rejection comment in Korean, to the developer.
 
 Transition map (2026-07-16 실측): **Need Something→Handover** (반송), **Start Test→Test** (통과), Assign QA→Resolved(제자리), QA Not Satisfied→Confirmed(fix 부적절, 범위 밖), Ask Reconfirmation→Open(범위 밖).
 
 반송 코멘트 템플릿:
 ```
-[resolve-gate] 현재 내용으로는 QA가 테스트 플랜을 짤 수 없어 Handover로 되돌립니다 (Need Something).
+[gate-resolved] 현재 내용으로는 QA가 테스트 플랜을 짤 수 없어 Handover로 되돌립니다 (Need Something).
 - 부족: {C0~C2(버그) 또는 C1'~C2'(기능) 중 무엇이 왜 — repro 자기완결/Expected·Actual/추상 AC 등, 구체적으로}
 - (필드: Fixed version 등 미기입 — 경고)
 @{개발자 assignee} 위 내용을 보완해 주시면 다시 검토하겠습니다.
@@ -95,8 +95,8 @@ Transition map (2026-07-16 실측): **Need Something→Handover** (반송), **St
 |---|---|---|---|---|
 | **PoC (Stage 1)** | assignee=twkang | 제안만 | 수동(초안) | 반송만 |
 | **팀내 배포 (Stage 2)** | guava Resolved 전체 | 제안만(수동) | 수동 | 반송 |
-| **자동화 (Stage 3)** | guava Resolved 전체 | 직접 변경 | 자동 전이 | tc-author 트리거(Start Test) |
+| **자동화 (Stage 3)** | guava Resolved 전체 | 직접 변경 | 자동 전이 | author-testcase 트리거(Start Test) |
 
 ## Output
 
-Write the report to `$HOME/.cubrid-agent/reports/resolve-gate/resolve-gate-<date>.md`: query + count; per-issue table (key · summary · kind · necessity · plannability basis · 통과/반송/스킵 · runner tag · warnings); rejection drafts for 반송; stats. In PoC/팀내, transitions and comment posting are done by a human — the skill drafts only.
+Write the report to `$HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md`: query + count; per-issue table (key · summary · kind · necessity · plannability basis · 통과/반송/스킵 · runner tag · warnings); rejection drafts for 반송; stats. In PoC/팀내, transitions and comment posting are done by a human — the skill drafts only.
