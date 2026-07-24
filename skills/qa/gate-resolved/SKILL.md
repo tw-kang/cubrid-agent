@@ -1,6 +1,6 @@
 ---
 name: gate-resolved
-description: "Review a Resolved CBRD issue (a QA to-do) for QA-readiness and bounce back the ones QA can't turn into a test plan, via the 'Need Something' transition (Resolved->Handover). Run by QA. Two axes: (1) necessity — re-judge the QA Scenario field (a developer's 'Not Required' can be overturned by QA); (2) plannability — can a test plan be written from the content. Use whenever someone says \"gate-resolved 돌려줘\", \"Resolved 검토\", \"QA to-do 점검\", \"테스트 플랜 못 짜는 이슈 반려\", \"Need Something 반송\", even without the exact word. Read-oriented: drafts a report + rejection comments; Jira writes (field change, transition) are staged. NOT for: writing testcases (cubrid-*-tc-create), running tests, executing the fix, or the Check-in Fix (Handover->Resolved, which the developer does)."
+description: "Review a Resolved CBRD issue (a QA to-do) for QA-readiness and bounce back the ones QA can't turn into a test plan, via the 'Need Something' transition (Resolved->Handover). Run by QA. Two axes: (1) necessity — re-judge the QA Scenario field (a developer's 'Not Required' can be overturned by QA); (2) plannability — can a test plan be written from the content. Use whenever someone says \"gate-resolved 돌려줘\", \"Resolved 검토\", \"QA to-do 점검\", \"테스트 플랜 못 짜는 이슈 반려\", \"Need Something 반송\", even without the exact word. Completion = real write, gated by invocation intent: a targeted call (you enumerated specific issue key(s)) executes the Jira writes (transition/comment/field); a batch call (set built via JQL/queue) drafts only; a guard trip downgrades a targeted write to a draft + @mention question. NOT for: writing testcases (cubrid-*-tc-create), running tests, executing the fix, or the Check-in Fix (Handover->Resolved, which the developer does)."
 ---
 
 # gate-resolved — Resolved QA-readiness gate
@@ -11,7 +11,7 @@ Verdict few-shots: [`examples/verdicts.md`](./examples/verdicts.md).
 
 ## Scope
 
-**Produces:** a gate report — per issue pass (Start Test candidate) / bounce (Need Something) / skip (not needed), with a rejection-comment draft for the bounces. Jira writes (QA Scenario field change, transition) are **staged** (see matrix).
+**Produces:** a gate report — per issue pass (Start Test candidate) / bounce (Need Something) / skip (not needed), with a rejection-comment draft for the bounces. Jira writes (QA Scenario field change, transition) are **real writes on a targeted call, drafts on a batch call**; a guard trip downgrades a targeted write to a draft + @mention question (see matrix).
 
 **Does NOT:** write testcases, run the fix, use CTP/build, or do Check-in Fix (Handover→Resolved — the developer does that).
 
@@ -75,8 +75,8 @@ Bifurcate by `issuetype`: **Correct Error=bug**, else=feature.
 
 ## 4. Transition + report + rejection draft
 
-- **pass** → `Start Test` (PoC / team-internal: propose; automation: auto-run + trigger author-testcase).
-- **bounce** → **sub-task guard first**, then `Need Something`. If the issue is a **sub-task**, check parent + sibling sub-tasks: if a sibling handles TC/scenario authoring, that sibling covers the test → **do not bounce** (skip/pass this one). Bouncing per-individual-sub-task causes **status ping-pong** (dev re-resolves → bounce again). Only bounce when no sibling covers it and it's not plannable: `cubrid-jira transition <KEY> --to "Need Something" --yes` (PoC / team-internal: draft + manual; automation: auto). Rejection comment in Korean, to the developer.
+- **pass** → `Start Test` (targeted: execute the `Start Test` transition, plus the QA Scenario field write if re-judged; batch: propose/draft. Stage 3 unmanned: auto-run + trigger author-testcase).
+- **bounce** → **sub-task guard first**, then `Need Something`. If the issue is a **sub-task**, check parent + sibling sub-tasks: if a sibling handles TC/scenario authoring, that sibling covers the test → **do not bounce** (skip/pass this one). Bouncing per-individual-sub-task causes **status ping-pong** (dev re-resolves → bounce again). Only bounce when no sibling covers it and it's not plannable: `cubrid-jira transition <KEY> --to "Need Something" --yes` (targeted: execute `Need Something` + post the rejection comment with the bot signature; batch: draft only). A guard trip (sub-task sibling covers it, or the CBRD-26909 "is this intended?" repro case) **downgrades to a draft + @mention question rather than writing**. Rejection comment in Korean, to the developer.
 
 Transition map (measured 2026-07-16): **Need Something→Handover** (bounce), **Start Test→Test** (pass), Assign QA→Resolved (stays put), QA Not Satisfied→Confirmed (fix inadequate, out of scope), Ask Reconfirmation→Open (out of scope).
 
@@ -94,9 +94,11 @@ Rejection comment template (Korean — posted to the developer on the Jira issue
 | | Select scope | QA Scenario change | Transition execution | Passing issues |
 |---|---|---|---|---|
 | **PoC (Stage 1)** | assignee=twkang | propose only | manual (draft) | bounces only |
-| **Team-internal rollout (Stage 2)** | all guava Resolved | propose only (manual) | manual | bounce |
-| **Automation (Stage 3)** | all guava Resolved | change directly | auto transition | trigger author-testcase (Start Test) |
+| **Team-internal rollout (Stage 2)** | all guava Resolved | targeted: real write / batch: draft (guard-downgrade) | targeted: real write / batch: draft (guard-downgrade) | bounce |
+| **Automation (Stage 3)** | all guava Resolved | unmanned auto (trigger/cron) | unmanned auto (trigger/cron) | trigger author-testcase (Start Test) |
+
+The targeted-vs-batch completion rule (targeted = real write, batch = draft, guard trip downgrades to draft + @question) applies Stage 2 onward, per [ADR 0016](../../../docs/adr/0016-completion-is-real-write.md).
 
 ## Output
 
-Write the report to `$HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md`: query + count; per-issue table (key · summary · kind · necessity · plannability basis · pass/bounce/skip · runner tag · warnings); rejection drafts for the bounces; stats. In PoC / team-internal, transitions and comment posting are done by a human — the skill drafts only.
+Write the report to `$HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md`: query + count; per-issue table (key · summary · kind · necessity · plannability basis · pass/bounce/skip · runner tag · warnings); rejection drafts for the bounces; stats. On a targeted call the skill executes the transitions and posts the comments (with the bot signature), and the report logs each executed transition/comment key, id, and timestamp; on a batch call it drafts only; a guard trip downgrades to a draft + @mention question.

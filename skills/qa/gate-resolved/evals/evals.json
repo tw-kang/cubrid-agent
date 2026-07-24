@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "gate-resolved 돌려줘 CBRD-27052. crash 이슈인데 첨부에 core 파일이랑 스택트레이스만 있고 재현 절차(어떤 부하/종료 순서에서 assert가 터지는지)가 안 보여. QA가 받을 만한지 봐줘.",
-      "expected_output": "Write a gate report to $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md. Judge CBRD-27052 as needed but NOT-plannable — only a core dump and stack trace are attached, with no runnable repro TC, so C1 (self-contained repro) is not met → bounce (Need Something→Handover). Include a Korean rejection-comment draft that @mentions the developer assignee. The Jira transition (Need Something) and field changes are only staged (drafted), not actually executed.",
+      "expected_output": "Write a gate report to $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md. Judge CBRD-27052 as needed but NOT-plannable — only a core dump and stack trace are attached, with no runnable repro TC, so C1 (self-contained repro) is not met → bounce (Need Something→Handover). This is a TARGETED invocation (the human enumerated a single key) and no guard trips, so per ADR-0016 the skill EXECUTES the real Need Something transition and POSTS the Korean rejection comment that @mentions the developer assignee (carrying a bot signature). The report logs the executed transition/comment key, id, and timestamp.",
       "files": [],
       "assertions": [
         {
@@ -28,15 +28,15 @@
           "description": "Includes a Korean rejection-comment draft that @mentions the developer assignee"
         },
         {
-          "name": "draft_only_no_real_transition",
-          "description": "Does not execute the actual Jira transition/field changes, leaving them only staged (as a draft)"
+          "name": "real_transition_and_comment_executed",
+          "description": "Because this is a TARGETED call with no guard trip, actually executes the Need Something transition and posts the Korean rejection comment (with a bot signature), and logs the executed transition/comment key, id, and timestamp in the report (audit)"
         }
       ]
     },
     {
       "id": 2,
       "prompt": "guava Resolved 큐 전체 QA to-do 점검해줘. 통과할 것/반송할 것/스킵할 것 표로 정리하고, 반송 대상은 개발자한테 보낼 코멘트 초안까지 뽑아줘. 팀내 배포 단계 기준으로.",
-      "expected_output": "Query all guava Resolved issues and write a gate report — the query + count, a per-issue table (key · summary · kind · necessity · plannability rationale · pass/bounce/skip · runner tag · warnings), rejection-comment drafts for the bounced ones, and statistics. Since this is internal (Stage 2), QA Scenario changes are proposals only and transitions are manual — the skill produces drafts only, and a human performs the actual transitions and comment posting.",
+      "expected_output": "Query all guava Resolved issues and write a gate report — the query + count, a per-issue table (key · summary · kind · necessity · plannability rationale · pass/bounce/skip · runner tag · warnings), rejection-comment drafts for the bounced ones, and statistics. Because this is a BATCH invocation (the set is built via a JQL/queue query, not enumerated keys), per ADR-0016 the skill produces drafts only — QA Scenario changes are proposals and transitions/comment posting stay as drafts for a human to execute.",
       "files": [],
       "assertions": [
         {
@@ -65,7 +65,7 @@
         },
         {
           "name": "draft_only_staged",
-          "description": "Per the internal-stage criteria, does not execute transitions or comment posting, presenting drafts only"
+          "description": "Because it is a BATCH (JQL/queue) invocation -> draft only per ADR-0016: does not execute transitions or comment posting, presenting drafts only"
         }
       ]
     },
@@ -93,7 +93,7 @@
         },
         {
           "name": "no_real_transition_executed",
-          "description": "Even when the user requests a bounce, does not execute the actual Need Something transition (draft/verdict only)"
+          "description": "Although this is a TARGETED call where the user explicitly asks to bounce, the sub-task GUARD trips (a sibling sub-task covers the TC), so per ADR-0016 the write is guard-downgraded to a draft + @mention note (ping-pong avoidance) — it does not execute the actual Need Something transition"
         }
       ]
     }

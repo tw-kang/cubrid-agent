@@ -1,6 +1,6 @@
 ---
 name: review-testcase
-description: "Review a cubrid-testcases SQL TC pull request as the first reviewer, to cut the human-review round-trip. Judges in 3 layers -- L1 convention lint, L2 mined domain lenses (few-shot bank), L3 local CTP execution -- and emits READY-TO-MERGE / NEEDS-WORK plus a draft line-comment review (Korean). Use whenever someone says \"review-testcase 돌려줘\", \"이 PR 리뷰해줘\", \"sql tc pr 심사\", \"PR NNNN 리뷰\", \"리뷰 초안 만들어줘\", even without the exact word. Draft only -- a human posts and approves/merges. NOT for: writing testcases (cubrid-*-tc-create), approving/merging, non-SQL categories (medium/shell/isolation), or Jira writes."
+description: "Review a cubrid-testcases SQL TC pull request as the first reviewer, to cut the human-review round-trip. Judges in 3 layers -- L1 convention lint, L2 mined domain lenses (few-shot bank), L3 local CTP execution -- and emits READY-TO-MERGE / NEEDS-WORK plus a line-comment review (Korean). Use whenever someone says \"review-testcase 돌려줘\", \"이 PR 리뷰해줘\", \"sql tc pr 심사\", \"PR NNNN 리뷰\", \"리뷰 초안 만들어줘\", even without the exact word. A targeted call (`/review-testcase PR-NNNN`) posts the review to GitHub (bot signature); a human still approves/merges; a batch call drafts only. NOT for: writing testcases (cubrid-*-tc-create), approving/merging, non-SQL categories (medium/shell/isolation), or Jira writes."
 ---
 
 # review-testcase — SQL TC PR reviewer (3-layer)
@@ -11,9 +11,9 @@ Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and 
 
 ## Scope
 
-**Produces:** a 3-layer review — L1 convention lint, L2 domain lenses, L3 local CTP execution → a verdict + a **draft** GitHub review (line comments + summary, Korean). A report at `$HOME/.cubrid-agent/reports/review-testcase/PR-NNNN.md`.
+**Produces:** a 3-layer review — L1 convention lint, L2 domain lenses, L3 local CTP execution → a verdict + a GitHub review (line comments + summary, Korean) that is **posted** on a targeted invocation, **draft** on batch. A report at `$HOME/.cubrid-agent/reports/review-testcase/PR-NNNN.md`.
 
-**Does NOT:** post to GitHub (draft only), approve/merge, review non-SQL categories, watch PRs (webhook), or write Jira.
+**Does NOT:** approve/merge, review non-SQL categories, watch PRs (webhook), or write Jira.
 
 ## Before you start
 
@@ -74,12 +74,12 @@ Checks:
 
 ## 7. Draft review + report
 - **Draft GitHub review** (Korean, user-facing): line comments (file:line + finding + rationale) + summary (verdict, verification build, execution-evidence). **Posting volume: blocker/major first, minor bundled as '참고'** (backtest improvement 2 — don't spam minors).
-- **PoC: human reviews the draft, then posts.** No auto-post, no approve/merge.
+- **Targeted invocation: the skill posts the review** (bot signature); no approve/merge. **Batch invocation: draft only** — human reviews the draft, then posts.
 - **Report** to `$HOME/.cubrid-agent/reports/review-testcase/PR-NNNN.md`: per-layer results, execution log summary, verdict rationale.
 
 ## Staging
-- **PoC (now)**: draft only; human posts. L2 lenses parallel, L3 local CTP.
-- **Later**: auto-post (staged), PR opened/updated trigger (webhook/CI), non-SQL categories, quorum-contributing auto-approve (Stage 3).
+- **Stage 2 (now)**: targeted = post the review / batch = draft only. L2 lenses parallel, L3 local CTP. Approve/merge stays human.
+- **Stage 3**: unmanned auto-post (PR opened/updated trigger via webhook/CI), non-SQL categories, quorum-contributing auto-approve.
 
 ## Note — backtest vs live
 The few-shot bank cites source PRs; that isolation matters only for **backtesting** (don't feed a target PR's own entries). On a **live** PR there's no answer key — use the whole bank freely.

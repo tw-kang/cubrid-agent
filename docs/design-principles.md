@@ -49,3 +49,22 @@ TC·테스트 시나리오는 **내부 구현이 아니라 사용자가 관측�
   - **few-shot으로 인용한 실제 리뷰어 코멘트 원문** — 인용 데이터라 번역하면 인용이 조작된다(원문이 영어면 영어로 둔다).
 
 크로스-CLI 정본(다른 에이전트 도구도 읽는 형태)은 `AGENTS.md`의 "Language policy" 절 — 이 DP는 그 정책을 설계 원칙으로 성문화한 것이다.
+
+## DP4 — 완성 정의: 실제 쓰기 (호출 의도 게이팅)
+
+스킬의 종료 산출물(완성)은 **초안이 아니라 실제 쓰기**다 — Jira 전이·코멘트·필드, GitHub PR 리뷰 코멘트 게시, Draft PR→ready PR. 결정 근거·supersede 범위는 [ADR 0016](./adr/0016-completion-is-real-write.md).
+
+실제 쓰기는 **호출 의도**로 게이팅한다:
+- **targeted**(사람이 이슈/PR 키를 나열) → 실제 쓰기. **batch**(스킬이 JQL/큐 쿼리로 집합 생성) → 초안. 개수 무관(JQL 1건도 batch, 나열 3건도 targeted). 판단 기준 = "사람이 특정 이슈/PR에 책임을 졌는가".
+- **가드 강등** — targeted여도 오탐 가드(sub-task 형제 커버·의도된 입력 의심·저신뢰)가 걸리면 게시하지 않고 초안+@질의로 강등.
+- **감사** — 실제 게시물에 봇 서명, 리포트에 실행된 전이/코멘트의 키·id·시각 기록.
+
+에이전트별 적용:
+- **gate-resolved**: 반송(Need Something)·통과(Start Test) 전이 + 반려 코멘트 + QA Scenario 필드를 targeted에서 실제 쓰기.
+- **review-testcase**: PR 리뷰 코멘트 게시(`/review-testcase PR-NNNN`=targeted). 승인/머지는 사람.
+- **author-testcase**: targeted=ready PR / batch=Draft PR. 머지는 사람, Start Test는 미소유(gate-resolved 소유).
+
+경계:
+- **호출 축과 분리** — Stage 2(사람 호출)에서도 완성=실제 쓰기다. 무인 서비스(트리거/cron·self-healing)는 별개 축이라 Stage 3([ADR 0007](./adr/0007-rollout-stages.md)).
+- **Stage 3 batch 쓰기**는 이 DP 범위 밖(ADR 0016 Deferred).
+- **DP1과 정합** — batch=초안이라 대량 쓰기 storm이 없고, targeted 소량만 실제 쓰기(쓰기 rate 분리 원칙 유지).

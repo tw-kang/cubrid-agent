@@ -1,17 +1,17 @@
 ---
 name: author-testcase
-description: "Run the author-testcase pipeline end-to-end for one Resolved CBRD issue: pick the next queued issue (or a given key), ground it against the fix, author a CTP SQL testcase, verify it on a local build, review it in a separate lane, and open an upstream Draft PR. Use whenever someone says \"author-testcase 돌려줘\", \"다음 이슈 tc 작성\", \"CBRD-XXXXX tc 만들어서 PR까지\", \"sql tc 파이프라인 돌려\", \"Resolved 이슈 테스트케이스 작성해서 제출\", even without the exact word. Orchestrator: it drives create-sql (author) + verify-sql (run) + a separate review subagent, then submits. Draft PR only; a human approves/merges. Jira is read-only (no transition). NOT for: reviewing someone else's PR (review-testcase), gating Resolved issues / bouncing to Handover (gate-resolved), reading nightly regression (test-runner), non-SQL categories, or authoring a single .sql with no verify/PR (call create-sql directly)."
+description: "Run the author-testcase pipeline end-to-end for one Resolved CBRD issue: pick the next queued issue (or a given key), ground it against the fix, author a CTP SQL testcase, verify it on a local build, review it in a separate lane, and open an upstream PR (targeted key = ready-for-review; batch queue = Draft PR). Use whenever someone says \"author-testcase 돌려줘\", \"다음 이슈 tc 작성\", \"CBRD-XXXXX tc 만들어서 PR까지\", \"sql tc 파이프라인 돌려\", \"Resolved 이슈 테스트케이스 작성해서 제출\", even without the exact word. Orchestrator: it drives create-sql (author) + verify-sql (run) + a separate review subagent, then submits. A targeted key opens a ready-for-review PR, a batch queue opens a Draft PR; a human still approves/merges. author-testcase does NOT fire the `Start Test` transition — gate-resolved owns it. NOT for: reviewing someone else's PR (review-testcase), gating Resolved issues / bouncing to Handover (gate-resolved), reading nightly regression (test-runner), non-SQL categories, or authoring a single .sql with no verify/PR (call create-sql directly)."
 ---
 
 # author-testcase — Resolved → Test (one issue, end-to-end)
 
-Process **one Resolved CBRD issue end-to-end** into an upstream Draft SQL-TC PR: Select → Ground → (Author → Verify → Review, looped) → Submit → report. The main session is the **orchestrator**; authoring and reviewing are delegated to separate lanes. It sits **after** [gate-resolved](../gate-resolved/SKILL.md) (which bounces un-plannable issues) and feeds [review-testcase](../review-testcase/SKILL.md). Parallelize independent units (DP1); the TC itself must assert user-observable black-box behavior (DP2 — see Author).
+Process **one Resolved CBRD issue end-to-end** into an upstream SQL-TC PR (ready-for-review on a targeted call, Draft on a batch call): Select → Ground → (Author → Verify → Review, looped) → Submit → report. The main session is the **orchestrator**; authoring and reviewing are delegated to separate lanes. It sits **after** [gate-resolved](../gate-resolved/SKILL.md) (which bounces un-plannable issues) and feeds [review-testcase](../review-testcase/SKILL.md). Parallelize independent units (DP1); the TC itself must assert user-observable black-box behavior (DP2 — see Author).
 
 ## Scope
 
-**Produces:** one issue processed to a Draft PR (`tw-kang:tc/cbrd-XXXXX` → `CUBRID/cubrid-testcases:develop`) — a verified `.sql`+generated `.answer`, and a report at `$HOME/.cubrid-agent/reports/author-testcase/CBRD-XXXXX.md`. Default 1 issue/run; arg = N issues or a specific `CBRD-XXXXX`.
+**Produces:** one issue processed to an upstream PR (`tw-kang:tc/cbrd-XXXXX` → `CUBRID/cubrid-testcases:develop`) — ready-for-review on a targeted call (a named CBRD key), Draft on a batch call (a queue of N issues) — a verified `.sql`+generated `.answer`, and a report at `$HOME/.cubrid-agent/reports/author-testcase/CBRD-XXXXX.md`. Default 1 issue/run; arg = N issues or a specific `CBRD-XXXXX`.
 
-**Does NOT:** merge/approve (draft only), write Jira (read-only — no `Start Test` transition in Stage 2), commit to a branch a human has checked out (work **only** on `tc/cbrd-XXXXX` branches in `$TC`), run non-SQL categories, or do the Review pass in the author's context (separate lane — no self-approve).
+**Does NOT:** merge/approve (human), fire the `Start Test` transition (gate-resolved owns it — author-testcase never writes it), commit to a branch a human has checked out (work **only** on `tc/cbrd-XXXXX` branches in `$TC`), run non-SQL categories, or do the Review pass in the author's context (separate lane — no self-approve).
 
 ## Before you start (env — re-establish idempotently every run)
 
@@ -76,12 +76,12 @@ Spawn a **fresh-context review subagent** (opus) with the issue body, fix-diff s
 - From round 2, Submit when all three gates pass (author completeness · verify PASS · review PASS).
 - **5 rounds without passing** → keep the branch locally, record the skip reason + diagnosis in the report, move on.
 
-## 7. Submit — commit · push · Draft PR
+## 7. Submit — commit · push · PR (targeted=ready / batch=Draft)
 - Commit `[CBRD-XXXXX] Add SQL testcase for <English summary>` + Claude trailer; push branch `tc/cbrd-XXXXX` to the `twkang` remote (`.result` is gitignored).
-- `gh pr create --repo CUBRID/cubrid-testcases --base develop --head tw-kang:tc/cbrd-XXXXX --draft`.
+- `gh pr create --repo CUBRID/cubrid-testcases --base develop --head tw-kang:tc/cbrd-XXXXX` — add `--draft` **only on a batch call** (a queue of N issues); a targeted call (a named CBRD key) opens the PR ready-for-review.
   - **Title**: English, `[CBRD-XXXXX]` header.
   - **Body**: Korean, user-perspective, the `~/cubrid/.github/PULL_REQUEST_TEMPLATE.md` shape (jira link + `### Purpose` / `### Implementation` / `### Remarks`). Remarks = verify evidence (build id, loop count, determinism N, fail→pass result/limit).
-- **PoC/Stage 2 = Draft PR + human approves/merges.** No Jira transition.
+- **Targeted call (a named CBRD key) = ready-for-review PR; batch call (a queue of N issues) = Draft PR.** A human still approves/merges. author-testcase does NOT fire the `Start Test` transition — gate-resolved owns it.
 
 ## 8. Report
 `$HOME/.cubrid-agent/reports/author-testcase/CBRD-XXXXX.md`: Select basis (field values · repro location), Ground summary (fix PR/commit), per-round loop history (verify result · review nits · what changed), final PR link or skip reason.
@@ -89,11 +89,11 @@ Spawn a **fresh-context review subagent** (opus) with the issue body, fix-diff s
 ## Stage matrix
 | | Select scope | Verify | Jira | Output |
 |---|---|---|---|---|
-| **PoC (Stage 1)** | assignee=twkang, human checks the gate | local CTP | read-only | Draft PR |
-| **Stage 2 (in-team, manual)** | same as above, packaged as a skill | local CTP | read-only | Draft PR |
-| **Stage 3 (unattended)** | all guava Resolved | pod·build-cache | write (`Start Test` transition) | PR + transition |
+| **PoC (Stage 1)** | assignee=twkang, human checks the gate | local CTP | read-only | targeted: ready-for-review PR / batch: Draft PR |
+| **Stage 2 (in-team, manual)** | same as above, packaged as a skill | local CTP | read-only | targeted: ready-for-review PR / batch: Draft PR |
+| **Stage 3 (unattended)** | all guava Resolved | pod·build-cache | read-only | unmanned/cron authoring → PR |
 
-CCI cross-check (`.answer_cci`) and gate-hook enforcement are Stage 2+; pod verification, Jira writes, and multi-issue parallelism are Stage 3 (park).
+CCI cross-check (`.answer_cci`) and gate-hook enforcement are Stage 2+; pod verification, unmanned/cron authoring, and multi-issue parallelism are Stage 3 (park). author-testcase never fires the `Start Test` transition — gate-resolved owns it.
 
 ## Note — orchestrator, not author
 The main session **drives** the loop and does Select/Ground/Verify/Submit; it **delegates** authoring to `create-sql` and reviewing to a separate subagent. Keep author and review in **different contexts** — a green light the author gave itself doesn't count.

@@ -50,8 +50,8 @@ npx skills add tw-kang/cubrid-agent --list
 
 | Skill | What it does |
 | --- | --- |
-| `gate-resolved` | Reviews a Resolved CBRD issue for QA-readiness on two axes (necessity, plannability) and drafts a bounce for the un-plannable ones. |
-| `author-testcase` | Runs the end-to-end pipeline for one Resolved issue — select, ground, author, verify, review — and opens an upstream Draft PR. |
+| `gate-resolved` | Reviews a Resolved CBRD issue for QA-readiness on two axes (necessity, plannability) and bounces the un-plannable ones — posting the transition and comment on a targeted call (drafting on a batch sweep, or downgrading to a draft when a false-positive guard trips). |
+| `author-testcase` | Runs the end-to-end pipeline for one Resolved issue — select, ground, author, verify, review — and opens an upstream PR (ready-for-review on a targeted call, Draft on a batch queue). |
 | `review-testcase` | First-reviewer of a SQL testcase PR in three layers (convention lint, mined domain lenses, local CTP execution). |
 | `create-sql` | Creates a CTP SQL testcase (`.sql` + generated `.answer`) from scratch. |
 | `verify-sql` | Runs one CTP SQL testcase on a local build, judges pass/fail, and diagnoses failures. |

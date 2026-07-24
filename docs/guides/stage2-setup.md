@@ -2,15 +2,15 @@
 
 팀원이 **자기 로컬에서** 1순위 3종 스킬(`gate-resolved` · `author-testcase` · `review-testcase`)을 기동하기 위한 실행 가이드. 구조 정본(자산 3계층·확정 결정)은 [deployment.md](../deployment.md), 단계 모델은 [staging.md](../staging.md).
 
-> **Stage 2 = "배포"가 아니라 "공유"**. PoC의 로컬 흐름을 팀이 각자 재현하도록 패키징한 것. 검증은 로컬 CTP, **Jira는 읽기 전용**(전이·코멘트는 사람이 수동), 산출은 Draft PR·리포트 초안. k8s·pod·자동 스케줄·Jira 쓰기는 전부 Stage 3.
+> **Stage 2 = "배포"가 아니라 "공유"**. PoC의 로컬 흐름을 팀이 각자 재현하도록 패키징한 것. 검증은 로컬 CTP, **Jira 쓰기는 호출 의도로 게이팅**한다 — 사람이 키를 나열한 targeted 호출은 전이·코멘트·필드를 실제로 쓰고, JQL/큐로 만든 batch 호출은 초안 유지(오탐 가드가 걸리면 targeted여도 초안+@질의로 강등). 머지/승인과 무인 자동 호출은 여전히 사람/Stage 3. k8s·pod·자동 스케줄·무인 batch 쓰기는 전부 Stage 3. See [ADR-0016](../adr/0016-completion-is-real-write.md).
 
 ## 0. 한눈에 — 3종 스킬과 필요 자원
 
 | 스킬 | 역할 | 필요 자원 | 기동 |
 |---|---|---|---|
 | **gate-resolved** | Resolved(QA to-do) 검토 → 반송/통과 | `cubrid-jira`+자격만 | `/gate-resolved [CBRD-XXXXX]` |
-| **author-testcase** | Resolved 이슈 → TC 작성·검증 → Draft PR | + CTP·CUBRID 빌드·`$HOME` 자산 (= `./setup.sh`) | `/author-testcase [N \| CBRD-XXXXX]` |
-| **review-testcase** | 열린 SQL TC PR 첫 리뷰 초안 | + CTP·CUBRID 빌드·`$HOME` 자산 (= `./setup.sh`) | `/review-testcase [PR번호]` |
+| **author-testcase** | Resolved 이슈 → TC 작성·검증 → PR(targeted=ready, batch=Draft) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `./setup.sh`) | `/author-testcase [N \| CBRD-XXXXX]` |
+| **review-testcase** | 열린 SQL TC PR 첫 리뷰(targeted=코멘트 게시) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `./setup.sh`) | `/review-testcase [PR번호]` |
 
 ## 1. 빠른 시작
 
@@ -55,9 +55,9 @@ gh auth login                                                       # 또는 GH_
 ## 4. 기동 (스킬별)
 
 ```
-/gate-resolved  [CBRD-XXXXX]        # Resolved 검토 → 통과/반송 리포트 + 반송 초안
-/author-testcase  [N | CBRD-XXXXX]    # 대기열 선두 N건(기본 1) → TC 작성·검증 → Draft PR
-/review-testcase   [PR번호]            # 열린 SQL TC PR → 3층 리뷰 초안 + 리포트
+/gate-resolved  [CBRD-XXXXX]        # Resolved 검토 → 통과/반송 전이·코멘트(targeted) 또는 초안(batch) + 리포트
+/author-testcase  [N | CBRD-XXXXX]    # 대기열 선두 N건(기본 1) → TC 작성·검증 → PR(키 지정=ready, 큐=Draft)
+/review-testcase   [PR번호]            # 열린 SQL TC PR → 3층 리뷰 코멘트 게시(targeted) + 리포트
 ```
 정확한 문구 없이도 자연어로 뜬다("gate-resolved 돌려줘", "이 PR 리뷰해줘", "다음 이슈 tc 작성" 등 — 각 SKILL.md의 트리거 참조).
 
@@ -72,9 +72,9 @@ gh auth login                                                       # 또는 GH_
 | 이슈 본문이 비어 보임 | `cubrid-jira search` md가 본문 누락 | `jql --output json` / `comment-list`로 재현 확보 |
 | PR 검증이 엉뚱한 브랜치 검사 | 원본 conf `scenario=`는 `~/cubrid-testcases` 지시 | PR 워크트리 검증 시 conf 사본에 scenario를 worktree로 덮기(review-testcase가 안내) |
 
-## 6. Jira 읽기 전용 (Stage 2 규칙)
+## 6. Jira 쓰기 — 호출 의도로 게이팅 (Stage 2 규칙)
 
-세 스킬 모두 **Jira에 쓰지 않는다**. gate-resolved의 전이(Need Something/Start Test)·반송 코멘트, author-testcase의 `Start Test` 전이는 **사람이 초안을 검토한 뒤 수동**으로 한다. 자동 전이·코멘트는 Stage 3.
+세 스킬은 **targeted 호출(사람이 이슈/PR 키를 나열)에서 실제로 쓴다** — gate-resolved의 전이(Need Something/Start Test)·반송 코멘트·QA Scenario 필드, review-testcase의 PR 리뷰 코멘트, author-testcase의 ready-for-review PR. **batch 호출(JQL/큐 쿼리로 만든 집합, 건수 무관)은 초안 유지**. targeted여도 오탐 가드(형제 sub-task가 이미 커버, repro "오타"가 line-정확도 버그의 의도된 입력일 수 있음(CBRD-26909), 저신뢰)가 걸리면 게시하지 않고 초안+@질의로 강등한다. 머지/승인은 여전히 사람이 하고, `Start Test` 전이는 gate-resolved 소유다(author-testcase가 대신 쏘지 않음). 무인 자동 전이·cron batch 쓰기만 Stage 3. See [ADR-0016](../adr/0016-completion-is-real-write.md).
 
 ## 7. 구성 요소
 

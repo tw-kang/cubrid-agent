@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "PR 3120 리뷰해줘. CBRD-27210 LEAD/LAG 윈도우 함수가 NULL 파티션 경계에서 잘못된 값을 반환하는 버그 픽스인데, cbrd_27210.sql/.answer가 새로 추가된 PR이야.",
-      "expected_output": "Produces a three-layer review — L1 convention lint (header / evaluate labels / DROP-before-CREATE / cleanup); L2, since this is a new-testcase PR, is dominated by the coverage-expansion lens (proposing P4 positive↔negative symmetry, three boundary points, and sibling-function expansion as concrete evaluate labels + SQL), with the determinism-convention lens applied across the board; L3 runs the local CTP worktree N(=3) times in a single session. The result is a READY-TO-MERGE or NEEDS-WORK verdict + severity-tagged findings + a Korean draft line-comment review. The report goes to $HOME/.cubrid-agent/reports/review-testcase/PR-3120.md. Does not auto post/approve/merge.",
+      "expected_output": "Produces a three-layer review — L1 convention lint (header / evaluate labels / DROP-before-CREATE / cleanup); L2, since this is a new-testcase PR, is dominated by the coverage-expansion lens (proposing P4 positive↔negative symmetry, three boundary points, and sibling-function expansion as concrete evaluate labels + SQL), with the determinism-convention lens applied across the board; L3 runs the local CTP worktree N(=3) times in a single session. The result is a READY-TO-MERGE or NEEDS-WORK verdict + severity-tagged findings + a Korean line-comment review. Because the prompt enumerates a specific PR (targeted single-PR invocation), the skill POSTS the review to the PR with a bot signature. The report goes to $HOME/.cubrid-agent/reports/review-testcase/PR-3120.md. Does not approve/merge (human-only).",
       "files": [],
       "assertions": [
         {
@@ -28,8 +28,8 @@
           "description": "The verdict is marked as exactly one of READY-TO-MERGE or NEEDS-WORK."
         },
         {
-          "name": "draft_only_no_post",
-          "description": "No automatic GitHub post/approve/merge; only a Korean draft for a person to post is generated."
+          "name": "posts_review_no_approve",
+          "description": "Since the prompt enumerates a specific PR (targeted), the Korean line-comment review is POSTED to GitHub with a bot signature; it still does not approve/merge (human-only)."
         },
         {
           "name": "report_path",
@@ -40,7 +40,7 @@
     {
       "id": 2,
       "prompt": "PR 3145 sql tc pr 심사해줘. 기존 cbrd_26880.sql/.answer가 수정된 변경형 PR인데 답지 값이 바뀌었어. 답지가 왜 바뀌었는지랑 문제 없는지 봐줘.",
-      "expected_output": "A three-layer review. L2, since this is a modification PR, is dominated by the answer-vs-spec lens (P7 justification for the answer-file change · P11 consistency with the issue's intent · P15 invariants) — checking for dead assertions where only .answer was changed while the comparison literals/assertions in .sql were left untouched, and whether the paired .answer_cci was updated. In the L3 local CTP run, if the .sql evaluate labels disagree with .answer (labels fixed but the answer file not regenerated), catch it as a data-independent Fail, making it a blocker → NEEDS-WORK. State the verification build SHA and whether it includes the fix (merge-base ancestor). A Korean draft with line comments prioritizing blocker/major and grouping minor issues under 'FYI', plus a summary. Report PR-3145.md.",
+      "expected_output": "A three-layer review. L2, since this is a modification PR, is dominated by the answer-vs-spec lens (P7 justification for the answer-file change · P11 consistency with the issue's intent · P15 invariants) — checking for dead assertions where only .answer was changed while the comparison literals/assertions in .sql were left untouched, and whether the paired .answer_cci was updated. In the L3 local CTP run, if the .sql evaluate labels disagree with .answer (labels fixed but the answer file not regenerated), catch it as a data-independent Fail, making it a blocker → NEEDS-WORK. State the verification build SHA and whether it includes the fix (merge-base ancestor). A Korean line-comment review, prioritizing blocker/major and grouping minor issues under 'FYI', plus a summary, is POSTED to the PR with a bot signature (targeted single-PR invocation); it does not approve/merge. Report PR-3145.md.",
       "files": [],
       "assertions": [
         {
@@ -64,15 +64,15 @@
           "description": "The verification build and whether that build includes the fix (included/not included) are stated as inputs to the verdict."
         },
         {
-          "name": "draft_korean_line_comments",
-          "description": "The Korean draft review consists of file:line + rationale line comments and a summary, and is draft-only."
+          "name": "posted_korean_line_comments",
+          "description": "The Korean review consists of file:line + rationale line comments and a summary, and is POSTED to the PR with a bot signature (targeted); it does not approve/merge."
         }
       ]
     },
     {
       "id": 3,
       "prompt": "review-testcase 돌려줘. PR 3160은 옵티마이저 plan/trace를 검증하는 sql tc야. 근데 이 머신엔 로컬 빌드랑 CTP 환경이 없어.",
-      "expected_output": "Run only L1+L2 and mark L3 as NOT-RUN (no fabricated execution). L2, since this is a plan/trace testcase, adds the plan-stability lens (P3 fix path · P13 tie/flaky plan stability) plus the determinism-convention lens applied across the board. Through the DP2 black-box view, check whether the TC asserts on user-observable plan/output, and flag any dependence on C internals/physical values like page id or offset. Issue a READY-TO-MERGE/NEEDS-WORK verdict based on L1+L2 evidence, with a Korean draft review + report PR-3160.md. Does not auto post/approve/merge.",
+      "expected_output": "Run only L1+L2 and mark L3 as NOT-RUN (no fabricated execution). L2, since this is a plan/trace testcase, adds the plan-stability lens (P3 fix path · P13 tie/flaky plan stability) plus the determinism-convention lens applied across the board. Through the DP2 black-box view, check whether the TC asserts on user-observable plan/output, and flag any dependence on C internals/physical values like page id or offset. Issue a READY-TO-MERGE/NEEDS-WORK verdict based on L1+L2 evidence, with a Korean line-comment review that — because the prompt enumerates a specific PR (targeted) — is POSTED to the PR with a bot signature (L3 marked NOT-RUN in the posted review), + report PR-3160.md. Does not approve/merge (human-only).",
       "files": [],
       "assertions": [
         {
@@ -96,8 +96,8 @@
           "description": "The verdict is marked as exactly one of READY-TO-MERGE or NEEDS-WORK."
         },
         {
-          "name": "draft_only_no_post",
-          "description": "No automatic post/approve/merge; only a Korean draft for a person to post is generated."
+          "name": "posts_review_no_approve",
+          "description": "Since the prompt enumerates a specific PR (targeted), the Korean line-comment review is POSTED with a bot signature; it still does not approve/merge (human-only)."
         }
       ]
     }
