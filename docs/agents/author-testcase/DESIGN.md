@@ -2,7 +2,7 @@
 
 Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·검증·리뷰하고 upstream Draft PR까지 제출하는 agent. 용어는 [CONTEXT.md](./CONTEXT.md), 주요 결정 근거는 [docs/adr/](./docs/adr/), 구현체는 [`skills/qa/author-testcase/`](../../../skills/qa/author-testcase/)(기동 `/author-testcase [N | CBRD-XXXXX]`).
 
-**추적 이슈**: [CUBRIDQA-1429](http://jira.cubrid.org/browse/CUBRIDQA-1429) — 진행 현황을 이슈 description에 지속 반영한다. 원문은 `docs/agents/author-testcase/docs/jira/CUBRIDQA-1429-description.jira`에서 관리하고, 갱신은 `cubrid-jira update CUBRIDQA-1429 --description-file docs/agents/author-testcase/docs/jira/CUBRIDQA-1429-description.jira --from jira --yes`로 수행한다(사본이 raw Jira wiki markup이라 `--from jira` 필수 — 기본 markdown 변환은 pandoc jira writer(≥2.9)를 요구해 EL8 pandoc 2.0.6에서 실패). (CUBRIDQA 프로젝트는 익명 읽기 불가 — 이 파일이 사실상의 사본이다.)
+**추적 이슈**: [CUBRIDQA-1429](http://jira.cubrid.org/browse/CUBRIDQA-1429) — 진행 현황·스펙의 **단일 정본은 이 이슈 description**이다(로컬 사본을 repo에 두지 않는다). CUBRIDQA는 익명 읽기가 막혀 있어 인증으로 읽는다: `curl --netrc "http://jira.cubrid.org/rest/api/2/issue/CUBRIDQA-1429?fields=description"`. 갱신은 임시 파일(raw Jira wiki markup)에 써서 `cubrid-jira update CUBRIDQA-1429 --description-file <tmp> --from jira --yes`로 올리고 그 파일은 커밋하지 않는다(`--from jira`는 EL8 pandoc 2.0.6이 jira writer(≥2.9)를 미지원해 필수).
 
 **롤아웃**: 현재 Stage 2(팀내 수동 트리거). 단계 모델은 [staging.md](../../staging.md), 근거는 [ADR 0007](../../adr/0007-rollout-stages.md).
 
