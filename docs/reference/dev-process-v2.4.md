@@ -1,6 +1,6 @@
 # Dev Process v2.4 (CUBRID) — 요약
 
-> 사내 자료 `DevProcess-v2.4.pdf`(대부분 도식)의 텍스트 요약. 원본 PDF는 gitignore(로컬 보관). 우리 4-에이전트가 이 워크플로의 어느 전이를 맡는지는 [../../CONTEXT-MAP.md](../CONTEXT-MAP.md).
+> 사내 자료 `DevProcess-v2.4.pdf`(대부분 도식)의 텍스트 요약. 원본 PDF는 gitignore(로컬 보관). 우리 4-에이전트가 이 워크플로의 어느 전이를 맡는지는 [../../CONTEXT-MAP.md](../../CONTEXT-MAP.md).
 
 ## Jira 워크플로 (상태)
 

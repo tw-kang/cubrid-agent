@@ -23,7 +23,7 @@ Test     ─[test-runner: Verify]→ Tested
 Tested   ─[close-backport: Close / Need Backport]→ Closed / Backport
 ```
 
-각 에이전트는 앞 상태/산출물을 입력으로, 다음 상태로의 전이를 출력으로 한다. 이슈 키(`cbrd_xxxxx`)가 에이전트 간 조인 키. 공식 상태·전이·운영 규칙(Description/Handover/Merge/Backport)은 [docs/dev-process-v2.4.md](./docs/dev-process-v2.4.md).
+각 에이전트는 앞 상태/산출물을 입력으로, 다음 상태로의 전이를 출력으로 한다. 이슈 키(`cbrd_xxxxx`)가 에이전트 간 조인 키. 공식 상태·전이·운영 규칙(Description/Handover/Merge/Backport)은 [docs/reference/dev-process-v2.4.md](./docs/reference/dev-process-v2.4.md).
 
 예외적으로 **review-testcase는 상태 전이가 아니라 PR 수명주기에 붙는 횡단 에이전트**다: author-testcase(또는 사람)가 낸 TC PR이 머지되기 전 구간(`PR open ─[review-testcase 심사]→ 사람 approve·merge`)에서 첫 리뷰어 역할을 한다.
 
@@ -34,7 +34,7 @@ Tested   ─[close-backport: Close / Need Backport]→ Closed / Backport
 - [docs/deployment.md](./docs/deployment.md) — **배포 구조 정본**: 자산 3계층(clone이 나른다/스크립트가 만든다/사람이 넣는다), 확정 결정 D1~D8, Stage 3 매핑. 원칙: *문서는 사람에게, 스크립트는 머신에게, 자격은 Secret에게*. Tier 2 자동화 = 루트 `setup.sh`(멱등). 부품 스킬 흡수·플러그인 재패키징은 [ADR 0014](./docs/adr/0014-repackage-as-plugin.md), 이중 채널 배포는 [ADR 0015](./docs/adr/0015-dual-channel-distribution.md).
 - [docs/guides/stage2-setup.md](./docs/guides/stage2-setup.md) — Stage 2 팀 셋업 실행 가이드: `git clone` → `./setup.sh` → 자격 주입 → 기동. 함정 체크리스트 포함.
 - [docs/adr/](./docs/adr/) — 시스템 전역 ADR.
-- [docs/dev-process-v2.4.md](./docs/dev-process-v2.4.md) — 공식 dev 프로세스(상태·전이·운영 규칙) 참조.
+- [docs/reference/dev-process-v2.4.md](./docs/reference/dev-process-v2.4.md) — 공식 dev 프로세스(상태·전이·운영 규칙) 참조.
 - 공유 자산(코드 아님): `cubrid-jira` CLI, `~/skills`, 소스 repo(cubrid, cubrid-testcases, cubrid-testtools 등), 사내 빌드서버, 로컬/pod 검증 환경.
 
 ## ADR 번호 규칙
