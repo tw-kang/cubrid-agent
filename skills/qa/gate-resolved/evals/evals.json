@@ -4,96 +4,96 @@
     {
       "id": 1,
       "prompt": "gate-resolved 돌려줘 CBRD-27052. crash 이슈인데 첨부에 core 파일이랑 스택트레이스만 있고 재현 절차(어떤 부하/종료 순서에서 assert가 터지는지)가 안 보여. QA가 받을 만한지 봐줘.",
-      "expected_output": "$HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md 에 gate report 작성. CBRD-27052를 needed지만 NOT-plannable로 판정 — core/스택트레이스만 있고 runnable repro TC가 없어 C1(repro 자기완결) 미충족 → 반송(Need Something→Handover). 개발자 assignee를 @멘션한 한글 반송 코멘트 초안 포함. Jira 전이(Need Something)와 필드 변경은 staged(초안)일 뿐 실제 실행하지 않음.",
+      "expected_output": "Write a gate report to $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md. Judge CBRD-27052 as needed but NOT-plannable — only a core dump and stack trace are attached, with no runnable repro TC, so C1 (self-contained repro) is not met → bounce (Need Something→Handover). Include a Korean rejection-comment draft that @mentions the developer assignee. The Jira transition (Need Something) and field changes are only staged (drafted), not actually executed.",
       "files": [],
       "assertions": [
         {
           "name": "report_file_written",
-          "description": "리포트를 $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md 경로에 작성한다"
+          "description": "Writes the report to the path $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md"
         },
         {
           "name": "two_axis_verdict",
-          "description": "판정이 necessity(QA Scenario 재판정)와 plannability 두 축을 모두 근거로 제시한다"
+          "description": "The verdict is justified on both axes: necessity (re-judging the QA Scenario) and plannability"
         },
         {
           "name": "verdict_is_bounce_need_something",
-          "description": "CBRD-27052를 반송으로 표시하고 Need Something(→Handover) 전이에 매핑한다"
+          "description": "Marks CBRD-27052 as a bounce and maps it to the Need Something (→Handover) transition"
         },
         {
           "name": "cites_missing_repro_criteria",
-          "description": "반송 사유로 runnable repro TC 부재(C1 자기완결) 또는 재현 절차 없음을 구체적으로 짚는다"
+          "description": "Specifically cites, as the bounce reason, the absence of a runnable repro TC (C1 self-containment) or the lack of reproduction steps"
         },
         {
           "name": "rejection_draft_korean_with_mention",
-          "description": "개발자 assignee를 @멘션한 한글 반송 코멘트 초안을 포함한다"
+          "description": "Includes a Korean rejection-comment draft that @mentions the developer assignee"
         },
         {
           "name": "draft_only_no_real_transition",
-          "description": "실제 Jira 전이/필드 변경을 실행하지 않고 staged(초안)로만 남긴다"
+          "description": "Does not execute the actual Jira transition/field changes, leaving them only staged (as a draft)"
         }
       ]
     },
     {
       "id": 2,
       "prompt": "guava Resolved 큐 전체 QA to-do 점검해줘. 통과할 것/반송할 것/스킵할 것 표로 정리하고, 반송 대상은 개발자한테 보낼 코멘트 초안까지 뽑아줘. 팀내 배포 단계 기준으로.",
-      "expected_output": "guava Resolved 이슈 전체를 조회해 gate report 작성 — 쿼리 + 건수, 이슈별 표(key · summary · kind · necessity · plannability 근거 · 통과/반송/스킵 · runner tag · warnings), 반송분 반송 코멘트 초안, 통계. 팀내(Stage 2)이므로 QA Scenario 변경은 제안만, 전이는 수동 — skill은 초안만 만들고 실제 전이/코멘트 게시는 사람이 한다.",
+      "expected_output": "Query all guava Resolved issues and write a gate report — the query + count, a per-issue table (key · summary · kind · necessity · plannability rationale · pass/bounce/skip · runner tag · warnings), rejection-comment drafts for the bounced ones, and statistics. Since this is internal (Stage 2), QA Scenario changes are proposals only and transitions are manual — the skill produces drafts only, and a human performs the actual transitions and comment posting.",
       "files": [],
       "assertions": [
         {
           "name": "report_file_written",
-          "description": "리포트를 $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md 경로에 작성한다"
+          "description": "Writes the report to the path $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md"
         },
         {
           "name": "query_and_count_present",
-          "description": "리포트 상단에 사용한 JQL 쿼리와 대상 이슈 건수를 명시한다"
+          "description": "States the JQL query used and the count of target issues at the top of the report"
         },
         {
           "name": "per_issue_table_columns",
-          "description": "이슈별 표에 key·summary·kind·necessity·plannability 근거·통과/반송/스킵·runner tag·warnings 컬럼이 있다"
+          "description": "The per-issue table has columns for key, summary, kind, necessity, plannability rationale, pass/bounce/skip, runner tag, and warnings"
         },
         {
           "name": "verdict_uses_three_values",
-          "description": "각 이슈 판정이 통과/반송/스킵 세 값 중 하나로 표기된다"
+          "description": "Each issue's verdict is marked as one of three values: pass/bounce/skip"
         },
         {
           "name": "runner_tag_for_pass",
-          "description": "통과 이슈에 SQL/CCI/JDBC/perftool 등 runner tag가 붙는다"
+          "description": "Passed issues are tagged with a runner tag such as SQL/CCI/JDBC/perftool"
         },
         {
           "name": "stats_section_present",
-          "description": "리포트에 통과/반송/스킵 건수 등 통계 섹션이 있다"
+          "description": "The report has a statistics section with counts of pass/bounce/skip, etc."
         },
         {
           "name": "draft_only_staged",
-          "description": "팀내 단계 기준으로 전이·코멘트 게시는 실행하지 않고 초안만 제시한다"
+          "description": "Per the internal-stage criteria, does not execute transitions or comment posting, presenting drafts only"
         }
       ]
     },
     {
       "id": 3,
       "prompt": "CBRD-26255 Resolved 검토해서 테스트 플랜 못 짜면 Need Something으로 반송해줘. Connection Pool 재설계 구현 sub-task야.",
-      "expected_output": "CBRD-26255를 검토하되 sub-task 가드를 먼저 적용 — 부모 EPIC(CBRD-26177)과 형제 sub-task를 확인해 검증/TC 담당 형제(예: 26421)가 이 EPIC 테스트를 커버하므로, 구현 sub-task를 개별 반송하지 않고 스킵/통과로 처리(반송 시 dev 재-Resolved로 status 핑퐁 발생). 리포트에 부모+형제 확인 근거와 반송 취소 이유를 기록, 실제 Need Something 전이는 실행하지 않음.",
+      "expected_output": "Review CBRD-26255 but apply the sub-task guard first — check the parent EPIC (CBRD-26177) and the sibling sub-tasks; since a sibling responsible for verification/TC (e.g. 26421) covers this EPIC's testing, do not bounce the implementation sub-task individually but treat it as skip/pass (bouncing would cause status ping-pong via the developer re-Resolving it). Record in the report the rationale for the parent+sibling check and the reason for canceling the bounce; do not execute the actual Need Something transition.",
       "files": [],
       "assertions": [
         {
           "name": "report_file_written",
-          "description": "리포트를 $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md 경로에 작성한다"
+          "description": "Writes the report to the path $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md"
         },
         {
           "name": "checks_parent_and_siblings",
-          "description": "반송 결정 전 부모 이슈와 형제 sub-task를 확인한다"
+          "description": "Checks the parent issue and sibling sub-tasks before deciding to bounce"
         },
         {
           "name": "no_bounce_when_sibling_covers",
-          "description": "형제 sub-task가 TC/검증을 담당하면 이 구현 sub-task는 반송하지 않고 스킵/통과로 판정한다"
+          "description": "When a sibling sub-task is responsible for TC/verification, does not bounce this implementation sub-task but judges it as skip/pass"
         },
         {
           "name": "notes_pingpong_avoidance",
-          "description": "개별 sub-task 반송이 status 핑퐁(dev 재-Resolved)을 유발한다는 근거를 남긴다"
+          "description": "Notes the rationale that bouncing an individual sub-task would trigger status ping-pong (the developer re-Resolving it)"
         },
         {
           "name": "no_real_transition_executed",
-          "description": "사용자가 반송을 요청해도 실제 Need Something 전이를 실행하지 않는다(초안/판정만)"
+          "description": "Even when the user requests a bounce, does not execute the actual Need Something transition (draft/verdict only)"
         }
       ]
     }

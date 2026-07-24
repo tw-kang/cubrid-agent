@@ -43,6 +43,9 @@ TC·테스트 시나리오는 **내부 구현이 아니라 사용자가 관측�
 
 - **영문(배포 대상)**: 스킬 `SKILL.md`(`name`·`description`·본문·`references/`·`evals/`), 플러그인 매니페스트(`.claude-plugin/`), `hooks/`·`scripts/`, 루트 `README`·`CHANGELOG`·`LICENSE`·`package.json`.
 - **한글(배포 미대상)**: `docs/`(ADR·설계·staging·deployment·guides), `AGENTS.md`·`CONTEXT-MAP.md`, Jira(CUBRIDQA) 티켓 본문.
-- **예외**: 스킬 `description`은 영문 본문이되 **한글 트리거 키워드는 유지**한다 — 팀이 한글로 스킬을 부르므로 트리거 정확도를 확보하기 위함. 예: `… Use whenever someone says "이 PR 리뷰해줘", "gate-resolved 돌려줘", …`.
+- **예외 (기능적 한글은 유지 — 지시문만 영문)**: 스킬 `description`은 영문 본문이되 **한글 트리거 키워드는 유지**한다 — 팀이 한글로 스킬을 부르므로 트리거 정확도를 확보하기 위함. 예: `… Use whenever someone says "이 PR 리뷰해줘", "gate-resolved 돌려줘", …`. 같은 논리로 아래 세 가지도 한글을 유지하고, 이를 **감싸는 지시문·설명만** 영문으로 쓴다:
+  - **eval `prompt`** — 스킬 호출을 흉내 내는 트리거 입력이라 한글 유지(같은 파일의 `expected_output`·`assertions`는 영문).
+  - **스킬이 게시하는 산출물 템플릿** — 반송 코멘트·PR 본문·리뷰 초안 등 Jira/GitHub로 나가는 한글 결과물('Jira(CUBRIDQA) 티켓 본문=한글' 규칙의 연장; 영문화하면 한국 개발자에게 영어로 게시하는 동작 변경이 됨).
+  - **few-shot으로 인용한 실제 리뷰어 코멘트 원문** — 인용 데이터라 번역하면 인용이 조작된다(원문이 영어면 영어로 둔다).
 
 크로스-CLI 정본(다른 에이전트 도구도 읽는 형태)은 `AGENTS.md`의 "Language policy" 절 — 이 DP는 그 정책을 설계 원칙으로 성문화한 것이다.

@@ -4,35 +4,35 @@
     {
       "id": 1,
       "prompt": "cubrid-testcases-private-ex/shell/_01_utility/_01_sqlx/bug_cubrid2125/cases/bug_cubrid2125.sh 이 케이스 수행해줘. 빌드 URL은 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
-      "expected_output": "빌드 URL로 CUBRID 설치 후, 테스트 실행, 결과(OK/NOK) 보고. 실패 시 원인 분석 포함.",
+      "expected_output": "Install CUBRID from the build URL, run the test, and report the result (OK/NOK). Include root-cause analysis on failure.",
       "files": [],
       "assertions": [
-        {"id": "install-cubrid", "text": "run_cubrid_install 스크립트를 사용하여 CUBRID 빌드를 설치한다"},
-        {"id": "run-test", "text": "지정된 경로의 테스트 스크립트를 cases/ 디렉토리에서 실행한다"},
-        {"id": "report-result", "text": ".result 파일을 확인하여 OK/NOK 결과를 명확히 보고한다"},
-        {"id": "failure-analysis", "text": "NOK인 경우 원인 분석을 제공한다"}
+        {"id": "install-cubrid", "text": "Installs the CUBRID build using the run_cubrid_install script."},
+        {"id": "run-test", "text": "Runs the test script at the given path from the cases/ directory."},
+        {"id": "report-result", "text": "Checks the .result file and clearly reports the OK/NOK result."},
+        {"id": "failure-analysis", "text": "Provides a root-cause analysis when the result is NOK."}
       ]
     },
     {
       "id": 2,
       "prompt": "bug_1562 shell tc 돌려봐. 빌드는 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh 이걸로 설치해",
-      "expected_output": "테스트케이스를 이름으로 검색하여 경로를 찾고, CUBRID 설치, 실행, 결과 보고.",
+      "expected_output": "Look up the testcase path by name, install CUBRID, run the test, and report the result.",
       "files": [],
       "assertions": [
-        {"id": "find-testcase", "text": "bug_1562 이름으로 테스트케이스 경로를 검색하여 찾는다"},
-        {"id": "install-cubrid", "text": "run_cubrid_install 스크립트를 사용하여 CUBRID 빌드를 설치한다"},
-        {"id": "run-and-report", "text": "테스트를 실행하고 OK/NOK 결과를 보고한다"}
+        {"id": "find-testcase", "text": "Locates the testcase path by searching for the name bug_1562."},
+        {"id": "install-cubrid", "text": "Installs the CUBRID build using the run_cubrid_install script."},
+        {"id": "run-and-report", "text": "Runs the test and reports the OK/NOK result."}
       ]
     },
     {
       "id": 3,
       "prompt": "bug_cubrid2125 테스트 실행해줘. 빌드 URL은 http://invalid-url-that-does-not-exist.com/fake_build.sh 야",
-      "expected_output": "잘못된 URL로 설치 시도 후 실패를 감지하고, 올바른 빌드 파일 링크를 다시 제시하라는 메시지를 출력하고 종료.",
+      "expected_output": "Attempt to install from the invalid URL, detect the failure, print a message asking for a correct build-file link, and stop.",
       "files": [],
       "assertions": [
-        {"id": "detect-install-failure", "text": "잘못된 URL로 인한 설치 실패를 감지하고 사용자에게 명확히 알린다"},
-        {"id": "no-test-execution", "text": "설치 실패 후 테스트를 실행하지 않고 중단한다"},
-        {"id": "request-correct-url", "text": "올바른 빌드 파일 링크를 다시 제시하라는 안내 메시지를 출력한다"}
+        {"id": "detect-install-failure", "text": "Detects the installation failure caused by the invalid URL and clearly notifies the user."},
+        {"id": "no-test-execution", "text": "Aborts without running the test after the installation fails."},
+        {"id": "request-correct-url", "text": "Prints a message asking the user to provide a correct build-file link."}
       ]
     }
   ]

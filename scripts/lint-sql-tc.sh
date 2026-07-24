@@ -32,10 +32,10 @@ if jq --arg k "$KEY" --argjson h "$header" --argjson e "$evaluate" --argjson c "
    "$MANIFEST" > "$tmp" 2>/dev/null; then mv "$tmp" "$MANIFEST"; else rm -f "$tmp"; fi
 
 probs=""
-[ "$header" = true ]   || probs="$probs 헤더블록(/** …CBRD-XXXXX… */) 없음;"
-[ "$evaluate" = true ] || probs="$probs evaluate 'Case N' 라벨 없음;"
-[ "$cleanup" = true ]  || probs="$probs CREATE TABLE 앞 DROP TABLE IF EXISTS 없음;"
-[ "$english" = true ]  || probs="$probs 주석에 비영문(영문이어야);"
+[ "$header" = true ]   || probs="$probs missing header block (/** …CBRD-XXXXX… */);"
+[ "$evaluate" = true ] || probs="$probs missing evaluate 'Case N' label;"
+[ "$cleanup" = true ]  || probs="$probs missing DROP TABLE IF EXISTS before CREATE TABLE;"
+[ "$english" = true ]  || probs="$probs non-English text in comments (comments must be English);"
 [ -z "$probs" ] || jq -n --arg f "$FILE" --arg p "$probs" \
-  '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:("[Stage2 lint] "+$f+" 컨벤션 위반:"+$p+" (manifest.lint 기록됨 — 제출 게이트가 차단)")}}'
+  '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:("[Stage2 lint] "+$f+" convention violations:"+$p+" (recorded in manifest.lint — the submit gate will block)")}}'
 exit 0

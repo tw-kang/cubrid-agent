@@ -4,23 +4,23 @@
     {
       "id": 1,
       "prompt": "1001.sql 파일 실행해줘. 빌드는 http://192.168.1.91:8080/REPO_ROOT/store_01/11.4.5.1856-4124b9c/drop/CUBRID-11.4.5.1856-4124b9c-Linux.x86_64.sh 이야. 파일 경로는 /home/dev/cubrid-testcases/sql/_01_object/_01_type/_001_nchar_nvarchar/cases/1001.sql",
-      "expected_output": "CUBRID 설치 후 sql 카테고리로 CTP interactive mode 실행, PASS/FAIL 결과 출력",
+      "expected_output": "After installing CUBRID, runs CTP in interactive mode under the sql category and reports the PASS/FAIL result",
       "assertions": [
         {
           "name": "cubrid_install_step_present",
-          "description": "run_cubrid_install 명령 실행 여부"
+          "description": "Whether the run_cubrid_install command is executed"
         },
         {
           "name": "install_verification_present",
-          "description": "설치 검증(cubrid --version 또는 [ERROR] grep) 수행 여부"
+          "description": "Whether install verification is performed (cubrid --version, or grepping for [ERROR])"
         },
         {
           "name": "correct_ctp_category_sql",
-          "description": "ctp.sh sql --interactive 사용 (medium 아님)"
+          "description": "Uses ctp.sh sql --interactive (not medium)"
         },
         {
           "name": "result_reported",
-          "description": "[PASS] 또는 [FAIL] 결과 보고"
+          "description": "Reports a [PASS] or [FAIL] result"
         }
       ],
       "files": []
@@ -28,23 +28,23 @@
     {
       "id": 2,
       "prompt": "medium tc 실행해봐. 빌드 URL: http://192.168.1.91:8080/REPO_ROOT/store_01/11.4.5.1856-4124b9c/drop/CUBRID-11.4.5.1856-4124b9c-Linux.x86_64.sh, 파일: /home/dev/cubrid-testcases/medium/_01_fixed/cases/2439.sql",
-      "expected_output": "CUBRID 설치 후 medium 카테고리로 CTP interactive mode 실행, PASS/FAIL 결과 출력",
+      "expected_output": "After installing CUBRID, runs CTP in interactive mode under the medium category and reports the PASS/FAIL result",
       "assertions": [
         {
           "name": "cubrid_install_step_present",
-          "description": "run_cubrid_install 명령 실행 여부"
+          "description": "Whether the run_cubrid_install command is executed"
         },
         {
           "name": "install_verification_present",
-          "description": "설치 검증 수행 여부"
+          "description": "Whether install verification is performed"
         },
         {
           "name": "correct_ctp_category_medium",
-          "description": "ctp.sh medium --interactive 사용 (sql 아님)"
+          "description": "Uses ctp.sh medium --interactive (not sql)"
         },
         {
           "name": "result_reported",
-          "description": "[PASS] 또는 [FAIL] 결과 보고"
+          "description": "Reports a [PASS] or [FAIL] result"
         }
       ],
       "files": []
@@ -52,15 +52,15 @@
     {
       "id": 3,
       "prompt": "1001.sql 패스하는지 확인해줘. 경로: /home/dev/cubrid-testcases/sql/_01_object/_01_type/_001_nchar_nvarchar/cases/1001.sql",
-      "expected_output": "빌드 URL을 사용자에게 요청하는 메시지 출력 (URL 없이 실행하지 않음)",
+      "expected_output": "Outputs a message asking the user for the build URL (does not run without a URL)",
       "assertions": [
         {
           "name": "asks_for_build_url",
-          "description": "빌드 URL을 요청하는 메시지 출력 (run_cubrid_install 없이 바로 실행하지 않음)"
+          "description": "Outputs a message requesting the build URL (does not jump straight to execution without run_cubrid_install)"
         },
         {
           "name": "does_not_run_without_url",
-          "description": "URL 없이 CTP 실행하지 않음"
+          "description": "Does not run CTP without a URL"
         }
       ],
       "files": []

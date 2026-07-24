@@ -1,113 +1,113 @@
-# 관점 카탈로그 (review perspectives) — L2 정본
+# Perspective catalog (review perspectives) — the canonical L2 reference
 
-**기반: 5년(2021-07~2026-07) 머지 PR의 사람 라인 코멘트 1,358건 분류.**
+**Basis: classification of 1,358 human line comments on merged PRs over 5 years (2021-07 to 2026-07).**
 
-review-testcase L2와 author-testcase Review lane이 공유하는 단일 정본. 목적은 "관점 목록"이 아니라 **각 관점을 어떻게 처리하는가**의 지정: 어느 층(L1 정적 린트 / L2 LLM 판정 / L3 실행)에서 잡는가, greptile/codex 봇과 중복되는가, 어느 리뷰어 렌즈가 강한가, few-shot 앵커는 무엇인가.
+The single canonical source shared by review-testcase L2 and the author-testcase Review lane. Its purpose is not to be a "list of perspectives" but to specify **how each perspective is handled**: which layer catches it (L1 static lint / L2 LLM judgment / L3 execution), whether it overlaps with the greptile/codex bots, which reviewer lens is strongest, and what the few-shot anchor is.
 
-## 처리 층 배정 (마이닝의 핵심 산출)
+## Processing-layer assignment (the core output of the mining)
 
-| id | 관점 | 빈도 | 처리 층 | 봇 중복 | 담당 렌즈 |
+| id | Perspective | Frequency | Processing layer | Bot overlap | Owning lens |
 |---|---|---|---|---|---|
-| P4 | 케이스 커버리지 (시나리오 추가) | 최다 | **L2**(이슈·diff 필독) | 약함 | bagus-kim, kwonhoil |
-| P2 | 결정성 — ORDER BY 누락 | 매우높음 | **L1**(정적) + L3(확인) | 부분 | ssihil |
-| P7 | 답지 변경 정당성·기대값 정합성 | 매우높음 | **L2**(이슈 대조) | 약함 | kwonhoil, ssihil |
-| P6 | 컨벤션 — evaluate/trace/queryPlan/server-message | 높음 | **L1**(정적) | 아니오 | ssihil |
-| P11 | TC 의도 ↔ 이슈 정합성 *(신규)* | 높음 | **L2**(이슈본문 필수) | 부분 | 다수 |
-| P3 | fix 경로 커버리지 | 중간 | L2 + **L3**(plan/trace) | **강함(봇)** | youngjinj, shparkcubrid |
-| P13 | 옵티마이저 플랜 안정화 — tie/flaky *(신규)* | 중간 | **L3**(반복 실행 plan) | 아니오 | shparkcubrid |
-| P5 | 격리·자기완결 — DROP/commit/deallocate | 중간 | **L1**(정적) | 부분 | ssihil, bagus-kim |
-| P8 | 기존 TC 중복 | 낮음 | **L2**(corpus 검색) | 아니오 | youngjinj |
-| P12 | 버그/스펙 판별 유보 *(신규)* | 낮음 | **L2**(사람 에스컬레이션) | 아니오 | 다수 |
-| P9 | 러닝타임·성능 | 낮음 | **L3**(elapse) | 아니오 | bagus-kim |
-| P1 | answer 무결성 | 낮음(사람) | L3 | **강함(봇)** | — |
-| P10 | 언어(주석·커밋 영문) | 낮음 | **L1** | 부분 | — |
-| P14 | 최소성 — 불필요 힌트·설정·중복 케이스 제거, 최소 재현 *(신규)* | 중간 | **L2** | 아니오 | youngjinj, ssihil |
-| P15 | 불변식만 단언 — 환경/빌드 의존 값(page id·시작값·시간) 회피 *(신규)* | 중간 | **L2**+L3 | 부분 | shparkcubrid, ssihil |
+| P4 | Case coverage (adding scenarios) | Most frequent | **L2** (must read issue + diff) | Weak | bagus-kim, kwonhoil |
+| P2 | Determinism — missing ORDER BY | Very high | **L1** (static) + L3 (confirm) | Partial | ssihil |
+| P7 | Justification for answer changes and consistency of expected values | Very high | **L2** (cross-check against the issue) | Weak | kwonhoil, ssihil |
+| P6 | Convention — evaluate/trace/queryPlan/server-message | High | **L1** (static) | No | ssihil |
+| P11 | TC intent ↔ issue alignment *(new)* | High | **L2** (issue body required) | Partial | many |
+| P3 | Fix-path coverage | Medium | L2 + **L3** (plan/trace) | **Strong (bot)** | youngjinj, shparkcubrid |
+| P13 | Optimizer plan stabilization — tie/flaky *(new)* | Medium | **L3** (repeated-run plan) | No | shparkcubrid |
+| P5 | Isolation and self-containment — DROP/commit/deallocate | Medium | **L1** (static) | Partial | ssihil, bagus-kim |
+| P8 | Duplication of an existing TC | Low | **L2** (corpus search) | No | youngjinj |
+| P12 | Deferring the bug-vs-spec determination *(new)* | Low | **L2** (escalate to a human) | No | many |
+| P9 | Runtime and performance | Low | **L3** (elapse) | No | bagus-kim |
+| P1 | Answer integrity | Low (human) | L3 | **Strong (bot)** | — |
+| P10 | Language (comments and commits in English) | Low | **L1** | Partial | — |
+| P14 | Minimality — remove needless hints/settings/duplicate cases, minimal reproduction *(new)* | Medium | **L2** | No | youngjinj, ssihil |
+| P15 | Assert only invariants — avoid environment/build-dependent values (page id, start value, time) *(new)* | Medium | **L2**+L3 | Partial | shparkcubrid, ssihil |
 
-## L1로 승격할 자동 린트 규칙 (마이닝이 짚은 반복 지적)
+## Automatic lint rules to promote to L1 (the recurring comments the mining flagged)
 
-사람이 *반복*하던 기계적 지적은 LLM 판정이 아니라 정적 규칙으로. 이걸 L1에서 자동 검출하면 리뷰어 반복 노동이 사라진다:
+Mechanical comments humans made *repeatedly* belong in static rules, not LLM judgment. Detecting these automatically at L1 removes the reviewer's repetitive labor:
 
-- **P2** 다행 결과를 내는 SELECT에 `ORDER BY` 없음 (ssihil이 최다 반복). 집계/스칼라/에러 케이스는 예외. **`ORDER BY`/`ORDER SIBLINGS BY`가 있어도 정렬 키가 동치(tie)면 형제 순서 비보장** — 유일키까지 정렬하거나 tie 없는 데이터로(로컬 3회 안정 ≠ 스펙 보장; P13 연계). ← PR#3091 major.
-- **P6** `set trace on` ↔ `set trace off` 페어 불균형; trace 사용 후 미해제.
-- **P6** 빈 `.queryPlan` 파일 유무 vs answer의 plan 출력 존재(짝 안 맞으면 지적).
-- **P6** 시나리오 주석만 있고 `evaluate 'Case N: ...'` 라벨 없음.
-- **P6/P7(공통)** `evaluate` 라벨 **문구가 `.sql`↔`.answer` 정확히 일치**하는가 — CTP가 라벨을 결과에 echo·비교하므로 `.sql`에서 라벨을 고치면 `.answer`도 재생성해야 한다(일부만 고치면 그 케이스가 데이터 무관하게 Fail). 성격 무관 공통 점검. ← PR#3091 라이브 blocker.
-- **P5** `CREATE TABLE` 앞 `DROP TABLE IF EXISTS` 누락; `prepare` 후 cleanup에 `deallocate prepare` 누락; view/synonym/serial cleanup 누락.
-- **P10** `.sql` 주석·커밋 메시지 비영문.
+- **P2** A SELECT that returns multiple rows has no `ORDER BY` (ssihil's most-repeated comment). Aggregate/scalar/error cases are exceptions. **Even with `ORDER BY`/`ORDER SIBLINGS BY`, if the sort keys tie, sibling order is not guaranteed** — sort down to a unique key, or use tie-free data (stable across 3 local runs ≠ guaranteed by spec; ties into P13). ← PR#3091 major.
+- **P6** Unbalanced `set trace on` ↔ `set trace off` pairing; trace left on after use.
+- **P6** Presence/absence of an empty `.queryPlan` file vs. plan output in the answer (flag when they don't match).
+- **P6** Only a scenario comment is present, with no `evaluate 'Case N: ...'` label.
+- **P6/P7 (shared)** Does the `evaluate` label **text match exactly between `.sql` and `.answer`** — because CTP echoes and compares the label in the result, if you change the label in `.sql` you must regenerate `.answer` (changing only one side makes that case Fail regardless of data). A shared check that applies regardless of PR character. ← PR#3091 live blocker.
+- **P5** Missing `DROP TABLE IF EXISTS` before `CREATE TABLE`; missing `deallocate prepare` in cleanup after `prepare`; missing view/synonym/serial cleanup.
+- **P10** Non-English `.sql` comments or commit messages.
 
-## 봇 분업 경계
+## Division of labor with the bots
 
-greptile/codex 봇은 **P1(answer 무결성)·P2(결정성 일부)·P3(fix 경로 커버리지)**를 P1/P2 심각도 badge로 이미 정교하게 잡는다(예: "NULL 결과값 오염", "샘플링 결과 고정값", "새 문법 미검증"·"DROP 경로 우회"). review-testcase는:
-- 이 관점들은 **봇 지적을 참조/보강**만(중복 코멘트 억제).
-- L2 역량을 **봇이 약한 P4·P7·P11·P13·P6·P8**에 집중.
+The greptile/codex bots already catch **P1 (answer integrity), P2 (part of determinism), and P3 (fix-path coverage)** precisely, with P1/P2 severity badges (e.g., "NULL result-value contamination", "sampling result is a fixed value", "new syntax not verified", "DROP path bypassed"). review-testcase therefore:
+- Only **references/reinforces the bots' comments** for these perspectives (suppressing duplicate comments).
+- Concentrates its L2 capacity on **P4, P7, P11, P13, P6, P8 — where the bots are weak**.
 
-## 신규 관점 정의 (시드에 없던 것 — 마이닝 발견)
+## New perspective definitions (not in the seed — discovered by mining)
 
-**P11 — TC 의도 ↔ 이슈 정합성**: TC가 이슈가 말하는 버그를 실제로 겨냥하나. P3(fix 코드 경로)와 달리 *이슈 시나리오 의도* 차원. 이슈 본문을 읽어야만 판정 가능(L2 전제 = Ground).
+**P11 — TC intent ↔ issue alignment**: Does the TC actually target the bug the issue describes? Unlike P3 (the fix code path), this is about *the intent of the issue's scenario*. It can be judged only by reading the issue body (the L2 premise = Ground).
 > "Not sure if you've grasped the JIRA issue fully.. This test case has little to do with the issue statement" — PR2271, junsklee
 > "테스트 의도(HA 모드 UNIQUE 제약)가 파티션 오류로 가려지지 않도록..." — PR2489, zionyun
 
-**P12 — 버그/스펙 판별 유보**: 리뷰 중 제품 버그를 발견하고 "스펙인가 버그인가" 판단 후 신규 이슈로 트래킹. 리뷰가 회귀 검증을 넘어 *버그 발견* 역할. 봇이 못 하는 영역 — review-testcase는 "이상 신호 + 사람 에스컬레이션"까지만.
+**P12 — Deferring the bug-vs-spec determination**: During review you find a product bug, decide "is this spec or a bug?", and then track it as a new issue. Review goes beyond regression checking to also *finding bugs*. This is an area the bots can't handle — review-testcase goes only as far as "flag the anomaly + escalate to a human".
 > "새로운 이슈를 수정했는데 기존 정상동작하던 TC가 fail... 스펙변경인지 버그인지 확인 필요" — PR2369, kwonhoil
 > "This is exponential growth. It exhausts memory (OOM) before the depth-32 guard... let's track... CBRD-27032" — PR2988, kangmin5505
 
-**P13 — 옵티마이저 플랜 안정화(tie/flaky)**: 동률 인덱스·비용 경계로 plan이 run마다 바뀌는 flaky. P2(출력 정렬)와 별개로 *실행계획* 안정화. L3 반복 실행으로만 검출.
+**P13 — Optimizer plan stabilization (tie/flaky)**: Flakiness where the plan changes from run to run due to tied indexes or a cost boundary. Distinct from P2 (output ordering), this stabilizes the *execution plan*. Detectable only through repeated L3 runs.
 > "동률이라 run마다 plan이 바뀌는 flaky 상태... tie 안정화를 위해 ta 인덱스만 고정" — PR2871, shparkcubrid
 > "플랜 고정 및 안정성 확보 차원에서, 옵티마이저 변화에 영향받지 않도록 인덱스를 추가" — PR2466, shparkcubrid
 
-**P14 — 최소성**: 이슈 재현·검증에 불필요한 힌트·파라미터·중복 케이스를 덜어 최소 재현으로. 무관한 요소는 검증을 흐리고 유지보수 부담만 는다(5년 확장에서 뚜렷해진 관점).
+**P14 — Minimality**: Pare away hints, parameters, and duplicate cases that aren't needed to reproduce and verify the issue, down to a minimal reproduction. Irrelevant elements blur the verification and only add maintenance burden (a perspective that became clear over the 5-year expansion).
 > "USE_MERGE 힌트를 사용했기 때문에 통계정보 갱신도 필요하지 않습니다" — PR1777, youngjinj
 > "힌트 사용 없이 한 번씩만 테스트 하는 것이 좋을 것 같습니다" — PR1791, youngjinj
 
-**P15 — 불변식만 단언**: 환경·빌드·시간마다 달라질 수 있는 값(page id, 시작값, 올해 연도)을 answer에 박지 말고 *보장되는 불변식*만 단언. P2(출력 순서)와 달리 "값 자체가 비보장이면 단언하지 말라"는 각도.
+**P15 — Assert only invariants**: Don't hard-code values that can vary by environment, build, or time (page id, start value, the current year) into the answer; assert only *guaranteed invariants*. Unlike P2 (output order), this is the angle of "if the value itself isn't guaranteed, don't assert it".
 > "The p_cur_volumeid may not be 0... What can be guaranteed is that when next is -1, cur page has the maximum value. Adding only guaranteed test cases will prevent unnecessary errors later" — PR1688, shparkcubrid
 > "년도가 포함되어 있지 않아 현재는 2025년으로 answer와 동일하지만 내년에는 2026년으로 처리되면서 실패합니다" — PR2010, ssihil
 
-## L2 페르소나 렌즈 (PR 성격별 지배 렌즈)
+## L2 persona lenses (the dominant lens by PR character)
 
-L2는 관점을 개별로 순회하기보다 **리뷰 철학(렌즈)** 단위로 돌린다. 마이닝에서 드러난 두 주 렌즈가 review-testcase가 받는 두 PR 성격에 대응한다(DESIGN D5). **렌즈명은 기능으로 두고 사람 이름은 few-shot 출처로만** 기록한다 — 개인 박제 금지(사람이 바뀌어도 철학이 남게).
+Rather than iterating over perspectives one by one, L2 runs by the unit of a **review philosophy (lens)**. The two main lenses that emerged from the mining correspond to the two PR characters review-testcase receives (DESIGN D5). **Keep the lens names functional and record people's names only as few-shot sources** — no pinning to individuals (so the philosophy survives even when people change).
 
-| 렌즈 | PR 성격 | 담는 관점 | 질문셋(요지) | 대표(few-shot 출처) |
+| Lens | PR character | Perspectives covered | Question set (gist) | Representatives (few-shot source) |
 |---|---|---|---|---|
-| **coverage-expansion** | 신규형 (새 TC) | P4·P8·P9·P14 | positive↔negative 대칭? 경계 3점(직전/경계/직후)? 조합 매트릭스(JOIN×함수×방향)? 상위/형제 개념(orderby_num이면 rownum·inst_num·group_num도)? 대칭 연산(delete 힌트를 update/select에도)? 다단계 체인(권한 위임→유저 삭제 후 잔존)? 결과 검증 데이터/쿼리(에러만 말고 성공 후 상태)? 변별력(분포·통계·규모)? 최소성(불필요 힌트·중복 제거)? 카테고리 적합성(OOM·서버다운은 shell로)? | bagus-kim, ssihil |
-| **answer-vs-spec** | 변경형 (답지/TC 수정) | P7·P11·P12·P15 | answer가 왜 바뀌었나·이전이 틀렸나? 실행과 answer가 일치하나(성공인데 fail 등)? 이슈가 규정한 정확한 범위인가? 결과값 의미가 맞나(반올림·잘림·타입변환·NULL)? 의존 이슈 머지 후 답지 변경을 예고·주석했나? 스펙인가 버그인가(개발자 확인)? .sql 수정 시 .answer·주석도 갱신됐나? **답지 死단언 방지**: .answer만 바꾸고 .sql의 비교 리터럴/단언(`if(…=target,'ok','nok')`)을 방치하면 검증이 "옛 값과 다르다"만 확인하는 무의미로 퇴화 — 새 정답 기준으로 .sql 단언도 고쳤나? **.answer_cci 짝**도 함께 갱신됐나? | kwonhoil, swi0110 |
-| **determinism-convention** | 공통 | P2·P5·P6·P10 | 다행 SELECT에 ORDER BY(키 동치 tie면 순서 비보장 → 유일키까지)? cleanup 복원? trace/evaluate 페어? **`.sql`↔`.answer` evaluate 라벨 짝 일치(라벨 고치면 답지 재생성)**? 시간·연도 의존 값 아닌가? 주석↔answer 정합? | ssihil |
-| **plan-stability** | 공통(플랜 TC) | P3·P13 | fix 경로를 타나? 힌트가 실제 적용됐나(오타·뷰머징·모호한 인덱스명으로 무시 안 됨)? plan을 evaluate로 라벨(select 남발로 불필요 plan 출력 억제)? 통계·인덱스로 plan 고정(tie/flaky)? 조인순서 변경이 의도된 것? | youngjinj, shparkcubrid |
+| **coverage-expansion** | New-type (new TC) | P4·P8·P9·P14 | positive↔negative symmetry? Three boundary points (just-before/boundary/just-after)? Combination matrix (JOIN × function × direction)? Parent/sibling concepts (if orderby_num, then rownum, inst_num, group_num too)? Symmetric operations (apply a delete hint to update/select as well)? Multi-step chains (privilege delegation → residue after the user is dropped)? Result-verification data/query (not just the error, but the state after success)? Discriminating power (distribution, statistics, scale)? Minimality (remove needless hints/duplicates)? Category fit (OOM and server-down go to shell)? | bagus-kim, ssihil |
+| **answer-vs-spec** | Change-type (answer/TC modification) | P7·P11·P12·P15 | Why did the answer change — was the previous one wrong? Does execution match the answer (e.g., it succeeds yet fails)? Is it the exact scope the issue defines? Is the result value's meaning correct (rounding, truncation, type conversion, NULL)? Was the answer change announced/commented after the dependent issue merged? Is it spec or a bug (confirm with the developer)? When `.sql` was modified, were `.answer` and the comments updated too? **Prevent dead assertions**: if you change only `.answer` and leave the comparison literal/assertion in `.sql` (`if(…=target,'ok','nok')`) untouched, verification degrades into the meaningless act of confirming only "it differs from the old value" — did you fix the `.sql` assertion against the new correct answer too? Was the **`.answer_cci` counterpart** updated as well? | kwonhoil, swi0110 |
+| **determinism-convention** | Shared | P2·P5·P6·P10 | ORDER BY on a multi-row SELECT (if keys tie, order isn't guaranteed → sort to a unique key)? cleanup restored? trace/evaluate pairs? **`.sql`↔`.answer` evaluate-label pair match (regenerate the answer if you change a label)**? Not a time/year-dependent value? Comment ↔ answer consistency? | ssihil |
+| **plan-stability** | Shared (plan TCs) | P3·P13 | Does it exercise the fix path? Is the hint actually applied (not ignored due to a typo, view merging, or an ambiguous index name)? Label the plan with evaluate (suppress needless plan output from overusing select)? Pin the plan with statistics/indexes (tie/flaky)? Is the join-order change intended? | youngjinj, shparkcubrid |
 
-- 지배 렌즈는 PR 성격이 정하고, **determinism-convention은 성격 무관 항상 적용**.
-- 렌즈를 **독립 서브에이전트로 병렬 실행**하면 관점 다양성이 재현율을 높인다(perspective-diverse verify).
-- **철학의 성격에 따라 담기는 층이 다르다**: coverage-expansion은 예측 가능한 패턴이라 규칙·템플릿화(create 스킬 P4)해 **작성 예방**에도 쓰고, answer-vs-spec은 케이스별 판단이라 규칙 불가 → **L2 판정 각도로만** 재현. 전자는 author, 후자는 reviewer.
-- **질문셋·few-shot은 5년(1,358건) 분류로 보강 완료**. 각 렌즈 질문셋은 실제 반복 지적에서 도출.
-- **백테스트로 렌즈 재현이 검증됨**: answer-vs-spec(P7·P12·P15)·coverage-expansion(P4)이 실제 사람 지적을 재현, 성격 라우팅 정확, 오탐 실질 0. 봇이 사람 미지적 valid도 추가한다(死단언·물리값 근거류).
-- **coverage-expansion은 "부족"만 지적하지 말고 추가할 케이스를 실행 가능한 `evaluate`+SQL로 제시**한다(백테스트 PoC 개선점 1): 봇이 "negative 케이스 부재" 같은 *범주*는 재현했으나, bagus-kim처럼 구체 케이스를 대량 제안하는 볼륨은 약했다 → 렌즈 프롬프트에서 구체 SQL 제안을 강제.
+- The PR character decides the dominant lens, and **determinism-convention always applies regardless of character**.
+- Running the lenses **as independent sub-agents in parallel** raises recall through perspective diversity (perspective-diverse verify).
+- **The layer a philosophy lands in depends on its character**: coverage-expansion is a predictable pattern, so it is turned into rules/templates (create skill, P4) and used for **prevention at authoring time** too; answer-vs-spec is a case-by-case judgment that can't be reduced to rules → reproduced **only as an L2 judgment angle**. The former is author, the latter reviewer.
+- **The question sets and few-shots have been reinforced by the 5-year (1,358-comment) classification.** Each lens's question set is derived from actual recurring comments.
+- **Backtesting verified that the lenses reproduce the comments**: answer-vs-spec (P7·P12·P15) and coverage-expansion (P4) reproduce actual human comments, character routing is accurate, and false positives are effectively 0. The bot also adds valid comments humans missed (dead-assertion and physical-value-basis kinds).
+- **coverage-expansion should not merely point out "it's lacking" but propose the cases to add as runnable `evaluate`+SQL** (backtest PoC improvement 1): the bot reproduced the *category*, such as "no negative case", but was weak on the volume of proposing many concrete cases the way bagus-kim does → the lens prompt forces concrete SQL proposals.
 
-## few-shot 앵커 (L2 프롬프트 투입용 실례)
+## Few-shot anchors (real examples to feed into the L2 prompt)
 
-> 정식 few-shot bank(렌즈별 44 엔트리, 5년 마이닝 선별): [few-shot-bank.md](./few-shot-bank.md). 각 엔트리는 상황→지적(실제 인용)→패턴(재사용 규칙)→출처 구조이며 백테스트 시 출처 PR 엔트리를 제외한다. 아래는 대표 발췌.
+> The formal few-shot bank (44 entries per lens, curated from the 5-year mining): [few-shot-bank.md](./few-shot-bank.md). Each entry has the structure situation → comment (actual quote) → pattern (reusable rule) → source, and the source PR's own entry is excluded during backtesting. Below is a representative excerpt.
 
 - **P4**: "prepare, execute 구문을 사용하는 케이스를 추가해 주세요 (Invalid, valid 케이스 추가)" — PR2431, kwonhoil / "scalar subquery in SELECT list - should not run in parallel; ... 추가 시나리오" — PR2497, bagus-kim
 - **P7**: "이전 답지가 올바른 처리로 보여집니다. 위 답지가 어떤 이유로 변경된 건가요?" — PR2464, kwonhoil / "조인순서가 변경된 이유는?" — PR2462, kwonhoil
 - **P6**: "answer file에서 테스트 위치를 확인할 수 있도록 각 주석에 evaluate 구문 추가... 나머지 sql tc도 동일" — PR2501, ssihil
 - **P8**: "join_orderby_skip.sql의 Q130 테스트와 중복" — PR2427, youngjinj / "r_outer_join.sql에 동일한 right outer join 케이스가 존재" — PR2419, zionyun
 
-## author-testcase 선제 개선 피드백 (왕복 근본 축소)
+## Proactive improvement feedback for author-testcase (cutting round-trips at the root)
 
-리뷰 왕복을 줄이는 최선은 애초에 안 틀리게 하는 것. 사람이 가장 자주 지적하는 항목을 `create-sql` 스킬·author-testcase Author 단계에서 선제 방지:
-- 다행 SELECT엔 항상 ORDER BY (P2)
-- 시나리오마다 evaluate 라벨, trace on/off 페어 (P6)
-- CREATE 앞 DROP IF EXISTS, prepare 후 deallocate, 만든 것 전부 cleanup (P5)
-- 이슈 repro의 경계·부정 케이스까지 (P4)
-- 불필요한 힌트·설정·중복 제거, 최소 재현 (P14)
-- 환경/시간 의존 값 대신 불변식만 단언 (P15)
+The best way to reduce review round-trips is to not get it wrong in the first place. Preemptively prevent the items humans comment on most often at the `create-sql` skill / author-testcase Author stage:
+- Always ORDER BY on a multi-row SELECT (P2)
+- An evaluate label per scenario, trace on/off pairs (P6)
+- DROP IF EXISTS before CREATE, deallocate after prepare, clean up everything you created (P5)
+- Cover the boundary and negative cases of the issue repro (P4)
+- Remove needless hints/settings/duplicates, minimal reproduction (P14)
+- Assert only invariants instead of environment/time-dependent values (P15)
 
-## 관찰 (마이닝 부수 발견)
+## Observations (incidental findings from the mining)
 
-- **언어**: 리뷰 코멘트 한국어 90%+ (영어는 junsklee/hyunikn 일부·봇). → review-testcase 코멘트 초안 기본 = 한국어.
-- **리뷰어 편중**: ssihil(결정성·컨벤션·cleanup), kwonhoil(답지 사유·케이스), bagus-kim(케이스 SQL 제안), shparkcubrid(플랜 안정화), youngjinj(인덱스 경로·중복). → L2를 페르소나 렌즈로 분할 시 재현율 향상 여지.
-- **분포 왜곡 주의**: PR2738(NUMERIC draft) 하나가 P7 지적 다수를 생성. 빈도는 PR 편중 감안한 등급(최다/매우높음/높음/중간/낮음)으로 표기.
-- **5년 렌즈 분포**(유효 1,358건): coverage-expansion 247·answer-vs-spec 215·determinism-convention 149·plan-stability 83·미분류 664. 미분류 대부분은 기존 렌즈로 재귀속되며, 여기서 신규 P14(최소성)·P15(불변식 단언)를 발견. 5년 상위 리뷰어: kwonhoil·ssihil·hyunikn·swi0110·youngjinj.
+- **Language**: 90%+ of review comments are in Korean (English is some of junsklee/hyunikn plus the bots). → review-testcase's default comment draft = Korean.
+- **Reviewer skew**: ssihil (determinism, convention, cleanup), kwonhoil (answer rationale, cases), bagus-kim (case SQL proposals), shparkcubrid (plan stabilization), youngjinj (index path, duplication). → Splitting L2 into persona lenses leaves room to improve recall.
+- **Watch for distribution skew**: PR2738 (a NUMERIC draft) alone generated many of the P7 comments. Frequency is expressed as a grade that accounts for PR skew (most frequent / very high / high / medium / low).
+- **5-year lens distribution** (1,358 valid): coverage-expansion 247, answer-vs-spec 215, determinism-convention 149, plan-stability 83, unclassified 664. Most of the unclassified re-attribute to the existing lenses, and it was here that the new P14 (minimality) and P15 (invariant assertion) were discovered. Top 5-year reviewers: kwonhoil, ssihil, hyunikn, swi0110, youngjinj.
 
-## 데이터 출처
+## Data sources
 
-`work/tc-review-mining/`(gitignore). **1년(2025-07~2026-07)**: chunk_0..4.jsonl(사람 라인 600건), greptile.jsonl(118, 봇 대조), issue_human.jsonl(149). **5년(2021-07~2026-07)**: review_comments_5y_raw.json(라인 2,958/사람 2,800), merged_prs_5y.json, 렌즈 버킷(bucket_5y.py로 유효 1,358건 자동 태깅 → 렌즈별 샘플 정제). 백테스트(재현율 측정) 시 같은 데이터가 정답지.
+`work/tc-review-mining/` (gitignored). **1 year (2025-07 to 2026-07)**: chunk_0..4.jsonl (600 human lines), greptile.jsonl (118, bot comparison), issue_human.jsonl (149). **5 years (2021-07 to 2026-07)**: review_comments_5y_raw.json (2,958 lines / 2,800 human), merged_prs_5y.json, lens buckets (auto-tagged to 1,358 valid by bucket_5y.py → per-lens sample refinement). During backtesting (recall measurement), the same data is the ground truth.

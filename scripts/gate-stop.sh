@@ -14,5 +14,5 @@ for m in "$DIR"/CBRD-*/manifest.json; do
   { [ "$det" != true ] || [ "$verdict" != PASS ]; } && pending="$pending $key"
 done
 [ -n "$pending" ] && jq -n --arg p "$pending" \
-  '{hookSpecificOutput:{hookEventName:"Stop",additionalContext:("[Stage2] 미완 TC manifest(게이트 미통과):"+$p+" — 제출 전 결정성/리뷰 게이트를 마저 통과시키세요.")}}'
+  '{hookSpecificOutput:{hookEventName:"Stop",additionalContext:("[Stage2] Incomplete TC manifest(s) (gates not passed):"+$p+" — finish passing the remaining determinism/review gates before submitting.")}}'
 exit 0

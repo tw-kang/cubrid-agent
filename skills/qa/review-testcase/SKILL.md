@@ -19,7 +19,7 @@ Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and 
 
 - **gh** authenticated (`gh pr view <N> --repo CUBRID/cubrid-testcases`).
 - **cubrid-jira** for the issue body — `cubrid-jira search <KEY>` (full markdown) **and `cubrid-jira comment-list <KEY> --output json`** (there is no `show`/`get`). ⚠ Repro/scenario is often **only in comments** (empty description) — read them; that's where P11 (issue intent) lives.
-- **첨부 전부 다운로드+읽기(필수, P11 판정 전).** 의도 시나리오·재현이 첨부에만 있으면 PR 커버리지 판단이 어긋난다. `cubrid-jira attachment <KEY>`(미탑재 시 interim: `cubrid-jira jql 'key=<KEY>' --fields attachment --output json`의 각 `.content` URL을 `curl --netrc -o <file>` — 자격 `.netrc`(jira.cubrid.org) 또는 `-u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD`). **받기 전 `.size` 확인 — >5MB(코어·바이너리 포함)는 curl skip**하고 메타+사유만 기록. 그 외만 받아 텍스트·코드는 정독, 이미지는 Read 멀티모달.
+- **Download + read every attachment (mandatory, before the P11 judgment).** If the intended scenario or the repro lives only in attachments, the PR coverage assessment goes wrong. `cubrid-jira attachment <KEY>` (if that subcommand isn't available yet, interim: for each `.content` URL from `cubrid-jira jql 'key=<KEY>' --fields attachment --output json`, `curl --netrc -o <file>` — credentials via `.netrc` (jira.cubrid.org) or `-u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD`). **Check `.size` before downloading — skip curl for anything >5MB (cores/binaries included)** and record only the metadata + reason. Download only the rest; read text/code closely and open images with Read (multimodal).
 - **Local CTP** for L3 — **$HOME standard** (`./setup.sh` provisions; env via `source ~/.cubrid-agent/env.sh`): `$HOME/CUBRID` (release build), testcases clone = `$CUBRID_TESTCASES` if set else `~/cubrid-testcases`, CTP = `$CTP_HOME` (else `~/CTP` → `~/cubrid-testtools/CTP`). Stock `$CTP_HOME/conf/sql.conf` already targets `${HOME}/cubrid-testcases/sql` (non-default ports). Check out the PR branch as a **git worktree** (don't pollute the clone) and **copy the stock conf with `scenario=` overridden to the worktree** — as-is it verifies the wrong branch.
 - No local build / no CTP env? Run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it).
 
@@ -34,20 +34,20 @@ PR number as arg (default: oldest open SQL TC PR). Author-agnostic.
 
 ## 2. Ground
 - `gh pr diff`/`view` for the diff + body; `[CBRD-XXXXX]` → issue body via `cubrid-jira search <KEY>` **+ `comment-list <KEY> --output json`** (repro may be comment-only) **+ download & read all attachments** (per Before-you-start — intended cases/repro may be attachment-only); fix merge diff in the cubrid repo; corpus search for near-duplicate TCs.
-- **PR-kind classification (D5)** by diff file state: new `cbrd_XXXXX.sql/.answer` **added** = 신규형; existing `.sql`/`.answer` **modified** = 변경형; a PR may be both → apply both lenses.
+- **PR-kind classification (D5)** by diff file state: new `cbrd_XXXXX.sql/.answer` **added** = new-type; existing `.sql`/`.answer` **modified** = modified-type; a PR may be both → apply both lenses.
 - **Mark which cases hit the fix code path** from the fix merge diff (feeds L2/L3, P3).
 
 ## 3. L1 — convention lint (static)
-Reuse the `create-sql` checklist + mining-promoted auto-lint (details in [`references/review-perspectives.md`](./references/review-perspectives.md) 'L1로 승격할 자동 린트'):
+Reuse the `create-sql` checklist + mining-promoted auto-lint (details in [`references/review-perspectives.md`](./references/review-perspectives.md) 'Automatic lint rules to promote to L1'):
 - header block (≤200 chars, English), `evaluate 'Case N'` numbering, DROP-before-CREATE, cleanup (`deallocate prepare`, restore SET), path/naming, English comments, no expected value leaking into comments/SQL.
 - **auto-lint**: multi-row SELECT missing `ORDER BY` (only when a real tie is possible — a unique key or `COUNT(*)`/1-row is exempt), `set trace on`↔`off` imbalance, empty `.queryPlan` vs answer plan output, `evaluate` label missing, `prepare` without `deallocate`.
 
 ## 4. L2 — domain lenses (static, few-shot-driven) — DP1 parallel
 
-Route by PR kind, **run the lenses as parallel subagents (DP1)**; each lens is fed its entries from [`references/few-shot-bank.md`](./references/few-shot-bank.md) + its question set from [`references/review-perspectives.md`](./references/review-perspectives.md) ('L2 페르소나 렌즈'):
-- **신규형 → coverage-expansion** (P4·P8·P9·P14): positive↔negative symmetry, boundary 3-points, combination matrix, sibling concepts, minimality. **Propose concrete `evaluate`+SQL, not just "missing"** (backtest improvement 1).
-- **변경형 → answer-vs-spec** (P7·P11·P12·P15): why did the answer change / was the old one right? execution vs answer consistency? issue-intent match? spec-vs-bug (escalate)? **dead-assertion** (.answer flipped but .sql literal left, e.g. ok→nok) and **.answer_cci pair** updated? (backtest improvements 6·7).
-- **공통 (always) → determinism-convention** (P2·P5·P6·P10) + **plan-stability** (P3·P13) for plan/trace TCs.
+Route by PR kind, **run the lenses as parallel subagents (DP1)**; each lens is fed its entries from [`references/few-shot-bank.md`](./references/few-shot-bank.md) + its question set from [`references/review-perspectives.md`](./references/review-perspectives.md) ('L2 persona lenses'):
+- **new-type → coverage-expansion** (P4·P8·P9·P14): positive↔negative symmetry, boundary 3-points, combination matrix, sibling concepts, minimality. **Propose concrete `evaluate`+SQL, not just "missing"** (backtest improvement 1).
+- **modified-type → answer-vs-spec** (P7·P11·P12·P15): why did the answer change / was the old one right? execution vs answer consistency? issue-intent match? spec-vs-bug (escalate)? **dead-assertion** (.answer flipped but .sql literal left, e.g. ok→nok) and **.answer_cci pair** updated? (backtest improvements 6·7).
+- **common (always) → determinism-convention** (P2·P5·P6·P10) + **plan-stability** (P3·P13) for plan/trace TCs.
 
 **Bot division**: greptile/codex already badge P1(answer)·P3(fix path) — reference/augment, don't re-file; focus L2 on bot-weak P4·P7·P11·P13.
 
