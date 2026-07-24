@@ -12,7 +12,7 @@ Test→Tested("Verify") 전이를 맡는 **판독형 게이트**. 머지된 신�
 | # | 결정 | 값 |
 |---|---|---|
 | D1 | 정체 | 판독형 + 실패시 진단. 진단은 PoC 보류 / Stage2 builder·tester / Stage3 glusterfs 빌드 bisect(방법은 Stage3 인터뷰). 진단 결과는 qahome 기록 |
-| D2 | PoC 시연 | tc-author PoC PR(#3041/#3049) **머지·회귀 편입 후** 실제 판정. 설계는 지금 완결, 실행 시연만 머지 후 |
+| D2 | PoC 시연 | author-testcase PoC PR(#3041/#3049) **머지·회귀 편입 후** 실제 판정. 설계는 지금 완결, 실행 시연만 머지 후 |
 | D3 | 진실 원천 | **qahome**(머지 후 regression). CircleCI=머지 전 검증이라 범위 밖 |
 | D4 | qahome 읽기 | **qaresu DB 직접 쿼리**(`192.168.1.86:33080`, JDBC/CCI). 웹 스크래핑 아님 (ADR 0010) |
 | D5 | 판정 대상 | **신규 TC 안정 PASS만**. 스위트 회귀 무결(다른 TC 영향)은 close-backport로 이관 |

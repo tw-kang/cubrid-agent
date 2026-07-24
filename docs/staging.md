@@ -6,19 +6,19 @@
 
 | 단계 | 형태 | 트리거 | 검증 환경 | Jira | 상태 |
 |---|---|---|---|---|---|
-| **Stage 1 — PoC** | 로컬 Claude Code 세션 | 사람이 세션에서 수동, 게이트마다 확인 | 로컬 CTP (`$HOME/CUBRID`) | 읽기 전용 | tc-author 완료 (PR #3041·#3049) |
+| **Stage 1 — PoC** | 로컬 Claude Code 세션 | 사람이 세션에서 수동, 게이트마다 확인 | 로컬 CTP (`$HOME/CUBRID`) | 읽기 전용 | author-testcase 완료 (PR #3041·#3049) |
 | **Stage 2 — 팀내 수동 트리거** | 로컬 세션 **팀 공유**(스킬+setup.sh+hook) | 팀원이 각자 로컬에서 기동 커맨드 | 로컬 CTP | 읽기 전용 | 1순위 3종 패키징 완료 |
 | **Stage 3 — 무인 자동 서비스** | k8s CronJob → (Indexed) Job | 야간 스케줄 자동 | pod + build-cache overlay (ADR 0001) | 쓰기(전이+코멘트) | **park** |
 
 핵심: Stage 2는 "배포"가 아니라 PoC 로컬 흐름을 **팀이 재현하도록 패키징**한 것. 인프라(k8s·GlusterFS·CronJob)는 전부 Stage 3. Stage 2가 더하는 것은 **품질 게이트의 강제화**(hook)와 **CCI 교차**, 그리고 **팀 셋업 자동화**(setup.sh + [guides/stage2-setup.md](./guides/stage2-setup.md))다.
 
-**에이전트 배포 우선순위**: ① **resolve-gate · tc-author · tc-reviewer** — QA to-do(Resolved) 진입부터 TC PR 머지까지 커버, 팀이 바로 쓸 3종 → ② **test-runner** — 머지 후 qaresu 회귀 판독 → ③ **close-backport** — 종결/백포트. test-runner는 판독형이라 PR 머지 후에야 동작하고, close-backport는 종결 단계라 뒤로 둔다.
+**에이전트 배포 우선순위**: ① **gate-resolved · author-testcase · review-testcase** — QA to-do(Resolved) 진입부터 TC PR 머지까지 커버, 팀이 바로 쓸 3종 → ② **test-runner** — 머지 후 qaresu 회귀 판독 → ③ **close-backport** — 종결/백포트. test-runner는 판독형이라 PR 머지 후에야 동작하고, close-backport는 종결 단계라 뒤로 둔다.
 
 ## Stage 2 구성 (현행)
 
-- **기동 스킬 3종** `.claude/skills/{resolve-gate,tc-author,tc-reviewer}/` — 스킬명 = 에이전트명. 팀과 git으로 공유. 자기완결(스킬은 docs/를 참조하지 않는다 — deployment.md D8).
+- **기동 스킬 3종** `skills/qa/{gate-resolved,author-testcase,review-testcase}/` — 스킬명 = 에이전트명. 팀과 git으로 공유. 자기완결(스킬은 docs/를 참조하지 않는다 — deployment.md D8).
 - **팀 셋업** — `git clone` → `./setup.sh` → 자격 주입. 가이드 [guides/stage2-setup.md](./guides/stage2-setup.md).
-- **하드 게이트 = hook** ([.claude/hooks/](../.claude/hooks/)) — 결정성·fail→pass·리뷰 PASS·CCI·컨벤션 린트가 run manifest로 확인되지 않으면 TC PR 제출 차단.
+- **하드 게이트 = hook** ([hooks/](../hooks/)) — 결정성·fail→pass·리뷰 PASS·CCI·컨벤션 린트가 run manifest로 확인되지 않으면 TC PR 제출 차단.
 - **CCI 교차 검증** — `run_cci`로 재실행, 기본 sql(JDBC) 출력과 다르면 `.answer_cci`.
 - **Jira 읽기 전용** — 전이·코멘트는 Stage 3. Stage 2는 사람이 PR 검토 후 수동 전이.
 - **멱등성** — 결정적 브랜치/PR 이름(`tc/cbrd-XXXXX`), 기존 존재 시 스킵.

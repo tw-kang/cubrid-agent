@@ -1,8 +1,8 @@
-# resolve-gate — 설계 (Resolved QA-readiness 게이트)
+# gate-resolved — 설계 (Resolved QA-readiness 게이트)
 
-**Resolved(=QA to-do) 이슈를 QA가 검토해, 테스트로 삼기 부적합한 것을 `Need Something`(→Handover)로 되돌려보내는 QA-side 진입 게이트.** 통과분은 tc-author 단계로 이어진다. 용어·초점은 [CONTEXT.md](./CONTEXT.md), 구현체는 [`.claude/skills/resolve-gate/`](../../../.claude/skills/resolve-gate/).
+**Resolved(=QA to-do) 이슈를 QA가 검토해, 테스트로 삼기 부적합한 것을 `Need Something`(→Handover)로 되돌려보내는 QA-side 진입 게이트.** 통과분은 author-testcase 단계로 이어진다. 용어·초점은 [CONTEXT.md](./CONTEXT.md), 구현체는 [`skills/qa/gate-resolved/`](../../../skills/qa/gate-resolved/).
 
-근거: resolve 처리 = 그 이슈가 QA 팀의 to-do가 됐다는 뜻. resolve-gate는 이 QA 큐를 검토해, QA가 테스트 플랜을 못 짤 이슈를 개발자에게 되돌린다.
+근거: resolve 처리 = 그 이슈가 QA 팀의 to-do가 됐다는 뜻. gate-resolved는 이 QA 큐를 검토해, QA가 테스트 플랜을 못 짤 이슈를 개발자에게 되돌린다.
 
 ## 확정 결정
 
@@ -10,14 +10,14 @@
 - **D2 주체 = QA 팀/담당자**.
 - **D3 판정 2축**: ① 필요성(QA Scenario 재판정 — 개발자 Not Required도 QA가 뒤집음) ② 작성가능성(test-plannability).
 - **D4 되돌림 = `Need Something` 전이**(Resolved→Handover, 실측). QA Not Satisfied(→Confirmed, fix 부적절)·Ask Reconfirmation(→Open, 이슈 재확인)과 구분.
-- **D5 tc-author 경계 = 앞단 필터**. resolve-gate가 부적격 반송 → 남은 것을 tc-author가 자체 Select(SQL 재현성 등)로 다시 거름. 중복 아님.
+- **D5 author-testcase 경계 = 앞단 필터**. gate-resolved가 부적격 반송 → 남은 것을 author-testcase가 자체 Select(SQL 재현성 등)로 다시 거름. 중복 아님.
 - **D6 단계별 동작**: Select 범위·필드 변경·전이 실행·통과분 처리가 단계(PoC/팀내/자동화)마다 다름(아래 매트릭스).
 - **Check-in Fix(Handover→Resolved)는 범위 밖** — 개발자가 머지 후 직접 전이한다. 매뉴얼은 우선 Resolved 후 추후 작성하기도 하므로 미완성이 Resolved를 막지 않는다.
 
 ## 판정 2축
 
 **① 필요성 — QA Scenario 재판정 (양방향)**
-QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재검토해 바꾸기도 한다. resolve-gate(QA 주체)는 이를 무조건 신뢰하지 않고 필요성을 **양방향으로 재판정**한다.
+QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재검토해 바꾸기도 한다. gate-resolved(QA 주체)는 이를 무조건 신뢰하지 않고 필요성을 **양방향으로 재판정**한다.
 - **승격 (Not Required/Not Yet → 필요)**: crash·core·data-integrity·회귀 위험이면 개발자가 불필요로 뒀어도 필요로 올린다.
 - **하향 (Required → 불필요)**: 테스트 표면이 없으면 필요에서 내린다(예: 26701 — AC가 "빌드 성공"뿐).
 - **선행 — resolution 상태 체크**: Won't-do/Duplicate/Deferred는 QA Scenario·severity와 무관하게 테스트 대상이 아니다 → 필요성 판정 **이전에** 스킵(severity만 보면 오승격 위험).
@@ -33,16 +33,16 @@ QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재
 
 ## 판정 → 전이
 
-- **필요 + 작성가능** → 통과. `Start Test`(→Test)로 tc-author 단계 진행. (필요성 재판정으로 QA Scenario를 Required로 바꿔야 하면 D6 단계에 따라 변경/제안.)
+- **필요 + 작성가능** → 통과. `Start Test`(→Test)로 author-testcase 단계 진행. (필요성 재판정으로 QA Scenario를 Required로 바꿔야 하면 D6 단계에 따라 변경/제안.)
 - **필요 + 작성불가** → **반송 전 sub-task 가드** 후 `Need Something`(→Handover) 반송. **이슈가 sub-task면 부모+형제 sub-task를 먼저 확인** — 형제 중 TC/시나리오 작성을 담당하는 sub-task가 있으면 그 형제가 테스트를 커버하므로 **반송하지 않는다**(스킵/통과 처리). **부모 issuetype도 본다**: refactoring 부모는 동작 무변이라 검증 sub-task가 없는 게 정상이고 구성 sub-task는 전부 Not Required(예: 26653 그룹); 성능/기능 부모는 검증 sub-task가 구현 sub-task를 커버(예: EPIC 26177의 검증 sub-task 26421이 구현 26255를 커버). 개별 sub-task만 보고 반송하면 개발자가 다시 Resolved로 올려 **status 왕복(핑퐁)**이 생긴다. 형제에 TC 담당이 없고 작성도 불가일 때만 반송하며, 부족분(repro 자기완결·Expected/Actual·추상 AC 등)을 코멘트로.
 - **불필요(QA도 동의)** → 테스트 대상 아님. 스킵(QA Scenario 확정).
 
 ## 전이 지도 (실측 — Resolved 이슈 available transitions)
 
-| 전이 | → target | resolve-gate 용도 |
+| 전이 | → target | gate-resolved 용도 |
 |---|---|---|
 | **Need Something** | **Handover** | **되돌림**(테스트 플랜 부족분 보완 요청) |
-| Start Test | Test | 통과분 진행(tc-author 단계) |
+| Start Test | Test | 통과분 진행(author-testcase 단계) |
 | Assign QA | Resolved | QA 배정(제자리) |
 | QA Not Satisfied | Confirmed | (범위 밖) fix 자체가 부적절 → 재분석 |
 | Ask Reconfirmation | Open | (범위 밖) 이슈 재확인 |
@@ -56,7 +56,7 @@ QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재
 |---|---|---|---|---|
 | **PoC (Stage 1)** | QA assignee=twkang | 제안만 | 수동(초안) | 반송만(통과분은 그대로) |
 | **팀내 배포 (Stage 2)** | guava Resolved 전체 | 제안만(수동) | 수동 | 반송(통과분 그대로) |
-| **자동화 (Stage 3)** | guava Resolved 전체 | 직접 변경(cubrid-jira update) | 자동 전이 | tc-author 트리거(Start Test) |
+| **자동화 (Stage 3)** | guava Resolved 전체 | 직접 변경(cubrid-jira update) | 자동 전이 | author-testcase 트리거(Start Test) |
 
 ## 검사 기준 (작성가능성 축)
 
@@ -87,12 +87,12 @@ Select ─► 필요성 판정 ─► 작성가능성 판정 ─► 전이 + 리
 1. **Select** — 단계별 범위(위 매트릭스). cubrid-jira 배치 read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee,parent,subtasks --output json`. **sub-task면 부모·형제 관계도 확보**(반송 가드용).
 2. **필요성 판정** — QA Scenario를 QA 관점에서 재검토(개발자 초안 무관). 불필요(QA 동의)면 스킵.
 3. **작성가능성 판정** — C0~C6(성격 이원화, regression/core 예외). merge diff(cubrid repo)는 스펙 변경 대조 참고.
-4. **전이 + 리포트** — 필요+가능→Start Test(단계별 실행), 필요+불가→Need Something 반송(부족분 코멘트 초안), 불필요→스킵. 리포트는 `~/.cubrid-agent/reports/resolve-gate/`.
+4. **전이 + 리포트** — 필요+가능→Start Test(단계별 실행), 필요+불가→Need Something 반송(부족분 코멘트 초안), 불필요→스킵. 리포트는 `~/.cubrid-agent/reports/gate-resolved/`.
 
-## tc-author와의 관계
+## author-testcase와의 관계
 
-**앞단 필터.** resolve-gate 통과분(필요+가능)이 tc-author 입력. resolve-gate가 부적격을 먼저 Need Something으로 반송해 tc-author 큐 품질을 올린다. tc-author는 자체 Select(SQL 재현성 등)로 다시 거른다(중복 아님, 각자 다른 기준). 조인 키는 이슈 키(`CBRD-XXXXX`).
+**앞단 필터.** gate-resolved 통과분(필요+가능)이 author-testcase 입력. gate-resolved가 부적격을 먼저 Need Something으로 반송해 author-testcase 큐 품질을 올린다. author-testcase는 자체 Select(SQL 재현성 등)로 다시 거른다(중복 아님, 각자 다른 기준). 조인 키는 이슈 키(`CBRD-XXXXX`).
 
 ## 남은 것 / 미룬 것
 
-- **자동화(Stage 3)**: QA Scenario 필드 직접 변경·자동 전이·tc-author 트리거.
+- **자동화(Stage 3)**: QA Scenario 필드 직접 변경·자동 전이·author-testcase 트리거.

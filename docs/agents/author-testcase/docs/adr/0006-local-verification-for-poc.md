@@ -27,7 +27,7 @@ status: accepted (ADR 0001 을 PoC 범위에서 supersede; 배포 단계에는 0
 
 ## 소켓 경로 제약 (재발 방지)
 
-로컬 CUBRID 설치 경로는 반드시 짧아야 한다 — `<CUBRID>/var/CUBRID_SOCK/<sock>` 전체가 108자 이하라야 broker/master가 뜬다. `/tc-author` 스킬은 CUBRID를 짧은 경로(`/home/dev/CUBRID`)에 설치해야 한다. (배포 단계 pod는 build-cache overlay 마운트라 무관 — ADR 0001.)
+로컬 CUBRID 설치 경로는 반드시 짧아야 한다 — `<CUBRID>/var/CUBRID_SOCK/<sock>` 전체가 108자 이하라야 broker/master가 뜬다. `/author-testcase` 스킬은 CUBRID를 짧은 경로(`/home/dev/CUBRID`)에 설치해야 한다. (배포 단계 pod는 build-cache overlay 마운트라 무관 — ADR 0001.)
 
 ## 포트 / JDK
 

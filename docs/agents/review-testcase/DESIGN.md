@@ -1,6 +1,6 @@
-# tc-reviewer — 설계 (cubrid-agent)
+# review-testcase — 설계 (cubrid-agent)
 
-cubrid-testcases의 sql TC PR을 심사하는 **평가형 횡단 에이전트**. 사람 리뷰어의 병목(왕복)을 줄이는 첫 리뷰어. 용어·위치는 [CONTEXT.md](./CONTEXT.md), 구현체는 [`.claude/skills/tc-reviewer/`](../../../.claude/skills/tc-reviewer/) — 관점 정본·few-shot bank는 스킬 `references/`에 내장(자기완결, deployment.md D8).
+cubrid-testcases의 sql TC PR을 심사하는 **평가형 횡단 에이전트**. 사람 리뷰어의 병목(왕복)을 줄이는 첫 리뷰어. 용어·위치는 [CONTEXT.md](./CONTEXT.md), 구현체는 [`skills/qa/review-testcase/`](../../../skills/qa/review-testcase/) — 관점 정본·few-shot bank는 스킬 `references/`에 내장(자기완결, deployment.md D8).
 
 ## 범위
 
@@ -50,26 +50,26 @@ Select ─► Ground ─► L1 ─► L2 ─► L3 ─► Verdict ─► 리뷰 
 3. **L1→L2→L3** — 위 3층. L2 렌즈는 병렬 서브에이전트(DP1). L3는 변경된 케이스 파일 각각에 수행.
 4. **Verdict** — **blocker**(실행 실패·answer 불일치·비결정·기대값이 이슈/스펙과 모순)→NEEDS-WORK / **major**(fix 경로 미커버·격리 위반·실질 중복)→NEEDS-WORK / **minor**(컨벤션·스타일·러닝타임)→READY-TO-MERGE 가능(지적 포함).
 5. **리뷰 초안** — 라인 코멘트(파일:라인+지적+근거) + 종합(판정·검증 빌드·실행 증거). **게시 볼륨: blocker/major 우선, minor는 묶어 '참고'로**(minor 남발은 소음). 사람이 검토 후 게시.
-6. **리포트** — `~/.cubrid-agent/reports/tc-reviewer/PR-NNNN.md`: 층별 결과, 실행 로그 요약, 판정 근거.
+6. **리포트** — `~/.cubrid-agent/reports/review-testcase/PR-NNNN.md`: 층별 결과, 실행 로그 요약, 판정 근거.
 
 ## 근거 — 실측 (CUBRID/cubrid-testcases, 1년 창)
 
 | 항목 | 값 | 설계 반영 |
 |---|---|---|
-| 머지 PR | 381건 (사람 작성 대다수 + sync 봇 38) | 물량 = 주 ~7건, tc-author 가세 시 증가 |
+| 머지 PR | 381건 (사람 작성 대다수 + sync 봇 38) | 물량 = 주 ~7건, author-testcase 가세 시 증가 |
 | 머지 소요 | 중앙값 3.8일, p75 11일, p90 25.8일, 30일 초과 31건 | 병목은 첫 리뷰(중앙값 0.3일)가 아니라 **왕복** — 봇이 왕복 소재를 선제 제거 |
 | 사람 라인 코멘트 | 600건 / 87 PR (전체의 23%) | L2 관점의 원천(마이닝 대상) |
 | 리뷰 제출 | approve 904 / commented 523 / changes-requested 1 | 반려는 공식 상태가 아닌 코멘트로 이뤄지는 문화 → 봇도 코멘트 기반 권고 |
 | greptile 봇 | 라인 코멘트 149건(1년) | 범용 지적은 이미 존재 → L2·L3가 차별화 |
 
-**마이닝 산출 3가지**: ① 봇 분업 경계(P1/P3은 봇 커버 → L2는 봇 약한 관점 집중) ② L1 자동 린트 승격(반복 기계 지적의 규칙화) ③ tc-author 선제 개선 피드백(최다 지적을 create 단계에서 방지 → 왕복 근본 축소). 원본 데이터: `work/tc-review-mining/`(dev 로컬, gitignore) — 백테스트 정답지로도 사용.
+**마이닝 산출 3가지**: ① 봇 분업 경계(P1/P3은 봇 커버 → L2는 봇 약한 관점 집중) ② L1 자동 린트 승격(반복 기계 지적의 규칙화) ③ author-testcase 선제 개선 피드백(최다 지적을 create 단계에서 방지 → 왕복 근본 축소). 원본 데이터: `work/tc-review-mining/`(dev 로컬, gitignore) — 백테스트 정답지로도 사용.
 
 **백테스트로 검증됨**(머지 PR의 리뷰-전 diff를 blind 심사해 사람 지적과 대조): 성격 라우팅 정확, 사람 핵심 지적 재현, 오탐 실질 0, 봇이 사람 미지적 valid 지적 추가(死단언·물리값 근거·`LIMIT` 동률 절단 등). 한계: 리뷰-전=첫 커밋 스냅샷이라 후속 커밋 반영 지적은 미가시(실운영은 PR open 시점이라 무관). **라이브 검증됨**(실 PR): L3 로컬 실행이 정적 diff로 안 보이는 blocker(`.sql` 라벨만 고치고 `.answer` 미재생성 → 결정적 Fail)를 확증 — L3의 차별 가치.
 
-## tc-author와의 관계
+## author-testcase와의 관계
 
-- tc-author **Submit의 다음 단계**가 tc-reviewer 심사다(봇 PR도 예외 없음 — 내부 self-review와 별개의 fresh-context 심사).
-- **관점 카탈로그 공유**: L2 카탈로그(스킬 references/)는 tc-author Review lane의 체크리스트로도 쓰인다. 카탈로그가 좋아지면 작성 품질도 같이 올라간다.
+- author-testcase **Submit의 다음 단계**가 review-testcase 심사다(봇 PR도 예외 없음 — 내부 self-review와 별개의 fresh-context 심사).
+- **관점 카탈로그 공유**: L2 카탈로그(스킬 references/)는 author-testcase Review lane의 체크리스트로도 쓰인다. 카탈로그가 좋아지면 작성 품질도 같이 올라간다.
 
 ## 열린 질문
 

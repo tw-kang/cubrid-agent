@@ -1,6 +1,6 @@
 #!/bin/bash
 # Stage 2 hard gate — block TC PR submission until the run manifest confirms every gate.
-# Event: PreToolUse / Bash. Manifest: $HOME/.cubrid-agent/<CBRD-XXXXX>/manifest.json (written by tc-author).
+# Event: PreToolUse / Bash. Manifest: $HOME/.cubrid-agent/<CBRD-XXXXX>/manifest.json (written by author-testcase).
 # Trusted-teammate guardrail: catches a skipped gate, not adversarial bypass.
 set -u
 
@@ -20,7 +20,7 @@ KEY=$(printf '%s' "$COMMAND" | grep -oiE 'tc/cbrd-[0-9]+' | head -1 | grep -oiE 
 [ -n "$KEY" ] || deny "TC PR 제출 게이트: 명령에서 tc/cbrd-XXXXX 브랜치를 못 찾음(--head tw-kang:tc/cbrd-XXXXX 형식 필요)."
 
 MANIFEST="$HOME/.cubrid-agent/$KEY/manifest.json"
-[ -f "$MANIFEST" ] || deny "TC PR 제출 게이트: $KEY manifest 없음($MANIFEST). tc-author가 게이트 결과를 기록해야 제출 가능."
+[ -f "$MANIFEST" ] || deny "TC PR 제출 게이트: $KEY manifest 없음($MANIFEST). author-testcase가 게이트 결과를 기록해야 제출 가능."
 
 det=$(jq -r '.verify.determinism.all_pass // false' "$MANIFEST")
 ftp=$(jq -r '.verify.fail_to_pass.status // "missing"' "$MANIFEST")

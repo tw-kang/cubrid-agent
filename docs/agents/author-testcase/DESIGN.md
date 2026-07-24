@@ -1,15 +1,15 @@
-# tc-author — 설계 (cubrid-agent)
+# author-testcase — 설계 (cubrid-agent)
 
-Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·검증·리뷰하고 upstream Draft PR까지 제출하는 agent. 용어는 [CONTEXT.md](./CONTEXT.md), 주요 결정 근거는 [docs/adr/](./docs/adr/), 구현체는 [`.claude/skills/tc-author/`](../../../.claude/skills/tc-author/)(기동 `/tc-author [N | CBRD-XXXXX]`).
+Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·검증·리뷰하고 upstream Draft PR까지 제출하는 agent. 용어는 [CONTEXT.md](./CONTEXT.md), 주요 결정 근거는 [docs/adr/](./docs/adr/), 구현체는 [`skills/qa/author-testcase/`](../../../skills/qa/author-testcase/)(기동 `/author-testcase [N | CBRD-XXXXX]`).
 
-**추적 이슈**: [CUBRIDQA-1429](http://jira.cubrid.org/browse/CUBRIDQA-1429) — 진행 현황을 이슈 description에 지속 반영한다. 원문은 `docs/agents/tc-author/docs/jira/CUBRIDQA-1429-description.jira`에서 관리하고, 갱신은 `cubrid-jira update CUBRIDQA-1429 --description-file docs/agents/tc-author/docs/jira/CUBRIDQA-1429-description.jira --from jira --yes`로 수행한다(사본이 raw Jira wiki markup이라 `--from jira` 필수 — 기본 markdown 변환은 pandoc jira writer(≥2.9)를 요구해 EL8 pandoc 2.0.6에서 실패). (CUBRIDQA 프로젝트는 익명 읽기 불가 — 이 파일이 사실상의 사본이다.)
+**추적 이슈**: [CUBRIDQA-1429](http://jira.cubrid.org/browse/CUBRIDQA-1429) — 진행 현황을 이슈 description에 지속 반영한다. 원문은 `docs/agents/author-testcase/docs/jira/CUBRIDQA-1429-description.jira`에서 관리하고, 갱신은 `cubrid-jira update CUBRIDQA-1429 --description-file docs/agents/author-testcase/docs/jira/CUBRIDQA-1429-description.jira --from jira --yes`로 수행한다(사본이 raw Jira wiki markup이라 `--from jira` 필수 — 기본 markdown 변환은 pandoc jira writer(≥2.9)를 요구해 EL8 pandoc 2.0.6에서 실패). (CUBRIDQA 프로젝트는 익명 읽기 불가 — 이 파일이 사실상의 사본이다.)
 
 **롤아웃**: 현재 Stage 2(팀내 수동 트리거). 단계 모델은 [staging.md](../../staging.md), 근거는 [ADR 0007](../../adr/0007-rollout-stages.md).
 
 ## 범위
 
 - **대상 카테고리**: SQL만 (`cubrid-testcases/sql`). shell/medium/CCI 등은 이후.
-- **실행 형태**: Claude Code 스킬(`/tc-author`) — 사람이 세션에서 기동. headless/cron은 Stage 3.
+- **실행 형태**: Claude Code 스킬(`/author-testcase`) — 사람이 세션에서 기동. headless/cron은 Stage 3.
 - **Jira는 읽기 전용**. PR 링크·처리 결과는 리포트에만 기록.
 
 ## 확정 결정
@@ -101,7 +101,7 @@ Select ─► Ground ─► ┌── Author ──► Verify ──► Review �
 
 **fail→pass 회귀 계약 (ADR 0007)**: 승격·결정성만으로는 "버그를 실제로 잡는지" 증명이 안 된다. fix **이전** 빌드를 설치해 같은 TC가 **FAIL**함을 실측한다. 결정적 버그는 명확히 FAIL, race 버그는 반복 실행 best-effort + 한계를 리뷰·PR에 명시. **함정(ADR 0009)**: `taskset` ≤2코어는 `system_core_count`(affinity-aware)로 병렬 자체가 disable — **≥4코어**로. pre-fix 빌드를 못 구하면 이슈 Repro/Expected로 근거화하고 리포트에 남긴다.
 
-**CCI 교차 검증**: 같은 `.sql`을 `run_cci`로 재실행, 기본 sql(JDBC) 출력과 다르면 `.answer_cci`. 게이트(결정성·fail→pass·리뷰·CCI·린트)는 hook이 run manifest로 강제한다(`.claude/hooks/`).
+**CCI 교차 검증**: 같은 `.sql`을 `run_cci`로 재실행, 기본 sql(JDBC) 출력과 다르면 `.answer_cci`. 게이트(결정성·fail→pass·리뷰·CCI·린트)는 hook이 run manifest로 강제한다(`hooks/`).
 
 ### 5. Review — 분리 lane 품질 평가
 
@@ -129,7 +129,7 @@ fresh-context 리뷰 서브에이전트에 이슈 본문, fix diff 요약, `.sql
 
 ### 8. 리포트
 
-`~/.cubrid-agent/reports/tc-author/CBRD-XXXXX.md`: 선정 근거(필드 값·repro 위치), Ground 요약(fix PR/커밋), 루프 회차별 이력(검증 결과·리뷰 지적·반영 내용), 최종 PR 링크 또는 스킵 사유.
+`~/.cubrid-agent/reports/author-testcase/CBRD-XXXXX.md`: 선정 근거(필드 값·repro 위치), Ground 요약(fix PR/커밋), 루프 회차별 이력(검증 결과·리뷰 지적·반영 내용), 최종 PR 링크 또는 스킵 사유.
 
 ## 프로젝트 구조
 
@@ -156,7 +156,7 @@ repo 구조·에이전트 배치의 정본은 [CONTEXT-MAP.md](../../../CONTEXT-
 
 - **검출력 한계**: CBRD-26799 TC는 재발을 확률적으로만 잡는다. Author는 반복 rebuild·데이터 패턴 조정으로 검출력 증폭을 시도하고, 리뷰는 검출력을 평가 항목으로 삼으며, 한계는 PR Remarks에 명시한다 (ADR 0004).
 - **대기열 소진**: 현 필터로는 대상이 없다. Select 조건 확장(다른 planned version, 다른 QA Assignee 등)은 사용자와 재논의 사항.
-- **로컬 검증 env 재현성**: env는 `./setup.sh`가 멱등 수립(`~/.cubrid-agent/env.sh`)하고 `/tc-author`가 매 run 시작 시 전제를 확인한다.
+- **로컬 검증 env 재현성**: env는 `./setup.sh`가 멱등 수립(`~/.cubrid-agent/env.sh`)하고 `/author-testcase`가 매 run 시작 시 전제를 확인한다.
 - **debug/release 차이**: 로컬은 release 단일로 진행하므로, 이슈 재현이 debug assertion에 의존하는 경우에만 `-debug.sh`를 추가 설치한다. `.answer`는 항상 release로 확정.
 
 ## 미룬 것 (backlog)

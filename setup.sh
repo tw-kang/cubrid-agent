@@ -1,14 +1,11 @@
 #!/bin/bash
 # cubrid-agent Stage 2 setup — Tier 2(머신 상태)를 $HOME 표준으로 프로비저닝.
-# 모델·결정: docs/deployment.md (3티어, $HOME 런타임 표준), ADR 0011(부품 스킬 clone+심링크).
+# 모델·결정: docs/deployment.md (3티어, $HOME 런타임 표준), ADR 0014(부품 스킬 흡수·플러그인 재패키징).
 # 멱등·비대화식 — 재실행 안전, 기존 clone은 절대 건드리지 않음(없을 때만 생성).
 # Stage 3 컨테이너에서 RUN ./setup.sh 재사용 가능.
 # 하지 않는 것: sudo가 필요한 CLI 설치(명령만 안내), 자격 주입(Tier 3 — 사람 몫).
 set -u
 
-SKILLS_URL="https://github.com/tw-kang/skills.git"
-SKILLS_DIR="$HOME/skills"
-PART_SKILLS="cubrid-sql-tc-create cubrid-sql-tc-verify"
 AGENT_DIR="$HOME/.cubrid-agent"
 BUILD_URL=""
 [ "${1:-}" = "--build" ] && BUILD_URL="${2:?사용법: ./setup.sh [--build <build-url>]}"
@@ -22,20 +19,8 @@ echo "== 필수 도구 =="
 for c in git jq grep; do command -v "$c" >/dev/null || fail "$c 없음(필수)"; done
 ok "git / jq / grep"
 
-echo "== 부품 스킬 — tw-kang/skills clone + 심링크 (ADR 0011) =="
-if [ -d "$SKILLS_DIR/.git" ]; then
-  if git -C "$SKILLS_DIR" pull --ff-only >/dev/null 2>&1; then ok "skills pull ($SKILLS_DIR)"
-  else todo "skills pull 실패(로컬 변경/네트워크) — git -C $SKILLS_DIR status 확인"; fi
-else
-  git clone "$SKILLS_URL" "$SKILLS_DIR" >/dev/null 2>&1 || fail "skills clone 실패: $SKILLS_URL"
-  ok "skills clone → $SKILLS_DIR"
-fi
-mkdir -p "$HOME/.claude/skills"
-for s in $PART_SKILLS; do
-  [ -d "$SKILLS_DIR/$s" ] || fail "skills repo에 $s 없음"
-  ln -sfn "$SKILLS_DIR/$s" "$HOME/.claude/skills/$s"
-done
-ok "심링크: $PART_SKILLS → ~/.claude/skills/"
+echo "== 부품 스킬 — 이 repo(플러그인)에 내장 (ADR 0014) =="
+ok "스킬은 skills/qa/ 에 포함 — Claude Code는 'claude plugin install', 기타 CLI는 'npx skills add'(README 참조). clone+심링크 불필요."
 
 echo "== \$HOME 표준 자산 — 없을 때만 clone (기존 clone 불가침) =="
 clone_if_absent() { # <url> <dir> [extra git-clone args...]
@@ -64,7 +49,7 @@ fi
 # conf 사본 불필요: CTP 원본 sql.conf·sql_by_cci.conf가 이미 scenario=${HOME}/cubrid-testcases/sql, 비기본 포트
 
 echo "== 실행 산출물 디렉토리 — \$HOME/.cubrid-agent =="
-mkdir -p "$AGENT_DIR/reports/resolve-gate" "$AGENT_DIR/reports/tc-author" "$AGENT_DIR/reports/tc-reviewer" "$AGENT_DIR/worktrees"
+mkdir -p "$AGENT_DIR/reports/gate-resolved" "$AGENT_DIR/reports/author-testcase" "$AGENT_DIR/reports/review-testcase" "$AGENT_DIR/worktrees"
 ok "$AGENT_DIR/{<CBRD-XXXXX>/manifest.json, reports/, worktrees/}"
 
 echo "== env — JDK 탐지 + ~/.cubrid-agent/env.sh 생성 =="

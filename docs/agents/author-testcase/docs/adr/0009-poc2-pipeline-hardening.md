@@ -1,7 +1,7 @@
 # ADR 0009 — PoC 2호(CBRD-26799)에서 얻은 파이프라인 보강
 
 - 상태: 채택 (2026-07)
-- 범위: tc-author. 스킬 `cubrid-sql-tc-create`/`cubrid-sql-tc-verify`에 동시 반영.
+- 범위: author-testcase. 스킬 `cubrid-sql-tc-create`/`cubrid-sql-tc-verify`에 동시 반영.
 - 관련: [0004](0004-probabilistic-repro-accepted.md)(확률적 repro), [0006](0006-local-verification-for-poc.md)(로컬 검증), [../../../adr/0007-rollout-stages.md](../../../../adr/0007-rollout-stages.md)(fail→pass).
 
 ## 배경

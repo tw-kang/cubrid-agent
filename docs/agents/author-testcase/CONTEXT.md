@@ -1,4 +1,4 @@
-# tc-author (Resolved → Test) — 도메인 용어집
+# author-testcase (Resolved → Test) — 도메인 용어집
 
 Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·검증하고 PR까지 제출하는 agent bot의 컨텍스트. PoC 범위는 SQL 카테고리 단일 파이프라인이다.
 
@@ -52,7 +52,7 @@ Run이 이슈별로 남기는 처리 기록 — 선정 근거, 루프 이력, �
 
 ### Jira 개념
 
-> 공유 Jira 필드 용어(**Planned Version**·**QA Assignee**·**QA Scenario**)는 [CONTEXT-MAP](../../../CONTEXT-MAP.md) 용어표로 승격됨 — 여기서는 tc-author 고유 해석만 둔다.
+> 공유 Jira 필드 용어(**Planned Version**·**QA Assignee**·**QA Scenario**)는 [CONTEXT-MAP](../../../CONTEXT-MAP.md) 용어표로 승격됨 — 여기서는 author-testcase 고유 해석만 둔다.
 
 **Scenario Required**:
 QA Scenario=Required인 이슈. TC를 만들어야 한다는 공식 신호. Not Yet(판단 보류)인 이슈도 Select 대상이며, 이때 봇의 TC 초안은 판단 재료 역할을 한다. Not Required만 제외된다.
@@ -97,4 +97,4 @@ _Avoid_: 회귀 검증(막연한 표현), 검출력(그 확률은 별개 개념)
 **CCI 교차 검증**:
 CTP 공식 9단계 step 6 — `run_cci`로 CCI 드라이버로도 실행해 기본 sql(JDBC) 결과와 다르면 `.answer_cci`를 두는 것. Stage 2부터.
 
-> **하드 게이트**(전역 — 정본 [.claude/hooks/README.md](../../../.claude/hooks/README.md)·[`.claude/hooks/`](../../../.claude/hooks/))와 **신뢰 빌드**([CONTEXT-MAP](../../../CONTEXT-MAP.md) 용어표 승격)는 전역 정본을 따른다 — 여기 재정의하지 않는다.
+> **하드 게이트**(전역 — 정본 [docs/stage2-hook-gates.md](../../../docs/stage2-hook-gates.md)·[`hooks/`](../../../hooks/))와 **신뢰 빌드**([CONTEXT-MAP](../../../CONTEXT-MAP.md) 용어표 승격)는 전역 정본을 따른다 — 여기 재정의하지 않는다.
