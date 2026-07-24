@@ -1,11 +1,11 @@
 ---
 name: verify-cci
-description: "Run one CUBRID CTP CCI testcase on this machine, judge OK/NOK, and on failure diagnose the root cause. Use whenever someone wants to physically run a specific CCI test and know whether it passes and why — Korean: \"cci tc 돌려봐\", \"cci 테스트 실행\", \"cci tc 수행\", \"패스하는지 확인\", \"검증해줘\", \"실패 원인 알려줘\"; English: \"run cci test\", \"execute cci tc\", \"verify cci\", \"check if it passes\". A CUBRID build URL alongside a CCI test name or path is a strong signal — invoke this skill. NOT for: creating new CCI tests (use create-cci), or running whole CCI regression suites."
+description: "Run one CUBRID CTP CCI testcase on this machine, judge PASS/FAIL, and on failure diagnose the root cause. Use whenever someone wants to physically run a specific CCI test and know whether it passes and why — Korean: \"cci tc 돌려봐\", \"cci 테스트 실행\", \"cci tc 수행\", \"패스하는지 확인\", \"검증해줘\", \"실패 원인 알려줘\"; English: \"run cci test\", \"execute cci tc\", \"verify cci\", \"check if it passes\". A CUBRID build URL alongside a CCI test name or path is a strong signal — invoke this skill. NOT for: creating new CCI tests (use create-cci), or running whole CCI regression suites."
 ---
 
 # CCI Testcase Verifier (CTP)
 
-Run a single CTP CCI testcase, report OK/NOK, and — when it fails — diagnose *why* from the evidence the run leaves behind. "Verify" means all three: **run → judge → diagnose**, not just execute.
+Run a single CTP CCI testcase, report PASS/FAIL, and — when it fails — diagnose *why* from the evidence the run leaves behind. "Verify" means all three: **run → judge → diagnose**, not just execute.
 
 ## Scope
 

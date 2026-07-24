@@ -1,11 +1,11 @@
 ---
 name: verify-ha-shell
-description: "Run one CUBRID CTP HA shell testcase on a configured master+slave pair, judge OK/NOK, and on failure diagnose the root cause across both nodes. Use whenever someone wants to physically run a specific HA shell test and know whether it passes and why — Korean: \"ha shell tc 돌려봐\", \"ha shell 테스트 실행\", \"수행해줘\", \"패스하는지 확인\", \"검증해줘\", \"실패 원인 알려줘\"; English: \"run ha shell test\", \"verify\", \"check if it passes\". NOT for: creating/editing HA tests (use create-ha-shell), single-node shell tests (use verify-shell), or whole regression suites."
+description: "Run one CUBRID CTP HA shell testcase on a configured master+slave pair, judge PASS/FAIL, and on failure diagnose the root cause across both nodes. Use whenever someone wants to physically run a specific HA shell test and know whether it passes and why — Korean: \"ha shell tc 돌려봐\", \"ha shell 테스트 실행\", \"수행해줘\", \"패스하는지 확인\", \"검증해줘\", \"실패 원인 알려줘\"; English: \"run ha shell test\", \"verify\", \"check if it passes\". NOT for: creating/editing HA tests (use create-ha-shell), single-node shell tests (use verify-shell), or whole regression suites."
 ---
 
 # HA Shell Testcase Verifier (CTP)
 
-Run a single CTP HA shell testcase, report OK/NOK, and — when it fails — diagnose *why* from the evidence both nodes leave behind. "Verify" means all three: **run → judge → diagnose**, not just execute.
+Run a single CTP HA shell testcase, report PASS/FAIL, and — when it fails — diagnose *why* from the evidence both nodes leave behind. "Verify" means all three: **run → judge → diagnose**, not just execute.
 
 ## Scope
 

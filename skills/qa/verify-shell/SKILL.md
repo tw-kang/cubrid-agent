@@ -1,11 +1,11 @@
 ---
 name: verify-shell
-description: "Run one CUBRID CTP shell testcase on this machine, judge OK/NOK, and on failure diagnose the root cause. Use whenever someone wants to physically run a specific shell test and know whether it passes and why — Korean: \"돌려봐\", \"수행해줘\", \"실행해봐\", \"패스하는지 확인\", \"검증해줘\", \"실패 원인 알려줘\"; English: \"run\", \"execute\", \"verify\", \"check if it passes\". A CUBRID build URL alongside a test name or .sh path is a strong signal — invoke this skill. NOT for: reviewing/editing test code, creating new tests, exclusion lists, or whole regression suites (a multi-failure bisect report is a different job)."
+description: "Run one CUBRID CTP shell testcase on this machine, judge PASS/FAIL, and on failure diagnose the root cause. Use whenever someone wants to physically run a specific shell test and know whether it passes and why — Korean: \"돌려봐\", \"수행해줘\", \"실행해봐\", \"패스하는지 확인\", \"검증해줘\", \"실패 원인 알려줘\"; English: \"run\", \"execute\", \"verify\", \"check if it passes\". A CUBRID build URL alongside a test name or .sh path is a strong signal — invoke this skill. NOT for: reviewing/editing test code, creating new tests, exclusion lists, or whole regression suites (a multi-failure bisect report is a different job)."
 ---
 
 # Shell Testcase Verifier (CTP)
 
-Run a single CTP shell testcase, report OK/NOK, and — when it fails — diagnose *why* from the evidence the run leaves behind. "Verify" means all three: **run → judge → diagnose**, not just execute.
+Run a single CTP shell testcase, report PASS/FAIL, and — when it fails — diagnose *why* from the evidence the run leaves behind. "Verify" means all three: **run → judge → diagnose**, not just execute.
 
 ## Scope
 

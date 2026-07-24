@@ -1,11 +1,11 @@
 ---
 name: verify-jdbc
-description: "Run one CUBRID JDBC testcase (a standard JUnit 4 class) on this machine, judge OK/NOK, and on failure diagnose the root cause. Use whenever someone wants to physically run a specific JDBC test and know whether it passes and why — Korean: \"jdbc tc 돌려봐\", \"jdbc 테스트 실행\", \"jdbc tc 수행\", \"패스하는지 확인\", \"검증해줘\", \"실패 원인 알려줘\"; English: \"run jdbc test\", \"execute jdbc tc\", \"verify\", \"check if it passes\". A CUBRID build URL alongside a JDBC test path is a strong signal — invoke this skill. NOT for: creating JDBC tests (use create-jdbc) or running the full JDBC regression suite."
+description: "Run one CUBRID JDBC testcase (a standard JUnit 4 class) on this machine, judge PASS/FAIL, and on failure diagnose the root cause. Use whenever someone wants to physically run a specific JDBC test and know whether it passes and why — Korean: \"jdbc tc 돌려봐\", \"jdbc 테스트 실행\", \"jdbc tc 수행\", \"패스하는지 확인\", \"검증해줘\", \"실패 원인 알려줘\"; English: \"run jdbc test\", \"execute jdbc tc\", \"verify\", \"check if it passes\". A CUBRID build URL alongside a JDBC test path is a strong signal — invoke this skill. NOT for: creating JDBC tests (use create-jdbc) or running the full JDBC regression suite."
 ---
 
 # JDBC Testcase Verifier (CTP)
 
-Run a single CUBRID JDBC testcase (a JUnit 4 class) through CTP, report OK/NOK, and — when it fails — diagnose *why*. "Verify" means all three: **run → judge → diagnose**.
+Run a single CUBRID JDBC testcase (a JUnit 4 class) through CTP, report PASS/FAIL, and — when it fails — diagnose *why*. "Verify" means all three: **run → judge → diagnose**.
 
 CTP's `JdbcLocalTest` runner has **no single-case filter** — it compiles and runs *every* `.java` in the scenario dir. So to verify one TC, run it inside a **one-case temporary scenario** (default), falling back to a direct JUnit run when its dependencies are awkward to copy.
 
