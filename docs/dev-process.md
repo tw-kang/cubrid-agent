@@ -1,6 +1,6 @@
 # Dev Process v2.4 (CUBRID) — 요약
 
-> 사내 자료 `DevProcess-v2.4.pdf`(대부분 도식)의 텍스트 요약. 원본 PDF는 gitignore(로컬 보관). 우리 4-에이전트가 이 워크플로의 어느 전이를 맡는지는 [../../CONTEXT-MAP.md](../../CONTEXT-MAP.md).
+> 사내 자료 `DevProcess-v2.4.pdf`(대부분 도식)의 텍스트 요약. 원본 PDF는 gitignore(로컬 보관). 우리 4-에이전트가 이 워크플로의 어느 전이를 맡는지는 [CONTEXT.md](../CONTEXT.md).
 
 ## Jira 워크플로 (상태)
 
@@ -42,6 +42,6 @@ Open → Confirmed → Analysis → Develop → Handover → Resolved → Test �
 ## 우리 프로젝트와의 접점
 
 - cubrid-agent 4 에이전트 = **QA-side 자동화**: gate-resolved(Resolved QA-readiness 검토 → 부적격 `Need Something`으로 Handover 반송), author-testcase(Resolved→Test), test-runner(Test→Tested), close-backport(Tested→Closed/Backport). **Check-in Fix(Handover→Resolved)는 개발자 몫**, dev-side(Open~Develop)는 범위 밖.
-- **QA 시나리오 필드** = author-testcase Select 게이트(ADR 0002)의 공식 출처.
+- **QA 시나리오 필드** = author-testcase Select 게이트(CUBRIDQA-1429)의 공식 출처.
 - **리포트 = QA home**(repo 아님) → reports/ 커밋 제외 결정과 정합.
 - **Merge 규칙** = 우리 PR/커밋 규칙. **build/test=CircleCI** = Stage 3 자동화 접점.

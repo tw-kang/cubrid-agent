@@ -86,7 +86,7 @@ Per CTP category, a `create-<cat>` / `verify-<cat>` pair:
 - **`git`, `jq`** — used by the hook gates and skills.
 - **A local CUBRID build + CTP** — required by the `verify-*` skills and the
   verify stage of `author-testcase`. `/setup-cubrid-agent` provisions these; see
-  also `docs/guides/stage2-setup.md`.
+  also `docs/setup.md`.
 - The Stage-2 hooks only act on CUBRID testcase PRs (`gh pr create` against
   `cubrid-testcases`); they leave every other command alone.
 

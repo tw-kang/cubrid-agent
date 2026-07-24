@@ -1,6 +1,6 @@
 # 공통 설계 원칙 (cubrid-agent 전역)
 
-모든 에이전트의 설계·구현에 공통 적용되는 원칙. 개별 에이전트 `DESIGN.md`는 이 원칙을 **전제**하고, 각자의 적용 지점만 명시한다. 파이프라인 지도는 [../CONTEXT-MAP.md](../CONTEXT-MAP.md).
+모든 에이전트의 설계·구현에 공통 적용되는 원칙. 각 에이전트의 설계(Jira 티켓)는 이 원칙을 **전제**하고, 각자의 적용 지점만 명시한다. 파이프라인 지도는 [../CONTEXT.md](../CONTEXT.md).
 
 ## DP1 — 병렬 실행 (동시성·속도)
 
@@ -39,10 +39,10 @@ TC·테스트 시나리오는 **내부 구현이 아니라 사용자가 관측�
 
 ## DP3 — 언어 정책 (배포 대상 영문 · 미배포 한글)
 
-재패키징([ADR 0014](./adr/0014-repackage-as-plugin.md))으로 이 repo가 외부로 나가는 플러그인·스킬이 되면서, 무엇을 영문/한글로 쓸지 규약을 고정한다. **배포 대상(외부·타 CLI·마켓플레이스로 나가는 것)은 영문, 배포 미대상(팀·개발자만 읽는 것)은 한글.**
+재패키징([ADR 0001](./adr/0001-repackage-as-plugin.md))으로 이 repo가 외부로 나가는 플러그인·스킬이 되면서, 무엇을 영문/한글로 쓸지 규약을 고정한다. **배포 대상(외부·타 CLI·마켓플레이스로 나가는 것)은 영문, 배포 미대상(팀·개발자만 읽는 것)은 한글.**
 
 - **영문(배포 대상)**: 스킬 `SKILL.md`(`name`·`description`·본문·`references/`·`evals/`), 플러그인 매니페스트(`.claude-plugin/`), `hooks/`·`scripts/`, 루트 `README`·`CHANGELOG`·`LICENSE`·`package.json`.
-- **한글(배포 미대상)**: `docs/`(ADR·설계·staging·deployment·guides), `AGENTS.md`·`CONTEXT-MAP.md`, Jira(CUBRIDQA) 티켓 본문.
+- **한글(배포 미대상)**: `docs/`(런북), `.agents/`(규범·thin ADR), `AGENTS.md`·`CONTEXT.md`, Jira(CUBRIDQA) 티켓 본문(에이전트·스킬 설계).
 - **예외 (기능적 한글은 유지 — 지시문만 영문)**: 스킬 `description`은 영문 본문이되 **한글 트리거 키워드는 유지**한다 — 팀이 한글로 스킬을 부르므로 트리거 정확도를 확보하기 위함. 예: `… Use whenever someone says "이 PR 리뷰해줘", "gate-resolved 돌려줘", …`. 같은 논리로 아래 세 가지도 한글을 유지하고, 이를 **감싸는 지시문·설명만** 영문으로 쓴다:
   - **eval `prompt`** — 스킬 호출을 흉내 내는 트리거 입력이라 한글 유지(같은 파일의 `expected_output`·`assertions`는 영문).
   - **스킬이 게시하는 산출물 템플릿** — 반송 코멘트·PR 본문·리뷰 초안 등 Jira/GitHub로 나가는 한글 결과물('Jira(CUBRIDQA) 티켓 본문=한글' 규칙의 연장; 영문화하면 한국 개발자에게 영어로 게시하는 동작 변경이 됨).
@@ -52,7 +52,7 @@ TC·테스트 시나리오는 **내부 구현이 아니라 사용자가 관측�
 
 ## DP4 — 완성 정의: 실제 쓰기 (호출 의도 게이팅)
 
-스킬의 종료 산출물(완성)은 **초안이 아니라 실제 쓰기**다 — Jira 전이·코멘트·필드, GitHub PR 리뷰 코멘트 게시, Draft PR→ready PR. 결정 근거·supersede 범위는 [ADR 0016](./adr/0016-completion-is-real-write.md).
+스킬의 종료 산출물(완성)은 **초안이 아니라 실제 쓰기**다 — Jira 전이·코멘트·필드, GitHub PR 리뷰 코멘트 게시, Draft PR→ready PR. 결정 근거·supersede 범위는 ADR 0016 (CUBRIDQA-1440).
 
 실제 쓰기는 **호출 의도**로 게이팅한다:
 - **targeted**(사람이 이슈/PR 키를 나열) → 실제 쓰기. **batch**(스킬이 JQL/큐 쿼리로 집합 생성) → 초안. 개수 무관(JQL 1건도 batch, 나열 3건도 targeted). 판단 기준 = "사람이 특정 이슈/PR에 책임을 졌는가".
@@ -65,6 +65,6 @@ TC·테스트 시나리오는 **내부 구현이 아니라 사용자가 관측�
 - **author-testcase**: targeted=ready PR / batch=Draft PR. 머지는 사람, Start Test는 미소유(gate-resolved 소유).
 
 경계:
-- **호출 축과 분리** — Stage 2(사람 호출)에서도 완성=실제 쓰기다. 무인 서비스(트리거/cron·self-healing)는 별개 축이라 Stage 3([ADR 0007](./adr/0007-rollout-stages.md)).
-- **Stage 3 batch 쓰기**는 이 DP 범위 밖(ADR 0016 Deferred).
+- **호출 축과 분리** — Stage 2(사람 호출)에서도 완성=실제 쓰기다. 무인 서비스(트리거/cron·self-healing)는 별개 축이라 Stage 3(ADR 0007 (CUBRIDQA-1425)).
+- **Stage 3 batch 쓰기**는 이 DP 범위 밖(ADR 0016=CUBRIDQA-1440 Deferred).
 - **DP1과 정합** — batch=초안이라 대량 쓰기 storm이 없고, targeted 소량만 실제 쓰기(쓰기 rate 분리 원칙 유지).

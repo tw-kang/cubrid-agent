@@ -1,61 +1,61 @@
 #!/bin/bash
-# cubrid-agent Stage 2 setup — Tier 2(머신 상태)를 $HOME 표준으로 프로비저닝.
-# setup-cubrid-agent 스킬의 정본 스크립트다(진입점은 /setup-cubrid-agent). CWD 비의존이라
-# 어디서 호출해도 동작하고, Stage 3 컨테이너도 이 경로를 그대로 RUN 할 수 있다. 결정: ADR 0017.
-# 모델·결정: docs/deployment.md (3티어, $HOME 런타임 표준), ADR 0014(부품 스킬 흡수·플러그인 재패키징).
-# 멱등·비대화식 — 재실행 안전, 기존 clone은 절대 건드리지 않음(없을 때만 생성).
-# 하지 않는 것: sudo가 필요한 CLI 설치(명령만 안내), 자격 주입(Tier 3 — 사람 몫).
+# cubrid-agent Stage 2 setup — provisions Tier 2 (machine state) into the $HOME standard layout.
+# This is the canonical script of the setup-cubrid-agent skill (entrypoint: /setup-cubrid-agent).
+# CWD-independent, so it works from anywhere and a Stage 3 container can RUN this path as-is. Decision: ADR 0003.
+# Model & decisions: docs/deployment.md (3 tiers, $HOME runtime standard), ADR 0001 (component-skill absorption / plugin repackaging).
+# Idempotent & non-interactive — safe to re-run; never touches an existing clone (creates only when absent).
+# Does NOT: install CLIs that need sudo (only prints the command), inject credentials (Tier 3 — a human's job).
 set -u
 
 AGENT_DIR="$HOME/.cubrid-agent"
 BUILD_URL=""
-[ "${1:-}" = "--build" ] && BUILD_URL="${2:?사용법: setup.sh [--build <build-url>]}"
+[ "${1:-}" = "--build" ] && BUILD_URL="${2:?usage: setup.sh [--build <build-url>]}"
 
 TODOS=0
 ok()   { printf '  OK   %s\n' "$1"; }
 todo() { printf '  TODO %s\n' "$1"; TODOS=$((TODOS+1)); }
 fail() { printf '  FAIL %s\n' "$1" >&2; exit 1; }
 
-echo "== 필수 도구 =="
-for c in git jq grep; do command -v "$c" >/dev/null || fail "$c 없음(필수)"; done
+echo "== Required tools =="
+for c in git jq grep; do command -v "$c" >/dev/null || fail "$c not found (required)"; done
 ok "git / jq / grep"
 
-echo "== 부품 스킬 — 이 repo(플러그인)에 내장 (ADR 0014) =="
-ok "스킬은 skills/qa/ 에 포함 — Claude Code는 'claude plugin install', 기타 CLI는 'npx skills add'(README 참조). clone+심링크 불필요."
+echo "== Component skills — bundled in this repo (plugin) (ADR 0001) =="
+ok "skills live under skills/qa/ — Claude Code: 'claude plugin install'; other CLIs: 'npx skills add' (see README). No clone+symlink needed."
 
-echo "== \$HOME 표준 자산 — 없을 때만 clone (기존 clone 불가침) =="
+echo "== \$HOME standard assets — clone only when absent (existing clones untouched) =="
 clone_if_absent() { # <url> <dir> [extra git-clone args...]
   local url=$1 dir=$2; shift 2
-  if [ -d "$dir/.git" ]; then ok "$(basename "$dir") 있음"
-  else git clone "$@" "$url" "$dir" || fail "clone 실패: $url"; ok "$(basename "$dir") clone"; fi
+  if [ -d "$dir/.git" ]; then ok "$(basename "$dir") present"
+  else git clone "$@" "$url" "$dir" || fail "clone failed: $url"; ok "$(basename "$dir") cloned"; fi
 }
 clone_if_absent https://github.com/CUBRID/cubrid-testcases.git "$HOME/cubrid-testcases"
-# TC PR 제출용 fork 리모트 — 팀원마다 자기 fork라 gh 인증 계정에서 유도한다(ADR 0018).
-# 원천: $CUBRID_GH_FORK(오버라이드) → gh api user. 리모트 이름은 개인명이 아니라 중립명 'fork'.
+# Fork remote for submitting TC PRs — each teammate has their own fork, derived from the gh-authenticated account (ADR 0004).
+# Source: $CUBRID_GH_FORK (override) -> gh api user. Remote name is the neutral 'fork', not a person's name.
 FORK_OWNER="${CUBRID_GH_FORK:-}"
 if [ -z "$FORK_OWNER" ] && command -v gh >/dev/null; then
   FORK_OWNER="$(gh api user --jq .login 2>/dev/null || true)"
-  # 안전망: 유도된 계정에 fork가 없으면 만든다(멱등 — 있으면 no-op).
+  # Safety net: if the derived account has no fork, create it (idempotent — no-op if it exists).
   if [ -n "$FORK_OWNER" ] && ! gh repo view "$FORK_OWNER/cubrid-testcases" >/dev/null 2>&1; then
     gh repo fork CUBRID/cubrid-testcases --remote=false >/dev/null 2>&1 || true
   fi
 fi
 if [ -n "$FORK_OWNER" ]; then
   FORK_URL="https://github.com/$FORK_OWNER/cubrid-testcases.git"
-  # set-url이 없으면(리모트 미존재) add — 바뀐 $CUBRID_GH_FORK도 재실행 시 반영되도록 authoritative.
+  # If set-url fails (remote absent) add it — authoritative so a changed $CUBRID_GH_FORK is reflected on re-run.
   git -C "$HOME/cubrid-testcases" remote set-url fork "$FORK_URL" 2>/dev/null \
     || git -C "$HOME/cubrid-testcases" remote add fork "$FORK_URL"
-  ok "cubrid-testcases fork 리모트 ($FORK_OWNER)"
+  ok "cubrid-testcases fork remote ($FORK_OWNER)"
 else
-  todo "cubrid-testcases fork 리모트 — gh 인증 후 재실행(또는 export CUBRID_GH_FORK=<owner>)"
+  todo "cubrid-testcases fork remote — re-run after gh auth (or export CUBRID_GH_FORK=<owner>)"
 fi
-if [ -d "$HOME/cubrid/.git" ]; then ok "cubrid 있음"
-else # 히스토리는 필요(Ground: log --grep·merge-base), blob은 지연. 미지원 git이면 일반 clone.
+if [ -d "$HOME/cubrid/.git" ]; then ok "cubrid present"
+else # History is needed (Ground: log --grep, merge-base); blobs are lazy. Fall back to a plain clone on older git.
   git clone --filter=blob:none https://github.com/CUBRID/cubrid.git "$HOME/cubrid" 2>/dev/null \
-    || git clone https://github.com/CUBRID/cubrid.git "$HOME/cubrid" || fail "cubrid clone 실패"
-  ok "cubrid clone"
+    || git clone https://github.com/CUBRID/cubrid.git "$HOME/cubrid" || fail "cubrid clone failed"
+  ok "cubrid cloned"
 fi
-# CTP: 부품 스킬 해석 순서($CTP_HOME → ~/CTP → ~/cubrid-testtools/CTP)를 그대로 따른다
+# CTP: follow the component skills' resolution order ($CTP_HOME -> ~/CTP -> ~/cubrid-testtools/CTP)
 if   [ -n "${CTP_HOME:-}" ] && [ -x "$CTP_HOME/bin/ctp.sh" ]; then CTP="$CTP_HOME"; ok "CTP: \$CTP_HOME=$CTP"
 elif [ -x "$HOME/CTP/bin/ctp.sh" ]; then CTP="$HOME/CTP"; ok "CTP: ~/CTP"
 elif [ -x "$HOME/cubrid-testtools/CTP/bin/ctp.sh" ]; then CTP="$HOME/cubrid-testtools/CTP"; ok "CTP: ~/cubrid-testtools/CTP"
@@ -63,13 +63,13 @@ else
   clone_if_absent https://github.com/CUBRID/cubrid-testtools.git "$HOME/cubrid-testtools"
   CTP="$HOME/cubrid-testtools/CTP"; ok "CTP: $CTP"
 fi
-# conf 사본 불필요: CTP 원본 sql.conf·sql_by_cci.conf가 이미 scenario=${HOME}/cubrid-testcases/sql, 비기본 포트
+# No conf copy needed: CTP's own sql.conf / sql_by_cci.conf already use scenario=${HOME}/cubrid-testcases/sql and non-default ports.
 
-echo "== 실행 산출물 디렉토리 — \$HOME/.cubrid-agent =="
+echo "== Runtime output directory — \$HOME/.cubrid-agent =="
 mkdir -p "$AGENT_DIR/reports/gate-resolved" "$AGENT_DIR/reports/author-testcase" "$AGENT_DIR/reports/review-testcase" "$AGENT_DIR/worktrees"
 ok "$AGENT_DIR/{<CBRD-XXXXX>/manifest.json, reports/, worktrees/}"
 
-echo "== env — JDK 탐지 + ~/.cubrid-agent/env.sh 생성 =="
+echo "== env — detect JDK + write ~/.cubrid-agent/env.sh =="
 JH="${JAVA_HOME:-}"
 if [ -z "$JH" ] || [ ! -x "$JH/bin/javac" ]; then
   if command -v javac >/dev/null; then
@@ -77,41 +77,41 @@ if [ -z "$JH" ] || [ ! -x "$JH/bin/javac" ]; then
   else JH=""; fi
 fi
 if [ -n "$JH" ] && [ -x "$JH/bin/javac" ]; then ok "JDK: $JH"
-else todo "JDK(javac) 없음 — 예: sudo dnf install java-1.8.0-openjdk-devel 후 setup 재실행"; fi
+else todo "JDK (javac) not found — e.g. sudo dnf install java-1.8.0-openjdk-devel, then re-run setup"; fi
 {
-  echo "# generated by setup.sh — CTP 실행 세션마다 source ~/.cubrid-agent/env.sh"
+  echo "# generated by setup.sh — source ~/.cubrid-agent/env.sh in each CTP session"
   echo '[ -f "$HOME/.cubrid.sh" ] && source "$HOME/.cubrid.sh"'
   echo "export CTP_HOME=\"$CTP\""
   [ -n "$JH" ] && echo "export JAVA_HOME=\"$JH\""
 } > "$AGENT_DIR/env.sh"
 ok "~/.cubrid-agent/env.sh"
 
-echo "== CUBRID 빌드 — 신뢰 빌드(이슈 의존이라 옵션) =="
+echo "== CUBRID build — trusted build (optional; issue-dependent) =="
 if [ -n "$BUILD_URL" ]; then
   sh "$CTP/common/script/run_cubrid_install" "$BUILD_URL" 2>&1 \
     | tee "$AGENT_DIR/install-build.log" | tail -3
-  grep -q '\[ERROR\]' "$AGENT_DIR/install-build.log" && fail "빌드 설치 실패 — ~/.cubrid-agent/install-build.log 확인"
-  # .cubrid.sh는 외부 생성물 — LD_LIBRARY_PATH 등 unset 변수를 bare 참조할 수 있어 set -u에서 abort된다. 소스 동안만 완화.
+  grep -q '\[ERROR\]' "$AGENT_DIR/install-build.log" && fail "build install failed — see ~/.cubrid-agent/install-build.log"
+  # .cubrid.sh is externally generated — it may bare-reference unset vars (e.g. LD_LIBRARY_PATH) that abort under set -u. Relax only while sourcing.
   set +u; [ -f "$HOME/.cubrid.sh" ] && source "$HOME/.cubrid.sh"; set -u
   [ -n "${CUBRID:-}" ] && [ ! -f "$CUBRID/lib/libcubrid_all_locales.so" ] \
     && sh "$CUBRID/bin/make_locale.sh" -t 64bit >/dev/null 2>&1
-  ok "빌드 설치: $BUILD_URL"
+  ok "build installed: $BUILD_URL"
 elif [ -d "$HOME/CUBRID" ]; then
-  ok "CUBRID 있음: \$HOME/CUBRID (대상 이슈의 fix 포함 여부는 파이프라인이 확인)"
+  ok "CUBRID present: \$HOME/CUBRID (whether it contains the target issue's fix is checked by the pipeline)"
 else
-  todo "CUBRID 빌드 없음 — setup --build <url> (빌드서버 192.168.1.91:8080; CTP 스킬 안 쓰면 불필요)"
+  todo "no CUBRID build — setup --build <url> (build server 192.168.1.91:8080; not needed unless using CTP skills)"
 fi
 
-echo "== CLI·자격 — Tier 3 (사람 몫, 여기선 확인만) =="
-command -v cubrid-jira >/dev/null && ok "cubrid-jira" || todo "cubrid-jira 설치 — docs/guides/stage2-setup.md §3"
-command -v gh          >/dev/null && ok "gh"          || todo "gh 설치 — docs/guides/stage2-setup.md §3"
-command -v pandoc      >/dev/null && ok "pandoc"      || todo "pandoc 설치(cubrid-jira 의존) — sudo dnf install pandoc"
-if [ -n "${CUBRID_JIRA_USER:-}" ] && [ -n "${CUBRID_JIRA_PASSWORD:-}" ]; then ok "jira 자격(env — 표준)"
-elif grep -qs 'jira\.cubrid\.org' "$HOME/.netrc"; then ok "jira 자격(.netrc — 병행 허용)"
-else todo "jira 자격 — export CUBRID_JIRA_USER/CUBRID_JIRA_PASSWORD (또는 ~/.netrc)"; fi
-if [ -n "${GH_TOKEN:-}" ] || gh auth status >/dev/null 2>&1; then ok "gh 인증"
-else todo "gh 인증 — gh auth login (또는 GH_TOKEN)"; fi
+echo "== CLIs & credentials — Tier 3 (human's job; only checked here) =="
+command -v cubrid-jira >/dev/null && ok "cubrid-jira" || todo "install cubrid-jira — docs/setup.md §3"
+command -v gh          >/dev/null && ok "gh"          || todo "install gh — docs/setup.md §3"
+command -v pandoc      >/dev/null && ok "pandoc"      || todo "install pandoc (cubrid-jira dependency) — sudo dnf install pandoc"
+if [ -n "${CUBRID_JIRA_USER:-}" ] && [ -n "${CUBRID_JIRA_PASSWORD:-}" ]; then ok "jira credentials (env — standard)"
+elif grep -qs 'jira\.cubrid\.org' "$HOME/.netrc"; then ok "jira credentials (.netrc — also allowed)"
+else todo "jira credentials — export CUBRID_JIRA_USER/CUBRID_JIRA_PASSWORD (or ~/.netrc)"; fi
+if [ -n "${GH_TOKEN:-}" ] || gh auth status >/dev/null 2>&1; then ok "gh authenticated"
+else todo "gh auth — gh auth login (or GH_TOKEN)"; fi
 
 echo
-if [ "$TODOS" -eq 0 ]; then echo "셋업 완료 — 남은 TODO 없음. 기동: docs/guides/stage2-setup.md §4"
-else echo "셋업 완료 — TODO ${TODOS}건 (위 목록: CLI 설치·자격은 사람 몫)"; fi
+if [ "$TODOS" -eq 0 ]; then echo "setup complete — no TODOs left. Launch: docs/setup.md §4"
+else echo "setup complete — ${TODOS} TODO(s) (above: CLI installs & credentials are a human's job)"; fi

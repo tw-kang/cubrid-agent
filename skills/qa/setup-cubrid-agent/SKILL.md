@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # setup-cubrid-agent — one-time install → usable
 
-Bring a freshly installed cubrid-agent to the "install + one setup → usable" bar. `setup.sh` handles the machine state (Tier 2) non-interactively and idempotently; this skill drives it, then completes the parts the script deliberately leaves to a human (Tier 3 — sudo installs and credentials), and reports which skills are actually runnable. Asset model and tiers: `docs/deployment.md`; decision: `docs/adr/0017-setup-entrypoint-skill.md`.
+Bring a freshly installed cubrid-agent to the "install + one setup → usable" bar. `setup.sh` handles the machine state (Tier 2) non-interactively and idempotently; this skill drives it, then completes the parts the script deliberately leaves to a human (Tier 3 — sudo installs and credentials), and reports which skills are actually runnable. Asset model and tiers: `docs/deployment.md`; decision: `.agents/adr/0003-setup-entrypoint-skill.md`.
 
 **Manual entrypoint** (`disable-model-invocation: true`): it changes machine state (clones, sudo installs), so it runs only when the operator invokes `/setup-cubrid-agent`, never on its own.
 
@@ -20,7 +20,7 @@ Bring a freshly installed cubrid-agent to the "install + one setup → usable" b
 
 ### 1. Run the provisioning script
 
-Run the `scripts/setup.sh` that ships next to this SKILL.md — it is the **canonical and only** copy (there is no repo-root wrapper; ADR-0017). Resolve it in this order:
+Run the `scripts/setup.sh` that ships next to this SKILL.md — it is the **canonical and only** copy (there is no repo-root wrapper; ADR-0003). Resolve it in this order:
 
 1. `${CLAUDE_PLUGIN_ROOT}/skills/qa/setup-cubrid-agent/scripts/setup.sh` when `CLAUDE_PLUGIN_ROOT` is set (plugin channel);
 2. otherwise the `scripts/setup.sh` in this skill's own directory (npx channel, or a repo checkout at `skills/qa/setup-cubrid-agent/scripts/setup.sh`).
@@ -29,7 +29,7 @@ Run it plain (no args) first: `bash <resolved-path>`. It is idempotent and non-i
 
 ### 2. Resolve the TODO lines (Tier 3 — with the operator)
 
-Read the `TODO` lines and clear each one. Show the operator the exact command before running anything that needs `sudo`, and run it only on their approval. Reference: `docs/guides/stage2-setup.md` §2–§3.
+Read the `TODO` lines and clear each one. Show the operator the exact command before running anything that needs `sudo`, and run it only on their approval. Reference: `docs/setup.md` §2–§3.
 
 - **JDK (`javac`) missing** — `sudo dnf install java-1.8.0-openjdk-devel` (Debian/Ubuntu: `sudo apt install default-jdk`), then re-run `setup.sh` so it detects the JDK and rewrites `env.sh`.
 - **`pandoc` missing** — `sudo dnf install -y pandoc` (prerequisite of cubrid-jira).
@@ -58,7 +58,7 @@ Close with an honest per-skill readiness summary — partial setup is expected o
 | `gate-resolved` | cubrid-jira + credentials present | No |
 | `author-testcase` · `review-testcase` · `verify-sql` | + CTP assets + a fix-including `$HOME/CUBRID` (`--build`) + per-session `source ~/.cubrid-agent/env.sh` | Yes |
 
-State plainly what is ready now, what is still TODO, and — for the build-dependent skills — that full one-command setup only completes inside the CUBRID network. End by pointing to `docs/guides/stage2-setup.md` §4 for how to launch each skill.
+State plainly what is ready now, what is still TODO, and — for the build-dependent skills — that full one-command setup only completes inside the CUBRID network. End by pointing to `docs/setup.md` §4 for how to launch each skill.
 
 ## Channel note
 

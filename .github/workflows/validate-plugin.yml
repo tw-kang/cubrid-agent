@@ -1,5 +1,5 @@
 # Validate the plugin + marketplace manifests and every skill/hook frontmatter
-# in one place (CUBRIDQA-1442 verification seam; ADR-0017).
+# in one place (CUBRIDQA-1442 verification seam; ADR-0003).
 #
 # `claude plugin validate .` is the blocking gate — it catches broken manifests,
 # malformed frontmatter, and bad hooks.json. `--strict` runs as an informational

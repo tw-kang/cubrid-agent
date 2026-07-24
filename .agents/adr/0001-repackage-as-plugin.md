@@ -18,7 +18,7 @@ Stage 2 팀 배포를 앞두고, cubrid-agent를 `git clone + setup.sh 심링크
 ## Consequences
 
 - `setup.sh`의 부품 스킬 clone+심링크 절이 제거된다(스킬은 이제 repo/플러그인에 내장). setup.sh는 머신 상태(cubrid-testcases·cubrid·CTP) 프로비저닝만 담당.
-- 배포 정본([deployment.md](../deployment.md))의 Tier 1이 바뀐다: "clone이 나른다"가 스킬까지 포함(별도 skills repo 없음).
+- 배포 정본([deployment.md](../../docs/deployment.md))의 Tier 1이 바뀐다: "clone이 나른다"가 스킬까지 포함(별도 skills repo 없음).
 - 기존 `~/skills` clone·`~/.claude/skills` 심링크는 흡수 후 불필요 — 재패키징 커밋과 무관하게 각 머신에서 정리(불가침 원칙상 자동 삭제 안 함).
 - 버전은 당분간 생략(commit-SHA fallback) — semver pin + eval 게이트는 이후 단계(마켓플레이스 검증 `claude plugin validate . --strict`의 유일 경고).
-- 기타 CLI(Codex·Cursor 등) 전달은 별도 결정 [ADR 0015](./0015-dual-channel-distribution.md)(이중 채널).
+- 기타 CLI(Codex·Cursor 등) 전달은 별도 결정 [ADR 0002](./0002-dual-channel-distribution.md)(이중 채널).

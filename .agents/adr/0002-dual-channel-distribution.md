@@ -1,6 +1,6 @@
 # 한 소스에서 이중 채널로 배포한다 — 플러그인 + npx skills
 
-재패키징([ADR 0014](./0014-repackage-as-plugin.md)) 이후, cubrid-agent를 **하나의 repo 소스에서 두 채널**로 배포한다. Claude Code 사용자와 다른 에이전트 CLI(Codex·Cursor·Gemini 등) 사용자를 모두 커버하기 위함이다.
+재패키징([ADR 0001](./0001-repackage-as-plugin.md)) 이후, cubrid-agent를 **하나의 repo 소스에서 두 채널**로 배포한다. Claude Code 사용자와 다른 에이전트 CLI(Codex·Cursor·Gemini 등) 사용자를 모두 커버하기 위함이다.
 
 ## 결정
 

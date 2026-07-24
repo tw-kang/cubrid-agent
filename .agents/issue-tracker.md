@@ -6,6 +6,25 @@ cubrid-agent 자체 개발 작업의 이슈·PRD는 CUBRID Jira의 **`CUBRIDQA`*
 
 관점·내용은 **한글, 사용자 관점**(코드 구현 설명이 아니라 "무엇을 적용해 어떤 동작이 바뀌었다"). 커밋·PR도 `[CUBRIDQA-XXXX]`로 태깅한다.
 
+## ⚠️ 임시 — CUBRIDQA 접근에는 fix 브랜치 CLI를 쓴다 (cubrid-jira PR #3 머지 전까지)
+
+**증상**: 설치된 `cubrid-jira`(uv 툴)로 CUBRIDQA를 읽으면 **HTTP 401**(`search`·live `jql`). **원인**: 설치본은 **read 요청을 익명으로** 보낸다 — 공개 프로젝트(CBRD)는 익명 read가 되지만 CUBRIDQA는 인증 필수라 401. 자격 자체는 유효(`~/.netrc`의 `machine jira.cubrid.org` login `twkang`). **fix** = 워크스페이스 브랜치 `feat/authenticated-reads`(커밋 `1f80b73` "authenticate reads when credentials are available") = **PR #3**. 이게 머지되면 이 섹션을 삭제한다.
+
+**해법 — fix 소스로 CLI를 그대로 쓴다**(curl 우회 아님). 워크스페이스 소스를 uv 툴 파이썬에 얹어 실행:
+
+```bash
+JP=/home/dev/.local/share/uv/tools/cubrid-jira/bin/python3
+JS=/home/dev/workspace/cubrid-jira/src
+cjira() { PYTHONPATH="$JS" "$JP" -c 'import sys; sys.argv=["cubrid-jira"]+sys.argv[1:]; from cubrid_jira.cli import main; sys.exit(main())' "$@"; }
+
+cjira jql "parent = CUBRIDQA-1425 ORDER BY key ASC"                    # read
+cjira update CUBRIDQA-1429 --description-file body.wiki --from jira --yes   # write(--yes 안전판)
+```
+
+또는 아예 fix 브랜치를 설치: `uv tool install --force --reinstall <workspace>` (PR #3을 로컬 선반영). 쓰기는 CLI가 기본 dry-run + `--yes` 게이트라 curl PUT보다 안전하다.
+
+**curl REST 직결은 최후 수단**(CLI를 못 쓸 때만). 베이스 `http://jira.cubrid.org/rest/api/2`(http — https는 302), `curl --netrc`. 쓰기는 `--yes`가 없으니 페이로드를 먼저 확인한다.
+
 ## 핵심 규약 (`cubrid-jira` CLI)
 
 모든 **쓰기 명령은 기본 dry-run** — 실제 전송하려면 `--yes`가 필수다. 서버 기본값은 `http://jira.cubrid.org`.

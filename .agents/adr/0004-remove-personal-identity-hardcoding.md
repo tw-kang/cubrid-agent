@@ -4,7 +4,7 @@
 
 repo가 private인 채로 `claude plugin marketplace add tw-kang/cubrid-agent`를 돌리면 다른 팀원 계정에서 SSH host key·접근권한 벽에 막혀 설치가 실패한다(실관찰). 팀 배포(Stage 2)를 앞두고 배포처를 public으로 열되, 그와 별개로 `tw-kang`·`twkang`이 20+ 파일에 박혀 있다. 팀원은 **각자 자기 GitHub fork와 자기 Jira 계정**을 쓰므로, 개인 식별자를 그대로 두면 누가 돌려도 tw-kang의 fork·대기열로 흘러간다.
 
-배포 경로 계획: **Stage 2 = `tw-kang/cubrid-agent` public 유지**, **Stage 3 = 같은 repo를 CUBRID org에 private로 이전 기여**. 팀 공용 org는 두지 않는다(없음). 이 ADR은 배포 채널 결정([ADR 0015](./0015-dual-channel-distribution.md))을 보충한다.
+배포 경로 계획: **Stage 2 = `tw-kang/cubrid-agent` public 유지**, **Stage 3 = 같은 repo를 CUBRID org에 private로 이전 기여**. 팀 공용 org는 두지 않는다(없음). 이 ADR은 배포 채널 결정([ADR 0002](./0002-dual-channel-distribution.md))을 보충한다.
 
 ## 결정
 
@@ -12,8 +12,8 @@ repo가 private인 채로 `claude plugin marketplace add tw-kang/cubrid-agent`�
 
 | 역할 | 무엇 | 처리 |
 |---|---|---|
-| **A. 배포처 repo** | 매니페스트(`marketplace.json`·`plugin.json`·`package.json`)의 owner·repo URL·author·email, 두 채널 설치 명령(README·stage2-setup·ADR 0015·stage2-hook-gates 예제) | **유지** — 팀 전체가 하나의 tw-kang public repo에서 설치하는 공유 자원. "각자 보유" 이유가 성립하지 않음 |
-| **A′. 흡수된 옛 skills repo** | `ADR 0014`·`CHANGELOG`의 `tw-kang/skills` | **유지** — 흡수된 외부 repo의 과거 사실(역사 기록) |
+| **A. 배포처 repo** | 매니페스트(`marketplace.json`·`plugin.json`·`package.json`)의 owner·repo URL·author·email, 두 채널 설치 명령(README·stage2-setup·ADR 0002·stage2-hook-gates 예제) | **유지** — 팀 전체가 하나의 tw-kang public repo에서 설치하는 공유 자원. "각자 보유" 이유가 성립하지 않음 |
+| **A′. 흡수된 옛 skills repo** | `ADR 0001`·`CHANGELOG`의 `tw-kang/skills` | **유지** — 흡수된 외부 repo의 과거 사실(역사 기록) |
 | **B. 각자 TC fork** | `--head tw-kang:tc/…`, `twkang` 리모트(`tw-kang/cubrid-testcases`) | **런타임 유도** (아래) |
 | **C. 각자 Jira QA Assignee** | JQL `cf[213834] = twkang` | **런타임 유도** (아래) |
 | **D. few-shot 출처 인용** | `few-shot-bank.md`의 `PR1844 / tw-kang` 등 | **유지** — 설정이 아니라 역사적 증거. 선택적 삭제는 인용 위조라 금지 |

@@ -1,6 +1,6 @@
 # 배포 구조 — 자산 3계층 모델 (Stage 2 · Stage 3 공통)
 
-cubrid-agent를 팀원 머신(Stage 2)과 k8s pod(Stage 3)에 배포하는 구조의 정본. 실행 가이드는 [guides/stage2-setup.md](./guides/stage2-setup.md), 단계 모델은 [staging.md](./staging.md), 부품 스킬 흡수·플러그인 재패키징은 [ADR 0014](./adr/0014-repackage-as-plugin.md), 이중 채널 배포는 [ADR 0015](./adr/0015-dual-channel-distribution.md).
+cubrid-agent를 팀원 머신(Stage 2)과 k8s pod(Stage 3)에 배포하는 구조의 정본. 실행 가이드는 [setup.md](./setup.md), 단계 모델은 staging.md (CUBRIDQA-1425), 부품 스킬 흡수·플러그인 재패키징은 [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md), 이중 채널 배포는 [ADR 0002](../.agents/adr/0002-dual-channel-distribution.md).
 
 **원칙 한 줄: 문서는 사람에게, 스크립트는 머신에게, 자격은 Secret에게.**
 
@@ -10,20 +10,20 @@ cubrid-agent를 팀원 머신(Stage 2)과 k8s pod(Stage 3)에 배포하는 구�
 
 | Tier | 정의 | 자산 | 전달 |
 |---|---|---|---|
-| **1. clone이 나른다** | git 버전관리 | cubrid-agent 루트 플러그인 — **자기완결** 스킬 22종 `skills/qa/`(setup 1 + 파이프라인 5 상시 + 부품 16 온디맨드, 연료 포함) + hook `hooks/`+`scripts/` + 매니페스트 `.claude-plugin/`. 부품 스킬 흡수(별도 repo 없음 — ADR 0014). `docs/`는 dev-only — 실행에 불필요 | `git clone` 또는 `claude plugin install` |
-| **2. 스크립트가 만든다** | 재현 가능한 머신 상태 — **`$HOME` 표준 배치** | `~/cubrid-testcases`(+`fork` 리모트)·`~/cubrid`·CTP(`~/cubrid-testtools/CTP`), `~/.cubrid-agent/`(env.sh·manifest·reports·worktrees), (옵션) `$HOME/CUBRID` 빌드. **conf 사본 불필요** — CTP 원본 conf가 이미 `scenario=${HOME}/cubrid-testcases/sql`·비기본 포트 | **`/setup-cubrid-agent`** (= `skills/qa/setup-cubrid-agent/scripts/setup.sh`, 멱등·비대화식, 기존 clone 불가침 — [ADR 0017](./adr/0017-setup-entrypoint-skill.md)) |
+| **1. clone이 나른다** | git 버전관리 | cubrid-agent 루트 플러그인 — **자기완결** 스킬 22종 `skills/qa/`(setup 1 + 파이프라인 5 상시 + 부품 16 온디맨드, 연료 포함) + hook `hooks/`+`scripts/` + 매니페스트 `.claude-plugin/`. 부품 스킬 흡수(별도 repo 없음 — ADR 0001). `docs/`는 dev-only — 실행에 불필요 | `git clone` 또는 `claude plugin install` |
+| **2. 스크립트가 만든다** | 재현 가능한 머신 상태 — **`$HOME` 표준 배치** | `~/cubrid-testcases`(+`fork` 리모트)·`~/cubrid`·CTP(`~/cubrid-testtools/CTP`), `~/.cubrid-agent/`(env.sh·manifest·reports·worktrees), (옵션) `$HOME/CUBRID` 빌드. **conf 사본 불필요** — CTP 원본 conf가 이미 `scenario=${HOME}/cubrid-testcases/sql`·비기본 포트 | **`/setup-cubrid-agent`** (= `skills/qa/setup-cubrid-agent/scripts/setup.sh`, 멱등·비대화식, 기존 clone 불가침 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) |
 | **3. 사람이 넣는다** | 자격 — repo 금지 | cubrid-jira 자격, gh 인증 | env(표준) 또는 .netrc/`gh auth login` |
 
 ## 확정 결정
 
 | # | 결정 | 내용 |
 |---|---|---|
-| D1 | 부품 스킬 전달 | **repo에 내장** — 흡수(ADR 0014)로 스킬 22종(setup 1 + 파이프라인 5 + 부품 16)이 `skills/qa/`에 포함. clone/플러그인 설치가 곧 스킬 전달 — 별도 clone·심링크 불필요 |
+| D1 | 부품 스킬 전달 | **repo에 내장** — 흡수(ADR 0001)로 스킬 22종(setup 1 + 파이프라인 5 + 부품 16)이 `skills/qa/`에 포함. clone/플러그인 설치가 곧 스킬 전달 — 별도 clone·심링크 불필요 |
 | D2 | setup.sh 범위 | **이슈무관 상태 전부 + 빌드는 `--build <url>` 옵션**. 신뢰 빌드는 이슈 의존이라 setup에 고정 불가 — 이슈별 빌드 교체는 파이프라인(verify)이 담당 |
 | D3 | 경로 규약 | **`$HOME` 규약 + 자동탐지** — CUBRID=`$HOME/CUBRID`(소켓 108자 충족), JDK는 javac에서 탐지. 새 환경변수 도입 안 함 |
 | D4 | 자격 표준 | **env 표준**(`CUBRID_JIRA_USER/PASSWORD`, `GH_TOKEN`) — cubrid-jira의 에이전트 권장 순서와 일치. Stage 2는 .netrc·`gh auth login` 병행 허용, **Stage 3는 Secret→env만** |
 | D5 | Stage 3 이미지 | **setup 스크립트 컨테이너 재사용 원칙만 확정**(비대화식·멱등·`$HOME` 규약·CWD 비의존 → `RUN skills/qa/setup-cubrid-agent/scripts/setup.sh` 가능). 이미지 선택(cubridci 확장 vs 신규)은 Stage 3 착수 시 — park |
-| D6 | 문서 위치 | 이 문서가 배포 정본, guides/stage2-setup.md는 실행 가이드, 재패키징·채널 결정은 ADR 0014·0015 |
+| D6 | 문서 위치 | 이 문서가 배포 정본, setup.md는 실행 가이드, 재패키징·채널 결정은 ADR 0001·0002 |
 | D7 | **런타임 = `$HOME` 표준** | 소스·도구·빌드는 `$HOME` 배치(`~/cubrid-testcases`·`~/cubrid`·CTP·`$HOME/CUBRID`), 실행 산출물(manifest·리포트·worktree)은 **`~/.cubrid-agent/`**. 격리가 필요한 머신(예: `~/cubrid-testcases`가 사람 작업장)은 `CUBRID_TESTCASES` 오버라이드(부품 스킬과 동일 해석 규약) |
 | D8 | **스킬 자기완결** | 스킬·hook은 `docs/`를 런타임 참조하지 않는다(배포 부자재 최소화). review-testcase 연료(few-shot bank·관점 카탈로그)는 스킬 `references/`에 내장. `docs/`는 dev-only |
 
@@ -32,6 +32,6 @@ cubrid-agent를 팀원 머신(Stage 2)과 k8s pod(Stage 3)에 배포하는 구�
 | Stage 3 요소 | 이 모델에서 |
 |---|---|
 | 컨테이너 이미지 | Tier 1 clone + `RUN skills/qa/setup-cubrid-agent/scripts/setup.sh`(Tier 2 bake). 이미지 베이스 선택은 착수 시 (D5) |
-| CUBRID 빌드 | 이미지에 굽지 않음 — build-cache overlay 마운트(ADR 0001). 로컬↔pod 차이는 "빌드 설치 vs 마운트" 한 지점으로 국소화. BUILD_SHA 자동 pin은 Stage 3 항목 |
+| CUBRID 빌드 | 이미지에 굽지 않음 — build-cache overlay 마운트(CUBRIDQA-1429). 로컬↔pod 차이는 "빌드 설치 vs 마운트" 한 지점으로 국소화. BUILD_SHA 자동 pin은 Stage 3 항목 |
 | 자격 | k8s Secret → env(`CUBRID_JIRA_USER/PASSWORD`, `GH_TOKEN`) — D4의 env 표준이 그대로 Secret 주입 형식 |
 | 기동 | CronJob → headless 세션(`/author-testcase` 등). dispatcher·fan-out·self-healing은 park(staging.md) |
