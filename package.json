@@ -1,0 +1,21 @@
+{
+  "name": "cubrid-agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CUBRID QA dev-process agents: gate Resolved issues, author and verify CTP SQL testcases, and first-review testcase PRs. Shipped as a Claude Code plugin and as agent skills.",
+  "license": "Apache-2.0",
+  "author": "tw-kang <twkang@cubrid.com>",
+  "homepage": "https://github.com/tw-kang/cubrid-agent#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tw-kang/cubrid-agent.git"
+  },
+  "keywords": [
+    "cubrid",
+    "qa",
+    "testcase",
+    "ctp",
+    "claude-code-plugin",
+    "agent-skills"
+  ]
+}
