@@ -17,7 +17,7 @@
 ## Stage 2 구성 (현행)
 
 - **기동 스킬 3종** `skills/qa/{gate-resolved,author-testcase,review-testcase}/` — 스킬명 = 에이전트명. 팀과 git으로 공유. 자기완결(스킬은 docs/를 참조하지 않는다 — deployment.md D8).
-- **팀 셋업** — `git clone` → `./setup.sh` → 자격 주입. 가이드 [guides/stage2-setup.md](./guides/stage2-setup.md).
+- **팀 셋업** — `install` → `/setup-cubrid-agent` → 자격 주입(repo 개발자는 `skills/qa/setup-cubrid-agent/scripts/setup.sh` 직접 실행). 가이드 [guides/stage2-setup.md](./guides/stage2-setup.md).
 - **하드 게이트 = hook** ([hooks/](../hooks/)) — 결정성·fail→pass·리뷰 PASS·CCI·컨벤션 린트가 run manifest로 확인되지 않으면 TC PR 제출 차단.
 - **CCI 교차 검증** — `run_cci`로 재실행, 기본 sql(JDBC) 출력과 다르면 `.answer_cci`.
 - **Jira 쓰기 (완성 정의 = 실제 쓰기, [ADR 0016](./adr/0016-completion-is-real-write.md))** — 사람이 키를 **나열**한 targeted 호출은 전이·코멘트·필드를 실제로 쓴다. **JQL/큐 배치 호출은 초안** 유지, 오탐 가드가 걸리면 초안+@질의로 강등. 무인 트리거/cron 자동 호출은 여전히 Stage 3(호출 축).

@@ -29,7 +29,7 @@ Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·�
 
 ### 검증 환경 — 로컬 CTP, $HOME 표준
 
-환경 배치는 전역 배포 계약 [deployment.md](../../deployment.md) **D7($HOME 런타임 표준)**을 따른다: 신뢰 빌드 `$HOME/CUBRID`(소켓 108자 한계상 짧은 경로), testcases `$TC`(=`$CUBRID_TESTCASES` 오버라이드, 기본 `~/cubrid-testcases`), CTP `$CTP_HOME`(기본 `~/cubrid-testtools/CTP`), env `~/.cubrid-agent/env.sh`(JDK `JAVA_HOME` 포함 — `./setup.sh` 생성). CTP 원본 conf가 이미 `${HOME}/cubrid-testcases/sql`·비기본 포트(1822/33120)라 **conf 사본 불필요**.
+환경 배치는 전역 배포 계약 [deployment.md](../../deployment.md) **D7($HOME 런타임 표준)**을 따른다: 신뢰 빌드 `$HOME/CUBRID`(소켓 108자 한계상 짧은 경로), testcases `$TC`(=`$CUBRID_TESTCASES` 오버라이드, 기본 `~/cubrid-testcases`), CTP `$CTP_HOME`(기본 `~/cubrid-testtools/CTP`), env `~/.cubrid-agent/env.sh`(JDK `JAVA_HOME` 포함 — setup 스크립트(`/setup-cubrid-agent`) 생성). CTP 원본 conf가 이미 `${HOME}/cubrid-testcases/sql`·비기본 포트(1822/33120)라 **conf 사본 불필요**.
 
 ### 설계 기본값 (이견 시 조정)
 
@@ -156,7 +156,7 @@ repo 구조·에이전트 배치의 정본은 [CONTEXT-MAP.md](../../../CONTEXT-
 
 - **검출력 한계**: CBRD-26799 TC는 재발을 확률적으로만 잡는다. Author는 반복 rebuild·데이터 패턴 조정으로 검출력 증폭을 시도하고, 리뷰는 검출력을 평가 항목으로 삼으며, 한계는 PR Remarks에 명시한다 (ADR 0004).
 - **대기열 소진**: 현 필터로는 대상이 없다. Select 조건 확장(다른 planned version, 다른 QA Assignee 등)은 사용자와 재논의 사항.
-- **로컬 검증 env 재현성**: env는 `./setup.sh`가 멱등 수립(`~/.cubrid-agent/env.sh`)하고 `/author-testcase`가 매 run 시작 시 전제를 확인한다.
+- **로컬 검증 env 재현성**: env는 setup 스크립트(`/setup-cubrid-agent`)가 멱등 수립(`~/.cubrid-agent/env.sh`)하고 `/author-testcase`가 매 run 시작 시 전제를 확인한다.
 - **debug/release 차이**: 로컬은 release 단일로 진행하므로, 이슈 재현이 debug assertion에 의존하는 경우에만 `-debug.sh`를 추가 설치한다. `.answer`는 항상 release로 확정.
 
 ## 미룬 것 (backlog)

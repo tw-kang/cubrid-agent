@@ -18,12 +18,17 @@ The repository ships through **two channels from one source**:
 ```bash
 claude plugin marketplace add tw-kang/cubrid-agent
 claude plugin install cubrid-agent@cubrid-agent
+# then, once, in a Claude Code session:
+/setup-cubrid-agent
 ```
 
-This registers the marketplace defined by `.claude-plugin/marketplace.json` and
-installs the plugin. The five pipeline skills load on the next session and the
-hook gates in `hooks/hooks.json` activate. The 16 component skills under
-`skills/qa/` are not always-on; invoke them by name when needed.
+Install registers the marketplace (`.claude-plugin/marketplace.json`) and loads
+the skills plus the `hooks/hooks.json` gates on the next session — but nothing is
+runnable yet: the skills need `cubrid-jira`, a CTP checkout, and (for the verify
+skills) a local CUBRID build that install does not provision. Run
+**`/setup-cubrid-agent`** once to lay those machine assets down, finish the
+credential steps, and get a per-skill readiness report. The 16 component skills
+under `skills/qa/` are not always-on; invoke them by name when needed.
 
 ### Other CLIs (agent skills)
 
@@ -44,7 +49,18 @@ npx skills add tw-kang/cubrid-agent --all
 npx skills add tw-kang/cubrid-agent --list
 ```
 
+On other CLIs the skills (including `setup-cubrid-agent` and its `scripts/setup.sh`)
+install and run, so provisioning still works — but the quality-gate **hooks are
+Claude-Code-only** and do not travel with the skills. Run `/setup-cubrid-agent`
+(or its script directly) and expect no hook gates on those CLIs.
+
 ## Skills
+
+### Setup (manual entrypoint)
+
+| Skill | What it does |
+| --- | --- |
+| `setup-cubrid-agent` | Provisions a fresh install to the "install + one setup → usable" bar — runs `setup.sh` for the `$HOME` machine assets, walks the operator through the sudo installs and credentials it can only flag, and prints a per-skill readiness report. Manual only (`/setup-cubrid-agent`). |
 
 ### Pipeline (always-on in the plugin)
 
@@ -69,7 +85,8 @@ Per CTP category, a `create-<cat>` / `verify-<cat>` pair:
 
 - **`git`, `jq`** — used by the hook gates and skills.
 - **A local CUBRID build + CTP** — required by the `verify-*` skills and the
-  verify stage of `author-testcase`. See `docs/` for setup.
+  verify stage of `author-testcase`. `/setup-cubrid-agent` provisions these; see
+  also `docs/guides/stage2-setup.md`.
 - The Stage-2 hooks only act on CUBRID testcase PRs (`gh pr create` against
   `cubrid-testcases`); they leave every other command alone.
 
@@ -77,7 +94,7 @@ Per CTP category, a `create-<cat>` / `verify-<cat>` pair:
 
 ```
 .claude-plugin/    plugin.json + marketplace.json (source "./")
-skills/qa/         21 skills (5 pipeline + 16 component), catalog layout
+skills/qa/         22 skills (1 setup + 5 pipeline + 16 component), catalog layout
 hooks/hooks.json   Stage-2 quality-gate hook config
 scripts/           hook scripts, addressed via ${CLAUDE_PLUGIN_ROOT}
 docs/              design notes, ADRs, deployment (Korean, non-shipping)
