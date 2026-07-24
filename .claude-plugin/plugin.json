@@ -10,6 +10,7 @@
   "license": "Apache-2.0",
   "keywords": ["cubrid", "qa", "testcase", "ctp", "sql"],
   "skills": [
+    "./skills/qa/setup-cubrid-agent",
     "./skills/qa/gate-resolved",
     "./skills/qa/author-testcase",
     "./skills/qa/review-testcase",

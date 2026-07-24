@@ -2,7 +2,7 @@
 
 cubrid-agent는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이전트들의 모노레포. 모노레포 결정 근거는 [ADR 0008](./docs/adr/0008-monorepo-agents.md).
 
-**디렉토리 성격 3분법** ([ADR 0012](./docs/adr/0012-doc-tree-by-nature.md)): 루트 = 지도(이 파일)·진입점(`setup.sh`) / **루트 플러그인 = 실행 계약**(`.claude-plugin/`·`skills/qa/`·`hooks/`·`scripts/` — 배포되는 전부, docs/ 참조 없음; 재패키징 [ADR 0014](./docs/adr/0014-repackage-as-plugin.md)) / **`docs/` = 문서 전부** — 평면은 **현행 유효한 전역 규범·참조만**, `guides/`=실행 가이드, `adr/`=결정 기록, `agents/`=에이전트별 설계 기록(dev-only). **문서는 항상 최신만 — 과거 이력은 git commit이 보존**(역사화된 문서는 삭제). 각 에이전트는 `docs/agents/<name>/` 아래 자기 `CONTEXT.md`·`DESIGN.md`·`docs/adr/`·`reports/`(gitignore, dev 로컬)를 가지며, **스킬 이름 = 에이전트 이름**이다.
+**디렉토리 성격 3분법** ([ADR 0012](./docs/adr/0012-doc-tree-by-nature.md)): 루트 = 지도(이 파일)·설치 진입점(`/setup-cubrid-agent` 스킬 — [ADR 0017](./docs/adr/0017-setup-entrypoint-skill.md), 루트 스크립트 없음) / **루트 플러그인 = 실행 계약**(`.claude-plugin/`·`skills/qa/`·`hooks/`·`scripts/` — 배포되는 전부, docs/ 참조 없음; 재패키징 [ADR 0014](./docs/adr/0014-repackage-as-plugin.md)) / **`docs/` = 문서 전부** — 평면은 **현행 유효한 전역 규범·참조만**, `guides/`=실행 가이드, `adr/`=결정 기록, `agents/`=에이전트별 설계 기록(dev-only). **문서는 항상 최신만 — 과거 이력은 git commit이 보존**(역사화된 문서는 삭제). 각 에이전트는 `docs/agents/<name>/` 아래 자기 `CONTEXT.md`·`DESIGN.md`·`docs/adr/`·`reports/`(gitignore, dev 로컬)를 가지며, **스킬 이름 = 에이전트 이름**이다.
 
 ## Contexts (에이전트)
 
@@ -31,8 +31,8 @@ Tested   ─[close-backport: Close / Need Backport]→ Closed / Backport
 
 - [docs/design-principles.md](./docs/design-principles.md) — 전 에이전트 공통 설계 원칙(DP1 병렬 실행; **DP2 사용자 관점·블랙박스 테스트** — TC·시나리오는 내부 구현이 아닌 관측 동작 기준. '사용자'=DBA·DB engineer(전문가)~AP 개발자(비전문가) 스펙트럼이라 플랜·카탈로그·statdump·드라이버 입출력은 블랙박스 안, C 내부는 제외. 목적에 **필드에서 마주칠 상황 미리 검출** 포함. 관측 수단은 카테고리별(SQL→shell·CCI/JDBC 등 확장 예정)).
 - [docs/staging.md](./docs/staging.md) — 롤아웃 3단계 모델(PoC / Stage 2 팀 수동 트리거 / Stage 3 무인 자동), 전 에이전트 공통.
-- [docs/deployment.md](./docs/deployment.md) — **배포 구조 정본**: 자산 3계층(clone이 나른다/스크립트가 만든다/사람이 넣는다), 확정 결정 D1~D8, Stage 3 매핑. 원칙: *문서는 사람에게, 스크립트는 머신에게, 자격은 Secret에게*. Tier 2 자동화 = 루트 `setup.sh`(멱등). 부품 스킬 흡수·플러그인 재패키징은 [ADR 0014](./docs/adr/0014-repackage-as-plugin.md), 이중 채널 배포는 [ADR 0015](./docs/adr/0015-dual-channel-distribution.md).
-- [docs/guides/stage2-setup.md](./docs/guides/stage2-setup.md) — Stage 2 팀 셋업 실행 가이드: `git clone` → `./setup.sh` → 자격 주입 → 기동. 함정 체크리스트 포함.
+- [docs/deployment.md](./docs/deployment.md) — **배포 구조 정본**: 자산 3계층(clone이 나른다/스크립트가 만든다/사람이 넣는다), 확정 결정 D1~D8, Stage 3 매핑. 원칙: *문서는 사람에게, 스크립트는 머신에게, 자격은 Secret에게*. Tier 2 자동화 = setup-cubrid-agent 스킬의 `scripts/setup.sh`(멱등, 진입점 `/setup-cubrid-agent` — [ADR 0017](./docs/adr/0017-setup-entrypoint-skill.md)). 부품 스킬 흡수·플러그인 재패키징은 [ADR 0014](./docs/adr/0014-repackage-as-plugin.md), 이중 채널 배포는 [ADR 0015](./docs/adr/0015-dual-channel-distribution.md).
+- [docs/guides/stage2-setup.md](./docs/guides/stage2-setup.md) — Stage 2 팀 셋업 실행 가이드: `install` → `/setup-cubrid-agent` → 자격 주입 → 기동(repo 개발자는 `skills/qa/setup-cubrid-agent/scripts/setup.sh` 직접 실행). 함정 체크리스트 포함.
 - [docs/adr/](./docs/adr/) — 시스템 전역 ADR.
 - [docs/reference/dev-process-v2.4.md](./docs/reference/dev-process-v2.4.md) — 공식 dev 프로세스(상태·전이·운영 규칙) 참조.
 - 공유 자산(코드 아님): `cubrid-jira` CLI, `~/skills`, 소스 repo(cubrid, cubrid-testcases, cubrid-testtools 등), 사내 빌드서버, 로컬/pod 검증 환경.

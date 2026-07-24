@@ -9,20 +9,29 @@
 | 스킬 | 역할 | 필요 자원 | 기동 |
 |---|---|---|---|
 | **gate-resolved** | Resolved(QA to-do) 검토 → 반송/통과 | `cubrid-jira`+자격만 | `/gate-resolved [CBRD-XXXXX]` |
-| **author-testcase** | Resolved 이슈 → TC 작성·검증 → PR(targeted=ready, batch=Draft) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `./setup.sh`) | `/author-testcase [N \| CBRD-XXXXX]` |
-| **review-testcase** | 열린 SQL TC PR 첫 리뷰(targeted=코멘트 게시) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `./setup.sh`) | `/review-testcase [PR번호]` |
+| **author-testcase** | Resolved 이슈 → TC 작성·검증 → PR(targeted=ready, batch=Draft) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `/setup-cubrid-agent`) | `/author-testcase [N \| CBRD-XXXXX]` |
+| **review-testcase** | 열린 SQL TC PR 첫 리뷰(targeted=코멘트 게시) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `/setup-cubrid-agent`) | `/review-testcase [PR번호]` |
 
 ## 1. 빠른 시작
 
-```bash
-git clone https://github.com/tw-kang/cubrid-agent.git && cd cubrid-agent
-./setup.sh                        # Tier 2 전부($HOME 표준): ~/cubrid-testcases·~/cubrid·CTP, ~/.cubrid-agent, env 탐지
-#  → TODO로 나온 것만 사람이 처리: CLI 설치(§3)·자격(§2)
-./setup.sh --build <build-url>    # CTP 검증 스킬(author-testcase·review-testcase)을 쓸 때 — 빌드서버 192.168.1.91:8080
+**권장(플러그인 사용자)** — 설치 후 `/setup-cubrid-agent`가 프로비저닝·자격까지 안내한다:
+
+```
+claude plugin marketplace add tw-kang/cubrid-agent
+claude plugin install cubrid-agent@cubrid-agent
+/setup-cubrid-agent               # 설치 후 세션에서 한 번 — Tier 2 자동 + TODO(자격·CLI) 안내 + 스킬별 준비도 리포트
 source ~/.cubrid-agent/env.sh     # CTP를 실행하는 세션마다 (CTP_HOME·JAVA_HOME·.cubrid.sh)
 ```
 
-- `setup.sh`는 **멱등**(재실행 안전)·**비대화식**이다. 하는 일/안 하는 일 경계는 [deployment.md](../deployment.md)의 3계층 모델: Tier 2(머신 상태)는 스크립트가, Tier 3(자격)는 사람이.
+**repo 개발자(직접 실행)** — 진입점 스킬을 거치지 않고 정본 스크립트를 바로 돌린다:
+
+```bash
+git clone https://github.com/tw-kang/cubrid-agent.git && cd cubrid-agent
+bash skills/qa/setup-cubrid-agent/scripts/setup.sh              # Tier 2 전부($HOME 표준). TODO는 사람이 처리(§2·§3)
+bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 스킬용 — 빌드서버 192.168.1.91:8080
+```
+
+- setup 스크립트는 **멱등**(재실행 안전)·**비대화식**이며 CWD 비의존이다(정본은 setup-cubrid-agent 스킬 안, 루트 래퍼 없음 — [ADR 0017](../adr/0017-setup-entrypoint-skill.md)). 하는 일/안 하는 일 경계는 [deployment.md](../deployment.md)의 3계층: Tier 2(머신 상태)는 스크립트가, Tier 3(자격)는 사람이.
 - gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요.
 - 부품 스킬은 이 repo(플러그인)의 `skills/qa/`에 **내장**된다(흡수 — [ADR 0014](../adr/0014-repackage-as-plugin.md)). 별도 clone·심링크 불필요 — `git clone`/`claude plugin install`이 곧 스킬 전달.
 
@@ -78,7 +87,7 @@ gh auth login                                                       # 또는 GH_
 
 ## 7. 구성 요소
 
-- **setup.sh**(Tier 2 자동화) — `$HOME` 표준 배치(D7: `~/cubrid-testcases`·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, Stage 3 컨테이너 재사용 가능(D5). conf 사본 불필요(원본 conf가 이미 `${HOME}` 기준).
+- **setup-cubrid-agent 스킬 + `scripts/setup.sh`**(Tier 2 자동화, 진입점 `/setup-cubrid-agent` — [ADR 0017](../adr/0017-setup-entrypoint-skill.md)) — 스크립트가 `$HOME` 표준 배치(D7: `~/cubrid-testcases`·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, Stage 3 컨테이너 재사용 가능(D5). conf 사본 불필요(원본 conf가 이미 `${HOME}` 기준). 정본은 스킬 안 단 하나(루트 래퍼 없음).
 - **부품 스킬** — 이 repo `skills/qa/`에 내장(흡수 — [ADR 0014](../adr/0014-repackage-as-plugin.md)).
 - **스킬 자기완결**(D8) — 스킬·hook은 `docs/`를 런타임 참조하지 않는다. review-testcase 연료(few-shot bank·카탈로그)는 스킬 `references/`에 내장.
 - **hook 하드 게이트**([`hooks/`](../../hooks/)) — `gate-pr-submit`(제출 차단)·`lint-sql-tc`(린트→manifest)·`gate-stop`(리마인드).

@@ -1,0 +1,34 @@
+# Validate the plugin + marketplace manifests and every skill/hook frontmatter
+# in one place (CUBRIDQA-1442 verification seam; ADR-0017).
+#
+# `claude plugin validate .` is the blocking gate — it catches broken manifests,
+# malformed frontmatter, and bad hooks.json. `--strict` runs as an informational
+# step only: today it fails solely on the deliberate `version` omission
+# (commit-SHA versioning, see README "Versioning"). It is promoted to blocking
+# once semver is pinned.
+name: validate-plugin
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate manifests (blocking)
+        run: claude plugin validate .
+
+      - name: Strict validate (informational)
+        run: claude plugin validate . --strict
+        continue-on-error: true
