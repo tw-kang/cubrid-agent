@@ -1,6 +1,6 @@
 # 4개 에이전트를 모노레포(cubrid-agent)로, 에이전트별 하위 디렉토리로 관리한다
 
-CBRD 이슈 워크플로의 각 상태 전이를 맡는 4개 에이전트(resolve-gate, tc-author, test-runner, close-backport)를 **하나의 repo `cubrid-agent`** 에 `agents/<name>/` 하위 디렉토리로 둔다. 폴리레포(에이전트마다 별도 repo)가 아니라 모노레포를 택한 이유:
+CBRD 이슈 워크플로의 각 상태 전이를 맡는 4개 에이전트(gate-resolved, author-testcase, test-runner, close-backport)를 **하나의 repo `cubrid-agent`** 에 `agents/<name>/` 하위 디렉토리로 둔다. 폴리레포(에이전트마다 별도 repo)가 아니라 모노레포를 택한 이유:
 
 - **공유 자산이 압도적**: 도메인 용어, `~/skills`, `cubrid-jira`, 소스 repo 5종, 빌드서버·검증 환경, 롤아웃 3단계 모델, PR/커밋 규칙을 4 에이전트가 거의 다 공유한다. 폴리레포면 이 공유층이 4번 중복된다.
 - **한 파이프라인이라 조율 필요**: Jira 상태 전이·멱등성 규칙·이슈 키 조인이 에이전트 간 맞물린다.

@@ -1,0 +1,105 @@
+{
+  "skill_name": "review-testcase",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "PR 3120 리뷰해줘. CBRD-27210 LEAD/LAG 윈도우 함수가 NULL 파티션 경계에서 잘못된 값을 반환하는 버그 픽스인데, cbrd_27210.sql/.answer가 새로 추가된 PR이야.",
+      "expected_output": "Produces a three-layer review — L1 convention lint (header / evaluate labels / DROP-before-CREATE / cleanup); L2, since this is a new-testcase PR, is dominated by the coverage-expansion lens (proposing P4 positive↔negative symmetry, three boundary points, and sibling-function expansion as concrete evaluate labels + SQL), with the determinism-convention lens applied across the board; L3 runs the local CTP worktree N(=3) times in a single session. The result is a READY-TO-MERGE or NEEDS-WORK verdict + severity-tagged findings + a Korean draft line-comment review. The report goes to $HOME/.cubrid-agent/reports/review-testcase/PR-3120.md. Does not auto post/approve/merge.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "three_layer_report",
+          "description": "The report is structured into three layers: L1 convention lint / L2 domain lens / L3 CTP execution."
+        },
+        {
+          "name": "pr_kind_classified_new",
+          "description": "Since cbrd_27210.sql/.answer are added in the diff, the PR is classified as a new-testcase PR."
+        },
+        {
+          "name": "coverage_expansion_lens",
+          "description": "The dominant L2 lens is routed to coverage-expansion (P4·P8·P9·P14)."
+        },
+        {
+          "name": "coverage_proposes_concrete_sql",
+          "description": "Coverage gaps are not merely flagged as 'missing'; the cases to add are proposed as runnable evaluate labels + SQL."
+        },
+        {
+          "name": "verdict_enum",
+          "description": "The verdict is marked as exactly one of READY-TO-MERGE or NEEDS-WORK."
+        },
+        {
+          "name": "draft_only_no_post",
+          "description": "No automatic GitHub post/approve/merge; only a Korean draft for a person to post is generated."
+        },
+        {
+          "name": "report_path",
+          "description": "The report is written to the path $HOME/.cubrid-agent/reports/review-testcase/PR-3120.md."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "PR 3145 sql tc pr 심사해줘. 기존 cbrd_26880.sql/.answer가 수정된 변경형 PR인데 답지 값이 바뀌었어. 답지가 왜 바뀌었는지랑 문제 없는지 봐줘.",
+      "expected_output": "A three-layer review. L2, since this is a modification PR, is dominated by the answer-vs-spec lens (P7 justification for the answer-file change · P11 consistency with the issue's intent · P15 invariants) — checking for dead assertions where only .answer was changed while the comparison literals/assertions in .sql were left untouched, and whether the paired .answer_cci was updated. In the L3 local CTP run, if the .sql evaluate labels disagree with .answer (labels fixed but the answer file not regenerated), catch it as a data-independent Fail, making it a blocker → NEEDS-WORK. State the verification build SHA and whether it includes the fix (merge-base ancestor). A Korean draft with line comments prioritizing blocker/major and grouping minor issues under 'FYI', plus a summary. Report PR-3145.md.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "pr_kind_classified_modified",
+          "description": "Since .sql/.answer are modified, the PR is classified as a modification PR."
+        },
+        {
+          "name": "answer_vs_spec_lens",
+          "description": "L2 is routed to the answer-vs-spec lens, checking the reason for the answer-file change, dead assertions, and the paired .answer_cci."
+        },
+        {
+          "name": "l3_execution_evidence",
+          "description": "The report records L3 CTP execution evidence (answer consistency Success/Fail + single-session N=3 determinism)."
+        },
+        {
+          "name": "verdict_needs_work_on_blocker",
+          "description": "If there is a blocker such as an execution Fail or an answer-file contradiction, the verdict is NEEDS-WORK."
+        },
+        {
+          "name": "verification_build_stated",
+          "description": "The verification build and whether that build includes the fix (included/not included) are stated as inputs to the verdict."
+        },
+        {
+          "name": "draft_korean_line_comments",
+          "description": "The Korean draft review consists of file:line + rationale line comments and a summary, and is draft-only."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "review-testcase 돌려줘. PR 3160은 옵티마이저 plan/trace를 검증하는 sql tc야. 근데 이 머신엔 로컬 빌드랑 CTP 환경이 없어.",
+      "expected_output": "Run only L1+L2 and mark L3 as NOT-RUN (no fabricated execution). L2, since this is a plan/trace testcase, adds the plan-stability lens (P3 fix path · P13 tie/flaky plan stability) plus the determinism-convention lens applied across the board. Through the DP2 black-box view, check whether the TC asserts on user-observable plan/output, and flag any dependence on C internals/physical values like page id or offset. Issue a READY-TO-MERGE/NEEDS-WORK verdict based on L1+L2 evidence, with a Korean draft review + report PR-3160.md. Does not auto post/approve/merge.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "l3_not_run_marked",
+          "description": "Since there is no local build/CTP environment, L3 is marked NOT-RUN and execution is not fabricated."
+        },
+        {
+          "name": "plan_stability_lens",
+          "description": "Since this is a plan/trace testcase, the plan-stability lens (P3·P13) is added to L2."
+        },
+        {
+          "name": "determinism_convention_always",
+          "description": "The determinism-convention lens is always applied regardless of the PR kind."
+        },
+        {
+          "name": "dp2_black_box_check",
+          "description": "From the DP2 perspective, verify that assertions are on user-observable plan/output and flag dependence on C internals/physical values."
+        },
+        {
+          "name": "verdict_enum",
+          "description": "The verdict is marked as exactly one of READY-TO-MERGE or NEEDS-WORK."
+        },
+        {
+          "name": "draft_only_no_post",
+          "description": "No automatic post/approve/merge; only a Korean draft for a person to post is generated."
+        }
+      ]
+    }
+  ]
+}

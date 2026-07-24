@@ -1,0 +1,101 @@
+{
+  "skill_name": "gate-resolved",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "gate-resolved 돌려줘 CBRD-27052. crash 이슈인데 첨부에 core 파일이랑 스택트레이스만 있고 재현 절차(어떤 부하/종료 순서에서 assert가 터지는지)가 안 보여. QA가 받을 만한지 봐줘.",
+      "expected_output": "Write a gate report to $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md. Judge CBRD-27052 as needed but NOT-plannable — only a core dump and stack trace are attached, with no runnable repro TC, so C1 (self-contained repro) is not met → bounce (Need Something→Handover). Include a Korean rejection-comment draft that @mentions the developer assignee. The Jira transition (Need Something) and field changes are only staged (drafted), not actually executed.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "report_file_written",
+          "description": "Writes the report to the path $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md"
+        },
+        {
+          "name": "two_axis_verdict",
+          "description": "The verdict is justified on both axes: necessity (re-judging the QA Scenario) and plannability"
+        },
+        {
+          "name": "verdict_is_bounce_need_something",
+          "description": "Marks CBRD-27052 as a bounce and maps it to the Need Something (→Handover) transition"
+        },
+        {
+          "name": "cites_missing_repro_criteria",
+          "description": "Specifically cites, as the bounce reason, the absence of a runnable repro TC (C1 self-containment) or the lack of reproduction steps"
+        },
+        {
+          "name": "rejection_draft_korean_with_mention",
+          "description": "Includes a Korean rejection-comment draft that @mentions the developer assignee"
+        },
+        {
+          "name": "draft_only_no_real_transition",
+          "description": "Does not execute the actual Jira transition/field changes, leaving them only staged (as a draft)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "guava Resolved 큐 전체 QA to-do 점검해줘. 통과할 것/반송할 것/스킵할 것 표로 정리하고, 반송 대상은 개발자한테 보낼 코멘트 초안까지 뽑아줘. 팀내 배포 단계 기준으로.",
+      "expected_output": "Query all guava Resolved issues and write a gate report — the query + count, a per-issue table (key · summary · kind · necessity · plannability rationale · pass/bounce/skip · runner tag · warnings), rejection-comment drafts for the bounced ones, and statistics. Since this is internal (Stage 2), QA Scenario changes are proposals only and transitions are manual — the skill produces drafts only, and a human performs the actual transitions and comment posting.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "report_file_written",
+          "description": "Writes the report to the path $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md"
+        },
+        {
+          "name": "query_and_count_present",
+          "description": "States the JQL query used and the count of target issues at the top of the report"
+        },
+        {
+          "name": "per_issue_table_columns",
+          "description": "The per-issue table has columns for key, summary, kind, necessity, plannability rationale, pass/bounce/skip, runner tag, and warnings"
+        },
+        {
+          "name": "verdict_uses_three_values",
+          "description": "Each issue's verdict is marked as one of three values: pass/bounce/skip"
+        },
+        {
+          "name": "runner_tag_for_pass",
+          "description": "Passed issues are tagged with a runner tag such as SQL/CCI/JDBC/perftool"
+        },
+        {
+          "name": "stats_section_present",
+          "description": "The report has a statistics section with counts of pass/bounce/skip, etc."
+        },
+        {
+          "name": "draft_only_staged",
+          "description": "Per the internal-stage criteria, does not execute transitions or comment posting, presenting drafts only"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "CBRD-26255 Resolved 검토해서 테스트 플랜 못 짜면 Need Something으로 반송해줘. Connection Pool 재설계 구현 sub-task야.",
+      "expected_output": "Review CBRD-26255 but apply the sub-task guard first — check the parent EPIC (CBRD-26177) and the sibling sub-tasks; since a sibling responsible for verification/TC (e.g. 26421) covers this EPIC's testing, do not bounce the implementation sub-task individually but treat it as skip/pass (bouncing would cause status ping-pong via the developer re-Resolving it). Record in the report the rationale for the parent+sibling check and the reason for canceling the bounce; do not execute the actual Need Something transition.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "report_file_written",
+          "description": "Writes the report to the path $HOME/.cubrid-agent/reports/gate-resolved/gate-resolved-<date>.md"
+        },
+        {
+          "name": "checks_parent_and_siblings",
+          "description": "Checks the parent issue and sibling sub-tasks before deciding to bounce"
+        },
+        {
+          "name": "no_bounce_when_sibling_covers",
+          "description": "When a sibling sub-task is responsible for TC/verification, does not bounce this implementation sub-task but judges it as skip/pass"
+        },
+        {
+          "name": "notes_pingpong_avoidance",
+          "description": "Notes the rationale that bouncing an individual sub-task would trigger status ping-pong (the developer re-Resolving it)"
+        },
+        {
+          "name": "no_real_transition_executed",
+          "description": "Even when the user requests a bounce, does not execute the actual Need Something transition (draft/verdict only)"
+        }
+      ]
+    }
+  ]
+}

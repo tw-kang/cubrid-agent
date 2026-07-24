@@ -2,7 +2,7 @@
 
 **상태: 설계 v1 — 스킬 미구현.**
 
-역할: 머지된 TC가 **머지 후 야간 회귀에서 안정적으로 도는가**를 판정해 이슈를 Tested로 넘길지 권고하는 **판독형 게이트** 에이전트. tc-author(생성형)와 달리 TC를 만들지 않고, resolve-gate(판정형)처럼 **판정(권고)** 을 낸다. 회귀 자체는 이미 있는 인프라(엔진 CircleCI·사내 야간 스케줄러)가 돌리므로, test-runner는 **그 결과를 읽어 판정**한다.
+역할: 머지된 TC가 **머지 후 야간 회귀에서 안정적으로 도는가**를 판정해 이슈를 Tested로 넘길지 권고하는 **판독형 게이트** 에이전트. author-testcase(생성형)와 달리 TC를 만들지 않고, gate-resolved(판정형)처럼 **판정(권고)** 을 낸다. 회귀 자체는 이미 있는 인프라(엔진 CircleCI·사내 야간 스케줄러)가 돌리므로, test-runner는 **그 결과를 읽어 판정**한다.
 
 ## 초점 — 머지 후 회귀 안정성 (신규 TC 자체)
 
@@ -21,10 +21,10 @@
 
 ## 위치
 
-tc-author Submit·머지 뒤의 회귀 구간에 선다:
+author-testcase Submit·머지 뒤의 회귀 구간에 선다:
 
 ```
-tc-author ─Draft PR─► [tc-reviewer·사람 리뷰 ─► 머지] ─► [test-runner: Verify] ─► Tested ─► close-backport
+author-testcase ─Draft PR─► [review-testcase·사람 리뷰 ─► 머지] ─► [test-runner: Verify] ─► Tested ─► close-backport
 ```
 
 CircleCI는 **머지 전** 검증(PR 게이트, test-runner 범위 밖), qahome은 **머지 후** regression 탐지 — test-runner는 후자만 읽는다(D3). 조인 키는 이슈 키(`CBRD-XXXXX`)와 TC 파일명(`cbrd_xxxxx`). 파이프라인 맥락은 [../../../CONTEXT-MAP.md](../../../CONTEXT-MAP.md), 롤아웃은 [../../staging.md](../../staging.md).

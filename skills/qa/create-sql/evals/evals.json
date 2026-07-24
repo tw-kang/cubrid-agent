@@ -1,0 +1,47 @@
+{
+  "skill_name": "create-sql",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "CBRD-27150 버그 픽스 sql tc 만들어줘. DATE_FORMAT 함수에서 '%f' 포맷 지정자가 마이크로초 대신 0을 반환하는 버그야. 정상 동작, 다른 포맷과 혼합, NULL 입력 케이스를 포함해줘.",
+      "expected_output": "Creates the file sql/_13_issues/_26_1h/cases/cbrd_27150.sql and the file answers/cbrd_27150.answer",
+      "files": [],
+      "assertions": [
+        {"name": "has_header_comment", "description": "File contains a header block that starts with /**"},
+        {"name": "has_evaluate_labels", "description": "At least 2 evaluate labels are present"},
+        {"name": "has_drop_if_exists", "description": "Uses DROP TABLE IF EXISTS"},
+        {"name": "has_cleanup_at_bottom", "description": "Includes a DROP TABLE at the bottom of the file"},
+        {"name": "answer_file_created", "description": "The .answer file is present in outputs"},
+        {"name": "has_date_format_function", "description": "Contains DATE_FORMAT or %f"},
+        {"name": "no_server_message", "description": "This is an error-free SELECT test, so --+ server-message is not needed (must be absent)"}
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "CBRD-26900에 대한 sql tc를 만들어야 해. PL/CSQL에서 INTO 절 없이 SELECT 하면 에러가 나야 하는데 안 나는 버그야. 에러 발생 케이스 위주로 작성해줘.",
+      "expected_output": "sql/_13_issues/_26_1h/cases/cbrd_26900.sql + answers/cbrd_26900.answer, including --+ server-message on/off",
+      "files": [],
+      "assertions": [
+        {"name": "has_header_comment", "description": "File contains a header block that starts with /**"},
+        {"name": "has_evaluate_labels", "description": "At least 2 evaluate labels are present"},
+        {"name": "has_drop_if_exists", "description": "Uses DROP TABLE IF EXISTS"},
+        {"name": "answer_file_created", "description": "The .answer file is present in outputs"},
+        {"name": "has_server_message_on", "description": "Contains --+ server-message on (validates the error case)"},
+        {"name": "has_server_message_off", "description": "A paired --+ server-message off is present"}
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "새 기능 테스트야. CBRD-27000, guava 릴리즈, ONLINE INDEX 기능 개선. 인덱스 생성 중 DML 허용 여부 확인하는 sql tc 초안 작성해줘. issue_27000_online_index 그룹으로.",
+      "expected_output": "sql/_36_guava/issue_27000_online_index/cases/cbrd_27000.sql + answers/cbrd_27000.answer",
+      "files": [],
+      "assertions": [
+        {"name": "has_header_comment", "description": "File contains a header block that starts with /**"},
+        {"name": "has_evaluate_labels", "description": "At least 3 evaluate labels are present"},
+        {"name": "has_drop_if_exists", "description": "Uses DROP TABLE IF EXISTS"},
+        {"name": "answer_file_created", "description": "The .answer file is present in outputs"},
+        {"name": "has_create_index_online", "description": "Contains the CREATE INDEX ... ONLINE or ONLINE INDEX keyword"}
+      ]
+    }
+  ]
+}

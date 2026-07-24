@@ -7,9 +7,9 @@
 동시성과 작업 수행 속도 향상을 위해, **순차 의존이 없는 작업 단위는 필요에 따라 병렬로 쪼개 수행한다.** 서브에이전트 fan-out(`parallel`/`pipeline`), 다건 동시 처리를 기본 도구로 삼는다.
 
 에이전트별 병렬화 지점(예):
-- **tc-author**: 다건 이슈 동시 처리, 결정성 N회 반복·pre/post-fix 빌드 검증을 병렬로.
-- **tc-reviewer**: 4개 렌즈(coverage-expansion·answer-vs-spec·determinism-convention·plan-stability)를 독립 서브에이전트로 병렬(perspective-diverse), 다건 PR 병렬, 백테스트 PR별 병렬.
-- **resolve-gate**: Handover 풀의 다건 이슈를 동시 검사.
+- **author-testcase**: 다건 이슈 동시 처리, 결정성 N회 반복·pre/post-fix 빌드 검증을 병렬로.
+- **review-testcase**: 4개 렌즈(coverage-expansion·answer-vs-spec·determinism-convention·plan-stability)를 독립 서브에이전트로 병렬(perspective-diverse), 다건 PR 병렬, 백테스트 PR별 병렬.
+- **gate-resolved**: Handover 풀의 다건 이슈를 동시 검사.
 - **test-runner**: 다건 이슈의 회귀 판정 병렬(qaresu 조회는 read-only라 안전).
 - **close-backport**: 다건 동시 처리.
 
@@ -27,12 +27,25 @@ TC·테스트 시나리오는 **내부 구현이 아니라 사용자가 관측�
 **목적**: 회귀 검증에 더해, **DBMS 제품이 필드에서 마주칠 상황을 미리 검출**한다 — AP 개발자(비전문가)가 현장에서 만들 예상외·오사용·엣지 상황까지 TC로 커버한다(coverage-expansion의 negative·경계 케이스와 직결).
 
 에이전트별 적용:
-- **tc-author**: TC/시나리오를 사용자 관점 블랙박스로 작성. SQL(JDBC 드라이버) 입력→출력으로 검증하고, 내부 assert·코드 경로·물리값(page id·offset 등)에 의존하는 TC를 지양.
-- **tc-reviewer**: 화이트박스 의존(내부 상태·구현 세부 단언)을 지적하고, 사용자 관점 시나리오인지 검토(P15 불변식만 단언·환경의존값 회피와 연결).
-- **resolve-gate**: test-plannability를 "**사용자 관점 블랙박스로 테스트 플랜을 짤 수 있나**"로 판정. 동작 변화 없는 debug-only assert·내부 리팩터링은 블랙박스 관측 표면이 없어 SQL TC 대상이 아니다(CBRD-26888 사례).
+- **author-testcase**: TC/시나리오를 사용자 관점 블랙박스로 작성. SQL(JDBC 드라이버) 입력→출력으로 검증하고, 내부 assert·코드 경로·물리값(page id·offset 등)에 의존하는 TC를 지양.
+- **review-testcase**: 화이트박스 의존(내부 상태·구현 세부 단언)을 지적하고, 사용자 관점 시나리오인지 검토(P15 불변식만 단언·환경의존값 회피와 연결).
+- **gate-resolved**: test-plannability를 "**사용자 관점 블랙박스로 테스트 플랜을 짤 수 있나**"로 판정. 동작 변화 없는 debug-only assert·내부 리팩터링은 블랙박스 관측 표면이 없어 SQL TC 대상이 아니다(CBRD-26888 사례).
 
 경계(사용자=DBA·DB engineer·AP 개발자 기준):
 - **관점 스펙트럼별 관측 수단**: DBA/DB engineer=플랜·카탈로그·statdump(SQL·shell). AP 개발자=드라이버(CCI/JDBC) 입출력·응용 동작. 비전문가적 오사용·예상외 사용도 필드 상황이라 시나리오에 포함한다(negative·엣지).
-- 옵티마이저 **플랜/trace·시스템 카탈로그·statdump**는 DBA·DB engineer의 정상 관측 수단이므로 **블랙박스 안**이다(예외가 아님) — tc-reviewer plan-stability 렌즈가 이를 다룬다.
+- 옵티마이저 **플랜/trace·시스템 카탈로그·statdump**는 DBA·DB engineer의 정상 관측 수단이므로 **블랙박스 안**이다(예외가 아님) — review-testcase plan-stability 렌즈가 이를 다룬다.
 - 진짜 제외되는 화이트박스는 **SQL(드라이버)·표준 유틸로 관측할 수 없는 C 내부**(코드 경로·assert·메모리 물리 배치)다. 이런 것이 이슈 핵심이면 SQL이 아니라 shell·debug 회귀 등 **적합 러너로 라우팅**한다(카테고리 적합성).
 - **카테고리별 관측 수단(확장 예정)**: 블랙박스 표면은 테스트 카테고리마다 다르다. 현재 SQL 카테고리(JDBC/CCI 드라이버 입출력·플랜·카탈로그) 중심이나 **추후 shell·기타 카테고리로 확장**한다 — shell은 서버 프로세스·로그·conf·재시작·OS 상태를 DBA/DB engineer가 관측하므로, **SQL에선 화이트박스인 서버 크래시(예: 26888류)가 shell에선 블랙박스 표면**이 된다. 카테고리 라우팅이 관측 수단을 정한다.
+
+## DP3 — 언어 정책 (배포 대상 영문 · 미배포 한글)
+
+재패키징([ADR 0014](./adr/0014-repackage-as-plugin.md))으로 이 repo가 외부로 나가는 플러그인·스킬이 되면서, 무엇을 영문/한글로 쓸지 규약을 고정한다. **배포 대상(외부·타 CLI·마켓플레이스로 나가는 것)은 영문, 배포 미대상(팀·개발자만 읽는 것)은 한글.**
+
+- **영문(배포 대상)**: 스킬 `SKILL.md`(`name`·`description`·본문·`references/`·`evals/`), 플러그인 매니페스트(`.claude-plugin/`), `hooks/`·`scripts/`, 루트 `README`·`CHANGELOG`·`LICENSE`·`package.json`.
+- **한글(배포 미대상)**: `docs/`(ADR·설계·staging·deployment·guides), `AGENTS.md`·`CONTEXT-MAP.md`, Jira(CUBRIDQA) 티켓 본문.
+- **예외 (기능적 한글은 유지 — 지시문만 영문)**: 스킬 `description`은 영문 본문이되 **한글 트리거 키워드는 유지**한다 — 팀이 한글로 스킬을 부르므로 트리거 정확도를 확보하기 위함. 예: `… Use whenever someone says "이 PR 리뷰해줘", "gate-resolved 돌려줘", …`. 같은 논리로 아래 세 가지도 한글을 유지하고, 이를 **감싸는 지시문·설명만** 영문으로 쓴다:
+  - **eval `prompt`** — 스킬 호출을 흉내 내는 트리거 입력이라 한글 유지(같은 파일의 `expected_output`·`assertions`는 영문).
+  - **스킬이 게시하는 산출물 템플릿** — 반송 코멘트·PR 본문·리뷰 초안 등 Jira/GitHub로 나가는 한글 결과물('Jira(CUBRIDQA) 티켓 본문=한글' 규칙의 연장; 영문화하면 한국 개발자에게 영어로 게시하는 동작 변경이 됨).
+  - **few-shot으로 인용한 실제 리뷰어 코멘트 원문** — 인용 데이터라 번역하면 인용이 조작된다(원문이 영어면 영어로 둔다).
+
+크로스-CLI 정본(다른 에이전트 도구도 읽는 형태)은 `AGENTS.md`의 "Language policy" 절 — 이 DP는 그 정책을 설계 원칙으로 성문화한 것이다.

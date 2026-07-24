@@ -1,0 +1,15 @@
+{
+  "name": "cubrid-agent",
+  "description": "CUBRID QA dev-process agents for CBRD issue state transitions — gate Resolved issues, author and verify CTP SQL testcases, and first-review testcase PRs.",
+  "owner": {
+    "name": "tw-kang",
+    "email": "twkang@cubrid.com"
+  },
+  "plugins": [
+    {
+      "name": "cubrid-agent",
+      "source": "./",
+      "description": "CUBRID QA dev-process agents (gate Resolved issues, author/verify CTP SQL testcases, first-review testcase PRs)."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "skill_name": "verify-shell",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "cubrid-testcases-private-ex/shell/_01_utility/_01_sqlx/bug_cubrid2125/cases/bug_cubrid2125.sh 이 케이스 수행해줘. 빌드 URL은 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+      "expected_output": "Install CUBRID from the build URL, run the test, and report the result (OK/NOK). Include root-cause analysis on failure.",
+      "files": [],
+      "assertions": [
+        {"id": "install-cubrid", "text": "Installs the CUBRID build using the run_cubrid_install script."},
+        {"id": "run-test", "text": "Runs the test script at the given path from the cases/ directory."},
+        {"id": "report-result", "text": "Checks the .result file and clearly reports the OK/NOK result."},
+        {"id": "failure-analysis", "text": "Provides a root-cause analysis when the result is NOK."}
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "bug_1562 shell tc 돌려봐. 빌드는 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh 이걸로 설치해",
+      "expected_output": "Look up the testcase path by name, install CUBRID, run the test, and report the result.",
+      "files": [],
+      "assertions": [
+        {"id": "find-testcase", "text": "Locates the testcase path by searching for the name bug_1562."},
+        {"id": "install-cubrid", "text": "Installs the CUBRID build using the run_cubrid_install script."},
+        {"id": "run-and-report", "text": "Runs the test and reports the OK/NOK result."}
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "bug_cubrid2125 테스트 실행해줘. 빌드 URL은 http://invalid-url-that-does-not-exist.com/fake_build.sh 야",
+      "expected_output": "Attempt to install from the invalid URL, detect the failure, print a message asking for a correct build-file link, and stop.",
+      "files": [],
+      "assertions": [
+        {"id": "detect-install-failure", "text": "Detects the installation failure caused by the invalid URL and clearly notifies the user."},
+        {"id": "no-test-execution", "text": "Aborts without running the test after the installation fails."},
+        {"id": "request-correct-url", "text": "Prints a message asking the user to provide a correct build-file link."}
+      ]
+    }
+  ]
+}
