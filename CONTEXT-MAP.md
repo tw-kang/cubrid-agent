@@ -41,7 +41,7 @@ Tested   ─[close-backport: Close / Need Backport]→ Closed / Backport
 
 ADR 번호는 **전역 유일 단일 시퀀스**. 생성 순서로 매기되 범위에 따라 위치가 갈린다:
 - `0001`~`0006`·`0009` = author-testcase 전용 → `docs/agents/author-testcase/docs/adr/`
-- `0007`(롤아웃 단계)·`0008`(모노레포)·`0012`(문서 트리 성격 3분법)·`0013`(jira 첨부 읽기)·`0014`(플러그인 재패키징)·`0015`(이중 채널 배포) = 시스템 전역 → `docs/adr/`
+- `0007`(롤아웃 단계)·`0008`(모노레포)·`0012`(문서 트리 성격 3분법)·`0013`(jira 첨부 읽기)·`0014`(플러그인 재패키징)·`0015`(이중 채널 배포)·`0016`(완성=실제 쓰기)·`0017`(설치 진입점 스킬)·`0018`(개인 식별자 하드코딩 제거) = 시스템 전역 → `docs/adr/`
 - `0010`(판정 원천·baseline 델타) = test-runner 전용 → `docs/agents/test-runner/docs/adr/`
 - 이후: 전역 결정은 `docs/adr/`, 에이전트 전용은 `docs/agents/<name>/docs/adr/`. **새 번호를 매기기 전 전 시퀀스(전역+에이전트)를 확인한다.**
 

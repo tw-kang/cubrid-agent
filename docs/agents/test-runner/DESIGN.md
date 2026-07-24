@@ -18,7 +18,7 @@ Test→Tested("Verify") 전이를 맡는 **판독형 게이트**. 머지된 신�
 | D5 | 판정 대상 | **신규 TC 안정 PASS만**. 스위트 회귀 무결(다른 TC 영향)은 close-backport로 이관 |
 | D6 | 관측 창 | 연속 **2일(2 run)** PASS. 회귀=야간 1일 1회(cubrid_build 실측) |
 | D7 | 개별 확정 | resultstat **baseline 델타**: fail_scenario ≤ 편입직전 baseline(신규 실패 0)이면 PASS. 델타>0일 때만 qaresultpath 개별 확인 (dry-run으로 D7 최초안 "fail=0" 반증 후 개정, ADR 0010). qaresultpath 접근 방법은 추후 설계 |
-| D8 | Select | JQL(`status=Test ∧ cf[213834]=twkang ∧ cf[210441]=guava`) ∩ **TC PR develop 머지됨** |
+| D8 | Select | JQL(`status=Test ∧ cf[213834]="$QA_USER" ∧ cf[210441]=guava`) ∩ **TC PR develop 머지됨** (`$QA_USER`=각자 Jira 계정, ADR 0018) |
 | D9 | 편입 판정 | **시간 기준**: TC PR 머지 시각 이후 stat_date의 sql run이 내 TC 포함. 머지 직전 run = baseline |
 | D10 | 출력 | 읽기전용 리포트 + Tested 권고·근거를 **Jira 코멘트 초안**(PoC=사람 게시, 이후 자동). 전이는 사람 |
 | D11 | FAIL 분기 | NOT-VERIFIED 리포트 + 코멘트 초안(사람 확인). Tested 권고 안 함. 원인 구분은 진단 보류라 안 함 |
@@ -29,7 +29,7 @@ Test→Tested("Verify") 전이를 맡는 **판독형 게이트**. 머지된 신�
 Select ─► Resolve(빌드·baseline) ─► 관측(2 run) ─► Verdict ─► 리포트 + Jira 코멘트 초안
 ```
 
-1. **Select** — JQL로 `status=Test ∧ QA Assignee=twkang ∧ Planned=guava` 이슈를 뽑고, 각 이슈의 TC PR이 `CUBRID/cubrid-testcases:develop`에 **머지됐는지 gh로 확인**. 미머지는 회귀에 없으니 대기열 보류(D8).
+1. **Select** — JQL로 `status=Test ∧ QA Assignee=$QA_USER ∧ Planned=guava` 이슈를 뽑고, 각 이슈의 TC PR이 `CUBRID/cubrid-testcases:develop`에 **머지됐는지 gh로 확인**. 미머지는 회귀에 없으니 대기열 보류(D8).
 2. **Resolve(빌드·baseline)** — 이슈의 TC PR 머지 시각(`merged_at`)을 기준점으로 잡고, qaresu `resultstat`에서:
    - **baseline run** = 머지 직전 sql release run(`testcat='sql'`, `stat_date < merged_at` 최신)의 `fail_scenario`.
    - **관측 대상 run** = `stat_date > merged_at`인 sql release run들(야간이라 머지 다음날부터, `treepath` build_id로 어느 야간 빌드인지 식별).

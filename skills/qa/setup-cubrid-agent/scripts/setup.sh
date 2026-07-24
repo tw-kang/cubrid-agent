@@ -30,9 +30,25 @@ clone_if_absent() { # <url> <dir> [extra git-clone args...]
   else git clone "$@" "$url" "$dir" || fail "clone 실패: $url"; ok "$(basename "$dir") clone"; fi
 }
 clone_if_absent https://github.com/CUBRID/cubrid-testcases.git "$HOME/cubrid-testcases"
-git -C "$HOME/cubrid-testcases" remote get-url twkang >/dev/null 2>&1 \
-  || git -C "$HOME/cubrid-testcases" remote add twkang https://github.com/tw-kang/cubrid-testcases.git
-ok "cubrid-testcases twkang 리모트"
+# TC PR 제출용 fork 리모트 — 팀원마다 자기 fork라 gh 인증 계정에서 유도한다(ADR 0018).
+# 원천: $CUBRID_GH_FORK(오버라이드) → gh api user. 리모트 이름은 개인명이 아니라 중립명 'fork'.
+FORK_OWNER="${CUBRID_GH_FORK:-}"
+if [ -z "$FORK_OWNER" ] && command -v gh >/dev/null; then
+  FORK_OWNER="$(gh api user --jq .login 2>/dev/null || true)"
+  # 안전망: 유도된 계정에 fork가 없으면 만든다(멱등 — 있으면 no-op).
+  if [ -n "$FORK_OWNER" ] && ! gh repo view "$FORK_OWNER/cubrid-testcases" >/dev/null 2>&1; then
+    gh repo fork CUBRID/cubrid-testcases --remote=false >/dev/null 2>&1 || true
+  fi
+fi
+if [ -n "$FORK_OWNER" ]; then
+  FORK_URL="https://github.com/$FORK_OWNER/cubrid-testcases.git"
+  # set-url이 없으면(리모트 미존재) add — 바뀐 $CUBRID_GH_FORK도 재실행 시 반영되도록 authoritative.
+  git -C "$HOME/cubrid-testcases" remote set-url fork "$FORK_URL" 2>/dev/null \
+    || git -C "$HOME/cubrid-testcases" remote add fork "$FORK_URL"
+  ok "cubrid-testcases fork 리모트 ($FORK_OWNER)"
+else
+  todo "cubrid-testcases fork 리모트 — gh 인증 후 재실행(또는 export CUBRID_GH_FORK=<owner>)"
+fi
 if [ -d "$HOME/cubrid/.git" ]; then ok "cubrid 있음"
 else # 히스토리는 필요(Ground: log --grep·merge-base), blob은 지연. 미지원 git이면 일반 clone.
   git clone --filter=blob:none https://github.com/CUBRID/cubrid.git "$HOME/cubrid" 2>/dev/null \

@@ -20,7 +20,7 @@ Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·�
 | Q2 | 선정 기준 | QA Scenario는 **Not Required만 제외**(Required + Not Yet 포함) ∩ Reproduction 존재 ∩ SQL 재현성 (ADR 0002) |
 | Q3 | 검증 단위 | 로컬 CTP interactive 단건 실행 (ADR 0006). pod·build-cache 검증은 Stage 3 (ADR 0001 — run마다 봇 전용 pod 생성/삭제, 공용 pod 불가침) |
 | Q4 | 검증 빌드 | **신뢰 빌드**(대상 이슈 fix 포함 release, `$HOME/CUBRID`). `.answer`는 release(=CI mode) 출력으로 확정, debug는 진단 시에만 (ADR 0005) |
-| Q5 | PR 대상 | upstream Draft PR: `CUBRID/cubrid-testcases:develop` ← `tw-kang:tc/cbrd-XXXXX` (ADR 0003) |
+| Q5 | PR 대상 | upstream Draft PR: `CUBRID/cubrid-testcases:develop` ← `$FORK:tc/cbrd-XXXXX` (ADR 0003; `$FORK`=각자 fork owner, ADR 0018) |
 | Q6 | 루프 규칙 | 리뷰 통과 후에도 개선·재검증 1회 강제(최소 2회차), 최대 5회차, 미통과 시 스킵+리포트 |
 | Q7 | 처리 범위 | run당 기본 1건(대기열 선두), 인자로 N건 또는 이슈 키 지정 |
 | Q8 | 브랜치/커밋 | 브랜치 `tc/cbrd-XXXXX`, 커밋 `[CBRD-XXXXX] <영문 요약>` |
@@ -33,7 +33,7 @@ Resolved 처리된 CBRD 이슈를 읽어 CTP SQL 테스트케이스를 작성·�
 
 ### 설계 기본값 (이견 시 조정)
 
-- **작업 공간 규약**: 봇은 `$TC`(origin/twkang 리모트)에서 **`tc/cbrd-XXXXX` 브랜치로만** 작업한다 — 사람이 체크아웃한 브랜치에는 커밋하지 않는다. 격리가 필요한 머신은 `CUBRID_TESTCASES`로 별도 clone 지정(deployment.md D7).
+- **작업 공간 규약**: 봇은 `$TC`(origin/`fork` 리모트 — `fork`는 각자 gh 계정에서 유도, ADR 0018)에서 **`tc/cbrd-XXXXX` 브랜치로만** 작업한다 — 사람이 체크아웃한 브랜치에는 커밋하지 않는다. 격리가 필요한 머신은 `CUBRID_TESTCASES`로 별도 clone 지정(deployment.md D7).
 - **TC 경로**: `sql/_36_guava/cbrd_XXXXX/{cases,answers}/` — origin/develop에 확립된 guava 컨벤션(corpus 우선).
 - **TC 배치**: 루프 중에는 push 없이 `$TC`의 `cases/`에 직접 두고 로컬 CTP로 검증 (ADR 0006). Stage 3에선 `kubectl cp` 주입 (ADR 0001).
 - **Review lane 분리**: 리뷰는 작성자와 분리된 fresh-context 서브에이전트가 수행 (self-approve 금지).
@@ -51,11 +51,11 @@ Select ─► Ground ─► ┌── Author ──► Verify ──► Review �
 
 1. JQL로 후보 조회 (익명, 인증 불필요):
    ```
-   project = CBRD AND cf[213834] = twkang AND cf[210441] = guava
+   project = CBRD AND cf[213834] = "$QA_USER" AND cf[210441] = guava
      AND status = Resolved AND cf[210565] in ("Required", "Not Yet")
    ORDER BY resolved ASC
    ```
-   (`cf[213834]`=QA Assignee, `cf[210441]`=Planned Version, `cf[210565]`=QA Scenario)
+   (`cf[213834]`=QA Assignee, `cf[210441]`=Planned Version, `cf[210565]`=QA Scenario; `$QA_USER`=각자 Jira 계정, ADR 0018)
 2. 각 후보의 `description`, `comment` 전문을 jql json으로 읽고 판정:
    - **Reproduction 존재**: 문제를 재현하는 구체적 SQL/절차가 본문·댓글에 있는가.
    - **SQL 재현성**: 재현·관측이 SQL문만으로(JDBC/CCI 드라이버로 실행) 가능하고, **fix 후 빌드에서 출력이 매회 일치**하는가(R3). 프로세스 조작·설정 파일 수정·외부 유틸 관측이 필요하면 스킵+사유 기록. 버그 발생이 확률적(race)이어도 fix 후 출력이 결정적이면 적격 — 재발 검출력은 리뷰에서 평가.
@@ -123,8 +123,8 @@ fresh-context 리뷰 서브에이전트에 이슈 본문, fix diff 요약, `.sql
 ### 7. Submit — 커밋·push·PR
 
 - 커밋: `[CBRD-XXXXX] Add SQL testcase for <영문 요약>` + Claude trailer.
-- push: `twkang` 리모트(tw-kang/cubrid-testcases)에 `tc/cbrd-XXXXX`.
-- PR: `gh pr create --repo CUBRID/cubrid-testcases --base develop --head tw-kang:tc/cbrd-XXXXX --draft`
+- push: `fork` 리모트(`$FORK/cubrid-testcases`)에 `tc/cbrd-XXXXX`.
+- PR: `gh pr create --repo CUBRID/cubrid-testcases --base develop --head "$FORK:tc/cbrd-XXXXX" --draft`
   - 제목: 영어, `[CBRD-XXXXX]` 헤더. 본문: 한글·사용자 관점, cubrid PR 템플릿 형식(jira 링크 + Purpose/Implementation/Remarks). Remarks에 검증 증거(빌드, 루프 횟수, 결과 요약) 명시.
 
 ### 8. 리포트

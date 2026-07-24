@@ -54,7 +54,7 @@ QA Scenario 필드는 최초 개발자가 작성하고, QA가 Resolved에서 재
 
 | | Select 범위 | QA Scenario 필드 변경 | 전이 실행 | 통과분 |
 |---|---|---|---|---|
-| **PoC (Stage 1)** | QA assignee=twkang | 제안만 | 수동(초안) | 반송만(통과분은 그대로) |
+| **PoC (Stage 1)** | QA assignee=$QA_USER | 제안만 | 수동(초안) | 반송만(통과분은 그대로) |
 | **팀내 배포 (Stage 2)** | guava Resolved 전체 | 제안만(수동) | 수동 | 반송(통과분 그대로) |
 | **자동화 (Stage 3)** | guava Resolved 전체 | 직접 변경(cubrid-jira update) | 자동 전이 | author-testcase 트리거(Start Test) |
 

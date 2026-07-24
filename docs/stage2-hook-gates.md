@@ -35,7 +35,7 @@ author-testcase 파이프라인의 필수 품질 게이트를 Claude Code hook�
 ```bash
 SM=$(mktemp -d)
 # 미충족(manifest 없음) → deny(exit 2)
-echo '{"tool_input":{"command":"gh pr create --repo CUBRID/cubrid-testcases --head tw-kang:tc/cbrd-99999 --draft"}}' \
+echo '{"tool_input":{"command":"gh pr create --repo CUBRID/cubrid-testcases --head myfork:tc/cbrd-99999 --draft"}}' \
   | HOME="$SM" bash scripts/gate-pr-submit.sh; echo "exit=$?"
 # 비대상(cubrid-agent 자체) → 통과(exit 0)
 echo '{"tool_input":{"command":"gh pr create --repo tw-kang/cubrid-agent"}}' \

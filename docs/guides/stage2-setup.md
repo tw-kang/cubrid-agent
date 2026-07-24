@@ -41,7 +41,7 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 
 ```bash
 export CUBRID_JIRA_USER="..."; export CUBRID_JIRA_PASSWORD="..."   # 표준 (또는 ~/.netrc: machine jira.cubrid.org, chmod 600)
-gh auth login                                                       # 또는 GH_TOKEN. fork=tw-kang, base=CUBRID
+gh auth login                                                       # 또는 GH_TOKEN. fork=각자 gh 계정(ADR 0018), base=CUBRID
 ```
 
 ## 3. CLI 수동 설치 (sudo 필요 — setup.sh는 확인·안내만)

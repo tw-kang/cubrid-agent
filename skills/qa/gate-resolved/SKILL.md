@@ -18,6 +18,7 @@ Verdict few-shots: [`examples/verdicts.md`](./examples/verdicts.md).
 ## Before you start
 
 - cubrid-jira installed + authenticated. Sanity: `cubrid-jira search CBRD-XXXXX`.
+- **Identity (ADR 0018).** `$QA_USER` = your Jira username = `$CUBRID_JIRA_USER` if set, else the `machine jira.cubrid.org` login in `~/.netrc`. The PoC Select JQL uses it — never hardcode a person.
 - No CTP / CUBRID build needed.
 - **Download and read every attachment (required, before you judge).** Many issues carry the repro or intent only in the attachments. Use `cubrid-jira attachment <KEY>` (if not available, interim: take each `.content` URL from `cubrid-jira jql 'key=<KEY>' --fields attachment --output json` and `curl --netrc -o <file>` it — credentials come from `.netrc` (jira.cubrid.org) or `-u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD`). **Check `.size` before fetching — for anything >5MB (cores and binaries included), skip the curl itself** and record only the metadata plus the reason. Fetch only the rest, read the text/code (.sql/.txt/.log/.sh/.json, etc.) closely, and read images visually with the Read multimodal.
 
@@ -41,7 +42,7 @@ Select (stage-scoped) → Necessity → Plannability → Transition + report
 
 ## 1. Select (stage-scoped)
 
-- **PoC**: `project = CBRD AND cf[210441] = guava AND status = Resolved AND cf[213834] = twkang` (QA assignee = twkang).
+- **PoC**: `project = CBRD AND cf[210441] = guava AND status = Resolved AND cf[213834] = "$QA_USER"` (QA assignee = you; substitute the resolved `$QA_USER`).
 - **Team-internal / Automation**: `project = CBRD AND cf[210441] = guava AND status = Resolved`.
 - Single issue: `/gate-resolved CBRD-XXXXX`.
 
@@ -93,7 +94,7 @@ Rejection comment template (Korean — posted to the developer on the Jira issue
 
 | | Select scope | QA Scenario change | Transition execution | Passing issues |
 |---|---|---|---|---|
-| **PoC (Stage 1)** | assignee=twkang | propose only | manual (draft) | bounces only |
+| **PoC (Stage 1)** | assignee=$QA_USER | propose only | manual (draft) | bounces only |
 | **Team-internal rollout (Stage 2)** | all guava Resolved | targeted: real write / batch: draft (guard-downgrade) | targeted: real write / batch: draft (guard-downgrade) | bounce |
 | **Automation (Stage 3)** | all guava Resolved | unmanned auto (trigger/cron) | unmanned auto (trigger/cron) | trigger author-testcase (Start Test) |
 

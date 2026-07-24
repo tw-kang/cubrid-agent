@@ -27,7 +27,7 @@ Verify 결과와 TC 품질을 작성자와 분리된 lane에서 평가하는 단
 _Avoid_: 검사, QA
 
 **Submit**:
-통과한 TC를 fork(tw-kang)에 push하고 upstream(CUBRID)에 Draft PR을 여는 마지막 단계.
+통과한 TC를 각자의 fork(`fork` 리모트, ADR 0018)에 push하고 upstream(CUBRID)에 Draft PR을 여는 마지막 단계.
 _Avoid_: 배포, 머지
 
 **피드백 루프**:
