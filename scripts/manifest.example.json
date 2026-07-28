@@ -5,6 +5,7 @@
   "submitted": false,
   "author": { "sql": "sql/_36_guava/cbrd_26799/cases/cbrd_26799.sql", "answer_generated": true },
   "verify": {
+    "status": "passed",
     "success": true,
     "determinism": { "n": 3, "all_pass": true },
     "path_coverage": { "checked": true, "method": "queryplan", "on_path": true },

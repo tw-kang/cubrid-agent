@@ -32,7 +32,7 @@ Select → Ground → ┌─ Author → Verify → Review ─┐ → Submit → 
                   └──── feedback loop (2–5x) ◄──┘
 ```
 
-**Run manifest (Stage 2 hard gate)**: as each stage completes, record its gate result into `$HOME/.cubrid-agent/CBRD-XXXXX/manifest.json` (schema: [`scripts/manifest.example.json`](../../../scripts/manifest.example.json)). The `lint.*` mechanical fields are written by the `lint-sql-tc` PostToolUse hook; **you** write the rest (author / verify / review + `lint.answer_not_handwritten`). Submit's `gh pr create` is **blocked by the `gate-pr-submit` hook** unless the manifest confirms determinism · fail→pass · review PASS · lint (enforced by the `gate-pr-submit` hook in `hooks/`).
+**Run manifest (Stage 2 hard gate)**: as each stage completes, record its gate result into `$HOME/.cubrid-agent/CBRD-XXXXX/manifest.json` (schema: [`scripts/manifest.example.json`](../../../scripts/manifest.example.json)). The `lint.*` mechanical fields are written by the `lint-sql-tc` PostToolUse hook; **you** write the rest (author / verify / review + `lint.answer_not_handwritten`). **`verify.status` is one of `passed` | `blocked_no_build` | `blocked_no_ctp` | `blocked_nondeterministic`** — a `blocked_*` value **requires** `verify.note` (why) plus a written report, and that combination is the sanctioned "cannot verify" terminal state that stops the `gate-stop` reminder for gates which can never close (example: [`scripts/manifest.blocked.example.json`](../../../scripts/manifest.blocked.example.json)). It never makes the run submittable. Submit's `gh pr create` is **blocked by the `gate-pr-submit` hook** unless the manifest confirms determinism · fail→pass · review PASS · lint (enforced by the `gate-pr-submit` hook in `hooks/`).
 
 ## 1. Select
 Queue = Select-passing issues, oldest-resolved first; process `run` arg (default 1).
@@ -70,7 +70,7 @@ Run on the fix-including release build; **generate then confirm** the answer. **
 Spawn a **fresh-context review subagent** (opus) with the issue body, fix-diff summary, `.sql`/`.answer`, and verify logs. It judges:
 - create-skill self-review checklist (header, evaluate numbering, cleanup, server-message pairing, path rule);
 - **regression value** (would this FAIL on the pre-fix engine?), **coverage** (repro + fix blast radius), **`.answer` validity** (matches the issue's post-fix behavior), **DP2** (asserts user-observable behavior, not internals).
-- Output: PASS or a fix-request list (Author feedback). **Approval is never in the author's context.**
+- Output: **`review.verdict` is exactly one of `PASS` | `NEEDS-WORK`** — `PASS` when nothing is left to fix, otherwise `NEEDS-WORK` plus the fix-request list (Author feedback). Both the submit gate and the stop reminder test `verdict == PASS`, so **inventing any other value (e.g. `READY-FOR-VERIFY`) silently blocks submission and keeps the reminder firing**. **Approval is never in the author's context.**
 
 ## 6. Feedback loop (2–5x)
 - Round 1: Author → Verify → Review.

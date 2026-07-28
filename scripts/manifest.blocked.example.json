@@ -1,0 +1,19 @@
+{
+  "_comment": "Blocked run: authored and committed, but Verify could not run on this machine. verify.status=blocked_* + verify.note + a written report is the sanctioned 'cannot verify' terminal state — gate-stop stops reminding, and gate-pr-submit still refuses to submit.",
+  "issue": "CBRD-26799",
+  "branch": "tc/cbrd-26799",
+  "build": null,
+  "submitted": false,
+  "author": { "sql": "sql/_36_guava/cbrd_26799/cases/cbrd_26799.sql", "answer_generated": false },
+  "verify": {
+    "status": "blocked_no_build",
+    "note": "no CUBRID build containing the fix on this machine — .answer left empty and handed off with verify-sql instructions",
+    "success": false,
+    "determinism": { "n": 0, "all_pass": false },
+    "path_coverage": { "checked": false },
+    "cci": { "checked": false },
+    "fail_to_pass": { "status": "missing" }
+  },
+  "review": { "verdict": "NEEDS-WORK", "loops": 1, "failpass_approved": false },
+  "lint": { "header": true, "evaluate": true, "cleanup": true, "answer_not_handwritten": true, "english_comments": true }
+}
