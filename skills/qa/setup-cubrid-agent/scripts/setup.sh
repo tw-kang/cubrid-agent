@@ -85,13 +85,18 @@ else todo "JDK (javac) not found — e.g. sudo dnf install java-1.8.0-openjdk-de
 resolve_jira_user() {
   if [ -n "${CUBRID_JIRA_USER:-}" ]; then printf '%s\n' "$CUBRID_JIRA_USER"; return 0; fi
   [ -f "$HOME/.netrc" ] || return 0
-  awk '{ for (i = 1; i <= NF; i++) t[++n] = $i }
+  # Tokens may be spread over one line or many, so walk them — but drop #-comments first
+  # (a commented-out stale entry must not win) and let only the FIRST matching machine block
+  # decide, so a later block's login can never be picked up.
+  awk '{ sub(/#.*/, ""); for (i = 1; i <= NF; i++) t[++n] = $i }
        END { for (i = 1; i <= n; i++)
-               if (t[i] == "machine" && t[i+1] == "jira.cubrid.org")
+               if (t[i] == "machine" && t[i+1] == "jira.cubrid.org") {
                  for (j = i + 2; j <= n; j++) {
-                   if (t[j] == "machine" || t[j] == "default") break
+                   if (t[j] == "machine" || t[j] == "default" || t[j] == "macdef") break
                    if (t[j] == "login") { print t[j+1]; exit }
-                 } }' "$HOME/.netrc"
+                 }
+                 exit
+               } }' "$HOME/.netrc"
 }
 QA_USER="$(resolve_jira_user)"
 # Defensive: never hand a hostname to the JQL, whatever the netrc layout.

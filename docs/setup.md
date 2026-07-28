@@ -32,7 +32,7 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 ```
 
 - setup 스크립트는 **멱등**(재실행 안전)·**비대화식**이며 CWD 비의존이다(정본은 setup-cubrid-agent 스킬 안, 루트 래퍼 없음 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)). 하는 일/안 하는 일 경계는 [deployment.md](./deployment.md)의 3계층: Tier 2(머신 상태)는 스크립트가, Tier 3(자격)는 사람이.
-- gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요.
+- gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요. 단 **Jira 사용자명이 해석돼 있어야** 대기열 JQL이 동작한다: `export CUBRID_JIRA_USER=<계정>` 하거나 `/setup-cubrid-agent`를 한 번 돌려 `env.sh`가 내보내게 한다(ADR 0004). 값이 없으면 스킬은 0건을 보고하지 않고 중단한다.
 - 부품 스킬은 이 repo(플러그인)의 `skills/qa/`에 **내장**된다(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 별도 clone·심링크 불필요 — `git clone`/`claude plugin install`이 곧 스킬 전달.
 
 ## 2. 자격 (Tier 3 — 사람만, repo·스크립트에 넣지 않는다)

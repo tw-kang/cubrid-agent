@@ -20,7 +20,7 @@ repo가 private인 채로 `claude plugin marketplace add tw-kang/cubrid-agent`�
 
 **B — fork owner 유도**: 기본은 `gh api user --jq .login`(PR 생성에 이미 필수인 gh 인증 계정)에서 유도해 fork=`<login>/cubrid-testcases`, head=`<login>:tc/cbrd-XXXXX`. 예외(gh 로그인 ≠ fork owner: CI·다계정)만 `CUBRID_GH_FORK` env로 덮는다. 리모트 이름은 개인명 `twkang` 대신 중립명 **`fork`**로 통일한다. fork 미보유 팀원 안전망으로 setup.sh에 멱등 `gh repo fork CUBRID/cubrid-testcases --remote=false` 한 줄(이미 있으면 no-op).
 
-**C — Jira 사용자명 유도**: `currentUser()`는 이 Jira에서 **못 쓴다**(아래 실측). 대신 cubrid-jira 자신의 자격 순서를 그대로 따르는 dual-source로 치환한다 — `$CUBRID_JIRA_USER`가 있으면 그 값, 없으면 `~/.netrc`의 `machine jira.cubrid.org` login. 스킬이 JQL 조립 직전 이 값을 풀어 `cf[213834] = <사용자명>`에 끼운다.
+**C — Jira 사용자명 유도**: `currentUser()`는 이 Jira에서 **못 쓴다**(아래 실측). 대신 cubrid-jira 자신의 자격 순서를 따르는 dual-source(`$CUBRID_JIRA_USER` 우선, 없으면 `~/.netrc`의 `machine jira.cubrid.org` login)를 쓰되, **해석은 `setup.sh`가 한 번만 하고 `~/.cubrid-agent/env.sh`로 `CUBRID_JIRA_USER`를 내보낸다**. 스킬은 그 값을 읽어 `cf[213834] = <사용자명>`에 끼우고 **직접 netrc를 파싱하지 않는다** — 스킬마다 즉석 파싱하면 한 줄 netrc에서 호스트명이, 주석 처리된 옛 항목이 있으면 엉뚱한 사용자명이 나와 JQL이 조용히 0건을 돌려준다(CUBRIDQA-1464에서 실측·수정). 값이 비었거나 호스트명처럼 보이면 스킬은 0건을 보고하지 않고 중단한다.
 
 ## currentUser() 실측 (재도입 방지)
 

@@ -41,7 +41,7 @@
       "assertions": [
         {
           "name": "selects_oldest_resolved_first",
-          "description": "Picks the next single issue from the queue in oldest-resolved order using the JQL (guava · Resolved · QA Assignee = the runner's own Jira user, resolved from $CUBRID_JIRA_USER or ~/.netrc — not a hardcoded person)"
+          "description": "Picks the next single issue from the queue in oldest-resolved order using the JQL (guava · Resolved · QA Assignee = the runner's own Jira user, taken from the exported CUBRID_JIRA_USER — published by setup-cubrid-agent's env.sh — and never parsed out of ~/.netrc by the skill itself, nor hardcoded to a person); an empty or hostname-like value makes the skill STOP and ask for it instead of reporting an empty queue"
         },
         {
           "name": "grounds_before_authoring",
