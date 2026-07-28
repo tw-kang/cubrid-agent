@@ -36,7 +36,7 @@
     {
       "id": 2,
       "prompt": "다음 Resolved 이슈 하나 골라서 sql tc 작성해줘. 지금 이 머신엔 픽스 포함된 신뢰 빌드가 안 깔려 있어.",
-      "expected_output": "Select one oldest-resolved issue from the JQL queue, Ground it using its attachments and the fix commit, then Author a .sql on the tc/cbrd-XXXXX branch. Since there is no build containing the fix and no CTP environment, leave the .answer empty and hand it off together with verify-sql handoff instructions (no fabricated verification, no Draft PR created). Record the handoff reason in the report.",
+      "expected_output": "Select one oldest-resolved issue from the JQL queue, Ground it using its attachments and the fix commit, then Author a .sql on the tc/cbrd-XXXXX branch and COMMIT it there before leaving the Author stage, so the work survives even though the run stops early. Since there is no build containing the fix and no CTP environment, leave the .answer empty and hand it off together with verify-sql handoff instructions (no fabricated verification, no Draft PR created). Record the handoff reason in the report, and only claim the branch holds the TC after confirming the commit with git log.",
       "files": [],
       "assertions": [
         {
@@ -50,6 +50,10 @@
         {
           "name": "empty_answer_no_fake_verify",
           "description": "Leaves the .answer empty and does not invent verification results"
+        },
+        {
+          "name": "tc_committed_on_branch_despite_early_stop",
+          "description": "The authored .sql/.answer pair is committed on the tc/cbrd-XXXXX branch during the Author stage, so stopping before Verify does not leave the work as untracked files; the report claims the branch holds it only after verifying with git log"
         },
         {
           "name": "no_pr_without_verify",
