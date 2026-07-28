@@ -43,7 +43,7 @@ After installs, **re-run `setup.sh`** and confirm the TODO count drops. CLI inst
 
 - `cubrid-jira search CBRD-25913` → issue markdown means the CLI + credentials work (reads may 401 on non-public projects — that is a known separate issue, not a setup failure).
 - `gh auth status` → authenticated.
-- `source ~/.cubrid-agent/env.sh` in a CTP session → `CTP_HOME` and `JAVA_HOME` set. Remind the operator this `source` is per-session.
+- `source ~/.cubrid-agent/env.sh` in a CTP session → `CTP_HOME`, `JAVA_HOME` and `CUBRID_JIRA_USER` set. Remind the operator this `source` is per-session. If `CUBRID_JIRA_USER` is missing from it, the Jira username could not be resolved — the pipeline skills must stop rather than run a queue query that would return 0 issues.
 
 ### 4. CUBRID build — guide only, never run
 

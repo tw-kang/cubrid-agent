@@ -18,7 +18,7 @@ Verdict few-shots: [`examples/verdicts.md`](./examples/verdicts.md).
 ## Before you start
 
 - cubrid-jira installed + authenticated. Sanity: `cubrid-jira search CBRD-XXXXX`.
-- **Identity (ADR 0004).** `$QA_USER` = your Jira username = `$CUBRID_JIRA_USER` if set, else the `machine jira.cubrid.org` login in `~/.netrc`. The PoC Select JQL uses it — never hardcode a person.
+- **Identity (ADR 0004) — read it, never re-derive it.** `source ~/.cubrid-agent/env.sh`, then `$QA_USER` = the exported `CUBRID_JIRA_USER` (resolved once by `setup-cubrid-agent`). Never hardcode a person, and **never parse `~/.netrc` yourself** — its tokens may be on one line, where ad-hoc parsing returns the hostname. The PoC Select JQL uses `$QA_USER`. **If it is empty or looks like a hostname, STOP and ask the human to re-run `/setup-cubrid-agent`** — a bad value makes the JQL return 0 issues, which reads as "nothing to gate" instead of an error.
 - No CTP / CUBRID build needed.
 - **Download and read every attachment (required, before you judge).** Many issues carry the repro or intent only in the attachments. Use `cubrid-jira attachment <KEY>` (if not available, interim: take each `.content` URL from `cubrid-jira jql 'key=<KEY>' --fields attachment --output json` and `curl --netrc -o <file>` it — credentials come from `.netrc` (jira.cubrid.org) or `-u $CUBRID_JIRA_USER:$CUBRID_JIRA_PASSWORD`). **Check `.size` before fetching — for anything >5MB (cores and binaries included), skip the curl itself** and record only the metadata plus the reason. Fetch only the rest, read the text/code (.sql/.txt/.log/.sh/.json, etc.) closely, and read images visually with the Read multimodal.
 

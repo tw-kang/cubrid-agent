@@ -20,7 +20,7 @@
 claude plugin marketplace add tw-kang/cubrid-agent
 claude plugin install cubrid-agent@cubrid-agent
 /setup-cubrid-agent               # 설치 후 세션에서 한 번 — Tier 2 자동 + TODO(자격·CLI) 안내 + 스킬별 준비도 리포트
-source ~/.cubrid-agent/env.sh     # CTP를 실행하는 세션마다 (CTP_HOME·JAVA_HOME·.cubrid.sh)
+source ~/.cubrid-agent/env.sh     # CTP를 실행하는 세션마다 (CTP_HOME·JAVA_HOME·CUBRID_JIRA_USER·.cubrid.sh)
 ```
 
 **repo 개발자(직접 실행)** — 진입점 스킬을 거치지 않고 정본 스크립트를 바로 돌린다:
