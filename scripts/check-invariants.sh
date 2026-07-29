@@ -140,6 +140,16 @@ for f in skills/qa/gate-resolved/SKILL.md skills/qa/author-testcase/SKILL.md \
 done
 [ "$_bad" -eq 0 ] && pass "every orchestrator names its run directory"
 
+# CUBRIDQA-1481: every skill that documents a comment header for its artifact must also say what
+# the header is NOT for. create-cci / create-jdbc / create-unittest are absent on purpose — their
+# only "header" is a C/Java include, not an artifact comment block.
+_bad=0
+for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell create-isolation; do
+  grep -q 'describes the test, not the run' "skills/qa/$f/SKILL.md" \
+    || { fail "skills/qa/$f/SKILL.md documents a header but not what the header is not for"; _bad=$((_bad+1)); }
+done
+[ "$_bad" -eq 0 ] && pass "every header-documenting create-* skill bounds what the header is for"
+
 # CUBRIDQA-1443: the attachment rule reached 4 of 12 skills and nobody noticed.
 _bad=0
 for f in skills/qa/create-*/SKILL.md; do

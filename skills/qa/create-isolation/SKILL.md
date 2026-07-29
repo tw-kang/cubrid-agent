@@ -42,7 +42,7 @@ Multiple `.ctl` variants of one scenario number sequentially: `_01.ctl`, `_02.ct
 
 ## Lifecycle contract
 
-Every `.ctl` is a header comment block followed by a body that runs **setup → preparation → test → cleanup → quit**. Missing a phase (or its sync barrier) fails review.
+Every `.ctl` is a header comment block followed by a body that runs **setup → preparation → test → cleanup → quit**. Missing a phase (or its sync barrier) fails review. **The header block describes the test, not the run that produced it** — no instructions to a later pipeline stage, no reporting guidance; reasoning belongs in the run report and run-validity conditions in the manifest's `verify.preconditions` (CUBRIDQA-1481).
 
 ```
 /*

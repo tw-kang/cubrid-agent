@@ -9,9 +9,13 @@
     "success": true,
     "determinism": { "n": 3, "all_pass": true },
     "path_coverage": { "checked": true, "method": "queryplan", "on_path": true },
+    "preconditions": [
+      { "what": "server parallelism >= 2 (default 4) on > 2 cores, else the sort runs serial and never enters the fixed path", "verified": true },
+      { "what": "t's heap spans >= parallel_sort_page_threshold (2048) data pages", "verified": true }
+    ],
     "cci": { "checked": true, "matches_jdbc": true },
     "fail_to_pass": { "status": "best_effort", "prefix_build": "11.5.0.2211-12a1a05", "note": "race — not reproducible on local multi-core, left to CI / low-spec machines" }
   },
   "review": { "verdict": "PASS", "loops": 2, "failpass_approved": true },
-  "lint": { "header": true, "evaluate": true, "cleanup": true, "answer_not_handwritten": true, "english_comments": true }
+  "lint": { "header": true, "header_scope": true, "evaluate": true, "cleanup": true, "answer_not_handwritten": true, "english_comments": true }
 }

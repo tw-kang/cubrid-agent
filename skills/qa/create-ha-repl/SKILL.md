@@ -58,7 +58,7 @@ Every testcase follows this skeleton. Missing a step fails review.
 
 ### Why each phase matters (not just ritual)
 
-- The `/** ... */` header (CBRD number + `Coverage:` list) is how reviewers and CTP attribute the test — first line must be `This test case verifies CBRD-XXXXX: <title>`.
+- The `/** ... */` header (CBRD number + `Coverage:` list) is how reviewers and CTP attribute the test — first line must be `This test case verifies CBRD-XXXXX: <title>`. **The header describes the test, not the run that produced it** — nothing addressed to a later pipeline stage ("the Verify lane MUST check …"), no reporting guidance, no detection-probability arithmetic. Reasoning goes in the run report, reviewer constraints in the PR Remarks, and a condition that decides whether the run proved anything in the manifest's `verify.preconditions` (CUBRIDQA-1481).
 - `--test:` runs on the **master only** and drives state (DML/DDL/COMMIT); `--check:` runs on **both nodes** and the framework compares result sets. Any mismatch is a replication failure.
 - `--test: COMMIT;` after every DML batch is load-bearing: the slave only sees committed data, so an uncommitted change makes the next `--check:` flap.
 - The closing `DROP TABLE IF EXISTS` + `COMMIT` leaves the cluster clean for the next test; the leading `DROP` makes the test re-runnable.

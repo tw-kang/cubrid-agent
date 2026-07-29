@@ -28,7 +28,11 @@ note=$(jq -r '.verify.fail_to_pass.note // ""' "$MANIFEST")
 appr=$(jq -r '.review.failpass_approved // false' "$MANIFEST")
 verdict=$(jq -r '.review.verdict // "missing"' "$MANIFEST")
 cci=$(jq -r '.verify.cci.checked // false' "$MANIFEST")
-lint=$(jq -r '[.lint.header,.lint.evaluate,.lint.cleanup,.lint.answer_not_handwritten,.lint.english_comments]|all' "$MANIFEST" 2>/dev/null)
+# header_scope defaults to true only when ABSENT: it was added after the first runs
+# (CUBRIDQA-1481), and the lint hook writes it on every TC .sql write, so only pre-existing
+# manifests lack it. Test for the key rather than writing `.lint.header_scope // true` — jq's `//`
+# substitutes for `false` as well as null, so that form would turn a real violation into a pass.
+lint=$(jq -r '[.lint.header,.lint.evaluate,.lint.cleanup,.lint.answer_not_handwritten,.lint.english_comments,(if ((.lint // {})|has("header_scope")) then .lint.header_scope else true end)]|all' "$MANIFEST" 2>/dev/null)
 
 p=""
 [ "$det" = true ] || p="$p\n- determinism not confirmed (verify.determinism.all_pass≠true)"
