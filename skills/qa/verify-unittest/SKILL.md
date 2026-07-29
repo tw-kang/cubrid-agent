@@ -17,7 +17,7 @@ Run a single CUBRID unittest binary, report PASS/FAIL, and — when it fails —
 
 - **CTP installed.** Resolve `$CTP_HOME` (env → `~/CTP` → `~/cubrid-testtools/CTP`). Sanity check: `ls $CTP_HOME/bin/ctp.sh`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
 - **Binaries available.** The `unittests_*` binaries come from a source build, not a build-URL install. If `$CUBRID/build_release/bin/unittests_*` is missing, ask for the source tarball URL and build it (see Run).
-- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy.
+- **JIRA context (optional).** If the test maps to a `CBRD-XXXXX`, ground the diagnosis in the issue's real symptom and expected behavior first: `cubrid-jira jql 'key = CBRD-XXXXX' --fields summary,description,comment,attachment --output json` — raw Jira wiki markup, which reads fine as-is. **Not `cubrid-jira search`**: its markdown is rendered through pandoc, so a pandoc without the `jira` reader (the RHEL 8 package is one) hands back an empty body with a success exit. The real symptom sits in comments as often as in the description. If the CLI isn't installed, skip — but installing `cubrid-jira` sharpens the failure verdict.
 - Test guide: `unittest_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/unittest_guide.md (or `$CTP_HOME/../doc/unittest_guide.md` if CTP is checked out locally).
 
 ## Run

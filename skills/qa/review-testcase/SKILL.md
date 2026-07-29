@@ -18,7 +18,7 @@ Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and 
 ## Before you start
 
 - **gh** authenticated (`gh pr view <N> --repo CUBRID/cubrid-testcases`).
-- **cubrid-jira** for the issue body — `cubrid-jira search <KEY>` (full markdown) **and `cubrid-jira comment-list <KEY> --output json`** (there is no `show`/`get`). ⚠ Repro/scenario is often **only in comments** (empty description) — read them; that's where P11 (issue intent) lives.
+- **cubrid-jira** for the issue body — `cubrid-jira jql 'key = <KEY>' --fields summary,description,comment,attachment --output json` (there is no `show`/`get`). Read it raw: **not `cubrid-jira search`**, whose markdown is rendered through pandoc, so a pandoc without the `jira` reader (the RHEL 8 package is one) hands back an empty body with a success exit — indistinguishable from a genuinely empty description, which this skill treats as a signal. Jira wiki markup reads fine as-is. ⚠ Repro/scenario is often **only in comments** — read them; that's where P11 (issue intent) lives.
 - **Download + read every attachment (mandatory, before the P11 judgment).** If the intended scenario or the repro lives only in attachments, the PR coverage assessment goes wrong. `cubrid-jira attachment <KEY> --output json` fetches them all and prints a per-file manifest; **it applies the 5 MiB gate itself**, so cores and binaries come back `skipped` and never hit the disk — record only their metadata + reason. Read the fetched text/code closely and open images with Read (multimodal). If the subcommand is missing, the CLI is stale — `uv tool upgrade cubrid-jira`.
 - **Local CTP** for L3 — **$HOME standard** (`/setup-cubrid-agent` provisions; env via `source ~/.cubrid-agent/env.sh`): `$HOME/CUBRID` (release build), testcases clone = `$CUBRID_TESTCASES` if set else `~/cubrid-testcases`, CTP = `$CTP_HOME` (else `~/CTP` → `~/cubrid-testtools/CTP`). Stock `$CTP_HOME/conf/sql.conf` already targets `${HOME}/cubrid-testcases/sql` (non-default ports). Check out the PR branch as a **git worktree** (don't pollute the clone) and **copy the stock conf with `scenario=` overridden to the worktree** — as-is it verifies the wrong branch.
 - No local build / no CTP env? Run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it).
@@ -33,7 +33,7 @@ Select → Ground → L1 → L2 → L3 → Verdict → draft review + report
 PR number as arg (default: oldest open SQL TC PR). Author-agnostic.
 
 ## 2. Ground
-- `gh pr diff`/`view` for the diff + body; `[CBRD-XXXXX]` → issue body via `cubrid-jira search <KEY>` **+ `comment-list <KEY> --output json`** (repro may be comment-only) **+ download & read all attachments** (per Before-you-start — intended cases/repro may be attachment-only); fix merge diff in the cubrid repo; corpus search for near-duplicate TCs.
+- `gh pr diff`/`view` for the diff + body; `[CBRD-XXXXX]` → issue body via `cubrid-jira jql 'key = <KEY>' --fields summary,description,comment,attachment --output json` (raw, pandoc-free — see Before-you-start; repro may be comment-only) **+ download & read all attachments** (intended cases/repro may be attachment-only); fix merge diff in the cubrid repo; corpus search for near-duplicate TCs.
 - **PR-kind classification (D5)** by diff file state: new `cbrd_XXXXX.sql/.answer` **added** = new-type; existing `.sql`/`.answer` **modified** = modified-type; a PR may be both → apply both lenses.
 - **Mark which cases hit the fix code path** from the fix merge diff (feeds L2/L3, P3).
 

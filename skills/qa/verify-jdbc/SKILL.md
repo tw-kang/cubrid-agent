@@ -21,7 +21,7 @@ CTP's `JdbcLocalTest` runner has **no single-case filter** — it compiles and r
 - **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE` if set, else discover the `cubrid-testcases-private` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below. The testcase tree (`$TC/interface/JDBC/test_jdbc`) must be present.
 - **Build URL.** A CUBRID build URL is required to install the binary under test. If not given, ask for it.
 - Test guide: `jdbc_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/jdbc_guide.md (or `$CTP_HOME/../doc/jdbc_guide.md` if CTP is checked out locally).
-- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground diagnosis (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` sharpens the failure verdict.
+- **JIRA context (optional).** If the test maps to a `CBRD-XXXXX`, ground the diagnosis in the issue's real symptom and expected behavior first: `cubrid-jira jql 'key = CBRD-XXXXX' --fields summary,description,comment,attachment --output json` — raw Jira wiki markup, which reads fine as-is. **Not `cubrid-jira search`**: its markdown is rendered through pandoc, so a pandoc without the `jira` reader (the RHEL 8 package is one) hands back an empty body with a success exit. The real symptom sits in comments as often as in the description. If the CLI isn't installed, skip — but installing `cubrid-jira` sharpens the failure verdict.
 
 ## Run
 
