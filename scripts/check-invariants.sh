@@ -142,16 +142,32 @@ done
 # ---------------------------------------------------------------------------
 group "Skill frontmatter"
 
-# Claude Code caps a listing entry's description + when_to_use at 1536 chars and silently
-# truncates past it, which strips the trigger keywords the skill is matched on.
-while IFS= read -r f; do
-  _fm=$(sed -n '/^---$/,/^---$/p' "$f")
-  _len=$(printf '%s' "$_fm" | sed -n 's/^description:[[:space:]]*//p' | head -1 | wc -c | tr -d ' ')
-  if [ "$_len" -gt 1536 ]; then fail "$f description is $_len chars (> 1536, truncated in the skill listing)"; fi
-done <<EOF
+# The Agent Skills spec caps `description` at 1024 characters — a hard limit, and the one
+# that binds us: the skills CLI channel installs into Codex, Cursor and Gemini, which follow
+# the spec rather than Claude Code (whose own listing merely truncates at 1536). Take the
+# stricter of the two, since one source ships to both.
+#
+# Count CHARACTERS, not bytes. The descriptions carry Korean trigger keywords on purpose
+# (language policy exception B), and `wc -c` inflates those threefold — enough to fail a
+# compliant skill, or to let a violating one through against a looser bound.
+_utf8=$(locale -a 2>/dev/null | grep -ix -m1 -E 'C\.utf-?8|en_US\.utf-?8')
+[ -z "$_utf8" ] && _utf8=$(locale -a 2>/dev/null | grep -i -m1 -E 'utf-?8$')
+if [ -z "$_utf8" ]; then
+  fail "no UTF-8 locale on this machine — description length would be measured in bytes and misjudge the Korean trigger keywords"
+else
+  _bad=0
+  while IFS= read -r f; do
+    _desc=$(sed -n '/^---$/,/^---$/p' "$f" | sed -n 's/^description:[[:space:]]*//p' | head -1)
+    _desc=${_desc%\"}; _desc=${_desc#\"}
+    _len=$(printf '%s' "$_desc" | LC_ALL="$_utf8" wc -m | tr -d ' ')
+    if [ "$_len" -gt 1024 ]; then
+      fail "$f description is $_len characters (> 1024, the Agent Skills spec limit)"; _bad=$((_bad+1))
+    fi
+  done <<EOF
 $(git ls-files 'skills/qa/*/SKILL.md')
 EOF
-pass "every skill description is within the 1536-char listing cap"
+  [ "$_bad" -eq 0 ] && pass "every skill description is within the spec's 1024-character limit"
+fi
 
 # ---------------------------------------------------------------------------
 group "Hook wiring"
