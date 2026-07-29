@@ -118,7 +118,7 @@ gh auth login                                                       # 또는 GH_
 - **부품 스킬** — 이 repo `skills/qa/`에 소스로 들어 있다(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 플러그인은 로드하지 않으므로 `npx skills add` 채널로 개별 설치(§0 표 아래 주석).
 - **스킬 자기완결**(D8) — 스킬·hook은 `docs/`를 런타임 참조하지 않는다. review-testcase 연료(few-shot bank·카탈로그)는 스킬 `references/`에 내장.
 - **hook 하드 게이트**([`hooks/`](../hooks/)) — `gate-pr-submit`(제출 차단)·`lint-sql-tc`(린트→manifest)·`gate-stop`(리마인드).
-- **run manifest** — `~/.cubrid-agent/CBRD-XXXXX/manifest.json`, 스키마 [`scripts/manifest.example.json`](../scripts/manifest.example.json).
+- **run 디렉토리 = `~/.cubrid-agent/<KEY>/`** (`CBRD-XXXXX`, review-testcase는 `PR-NNNN`) — 실행 하나가 남기는 것은 TC 자체를 빼고 **전부 여기**다. manifest(`manifest.json`, 스키마 [`scripts/manifest.example.json`](../scripts/manifest.example.json))가 이미 여기 있고 hook 둘(`lint-sql-tc`·`gate-pr-submit`)이 이 경로를 찾는다. 스킬은 홈이나 현재 디렉토리에 쓰지 않고, 없던 디렉토리를 새로 만들지도 않는다(`~/scratchpad…` 같은 것 — 사람 파일과 구분이 안 된다). **실행이 끝나도 지우지 않는다** — 실패한 실행의 잔여물이 진단 자료다. 리포트는 `reports/<스킬>/`, worktree는 `worktrees/`에 따로 둔다.
 - **CCI 교차 검증**(author-testcase Verify) — 원본 `$CTP_HOME/conf/sql_by_cci.conf`로 `run_cci`, 기본 sql(JDBC) 출력과 다르면 `.answer_cci`.
 
 hook은 **신뢰된 팀원의 실수 방지 가드레일**(적대적 우회 방지 아님) — 자세히 설계: CUBRIDQA-1446.

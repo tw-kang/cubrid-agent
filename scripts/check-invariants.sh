@@ -131,6 +131,15 @@ for f in $ISSUE_READERS; do
 done
 [ "$_bad" -eq 0 ] && pass "all $(printf '%s\n' $ISSUE_READERS | wc -l | tr -d ' ') issue-reading skills use the raw read"
 
+# CUBRIDQA-1480: an orchestrator with no work-directory instruction invents one in $HOME.
+_bad=0
+for f in skills/qa/gate-resolved/SKILL.md skills/qa/author-testcase/SKILL.md \
+         skills/qa/review-testcase/SKILL.md; do
+  grep -q 'Run directory' "$f" \
+    || { fail "$f does not name its run directory — the run will scatter files into \$HOME"; _bad=$((_bad+1)); }
+done
+[ "$_bad" -eq 0 ] && pass "every orchestrator names its run directory"
+
 # CUBRIDQA-1443: the attachment rule reached 4 of 12 skills and nobody noticed.
 _bad=0
 for f in skills/qa/create-*/SKILL.md; do

@@ -24,7 +24,7 @@ cubrid-agent를 팀원 머신(Stage 2)과 k8s pod(Stage 3)에 배포하는 구�
 | D4 | 자격 표준 | **env 표준**(`CUBRID_JIRA_USER/PASSWORD`, `GH_TOKEN`) — cubrid-jira의 에이전트 권장 순서와 일치. Stage 2는 .netrc·`gh auth login` 병행 허용, **Stage 3는 Secret→env만** |
 | D5 | Stage 3 이미지 | **setup 스크립트 컨테이너 재사용 원칙만 확정**(비대화식·멱등·`$HOME` 규약·CWD 비의존 → `RUN skills/qa/setup-cubrid-agent/scripts/setup.sh` 가능). 이미지 선택(cubridci 확장 vs 신규)은 Stage 3 착수 시 — park |
 | D6 | 문서 위치 | 이 문서가 배포 정본, setup.md는 실행 가이드, 재패키징·채널 결정은 ADR 0001·0002 |
-| D7 | **런타임 = `$HOME` 표준** | 소스·도구·빌드는 `$HOME` 배치(`~/cubrid-testcases`·`~/cubrid`·CTP·`$HOME/CUBRID`), 실행 산출물(manifest·리포트·worktree)은 **`~/.cubrid-agent/`**. 격리가 필요한 머신(예: `~/cubrid-testcases`가 사람 작업장)은 `CUBRID_TESTCASES` 오버라이드(부품 스킬과 동일 해석 규약) |
+| D7 | **런타임 = `$HOME` 표준** | 소스·도구·빌드는 `$HOME` 배치(`~/cubrid-testcases`·`~/cubrid`·CTP·`$HOME/CUBRID`), 실행 산출물(manifest·리포트·worktree)은 **`~/.cubrid-agent/`**. 실행 하나가 남기는 나머지도 전부 **run 디렉토리 `~/.cubrid-agent/<KEY>/`**(manifest와 같은 자리)에 두고, 홈이나 cwd에 쓰거나 새 디렉토리를 만들지 않는다 — Stage 3에선 홈이 곧 이미지 레이어라 잔여 파일이 그대로 굳는다(setup.md §7). 격리가 필요한 머신(예: `~/cubrid-testcases`가 사람 작업장)은 `CUBRID_TESTCASES` 오버라이드(부품 스킬과 동일 해석 규약) |
 | D8 | **스킬 자기완결** | 스킬·hook은 `docs/`를 런타임 참조하지 않는다(배포 부자재 최소화). review-testcase 연료(few-shot bank·관점 카탈로그)는 스킬 `references/`에 내장. `docs/`는 dev-only |
 
 ## Stage 3 매핑 (park — 방향만)

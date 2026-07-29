@@ -74,7 +74,7 @@ These directives are how CTP and reviewers read your intent. Skipping them chang
 - **Language: `.sql` comments and commit messages are English; only the PR body is Korean** (user-perspective), per CUBRID repo convention.
 - **Simple, distinct data values** so answer diffs read cleanly; explicit column lists in `INSERT` when it aids readability.
 - **3–10 `evaluate` sections** per file is typical; one `evaluate` label per error case.
-- **No hardcoded paths.** SQL stays path-free; if a step needs scratch space use `work=$(mktemp -d)` or cwd, never `/tmp`/`/home`.
+- **No hardcoded paths.** SQL stays path-free. If a step needs scratch space, use `work=$(mktemp -d)` and reference `$work` — never a written-out path like `/tmp/foo` or `/home/<user>/foo`, which breaks on every other machine. When author-testcase drives this skill, anything worth keeping goes in its run directory (`$HOME/.cubrid-agent/CBRD-XXXXX/`) instead.
 
 ## House idioms (quick recipes)
 

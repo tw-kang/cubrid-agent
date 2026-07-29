@@ -93,7 +93,7 @@ fi
 
 echo "== Runtime output directory — \$HOME/.cubrid-agent =="
 mkdir -p "$AGENT_DIR/reports/gate-resolved" "$AGENT_DIR/reports/author-testcase" "$AGENT_DIR/reports/review-testcase" "$AGENT_DIR/worktrees"
-ok "$AGENT_DIR/{<CBRD-XXXXX>/manifest.json, reports/, worktrees/}"
+ok "$AGENT_DIR/{<KEY>/ (per-run dir + manifest.json; skills create it), reports/, worktrees/}"
 
 echo "== env — detect JDK + write ~/.cubrid-agent/env.sh =="
 JH="${JAVA_HOME:-}"
