@@ -147,8 +147,10 @@ _bad=0
 for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell create-isolation; do
   grep -q 'describes the test, not the run' "skills/qa/$f/SKILL.md" \
     || { fail "skills/qa/$f/SKILL.md documents a header but not what the header is not for"; _bad=$((_bad+1)); }
+  grep -q 'within 20 lines' "skills/qa/$f/SKILL.md" \
+    || { fail "skills/qa/$f/SKILL.md documents a header but not the 20-line scannability bound"; _bad=$((_bad+1)); }
 done
-[ "$_bad" -eq 0 ] && pass "every header-documenting create-* skill bounds what the header is for"
+[ "$_bad" -eq 0 ] && pass "every header-documenting create-* skill bounds both header scope and size"
 
 # CUBRIDQA-1443: the attachment rule reached 4 of 12 skills and nobody noticed.
 _bad=0

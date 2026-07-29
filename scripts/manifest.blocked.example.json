@@ -15,5 +15,5 @@
     "fail_to_pass": { "status": "missing" }
   },
   "review": { "verdict": "NEEDS-WORK", "loops": 1, "failpass_approved": false },
-  "lint": { "header": true, "header_scope": true, "evaluate": true, "cleanup": true, "answer_not_handwritten": true, "english_comments": true }
+  "lint": { "header": true, "header_scope": true, "header_size": true, "evaluate": true, "cleanup": true, "answer_not_handwritten": true, "english_comments": true }
 }

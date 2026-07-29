@@ -26,13 +26,23 @@ grep -E '^[[:space:]]*--' "$FILE" | LC_ALL=C grep -q '[^[:print:][:blank:]]' && 
 # TC shipped "the Verify lane MUST check …" and "document the limit rather than claim
 # guaranteed fail->pass" in its header. Those belong in the report, the PR Remarks, or
 # verify.preconditions.
-# Length is deliberately NOT checked: measured on the corpus, human-authored cbrd_* headers reach
-# 34 lines (median 7, p90 19), so length does not separate good from bad. This vocabulary does —
-# it fires on 0 of 58 human-authored headers and on the two worst lines of the leak above.
+# Two independent bounds, because a header serves both a reviewer and a later skill
+# (review-testcase judges from it; the next author greps the corpus through it):
+#
+#   header_scope — vocabulary. Measured on the corpus, it fires on 0 of 58 human-authored cbrd_*
+#     headers and on the two worst lines of the leak above, so it separates run-talk from
+#     test-description without flagging legitimate prose.
+#   header_size  — 20 lines, so both audiences can scan it. 90% of existing corpus headers already
+#     fit (median 7, p90 19). Three do not (25, 32, 34 lines, all human-authored); they are not
+#     retroactively wrong because this hook only fires on a file being written.
 header_scope=true
 awk '/^\/\*\*/{f=1} f{print} /\*\//{if(f)exit}' "$FILE" \
   | grep -qEi '(Verify|Review) lane|MUST check|manifest|fail->pass|fail→pass|subagent|Draft PR|the report' \
   && header_scope=false
+
+header_size=true
+hlines=$(awk '/^\/\*\*/{f=1} f{c++} /\*\//{if(f){print c; exit}}' "$FILE")
+[ -n "$hlines" ] && [ "$hlines" -gt 20 ] && header_size=false
 
 # Record into manifest.lint (create skeleton if absent).
 MDIR="$HOME/.cubrid-agent/$KEY"
@@ -41,8 +51,8 @@ mkdir -p "$MDIR"
 [ -f "$MANIFEST" ] || printf '{}' > "$MANIFEST"
 tmp=$(mktemp)
 if jq --arg k "$KEY" --argjson h "$header" --argjson e "$evaluate" --argjson c "$cleanup" \
-      --argjson en "$english" --argjson hs "$header_scope" \
-   '.issue=(.issue//$k) | .lint.header=$h | .lint.evaluate=$e | .lint.cleanup=$c | .lint.english_comments=$en | .lint.header_scope=$hs' \
+      --argjson en "$english" --argjson hs "$header_scope" --argjson hz "$header_size" \
+   '.issue=(.issue//$k) | .lint.header=$h | .lint.evaluate=$e | .lint.cleanup=$c | .lint.english_comments=$en | .lint.header_scope=$hs | .lint.header_size=$hz' \
    "$MANIFEST" > "$tmp" 2>/dev/null; then mv "$tmp" "$MANIFEST"; else rm -f "$tmp"; fi
 
 probs=""
@@ -51,6 +61,7 @@ probs=""
 [ "$cleanup" = true ]  || probs="$probs missing DROP TABLE IF EXISTS before CREATE TABLE;"
 [ "$english" = true ]  || probs="$probs non-English text in comments (comments must be English);"
 [ "$header_scope" = true ] || probs="$probs header talks to the pipeline instead of describing the test — move stage instructions to the report, reviewer constraints to the PR Remarks, and run-validity preconditions to verify.preconditions;"
+[ "$header_size" = true ]  || probs="$probs header is $hlines lines (max 20) — compress the wording, don't drop coverage items;"
 [ -z "$probs" ] || jq -n --arg f "$FILE" --arg p "$probs" \
   '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:("[Stage2 lint] "+$f+" convention violations:"+$p+" (recorded in manifest.lint — the submit gate will block)")}}'
 exit 0

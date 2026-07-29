@@ -86,7 +86,7 @@ Full reference (output normalization, SQL asserts, ports, platform macros): `@re
 
 ## Writing rules (principles, not ritual)
 
-- **Header comment describes the test, not the run that produced it** — the `# CBRD-XXXXX:` line and any comment block state what is verified. Nothing addressed to a later pipeline stage ("the Verify lane MUST check …"), no reporting guidance: reasoning goes in the run report, reviewer constraints in the PR Remarks, and a condition that decides whether the run proved anything in the manifest's `verify.preconditions` (CUBRIDQA-1481).
+- **Header comment describes the test, not the run that produced it** — the `# CBRD-XXXXX:` line and any comment block state what is verified. Nothing addressed to a later pipeline stage ("the Verify lane MUST check …"), no reporting guidance: reasoning goes in the run report, reviewer constraints in the PR Remarks, and a condition that decides whether the run proved anything in the manifest's `verify.preconditions` (CUBRIDQA-1481). Both a human reviewer and a later skill read it, so keep it **within 20 lines** and compress wording rather than dropping coverage items.
 - **Inline SQL** via single-quoted heredocs (`<<'EOF'`) so the shell doesn't expand `$`/backticks in your SQL. Never split SQL into separate `.sql` files.
 - **Quote variables** (`"$db"`), space your tests (`[ "$x" -eq 0 ]`).
 - **Error handling:** check exit codes for things that can fail (`cubrid server start`, `csql`, compiles). Pattern: `cmd || { write_nok "reason"; <cleanup>; finish; exit 0; }`.

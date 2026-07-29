@@ -84,7 +84,7 @@ Raw equivalents fail review because these handle two-node orchestration, replica
 
 ## Writing rules (principles, not ritual)
 
-- **Header comment describes the test, not the run that produced it** — the `# CBRD-XXXXX:` line and any comment block state what is verified. Nothing addressed to a later pipeline stage ("the Verify lane MUST check …"), no reporting guidance: reasoning goes in the run report, reviewer constraints in the PR Remarks, and a condition that decides whether the run proved anything in the manifest's `verify.preconditions` (CUBRIDQA-1481).
+- **Header comment describes the test, not the run that produced it** — the `# CBRD-XXXXX:` line and any comment block state what is verified. Nothing addressed to a later pipeline stage ("the Verify lane MUST check …"), no reporting guidance: reasoning goes in the run report, reviewer constraints in the PR Remarks, and a condition that decides whether the run proved anything in the manifest's `verify.preconditions` (CUBRIDQA-1481). Both a human reviewer and a later skill read it, so keep it **within 20 lines** and compress wording rather than dropping coverage items.
 - **Always `#!/bin/bash`**, source `init.sh` before `make_ha.sh`, keep `dbname=hatestdb`.
 - **`setup_ha_environment` before any DB op; `revert_ha_environment` before `finish`** — on every exit path, early branches included.
 - **`wait_for_slave` before reading the slave** — never compare master vs slave without waiting for replication.
