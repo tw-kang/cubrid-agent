@@ -102,6 +102,11 @@ The plugin does not load these — install one with
 ## Requirements
 
 - **`git`, `jq`** — used by the hook gates and skills.
+- **`cubrid-jira` + `pandoc` >= 2.19** — every skill that reads a CBRD issue needs
+  both. Take pandoc from a static release, **not** the distro package: RHEL 8 ships
+  2.0.6, which has no `jira` reader, and `cubrid-jira` does not check pandoc's exit
+  status — so issue bodies come back **empty instead of erroring**. Check the
+  capability, not the binary: `pandoc --list-input-formats | grep -qx jira`.
 - **A local CUBRID build + CTP** — required by the `verify-*` skills and the
   verify stage of `author-testcase`. `/cubrid-agent:setup-cubrid-agent` provisions
   these; see also `docs/setup.md`.

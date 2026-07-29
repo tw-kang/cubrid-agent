@@ -157,7 +157,18 @@ fi
 echo "== CLIs & credentials — Tier 3 (human's job; only checked here) =="
 command -v cubrid-jira >/dev/null && ok "cubrid-jira" || todo "install cubrid-jira — docs/setup.md §3"
 command -v gh          >/dev/null && ok "gh"          || todo "install gh — docs/setup.md §3"
-command -v pandoc      >/dev/null && ok "pandoc"      || todo "install pandoc (cubrid-jira dependency) — sudo dnf install pandoc"
+# pandoc: check the CAPABILITY, not the presence. cubrid-jira renders issue text with
+# `pandoc -f jira` / `--to jira`, and a pandoc without those formats makes reads come back
+# EMPTY rather than failing — the distro package on RHEL 8 is 2.0.6, which has neither.
+_pandoc_ver=$(pandoc --version 2>/dev/null | head -1 | cut -d' ' -f2)
+if [ -z "$_pandoc_ver" ]; then
+  todo "install pandoc >= 2.19 (cubrid-jira renders issue text with it) — docs/setup.md §3"
+elif pandoc --list-input-formats 2>/dev/null | grep -qx jira \
+  && pandoc --list-output-formats 2>/dev/null | grep -qx jira; then
+  ok "pandoc $_pandoc_ver (jira reader + writer)"
+else
+  todo "pandoc $_pandoc_ver has no jira reader/writer — issue bodies read back EMPTY instead of erroring. Install >= 2.19 (no sudo needed) — docs/setup.md §3"
+fi
 if [ -n "${CUBRID_JIRA_USER:-}" ] && [ -n "${CUBRID_JIRA_PASSWORD:-}" ]; then ok "jira credentials (env — standard)"
 elif [ -n "$QA_USER" ] && grep -qs 'jira\.cubrid\.org' "$HOME/.netrc"; then ok "jira credentials (.netrc — also allowed; user=$QA_USER)"
 else todo "jira credentials — export CUBRID_JIRA_USER/CUBRID_JIRA_PASSWORD (or ~/.netrc with a 'login <user>' token)"; fi
