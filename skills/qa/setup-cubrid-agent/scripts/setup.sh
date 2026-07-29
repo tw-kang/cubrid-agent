@@ -23,6 +23,32 @@ ok "git / jq / grep"
 echo "== Component skills — bundled in this repo (plugin) (ADR 0001) =="
 ok "skills live under skills/qa/ — Claude Code: 'claude plugin install'; other CLIs: 'npx skills add' (see README). No clone+symlink needed."
 
+echo "== Plugin auto-update — so an install stays current =="
+# Claude Code auto-updates marketplaces and their installed plugins shortly after a session starts,
+# but third-party marketplaces have that OFF by default: without this flag a teammate keeps running
+# whatever commit they first installed, and `claude plugin marketplace update` does NOT change the
+# installed copy (it only refreshes the catalog). The flag cannot be declared marketplace-side, so
+# enable it here, idempotently. Note that plugin.json deliberately omits `version` — that makes the
+# git commit SHA the version, so every commit is a new version for the updater to pick up.
+CC_SETTINGS="$HOME/.claude/settings.json"
+if [ -f "$CC_SETTINGS" ] && jq -e '.extraKnownMarketplaces["cubrid-agent"]' "$CC_SETTINGS" >/dev/null 2>&1; then
+  if [ "$(jq -r '.extraKnownMarketplaces["cubrid-agent"].autoUpdate // false' "$CC_SETTINGS")" = true ]; then
+    ok "plugin auto-update already enabled"
+  else
+    _tmp=$(mktemp)
+    if jq '.extraKnownMarketplaces["cubrid-agent"].autoUpdate = true' "$CC_SETTINGS" > "$_tmp" 2>/dev/null \
+       && jq empty "$_tmp" 2>/dev/null; then
+      cp "$CC_SETTINGS" "$CC_SETTINGS.bak" && mv "$_tmp" "$CC_SETTINGS"
+      ok "plugin auto-update enabled (an update lands on restart or /reload-plugins; backup: settings.json.bak)"
+    else
+      rm -f "$_tmp"
+      todo "could not enable plugin auto-update — turn it on with /plugin → Marketplaces → cubrid-agent → Enable auto-update"
+    fi
+  fi
+else
+  ok "plugin auto-update: nothing to set (no user-scope cubrid-agent marketplace entry — npx skills channel, or project/local scope)"
+fi
+
 echo "== \$HOME standard assets — clone only when absent (existing clones untouched) =="
 clone_if_absent() { # <url> <dir> [extra git-clone args...]
   local url=$1 dir=$2; shift 2

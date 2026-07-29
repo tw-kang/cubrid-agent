@@ -35,6 +35,24 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 - gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요. 단 **Jira 사용자명이 해석돼 있어야** 대기열 JQL이 동작한다: `export CUBRID_JIRA_USER=<계정>` 하거나 `/setup-cubrid-agent`를 한 번 돌려 `env.sh`가 내보내게 한다(ADR 0004). 값이 없으면 스킬은 0건을 보고하지 않고 중단한다.
 - 부품 스킬은 이 repo(플러그인)의 `skills/qa/`에 **내장**된다(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 별도 clone·심링크 불필요 — `git clone`/`claude plugin install`이 곧 스킬 전달.
 
+### 최신본 유지 — 설치는 한 번, 이후는 자동
+
+**한 번 설치하면 자동으로 최신이 된다.** Claude Code가 세션 시작 뒤(최대 10분 지연) 마켓플레이스와 설치된 플러그인을 배후에서 갱신하고, 갱신되면 `/reload-plugins` 안내가 뜨거나 다음 실행에 적용된다.
+
+단 **서드파티 마켓플레이스는 자동 갱신이 기본 꺼져 있다.** 그래서 `/setup-cubrid-agent`가 `~/.claude/settings.json`의 `extraKnownMarketplaces["cubrid-agent"].autoUpdate` 를 **켜 준다**(멱등, 백업 `settings.json.bak`). 수동으로 켜려면 `/plugin` → Marketplaces → cubrid-agent → **Enable auto-update**.
+
+밟기 쉬운 함정 둘:
+
+| 하는 일 | 결과 |
+|---|---|
+| `claude plugin marketplace update cubrid-agent` | **카탈로그만** 새로 받는다 — 설치본은 그대로인데 "성공"이라고 보고한다 |
+| `claude plugin update cubrid-agent` | ✘ `Plugin not found` — 이름을 정규화해야 한다 |
+| `claude plugin update cubrid-agent@cubrid-agent` | ✔ 설치본 교체(fetch까지 수행). **재시작 또는 `/reload-plugins` 후 적용** |
+
+즉 자동 갱신이 꺼진 상태로 오래 쓰면 옛 스킬이 돌면서도 눈치채기 어렵다. 실제 로드되는 위치는 마켓플레이스 clone이 아니라 버전으로 고정된 캐시(`~/.claude/plugins/cache/cubrid-agent/cubrid-agent/<커밋SHA>/`)이고, 어느 버전을 쓰는지는 `claude plugin list` 또는 `~/.claude/plugins/installed_plugins.json`으로 확인한다.
+
+> ⚠️ `.claude-plugin/plugin.json`에 `version`을 **넣지 마라**. 생략하면 git 커밋 SHA가 버전이 되어 **매 커밋이 새 버전**으로 감지된다. semver를 넣는 순간 그 값을 올리지 않는 한 새 커밋이 전달되지 않는다.
+
 ## 2. 자격 (Tier 3 — 사람만, repo·스크립트에 넣지 않는다)
 
 표준은 **환경변수**(Stage 3 k8s Secret과 같은 형식), Stage 2에선 파일 방식 병행 허용:
