@@ -46,7 +46,7 @@ Select (stage-scoped) → Necessity → Plannability → Transition + report
 - **Team-internal / Automation**: `project = CBRD AND cf[210441] = guava AND status = Resolved`.
 - Single issue: `/gate-resolved CBRD-XXXXX`.
 
-Batch read: `--fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee,parent,subtasks --output json`. `cf[210441]`=Planned Version(guava), `cf[210565]`=QA Scenario, `cf[213834]`=QA Assignee. **Read comments; download + read every attachment's content per Before-you-start** (not just filenames — the "runnable repro TC attached" plannability call needs the actual file), and **parent/subtasks** (sub-task bounce guard, step 4).
+Batch read: `cubrid-jira jql '<the query above>' --fields summary,issuetype,description,comment,attachment,fixVersions,customfield_210565,assignee,parent,subtasks --output json` — raw JSON, **not `cubrid-jira search`**, whose markdown is rendered through pandoc and comes back empty (with a success exit) on a pandoc without the `jira` reader. `cf[210441]`=Planned Version(guava), `cf[210565]`=QA Scenario, `cf[213834]`=QA Assignee. **Read comments; download + read every attachment's content per Before-you-start** (not just filenames — the "runnable repro TC attached" plannability call needs the actual file), and **parent/subtasks** (sub-task bounce guard, step 4).
 
 ## 2. Necessity — QA Scenario re-judgment (bidirectional)
 

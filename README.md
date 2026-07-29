@@ -120,7 +120,8 @@ The plugin does not load these — install one with
 skills/qa/         22 skills on disk, catalog layout; plugin.json declares 6
                    (1 setup + 5 pipeline), the other 16 ship via the skills CLI
 hooks/hooks.json   Stage-2 quality-gate hook config
-scripts/           hook scripts, addressed via ${CLAUDE_PLUGIN_ROOT}
+scripts/           hook scripts, addressed via ${CLAUDE_PLUGIN_ROOT},
+                   plus check-invariants.sh (dev-only, run by CI)
 docs/              design notes, ADRs, deployment (Korean, non-shipping)
 ```
 
