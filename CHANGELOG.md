@@ -22,10 +22,12 @@ until the first tagged release, the plugin resolves to its git commit SHA
   `ha-shell`). The three orchestrators were renamed `resolve-gate` →
   `gate-resolved`, `tc-author` → `author-testcase`, `tc-reviewer` →
   `review-testcase`.
-- **Promoted five always-on skills.** `plugin.json` `skills[]` registers only the
+- **Declared six skills in the plugin.** `plugin.json` `skills[]` registers the
   pipeline five — `gate-resolved`, `author-testcase`, `review-testcase`,
-  `create-sql`, `verify-sql`. The other 16 stay on disk under `skills/qa/`,
-  discoverable on demand but not always loaded.
+  `create-sql`, `verify-sql` — plus the `setup-cubrid-agent` entrypoint. The other
+  16 stay on disk under `skills/qa/` but the plugin does not load them: the default
+  `skills/` scan does not recurse into `skills/qa/`, so only declared paths load.
+  Reach those 16 through the `skills` CLI channel.
 - **Ported the Stage-2 hook gates to plugin form.** The three quality-gate hooks
   moved from `.claude/settings.json` + `.claude/hooks/` to `hooks/hooks.json` +
   `scripts/`, addressed with `${CLAUDE_PLUGIN_ROOT}`.

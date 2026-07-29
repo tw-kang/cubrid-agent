@@ -7,9 +7,11 @@ testcases against a local build, and act as the first reviewer on testcase PRs.
 The repository ships through **two channels from one source**:
 
 - **Claude Code** installs it as a **plugin** (root `.claude-plugin/`), which
-  loads the five pipeline skills and wires in the Stage-2 quality-gate hooks.
+  loads six skills — setup plus the five pipeline skills — and wires in the
+  Stage-2 quality-gate hooks.
 - **Other agent CLIs** (Codex, Cursor, Gemini, …) install individual skills with
-  the [`skills`](https://github.com/vercel-labs/skills) CLI.
+  the [`skills`](https://github.com/vercel-labs/skills) CLI. This is also the only
+  channel that reaches the 16 component skills, which the plugin does not load.
 
 ## Install
 
@@ -19,16 +21,26 @@ The repository ships through **two channels from one source**:
 claude plugin marketplace add tw-kang/cubrid-agent
 claude plugin install cubrid-agent@cubrid-agent
 # then, once, in a Claude Code session:
-/setup-cubrid-agent
+/cubrid-agent:setup-cubrid-agent
 ```
 
 Install registers the marketplace (`.claude-plugin/marketplace.json`) and loads
-the skills plus the `hooks/hooks.json` gates on the next session — but nothing is
-runnable yet: the skills need `cubrid-jira`, a CTP checkout, and (for the verify
-skills) a local CUBRID build that install does not provision. Run
-**`/setup-cubrid-agent`** once to lay those machine assets down, finish the
-credential steps, and get a per-skill readiness report. The 16 component skills
-under `skills/qa/` are not always-on; invoke them by name when needed.
+the six declared skills plus the `hooks/hooks.json` gates on the next session —
+but nothing is runnable yet: the skills need `cubrid-jira`, a CTP checkout, and
+(for the verify skills) a local CUBRID build that install does not provision. Run
+**`/cubrid-agent:setup-cubrid-agent`** once to lay those machine assets down,
+finish the credential steps, and get a per-skill readiness report.
+
+Plugin skills are namespaced, so `/cubrid-agent:<skill>` is the canonical name and
+the one autocomplete offers. The bare `/<skill>` also reaches it unless another
+command already claims that name.
+
+**The plugin loads six skills, not all 22.** Files for all 22 ship, but
+`plugin.json` declares six skill paths and the default `skills/` scan does not
+recurse into `skills/qa/`, so an install loads exactly those six — the 16 component
+skills are absent from the session, not lazily loaded. `claude plugin details
+cubrid-agent` prints what an install actually loaded and its always-on token cost.
+To use a component skill, install it through the `skills` CLI channel below.
 
 ### Other CLIs (agent skills)
 
@@ -52,7 +64,8 @@ npx skills add tw-kang/cubrid-agent --list
 On other CLIs the skills (including `setup-cubrid-agent` and its `scripts/setup.sh`)
 install and run, so provisioning still works — but the quality-gate **hooks are
 Claude-Code-only** and do not travel with the skills. Run `/setup-cubrid-agent`
-(or its script directly) and expect no hook gates on those CLIs.
+(no plugin prefix: these land as ordinary personal or project skills) or its
+script directly, and expect no hook gates on those CLIs.
 
 ## Skills
 
@@ -60,7 +73,7 @@ Claude-Code-only** and do not travel with the skills. Run `/setup-cubrid-agent`
 
 | Skill | What it does |
 | --- | --- |
-| `setup-cubrid-agent` | Provisions a fresh install to the "install + one setup → usable" bar — runs `setup.sh` for the `$HOME` machine assets, walks the operator through the sudo installs and credentials it can only flag, and prints a per-skill readiness report. Manual only (`/setup-cubrid-agent`). |
+| `setup-cubrid-agent` | Provisions a fresh install to the "install + one setup → usable" bar — runs `setup.sh` for the `$HOME` machine assets, walks the operator through the sudo installs and credentials it can only flag, and prints a per-skill readiness report. Manual only (`/cubrid-agent:setup-cubrid-agent`). |
 
 ### Pipeline (always-on in the plugin)
 
@@ -72,9 +85,14 @@ Claude-Code-only** and do not travel with the skills. Run `/setup-cubrid-agent`
 | `create-sql` | Creates a CTP SQL testcase (`.sql` + generated `.answer`) from scratch. |
 | `verify-sql` | Runs one CTP SQL testcase on a local build, judges pass/fail, and diagnoses failures. |
 
-### Component skills (on demand)
+Together with `setup-cubrid-agent` these six cost about 1,185 tokens of always-on
+context per session.
 
-Per CTP category, a `create-<cat>` / `verify-<cat>` pair:
+### Component skills (`skills` CLI only)
+
+The plugin does not load these — install one with
+`npx skills add tw-kang/cubrid-agent -s <name>`. Per CTP category, a
+`create-<cat>` / `verify-<cat>` pair:
 
 `create-cci` · `verify-cci` · `create-cdc-repl` · `verify-cdc-repl` ·
 `create-ha-repl` · `verify-ha-repl` · `create-ha-shell` · `verify-ha-shell` ·
@@ -85,8 +103,8 @@ Per CTP category, a `create-<cat>` / `verify-<cat>` pair:
 
 - **`git`, `jq`** — used by the hook gates and skills.
 - **A local CUBRID build + CTP** — required by the `verify-*` skills and the
-  verify stage of `author-testcase`. `/setup-cubrid-agent` provisions these; see
-  also `docs/setup.md`.
+  verify stage of `author-testcase`. `/cubrid-agent:setup-cubrid-agent` provisions
+  these; see also `docs/setup.md`.
 - The Stage-2 hooks only act on CUBRID testcase PRs (`gh pr create` against
   `cubrid-testcases`); they leave every other command alone.
 
@@ -94,7 +112,8 @@ Per CTP category, a `create-<cat>` / `verify-<cat>` pair:
 
 ```
 .claude-plugin/    plugin.json + marketplace.json (source "./")
-skills/qa/         22 skills (1 setup + 5 pipeline + 16 component), catalog layout
+skills/qa/         22 skills on disk, catalog layout; plugin.json declares 6
+                   (1 setup + 5 pipeline), the other 16 ship via the skills CLI
 hooks/hooks.json   Stage-2 quality-gate hook config
 scripts/           hook scripts, addressed via ${CLAUDE_PLUGIN_ROOT}
 docs/              design notes, ADRs, deployment (Korean, non-shipping)

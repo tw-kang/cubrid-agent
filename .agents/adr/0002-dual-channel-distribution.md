@@ -4,8 +4,8 @@
 
 ## 결정
 
-- **채널 1 — Claude Code 플러그인**: `claude plugin marketplace add tw-kang/cubrid-agent` → `claude plugin install cubrid-agent@cubrid-agent`. 파이프라인 5종 상시 로드 + hook 게이트 활성.
-- **채널 2 — `npx skills add`**([vercel-labs/skills](https://github.com/vercel-labs/skills)): `npx skills add tw-kang/cubrid-agent -s <skill>` (또는 `--all`). 개별 스킬을 여러 에이전트에 설치.
+- **채널 1 — Claude Code 플러그인**: `claude plugin marketplace add tw-kang/cubrid-agent` → `claude plugin install cubrid-agent@cubrid-agent`. `plugin.json` 등재분 6종(setup + 파이프라인 5) 상시 로드 + hook 게이트 활성. 호출명은 플러그인 접두어가 붙은 `/cubrid-agent:<스킬>`.
+- **채널 2 — `npx skills add`**([vercel-labs/skills](https://github.com/vercel-labs/skills)): `npx skills add tw-kang/cubrid-agent -s <skill>` (또는 `--all`). 개별 스킬을 여러 에이전트에 설치. 호출명은 접두어 없는 `/<스킬>`. **부품 16종은 이 채널만으로 접근한다** — 플러그인은 로드하지 않는다(ADR 0001).
 - **구조 변경 없이 양립**: 스킬을 `skills/qa/<name>/SKILL.md`(카탈로그 레이아웃)로 두면 skills CLI가 GitHub에서 직접 발견한다(별도 publish·package.json 불필요). 같은 레이아웃을 플러그인 `skills[]`도 참조한다.
 - **배포물**: 루트 `README`(두 채널 설치법)·`package.json`(repo 메타)·`CHANGELOG`·`LICENSE`(Apache-2.0) — 전부 영문(배포 대상).
 

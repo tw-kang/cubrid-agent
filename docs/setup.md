@@ -8,18 +8,20 @@
 
 | 스킬 | 역할 | 필요 자원 | 기동 |
 |---|---|---|---|
-| **gate-resolved** | Resolved(QA to-do) 검토 → 반송/통과 | `cubrid-jira`+자격만 | `/gate-resolved [CBRD-XXXXX]` |
-| **author-testcase** | Resolved 이슈 → TC 작성·검증 → PR(targeted=ready, batch=Draft) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `/setup-cubrid-agent`) | `/author-testcase [N \| CBRD-XXXXX]` |
-| **review-testcase** | 열린 SQL TC PR 첫 리뷰(targeted=코멘트 게시) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `/setup-cubrid-agent`) | `/review-testcase [PR번호]` |
+| **gate-resolved** | Resolved(QA to-do) 검토 → 반송/통과 | `cubrid-jira`+자격만 | `/cubrid-agent:gate-resolved [CBRD-XXXXX]` |
+| **author-testcase** | Resolved 이슈 → TC 작성·검증 → PR(targeted=ready, batch=Draft) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `/cubrid-agent:setup-cubrid-agent`) | `/cubrid-agent:author-testcase [N \| CBRD-XXXXX]` |
+| **review-testcase** | 열린 SQL TC PR 첫 리뷰(targeted=코멘트 게시) | + CTP·CUBRID 빌드·`$HOME` 자산 (= `/cubrid-agent:setup-cubrid-agent`) | `/cubrid-agent:review-testcase [PR번호]` |
+
+> 플러그인 스킬 이름에는 **플러그인 이름이 앞에 붙는다** — 정식 호출명은 `/cubrid-agent:<스킬>`이고 자동완성에 뜨는 것도 이 형태다. 앞을 뗀 `/<스킬>`도 같은 스킬을 부르지만, 같은 이름을 이미 쓰는 커맨드가 있으면 그쪽이 먼저 잡힌다. `npx skills add`로 깐 경우엔 접두어가 없어 `/<스킬>`이 정식이다.
 
 ## 1. 빠른 시작
 
-**권장(플러그인 사용자)** — 설치 후 `/setup-cubrid-agent`가 프로비저닝·자격까지 안내한다:
+**권장(플러그인 사용자)** — 설치 후 `/cubrid-agent:setup-cubrid-agent`가 프로비저닝·자격까지 안내한다:
 
 ```
 claude plugin marketplace add tw-kang/cubrid-agent
 claude plugin install cubrid-agent@cubrid-agent
-/setup-cubrid-agent               # 설치 후 세션에서 한 번 — Tier 2 자동 + TODO(자격·CLI) 안내 + 스킬별 준비도 리포트
+/cubrid-agent:setup-cubrid-agent  # 설치 후 세션에서 한 번 — Tier 2 자동 + TODO(자격·CLI) 안내 + 스킬별 준비도 리포트
 source ~/.cubrid-agent/env.sh     # CTP를 실행하는 세션마다 (CTP_HOME·JAVA_HOME·CUBRID_JIRA_USER·.cubrid.sh)
 ```
 
@@ -32,14 +34,14 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 ```
 
 - setup 스크립트는 **멱등**(재실행 안전)·**비대화식**이며 CWD 비의존이다(정본은 setup-cubrid-agent 스킬 안, 루트 래퍼 없음 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)). 하는 일/안 하는 일 경계는 [deployment.md](./deployment.md)의 3계층: Tier 2(머신 상태)는 스크립트가, Tier 3(자격)는 사람이.
-- gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요. 단 **Jira 사용자명이 해석돼 있어야** 대기열 JQL이 동작한다: `export CUBRID_JIRA_USER=<계정>` 하거나 `/setup-cubrid-agent`를 한 번 돌려 `env.sh`가 내보내게 한다(ADR 0004). 값이 없으면 스킬은 0건을 보고하지 않고 중단한다.
-- 부품 스킬은 이 repo(플러그인)의 `skills/qa/`에 **내장**된다(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 별도 clone·심링크 불필요 — `git clone`/`claude plugin install`이 곧 스킬 전달.
+- gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요. 단 **Jira 사용자명이 해석돼 있어야** 대기열 JQL이 동작한다: `export CUBRID_JIRA_USER=<계정>` 하거나 `/cubrid-agent:setup-cubrid-agent`를 한 번 돌려 `env.sh`가 내보내게 한다(ADR 0004). 값이 없으면 스킬은 0건을 보고하지 않고 중단한다.
+- 부품 스킬은 이 repo의 `skills/qa/`에 **소스로 들어 있다**(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 별도 clone·심링크는 불필요하지만, **플러그인이 로드하는 건 `plugin.json`에 적힌 6종뿐**이다(setup + 파이프라인 5종). 기본 `skills/` 스캔은 한 단계만 보므로 `skills/qa/<이름>/`은 자동 발견되지 않는다 — 부품 16종을 쓰려면 `npx skills add tw-kang/cubrid-agent -s <이름>`으로 따로 깐다. 어떤 설치본이 실제로 무엇을 로드했는지는 `claude plugin details cubrid-agent`로 확인한다(6종 = 세션당 상시 ~1,185 tok).
 
 ### 최신본 유지 — 설치는 한 번, 이후는 자동
 
 **한 번 설치하면 자동으로 최신이 된다.** Claude Code가 세션 시작 뒤(최대 10분 지연) 마켓플레이스와 설치된 플러그인을 배후에서 갱신하고, 갱신되면 `/reload-plugins` 안내가 뜨거나 다음 실행에 적용된다.
 
-단 **서드파티 마켓플레이스는 자동 갱신이 기본 꺼져 있다.** 그래서 `/setup-cubrid-agent`가 `~/.claude/settings.json`의 `extraKnownMarketplaces["cubrid-agent"].autoUpdate` 를 **켜 준다**(멱등, 백업 `settings.json.bak`). 수동으로 켜려면 `/plugin` → Marketplaces → cubrid-agent → **Enable auto-update**.
+단 **서드파티 마켓플레이스는 자동 갱신이 기본 꺼져 있다.** 그래서 `/cubrid-agent:setup-cubrid-agent`가 `~/.claude/settings.json`의 `extraKnownMarketplaces["cubrid-agent"].autoUpdate` 를 **켜 준다**(멱등, 백업 `settings.json.bak`). 수동으로 켜려면 `/plugin` → Marketplaces → cubrid-agent → **Enable auto-update**.
 
 밟기 쉬운 함정 둘:
 
@@ -82,9 +84,9 @@ gh auth login                                                       # 또는 GH_
 ## 4. 기동 (스킬별)
 
 ```
-/gate-resolved  [CBRD-XXXXX]        # Resolved 검토 → 통과/반송 전이·코멘트(targeted) 또는 초안(batch) + 리포트
-/author-testcase  [N | CBRD-XXXXX]    # 대기열 선두 N건(기본 1) → TC 작성·검증 → PR(키 지정=ready, 큐=Draft)
-/review-testcase   [PR번호]            # 열린 SQL TC PR → 3층 리뷰 코멘트 게시(targeted) + 리포트
+/cubrid-agent:gate-resolved    [CBRD-XXXXX]        # Resolved 검토 → 통과/반송 전이·코멘트(targeted) 또는 초안(batch) + 리포트
+/cubrid-agent:author-testcase  [N | CBRD-XXXXX]    # 대기열 선두 N건(기본 1) → TC 작성·검증 → PR(키 지정=ready, 큐=Draft)
+/cubrid-agent:review-testcase  [PR번호]            # 열린 SQL TC PR → 3층 리뷰 코멘트 게시(targeted) + 리포트
 ```
 정확한 문구 없이도 자연어로 뜬다("gate-resolved 돌려줘", "이 PR 리뷰해줘", "다음 이슈 tc 작성" 등 — 각 SKILL.md의 트리거 참조).
 
@@ -105,8 +107,8 @@ gh auth login                                                       # 또는 GH_
 
 ## 7. 구성 요소
 
-- **setup-cubrid-agent 스킬 + `scripts/setup.sh`**(Tier 2 자동화, 진입점 `/setup-cubrid-agent` — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) — 스크립트가 `$HOME` 표준 배치(D7: `~/cubrid-testcases`·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, Stage 3 컨테이너 재사용 가능(D5). conf 사본 불필요(원본 conf가 이미 `${HOME}` 기준). 정본은 스킬 안 단 하나(루트 래퍼 없음).
-- **부품 스킬** — 이 repo `skills/qa/`에 내장(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)).
+- **setup-cubrid-agent 스킬 + `scripts/setup.sh`**(Tier 2 자동화, 진입점 `/cubrid-agent:setup-cubrid-agent` — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) — 스크립트가 `$HOME` 표준 배치(D7: `~/cubrid-testcases`·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, Stage 3 컨테이너 재사용 가능(D5). conf 사본 불필요(원본 conf가 이미 `${HOME}` 기준). 정본은 스킬 안 단 하나(루트 래퍼 없음).
+- **부품 스킬** — 이 repo `skills/qa/`에 소스로 들어 있다(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 플러그인은 로드하지 않으므로 `npx skills add` 채널로 개별 설치(§0 표 아래 주석).
 - **스킬 자기완결**(D8) — 스킬·hook은 `docs/`를 런타임 참조하지 않는다. review-testcase 연료(few-shot bank·카탈로그)는 스킬 `references/`에 내장.
 - **hook 하드 게이트**([`hooks/`](../hooks/)) — `gate-pr-submit`(제출 차단)·`lint-sql-tc`(린트→manifest)·`gate-stop`(리마인드).
 - **run manifest** — `~/.cubrid-agent/CBRD-XXXXX/manifest.json`, 스키마 [`scripts/manifest.example.json`](../scripts/manifest.example.json).
