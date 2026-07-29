@@ -17,7 +17,7 @@ Generate a CUBRID CTP unittest that passes on the first try. A unittest is a sel
 
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP`. Sanity check: `ls $CTP_HOME/bin/ctp.sh $CTP_HOME/conf/`. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
 - **CUBRID source tree** must be present — unittests are compiled from it, not from a testcases repo. Confirm the `unit_tests/` and `src/` directories exist before writing.
-- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy.
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing cubrid-jira improves accuracy. **When you read the issue yourself** (not handed grounded input by `author-testcase`), also download and read every attachment — they often carry the developer's intended cases (a repro `.cpp` or a stack trace) that the description omits. `cubrid-jira attachment <KEY> --output json` fetches them and prints a per-file manifest; it applies the 5 MiB gate itself, so cores and binaries come back `skipped` and never hit the disk — record just their metadata + reason. Read the fetched text/code closely and view images with the Read multimodal. If the subcommand is missing, the CLI is stale — `uv tool upgrade cubrid-jira`.
 
 ## Directory convention
 

@@ -16,7 +16,7 @@ Generate a CUBRID JDBC testcase as a **standard JUnit 4 class** that drops into 
 ## Before you start
 
 - **Testcase repo.** Resolve its root without a hardcoded home path: use `$CUBRID_TESTCASES_PRIVATE` if set, else discover the `cubrid-testcases-private` checkout from the current dir (`git rev-parse --show-toplevel` or search upward), else ask the user. Call it `$TC` below. The JDBC develop tree lives at `$TC/interface/JDBC/test_jdbc`; sanity check: `ls $TC/interface/JDBC/test_jdbc/build.xml`. CTP itself is only needed to *run* (that's `verify-jdbc`).
-- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy.
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced, run `cubrid-jira search CBRD-XXXXX` first to ground the work (reuse if already fetched). If the CLI isn't installed, skip — but installing `cubrid-jira` improves accuracy. **When you read the issue yourself** (not handed grounded input by `author-testcase`), also download and read every attachment — they often carry the developer's intended cases (a repro `.java` or a `cbrd_XXXXX_testcases.sql`) that the description omits. `cubrid-jira attachment <KEY> --output json` fetches them and prints a per-file manifest; it applies the 5 MiB gate itself, so cores and binaries come back `skipped` and never hit the disk — record just their metadata + reason. Read the fetched text/code closely and view images with the Read multimodal. If the subcommand is missing, the CLI is stale — `uv tool upgrade cubrid-jira`.
 
 ## Directory convention
 

@@ -73,7 +73,7 @@ gh auth login                                                       # 또는 GH_
    uv tool install git+https://github.com/vimkim/cubrid-jira.git    # 대안: pipx install git+…  (⚠ pip install -e . 금지)
    cubrid-jira search CBRD-25913       # sanity — 본문 markdown이 나오면 OK
    ```
-   - ⚠ `show`/`get` 서브커맨드는 **없다**. 읽기는 `search <KEY>`(md) + `comment-list <KEY> --output json`(코멘트) + `jql '<query>' --output json`(대량/본문). **재현 절차가 comment에만 있는 이슈가 많으니 comment까지 읽어라.** 갱신 `uv tool upgrade cubrid-jira`.
+   - ⚠ `show`/`get` 서브커맨드는 **없다**. 읽기는 `search <KEY>`(md) + `comment-list <KEY> --output json`(코멘트) + `jql '<query>' --output json`(대량/본문) + `attachment <KEY> --output json`(첨부 다운로드+매니페스트, 5MiB 초과는 자동 skip). **재현 절차가 comment·첨부에만 있는 이슈가 많으니 둘 다 읽어라.** 갱신 `uv tool upgrade cubrid-jira` — `attachment` 서브커맨드와 **인증 읽기**(CUBRIDQA 등 비공개 프로젝트 401 해소)는 2026-07-29 머지분부터 들어 있으니, 그 전 설치본이면 갱신해야 스킬이 지시한 대로 동작한다.
 2. **gh** — Rocky/RHEL 8 계열(dnf). Debian/Ubuntu는 apt, 그 외 [cli.github.com/manual](https://cli.github.com/manual) 참조.
    ```bash
    sudo dnf install -y 'dnf-command(config-manager)'
