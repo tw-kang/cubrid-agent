@@ -83,7 +83,7 @@ gh auth login                                                       # 또는 GH_
    cubrid-jira search CBRD-25913       # sanity — Description 절에 내용이 있으면 OK (비어 있거나 pandoc 경고가 뜨면 위 pandoc 문제)
    ```
    - ⚠ `show`/`get` 서브커맨드는 **없다**. 읽기는 `search <KEY>`(md) + `comment-list <KEY> --output json`(코멘트) + `jql '<query>' --output json`(대량/본문) + `attachment <KEY> --output json`(첨부 다운로드+매니페스트, 5MiB 초과는 자동 skip). 첨부는 `~/.local/share/cubrid-jira/attachments/<KEY>/`에 떨어지고 매니페스트의 `path`가 실제 위치를 알려준다(`--out DIR`로 변경 가능). **재현 절차가 comment·첨부에만 있는 이슈가 많으니 둘 다 읽어라.**
-   - **버전**: semver가 없어서(전부 `1.0.0`) "최신"은 git HEAD를 뜻한다. **최소선은 2026-07-29 머지분** — 그 전 설치본은 `attachment` 서브커맨드가 없고(스킬 지시가 `invalid choice`로 실패) **인증 읽기**도 없다(CUBRIDQA 등 비공개 프로젝트에서 HTTP 401). **2026-07-30 머지분을 권장** — 낡은 pandoc에서 본문이 빈칸이 되지 않고, 잘못된 비밀번호로 401이 났을 때 CLI가 **첫 시도에서 멈춘다**(그 전에는 관련 이슈마다 재전송해 CAPTCHA 잠금을 유발). 갱신은 `uv tool upgrade cubrid-jira`.
+   - **버전**: semver가 없어서(전부 `1.0.0`) "최신"은 git HEAD를 뜻한다. **최소선은 2026-07-29 머지분** — 그 전 설치본은 `attachment` 서브커맨드가 없고(스킬 지시가 `invalid choice`로 실패) **인증 읽기**도 없다(CUBRIDQA 등 비공개 프로젝트에서 HTTP 401). **그 위로는 날짜로 고르지 말고 그냥 최신을 쓴다** — 2026-07-30에 두 건이 두 시간 간격으로 머지돼 "07-30 머지분"으로는 구분이 안 된다. 최신이 사는 것: 낡은 pandoc에서 본문이 빈칸이 되지 않고, 잘못된 비밀번호로 401이 났을 때 CLI가 **첫 시도에서 멈춘다**(그 전에는 관련 이슈마다 재전송해 CAPTCHA 잠금을 유발). 갱신은 `uv tool upgrade cubrid-jira`.
 2. **gh** — Rocky/RHEL 8 계열(dnf). Debian/Ubuntu는 apt, 그 외 [cli.github.com/manual](https://cli.github.com/manual) 참조.
    ```bash
    sudo dnf install -y 'dnf-command(config-manager)'
