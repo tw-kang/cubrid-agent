@@ -82,10 +82,11 @@ grep -q 'CUBRIDQA-1425' AGENTS.md                   || _m="$_m ticket-first-chec
 grep -q '^## DP6' .agents/design-principles.md      || _m="$_m DP6"
 # The CUBRID-side delivery rules: a contributor cannot infer the PR body shape or that cubrid-jira
 # is dry-run by default, and getting either wrong is visible outside the team. CBRD-25910 is the
-# template is embedded rather than cited, so a contributor never has to open another repo; the
-# three headings are the marker. $FORK guards against a person's name coming back.
-grep -q '### Purpose' AGENTS.md                     || _m="$_m pr-body-shape"
-grep -q '### Remarks' AGENTS.md                      || _m="$_m pr-body-template-embedded"
+# template is a file in this repo, not a copy in prose — AGENTS.md links it so the two cannot drift,
+# and the headings are asserted on the file itself. $FORK guards against a person's name coming back.
+grep -qF '.github/PULL_REQUEST_TEMPLATE.md' AGENTS.md || _m="$_m pr-template-link"
+grep -q '### Purpose' .github/PULL_REQUEST_TEMPLATE.md || _m="$_m pr-template-headings"
+grep -q '### Remarks' .github/PULL_REQUEST_TEMPLATE.md || _m="$_m pr-template-headings"
 grep -qF '$FORK:<branch>' AGENTS.md                 || _m="$_m fork-not-a-person"
 grep -q '없으면 dry-run' AGENTS.md                  || _m="$_m jira-write-is-dry-run"
 if [ -z "$_m" ]; then
