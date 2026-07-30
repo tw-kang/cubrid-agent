@@ -79,7 +79,7 @@ tmp=$(mktemp)
 if jq --arg k "$KEY" --argjson h "$header" --argjson e "$evaluate" --argjson c "$cleanup" \
       --argjson en "$english" --argjson hs "$header_scope" --argjson hz "$header_size" \
       --argjson pl "$placement" \
-   '.issue=(.issue//$k) | .lint.header=$h | .lint.evaluate=$e | .lint.cleanup=$c | .lint.english_comments=$en | .lint.header_scope=$hs | .lint.header_size=$hz | .lint.placement=$pl' \
+   '.issue=(.issue//$k) | .author.sql_writes=((.author.sql_writes // 0) + 1) | .lint.header=$h | .lint.evaluate=$e | .lint.cleanup=$c | .lint.english_comments=$en | .lint.header_scope=$hs | .lint.header_size=$hz | .lint.placement=$pl' \
    "$MANIFEST" > "$tmp" 2>/dev/null; then mv "$tmp" "$MANIFEST"; else rm -f "$tmp"; fi
 
 probs=""

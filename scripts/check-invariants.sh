@@ -164,15 +164,28 @@ done
 # CUBRIDQA-1488 (DP5): a skill's judgment must not depend on agent memory. The host injects
 # CLAUDE.md and a memory dir whether we like it or not, so what is checkable is that no skill
 # *instructs* reading or writing them: knowledge a judgment needs belongs in the skill body,
-# references/, env.sh or the manifest, where a PR can review it. Currently zero — this keeps it
-# zero. `memory` also appears legitimately (broker shared memory, an OOM quote), so match the
-# instruction shapes, not the bare word.
-_mem=$(grep -rlniE '(read|write|check|update|consult|save)[^.]{0,40}(agent |project )?memory|memory (tool|file|dir)|~/\.claude/(CLAUDE\.md|memory)|\.omc/|notepad' \
-  skills/qa/*/SKILL.md 2>/dev/null | sort -u)
+# references/, env.sh or the manifest, where a PR can review it.
+#
+# The first version of this check was too loose to matter — an adversarial pass showed 3 of 4
+# realistic mutations escaping, including the exact shape found in the wild
+# (`cat ~/.claude/projects/<dir>/memory/<file>.md`), because the pattern only knew
+# `~/.claude/CLAUDE.md|memory` and its `[^.]{0,40}` window broke on the dots in a path. It also
+# scanned only SKILL.md, while DP5 names references/ as a home too.
+#
+# So match memory ARTIFACTS and the one semantic shape that bit us (a cached verdict), not the bare
+# word: "frees broker shared memory" and an OOM quote must stay clean.
+_mem_scope=$(git ls-files 'skills/qa/*/SKILL.md' 'skills/qa/*/references/*.md' 'skills/qa/*/evals/*.json')
+_mem=$(grep -lEi \
+  -e '~/\.claude/|CLAUDE\.md|MEMORY\.md' \
+  -e '(auto|project|agent|session|persistent)[- ]memor(y|ies)' \
+  -e 'memor(y|ies) (tool|file|dir|directory|store|entry|entries)' \
+  -e '(cach|reus|carry|carri|persist)[a-z]* [^.]{0,40}verdict|verdict[^.]{0,40} (cach|reus)[a-z]*' \
+  -e '\.omc/|notepad' \
+  $_mem_scope 2>/dev/null | sort -u)
 if [ -z "$_mem" ]; then
-  pass "no skill instructs the agent to depend on memory (DP5)"
+  pass "no skill instructs the agent to depend on memory (DP5; $(printf '%s\n' $_mem_scope | wc -l | tr -d ' ') files scanned)"
 else
-  fail "these skills reference agent memory — move the knowledge into the skill body, references/, env.sh or the manifest (DP5, CUBRIDQA-1488): $(printf '%s' "$_mem" | tr '\n' ' ')"
+  fail "these files reference agent memory or a cached verdict — the knowledge belongs in the skill body, references/, env.sh or the manifest (DP5, CUBRIDQA-1488): $(printf '%s' "$_mem" | tr '\n' ' ')"
 fi
 
 # CUBRIDQA-1486: the TC's directory is create-sql's call. The orchestrator hardcoded it once and

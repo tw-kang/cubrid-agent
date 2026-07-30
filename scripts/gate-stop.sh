@@ -10,6 +10,7 @@ INPUT=$(cat 2>/dev/null || true)
 DIR="$HOME/.cubrid-agent"
 [ -d "$DIR" ] || exit 0
 pending=""
+stuck=""
 for m in "$DIR"/CBRD-*/manifest.json; do
   [ -f "$m" ] || continue
   [ "$(jq -r '.submitted // false' "$m" 2>/dev/null)" = true ] && continue
@@ -24,8 +25,17 @@ for m in "$DIR"/CBRD-*/manifest.json; do
   esac
   det=$(jq -r '.verify.determinism.all_pass // false' "$m" 2>/dev/null)
   verdict=$(jq -r '.review.verdict // "?"' "$m" 2>/dev/null)
-  { [ "$det" != true ] || [ "$verdict" != PASS ]; } && pending="$pending $key"
+  if [ "$det" != true ] || [ "$verdict" != PASS ]; then
+    # The lint hook counts every TC .sql write, so a run that keeps rewriting without closing a
+    # gate is visible here rather than needing a round counter the agent maintains by hand.
+    # Past the loop bound, name the sanctioned exit instead of nagging to keep going: a run that
+    # cannot pass has one, and without it this reminder fires forever (CUBRIDQA-1487).
+    _w=$(jq -r '.author.sql_writes // 0' "$m" 2>/dev/null)
+    if [ "$_w" -ge 6 ] 2>/dev/null; then stuck="$stuck $key($_w writes)"; else pending="$pending $key"; fi
+  fi
 done
-[ -n "$pending" ] && jq -n --arg p "$pending" \
-  '{hookSpecificOutput:{hookEventName:"Stop",additionalContext:("[Stage2] Incomplete TC manifest(s) (gates not passed):"+$p+" — finish passing the remaining determinism/review gates before submitting.")}}'
+[ -n "$pending$stuck" ] && jq -n --arg p "$pending" --arg s "$stuck" \
+  '{hookSpecificOutput:{hookEventName:"Stop",additionalContext:(
+     (if $p != "" then "[Stage2] Incomplete TC manifest(s) (gates not passed):"+$p+" — finish passing the remaining determinism/review gates before submitting." else "" end)
+   + (if $s != "" then (if $p != "" then " " else "" end)+"[Stage2] Past the loop bound with gates still open:"+$s+" — stop iterating and record the sanctioned terminal state instead: verify.status=\"blocked_review_unresolved\" + verify.note=<what still fails> + the written report. The branch keeps the work." else "" end))}}'
 exit 0

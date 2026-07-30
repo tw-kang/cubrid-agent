@@ -85,7 +85,7 @@
         },
         {
           "name": "skip_reason_on_loop_exhaustion",
-          "description": "If not all gates pass within 5 rounds, it preserves the branch locally without a PR and leaves the skip reason plus diagnosis in the report"
+          "description": "If the gates still do not pass after the bounded loop (5 static rounds or 2 CTP chains), it preserves the branch locally without a PR and leaves the skip reason plus diagnosis in the report"
         },
         {
           "name": "pr_remarks_have_failpass_evidence",

@@ -117,7 +117,7 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --install-clis
 
 ### 실행 중 — 30~60분, 조용한 게 정상
 
-이슈 한 건이 **30~60분** 걸린다(2026-07-30 실측 62분, 라운드 구조 개선 후 30분대 목표 — 재계측 전). 절반은 CTP 실행 대기이고, CTP 세션 하나가 기동에만 ~85초를 쓴다. 멈춘 게 아닌지는 산출물이 순서대로 생기는지로 본다:
+이슈 한 건이 **30분~1시간+** 걸린다(2026-07-30 실측 62분, 라운드 구조 개선 후 30분대 목표 — 재계측 전). 절반은 CTP 실행 대기이고, CTP 세션 하나가 기동에만 ~85초를 쓴다. 멈춘 게 아닌지는 산출물이 순서대로 생기는지로 본다:
 
 `reports/author-testcase/_queue-<날짜>.md`(Select 끝) → `<KEY>/issue.md`(Ground) → `<KEY>/s*.log`(CTP: 답지 생성→결정성→CCI→fail→pass) → `<KEY>/manifest.json`(게이트 기록) → `reports/author-testcase/<KEY>.md`(리포트). 전부 `~/.cubrid-agent/` 아래다.
 
@@ -131,7 +131,7 @@ jq '{verify: .verify.status, review: .review.verdict, submitted,
 
 - `verify.status` = `passed` | `blocked_no_build` | `blocked_no_ctp` | `blocked_nondeterministic` | `blocked_review_unresolved`. `passed`가 아니면 "여기서 멈췄다"는 뜻이고 이유는 `verify.note`에 있다 — **실패가 아니라 정해진 정지점**이다.
 - `review.verdict` = `PASS` | `NEEDS-WORK` 둘뿐.
-- `lint.*` 8개는 훅이 파일 쓸 때 자동 기록(헤더 형식·길이, 케이스 번호, cleanup, 영문 주석, 답지 출처, 배치 경로). 위 명령은 통과하지 못한 것만 보여준다.
+- `lint`은 8개 항목이고, **그중 7개를 훅이** 파일 쓸 때 자동 기록한다(헤더 형식·범위·길이, 케이스 번호, cleanup, 영문 주석, 배치 경로). 나머지 `answer_not_handwritten`(답지가 CTP 출력인지)은 에이전트가 기록한다. 위 명령은 통과하지 못한 것만 보여준다.
 - `verify.preconditions`에 `verified: false`가 있으면 초록불이어도 결론은 유보다.
 
 **배치인데 "0건, 정지"는 정상이다** — 실측에서 대기열 8건이 전부 Select에서 탈락했다(이미 처리됨·SQL로 관측 불가·중복). 큐를 넓히는 건 사람의 결정이라 자동으로 넓히지 않는다.
