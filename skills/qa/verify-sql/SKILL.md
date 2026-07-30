@@ -23,6 +23,8 @@ Run a single CTP SQL testcase, report PASS/FAIL, and — when it fails — diagn
 
 ## Run
 
+**Fast path — the testcase already belongs to a `CBRD-XXXXX` run with a manifest**: `~/.cubrid-agent/bin/verify-run.sh CBRD-XXXXX [--runs N] [--category sql_by_cci]` (installed by `/setup-cubrid-agent`) does steps 3–6 below in one command — conf copy with `scenario=` set, N runs in ONE `ctp.sh` session, Success/Fail parse, the answer-vs-result diff on mismatch, and the `verify.*` manifest fields the submit gate reads. Exit 0 = all pass, 1 = mismatch, 3 = blocked (no build / no CTP, recorded with a note). Steps 1–2 (installing the build) stay yours. Take the manual path below when there is **no key or no manifest** — an ad-hoc `.sql`, a file outside `$TC`, or a category the helper does not cover.
+
 Work from a scratch dir so logs and temp structures never collide: `work=$(mktemp -d)`.
 
 1. **Install CUBRID** and verify it really worked — `run_cubrid_install` can return 0 even on failure, so trust the binary, not the exit code:

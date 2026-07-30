@@ -278,18 +278,21 @@ done
 # puts it there is setup.sh. Three ways this breaks silently, all checked: the helper is referenced
 # but absent from the source dir; it is present but setup.sh never installs it; or setup.sh installs
 # it under a name no skill calls. Any of them is a hard runtime failure in every skill that grounds.
-_refs=$(grep -l 'bin/ground-issue.sh' skills/*/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
-_bad=""
-for _h in ground-issue.sh render-pr-body.sh; do
+_bad=""; _refs=0
+for _h in ground-issue.sh render-pr-body.sh verify-run.sh; do
   _src="skills/qa/setup-cubrid-agent/bin/$_h"
   [ -f "$_src" ] || _bad="$_bad missing-source($_src)"
   [ -x "$_src" ] || _bad="$_bad not-executable($_h)"
   grep -q "for h in .*$_h" skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad setup.sh-does-not-install($_h)"
+  # Per helper, not once for the set: a helper nobody calls is dead weight that still gets installed,
+  # and the check that only counted ground-issue.sh would have passed while the other two rotted.
+  _n=$(grep -l "bin/$_h" skills/*/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+  [ "$_n" -gt 0 ] || _bad="$_bad no-skill-calls($_h)"
+  _refs=$((_refs + _n))
 done
 grep -q 'AGENT_DIR/bin' skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad no-bin-dir"
-[ "$_refs" -gt 0 ] || _bad="$_bad no-skill-calls-it"
 if [ -z "$_bad" ]; then
-  pass "the installed helpers ship in the setup skill's bin/, install to ~/.cubrid-agent/bin/, and $_refs skill(s) call them there"
+  pass "the installed helpers ship in the setup skill's bin/, install to ~/.cubrid-agent/bin/, and are called there ($_refs skill references)"
 else
   fail "grounding helper wiring broken:$_bad — the skills call an absolute path that nothing puts on disk"
 fi
