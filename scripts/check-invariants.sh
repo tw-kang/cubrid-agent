@@ -279,7 +279,7 @@ done
 # but absent from the source dir; it is present but setup.sh never installs it; or setup.sh installs
 # it under a name no skill calls. Any of them is a hard runtime failure in every skill that grounds.
 _bad=""; _refs=0
-for _h in ground-issue.sh render-pr-body.sh verify-run.sh; do
+for _h in ground-issue.sh render-pr-body.sh verify-run.sh render-report.sh; do
   _src="skills/qa/setup-cubrid-agent/bin/$_h"
   [ -f "$_src" ] || _bad="$_bad missing-source($_src)"
   [ -x "$_src" ] || _bad="$_bad not-executable($_h)"

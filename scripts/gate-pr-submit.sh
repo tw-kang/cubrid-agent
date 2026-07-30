@@ -95,7 +95,9 @@ fi
 TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
 BR=$(printf '%s' "$COMMAND" | grep -oiE 'tc/cbrd-[0-9]+' | head -1)
 _dir=$(printf '%s' "$KEY" | tr '[:upper:]' '[:lower:]' | tr '-' '_')   # CBRD-26431 -> cbrd_26431
-if [ -d "$TC/.git" ] && [ -n "$BR" ] && git -C "$TC" rev-parse --verify -q "$BR" >/dev/null 2>&1; then
+# Ask git rather than testing for a .git directory: in a worktree .git is a file, and that test
+# would make this whole check skip silently on any worktree-based clone.
+if git -C "$TC" rev-parse --git-dir >/dev/null 2>&1 && [ -n "$BR" ] && git -C "$TC" rev-parse --verify -q "$BR" >/dev/null 2>&1; then
   _ourl=$(git -C "$TC" config --get remote.origin.url 2>/dev/null) || _ourl=""
   case "$_ourl" in
     *CUBRID/cubrid-testcases*) ;;

@@ -2,6 +2,9 @@
 name: setup-cubrid-agent
 description: "Provision a freshly installed cubrid-agent so its skills become runnable. Asks the operator once for consent, then runs the bundled setup.sh so it both lays down the $HOME machine assets (testcases and engine clones, CTP, the env file) and installs the three CLIs the skills require -- gh, pandoc >= 2.19, cubrid-jira -- instead of only naming them. Then it resolves whatever could not be forced (a sudo password, the JDK), runs sanity checks, and ends with a per-skill readiness report. This is the manual entrypoint to run once after install; invoke it as /setup-cubrid-agent. Credentials stay the operator's and never land in the repo, and it never installs a CUBRID build on its own -- the build is issue-dependent, so it only guides the --build step. NOT for: running the pipeline skills, injecting secrets, or installing a CUBRID build unattended."
 disable-model-invocation: true
+# Provisioning: the steps are fixed and the judgment is narrow (which TODOs matter, did a sanity
+# check pass), so deliberating here buys nothing. Not `low` — reading TODO output is interpretation.
+effort: medium
 ---
 
 # setup-cubrid-agent — one-time install → usable
