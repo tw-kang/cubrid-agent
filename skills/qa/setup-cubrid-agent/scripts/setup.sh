@@ -155,7 +155,22 @@ else
 fi
 
 echo "== CLIs & credentials — Tier 3 (human's job; only checked here) =="
-command -v cubrid-jira >/dev/null && ok "cubrid-jira" || todo "install cubrid-jira — docs/setup.md §3"
+# cubrid-jira: check the CAPABILITY, not the presence. The tool never bumps its version
+# (every build is `1.0.0`), so `command -v` and `--version` both pass on a build that is
+# missing what the skills call. `attachment --help` is the floor probe: no `attachment`
+# means an install older than 2026-07-29, which also has no authenticated reads and so
+# answers every CUBRIDQA read with HTTP 401. The commit id is printed rather than compared —
+# git shas carry no order offline, so the operator matches it against docs/setup.md §3.
+_cj_commit=$(sed -n 's/.*"commit_id": *"\([0-9a-f]\{7,40\}\)".*/\1/p' \
+  "$HOME"/.local/share/uv/tools/cubrid-jira/lib/python3*/site-packages/cubrid_jira-*.dist-info/direct_url.json \
+  2>/dev/null | head -1 | cut -c1-12)
+if ! command -v cubrid-jira >/dev/null; then
+  todo "install cubrid-jira — docs/setup.md §3"
+elif ! cubrid-jira attachment --help >/dev/null 2>&1; then
+  todo "cubrid-jira is older than 2026-07-29${_cj_commit:+ (uv install: $_cj_commit)}: no 'attachment' subcommand and no authenticated reads, so the skills fail with 'invalid choice' and HTTP 401 on CUBRIDQA. Run: uv tool upgrade cubrid-jira — docs/setup.md §3"
+else
+  ok "cubrid-jira${_cj_commit:+ (uv install: $_cj_commit)} — attachment + authenticated reads present"
+fi
 command -v gh          >/dev/null && ok "gh"          || todo "install gh — docs/setup.md §3"
 # pandoc: check the CAPABILITY, not the presence. cubrid-jira renders issue text with
 # `pandoc -f jira` / `--to jira`, and a pandoc without those formats makes reads come back
