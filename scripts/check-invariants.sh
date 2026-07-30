@@ -152,7 +152,9 @@ done
 # Docs may only advertise `/cubrid-agent:<skill>` for skills the plugin actually loads.
 # 1472: README told operators to invoke the 16 component skills, which are never loaded.
 _declared_names=$(for s in $_declared; do basename "$s"; done)
-_advertised=$(git ls-files '*.md' | xargs grep -oh '/cubrid-agent:[a-z0-9-]*' 2>/dev/null | sed 's|/cubrid-agent:||' | sort -u)
+# The leading-character guard keeps a git refspec out of this: `CUBRID/cubrid-agent:develop` in the
+# PR template is head->base notation, not a slash command, and reading it as one invented a skill.
+_advertised=$(git ls-files '*.md' | xargs grep -ohE '(^|[^A-Za-z0-9_/-])/cubrid-agent:[a-z0-9-]*' 2>/dev/null | sed -E 's|.*/cubrid-agent:||' | sort -u)
 for n in $_advertised; do
   case "$n" in ''|'<skill>'|'<스킬>') continue ;; esac
   printf '%s\n' "$_declared_names" | grep -qx "$n" \
@@ -212,16 +214,18 @@ done
 # puts it there is setup.sh. Three ways this breaks silently, all checked: the helper is referenced
 # but absent from the source dir; it is present but setup.sh never installs it; or setup.sh installs
 # it under a name no skill calls. Any of them is a hard runtime failure in every skill that grounds.
-_helper_src=skills/qa/setup-cubrid-agent/scripts/ground-issue.sh
 _refs=$(grep -l 'bin/ground-issue.sh' skills/qa/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
 _bad=""
-[ -f "$_helper_src" ] || _bad="$_bad missing-source($_helper_src)"
-[ -x "$_helper_src" ] || _bad="$_bad not-executable"
-grep -q 'for h in .*ground-issue.sh' skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad setup.sh-does-not-install-it"
+for _h in ground-issue.sh render-pr-body.sh; do
+  _src="skills/qa/setup-cubrid-agent/bin/$_h"
+  [ -f "$_src" ] || _bad="$_bad missing-source($_src)"
+  [ -x "$_src" ] || _bad="$_bad not-executable($_h)"
+  grep -q "for h in .*$_h" skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad setup.sh-does-not-install($_h)"
+done
 grep -q 'AGENT_DIR/bin' skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad no-bin-dir"
 [ "$_refs" -gt 0 ] || _bad="$_bad no-skill-calls-it"
 if [ -z "$_bad" ]; then
-  pass "ground-issue.sh ships in the setup skill, installs to ~/.cubrid-agent/bin/, and $_refs skill(s) call it there"
+  pass "the installed helpers ship in the setup skill's bin/, install to ~/.cubrid-agent/bin/, and $_refs skill(s) call them there"
 else
   fail "grounding helper wiring broken:$_bad — the skills call an absolute path that nothing puts on disk"
 fi

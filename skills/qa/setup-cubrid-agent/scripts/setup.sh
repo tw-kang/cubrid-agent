@@ -116,18 +116,19 @@ echo "== Runtime output directory — \$HOME/.cubrid-agent =="
 mkdir -p "$AGENT_DIR/reports/gate-resolved" "$AGENT_DIR/reports/author-testcase" "$AGENT_DIR/reports/review-testcase" "$AGENT_DIR/worktrees"
 ok "$AGENT_DIR/{<KEY>/ (per-run dir + manifest.json; skills create it), reports/, worktrees/}"
 
-# Helpers the skills invoke by absolute path. They ship next to this script and install into
+# Helpers the skills invoke by absolute path. They ship in this skill's bin/ and install into
 # ~/.cubrid-agent/bin/ so that ONE path works on both channels: the plugin sets CLAUDE_PLUGIN_ROOT
 # but `npx skills add` copies only a single skill's own directory, so no path relative to a skill
 # resolves for every skill that needs the helper (ADR 0003's reasoning, applied to shared helpers).
 # A copy, not a symlink: it must survive the source checkout being moved or deleted. Re-running
 # setup refreshes it, which is also how a repo change reaches an already-provisioned machine.
 SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)  # readlink: the skill dir may be symlinked in
+HELPER_SRC="$SELF_DIR/../bin"   # scripts/setup.sh is the skill's implementation; bin/ is what it installs
 mkdir -p "$AGENT_DIR/bin"
-for h in ground-issue.sh; do
-  if [ -f "$SELF_DIR/$h" ]; then
-    install -m 755 "$SELF_DIR/$h" "$AGENT_DIR/bin/$h" && ok "~/.cubrid-agent/bin/$h"
-  else todo "$h not found next to setup.sh — skills that ground a JIRA issue will report it missing"; fi
+for h in ground-issue.sh render-pr-body.sh; do
+  if [ -f "$HELPER_SRC/$h" ]; then
+    install -m 755 "$HELPER_SRC/$h" "$AGENT_DIR/bin/$h" && ok "~/.cubrid-agent/bin/$h"
+  else todo "$h not found in the skill's bin/ — the skills that call it by absolute path will report it missing"; fi
 done
 
 echo "== env — detect JDK + write ~/.cubrid-agent/env.sh =="
