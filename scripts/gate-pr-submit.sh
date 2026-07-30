@@ -81,5 +81,40 @@ else
     && p="$p\n- PR body's case count is '?' — the renderer could not read the .sql (author.path missing from the manifest). Fix the manifest, then re-render with --force"
 fi
 
+# Base sanity: the branch must differ from CUBRID's develop ONLY inside this TC's own directory.
+# author-testcase says to cut the branch from `origin/develop`, which assumes a clone that setup.sh
+# provisioned (it clones from CUBRID, so origin points there). A hand-made clone can have no origin
+# at all, or origin pointing at a fork, and then the base is whatever branch happened to be checked
+# out — on this developer's machine that was a fork-only feature branch sitting 62 commits behind
+# upstream with 1,630 files changed. Cutting a TC branch there produces a PR carrying all of it, and
+# nothing upstream would have stopped it. The stray-file test catches every version of this (wrong
+# base, unrelated commits, an accidental edit) without a network call.
+# Limits, on purpose: if the clone is not at $CUBRID_TESTCASES or ~/cubrid-testcases we skip rather
+# than guess — a false deny here strands an hour of finished work. Same reason the message names the
+# stray files and the recovery: a stale origin/develop ref is the one way this can misfire.
+TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
+BR=$(printf '%s' "$COMMAND" | grep -oiE 'tc/cbrd-[0-9]+' | head -1)
+_dir=$(printf '%s' "$KEY" | tr '[:upper:]' '[:lower:]' | tr '-' '_')   # CBRD-26431 -> cbrd_26431
+if [ -d "$TC/.git" ] && [ -n "$BR" ] && git -C "$TC" rev-parse --verify -q "$BR" >/dev/null 2>&1; then
+  _ourl=$(git -C "$TC" config --get remote.origin.url 2>/dev/null) || _ourl=""
+  case "$_ourl" in
+    *CUBRID/cubrid-testcases*) ;;
+    "") p="$p\n- $TC has no 'origin' remote, so the base the skill cuts from (origin/develop) does not exist — git -C $TC remote add origin https://github.com/CUBRID/cubrid-testcases.git && git -C $TC fetch origin develop" ;;
+    *)  p="$p\n- $TC's 'origin' is $_ourl, not CUBRID/cubrid-testcases — the branch would be based on someone's fork; point origin at CUBRID (keep your fork as the 'fork' remote)" ;;
+  esac
+  if git -C "$TC" rev-parse --verify -q origin/develop >/dev/null 2>&1; then
+    _mb=$(git -C "$TC" merge-base origin/develop "$BR" 2>/dev/null)
+    if [ -n "$_mb" ]; then
+      _out=$(git -C "$TC" diff --name-only "$_mb".."$BR" 2>/dev/null | grep -v "/$_dir/")
+      _n=$(printf '%s' "$_out" | grep -c . )
+      if [ "${_n:-0}" -gt 0 ]; then
+        p="$p\n- the branch changes $_n file(s) outside $_dir/ — the base is wrong or unrelated commits came along: $(printf '%s' "$_out" | head -3 | tr '\n' ' ')… If the branch really is based on a newer develop, run: git -C $TC fetch origin develop, then submit again"
+      fi
+    fi
+  else
+    p="$p\n- origin/develop is not in $TC, so the branch's base cannot be verified — git -C $TC fetch origin develop"
+  fi
+fi
+
 [ -z "$p" ] || deny "$(printf 'TC PR submission gate: %s not satisfied:%b' "$KEY" "$p")"
 exit 0

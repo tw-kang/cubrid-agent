@@ -109,6 +109,45 @@ run "case count is ?"           deny "case count is '?'"     "$BASE --body-file 
 good_body; sed -i '1d' "$GEN"
 run "no jira link"              deny "no jira link"          "$BASE --body-file $GEN"
 
+# --- base sanity: a synthetic clone, so no network and no dependence on this machine's checkout ---
+# CUBRID_TESTCASES is exported only for this block, so the cases above keep exercising the
+# "clone not found -> skip" path regardless of where these tests are appended.
+good_body
+TCD="$T/tc"
+git init -q "$TCD"
+G="git -C $TCD -c user.email=t@t -c user.name=t"
+mkdir -p "$TCD/sql/_36_guava/cbrd_99999/cases"
+echo "-- tc" > "$TCD/sql/_36_guava/cbrd_99999/cases/cbrd_99999.sql"
+$G add -A >/dev/null; $G commit -qm base
+$G update-ref refs/remotes/origin/develop HEAD          # what a fetched origin/develop looks like
+BASESHA=$($G rev-parse HEAD)
+$G remote add origin https://github.com/CUBRID/cubrid-testcases.git
+$G checkout -q -b tc/cbrd-99999
+echo "evaluate 'Case 1';" >> "$TCD/sql/_36_guava/cbrd_99999/cases/cbrd_99999.sql"
+$G add -A >/dev/null; $G commit -qm tc
+export CUBRID_TESTCASES="$TCD"
+
+run "base ok: only the TC dir"   ok   ""                       "$BASE --body-file $GEN"
+
+$G remote set-url origin https://github.com/someone/cubrid-testcases.git
+run "origin is a fork"           deny "not CUBRID/cubrid-testcases" "$BASE --body-file $GEN"
+$G remote set-url origin https://github.com/CUBRID/cubrid-testcases.git
+
+$G remote remove origin        # note: this also drops refs/remotes/origin/*, so restore the ref after
+run "no origin remote"           deny "no 'origin' remote"      "$BASE --body-file $GEN"
+$G remote add origin https://github.com/CUBRID/cubrid-testcases.git
+$G update-ref refs/remotes/origin/develop "$BASESHA"
+
+echo stray > "$TCD/unrelated.txt"; $G add -A >/dev/null; $G commit -qm stray
+run "stray file outside the TC"  deny "outside cbrd_99999/"     "$BASE --body-file $GEN"
+$G reset -q --hard HEAD~1
+
+$G update-ref -d refs/remotes/origin/develop
+run "origin/develop not fetched" deny "origin/develop is not in" "$BASE --body-file $GEN"
+$G update-ref refs/remotes/origin/develop "$BASESHA"
+
+unset CUBRID_TESTCASES
+
 # --- the artifact conditions still gate, and they report first ---------------------------------
 good_body
 jq '.review.verdict = "NEEDS-WORK"' "$RUN/manifest.json" > "$RUN/m.tmp" && mv "$RUN/m.tmp" "$RUN/manifest.json"
