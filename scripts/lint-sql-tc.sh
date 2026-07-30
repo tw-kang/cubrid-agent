@@ -67,11 +67,31 @@ case "$FILE" in
   */sql/_[0-9][0-9]_*/cbrd_[0-9]*/cases/*)    _tree=release_per_issue ;;
   *)                                          _tree=other ;;
 esac
+# Half-year sub-dir. `_13_issues/_{yy}_{1|2}h` is the half-year the TC is WRITTEN in, not any date on
+# the issue — the corpus is unambiguous (each dir's first commit falls inside its own label: _24_2h
+# 2024-07-30, _25_1h 2025-01-15, _25_2h 2025-08-07, _26_1h 2026-01-19) while the issues inside span
+# other years. The rule as written said only "{yy} = 2-digit year" and a run put a 2026-07 TC in
+# _25_2h, which is the same ambiguity that sent bug TCs to a release dir (CUBRIDQA-1486).
+# Only a NEW case file has to land in the current half-year: old dirs keep receiving edits to
+# existing TCs long after they stop receiving new cases, and flagging those would be noise.
+halfyear=true
+_curhy="_$(date +%y)_$([ "$(date +%-m)" -le 6 ] && echo 1 || echo 2)h"
+if [ "$_tree" = issues ]; then
+  _hy=$(printf '%s' "$FILE" | sed -n 's#.*/sql/_13_issues/\([^/]*\)/cases/.*#\1#p')
+  if [ -n "$_hy" ] && [ "$_hy" != "$_curhy" ] \
+     && ! git -C "$(dirname "$FILE")" ls-files --error-unmatch "$FILE" >/dev/null 2>&1; then
+    halfyear=false
+  fi
+fi
+
 _itype=$(jq -r '.select.issue_type // empty' "$MANIFEST" 2>/dev/null)
+_pwhy=""
 if [ -z "$_itype" ]; then
   placement=null   # cannot decide — Select did not record the issue type
 elif [ "$_itype" = "Correct Error" ] && [ "$_tree" = release_per_issue ]; then
-  placement=false
+  placement=false; _pwhy=tree
+elif [ "$halfyear" = false ]; then
+  placement=false; _pwhy=halfyear
 else
   placement=true
 fi
@@ -89,7 +109,8 @@ probs=""
 [ "$english" = true ]  || probs="$probs non-English text in comments (comments must be English);"
 [ "$header_scope" = true ] || probs="$probs header talks to the pipeline instead of describing the test — move stage instructions to the report, reviewer constraints to the PR Remarks, and run-validity preconditions to verify.preconditions;"
 [ "$header_size" = true ]  || probs="$probs header is $hlines lines (max 20) — compress the wording, don't drop coverage items;"
-[ "$placement" = false ] && probs="$probs wrong tree: a bug fix (Correct Error) belongs in sql/_13_issues/_{yy}_{1|2}h/cases/ regardless of its version fields, not in a release dir (create the half-year dir if it does not exist yet) — see create-sql's directory convention;"
+[ "$_pwhy" = tree ]     && probs="$probs wrong tree: a bug fix (Correct Error) belongs in sql/_13_issues/_{yy}_{1|2}h/cases/ regardless of its version fields, not in a release dir (create the half-year dir if it does not exist yet) — see create-sql's directory convention;"
+[ "$_pwhy" = halfyear ] && probs="$probs wrong half-year dir: a new case goes in $_curhy (the half-year you are writing it in), not $_hy — no date on the issue selects this dir; create $_curhy if it does not exist yet;"
 [ "$placement" = null ]  && probs="$probs placement unverifiable: record select.issue_type in the manifest during Select, so the tree can be checked against the issue type;"
 [ -z "$probs" ] || jq -n --arg f "$FILE" --arg p "$probs" \
   '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:("[Stage2 lint] "+$f+" convention violations:"+$p+" (recorded in manifest.lint — the submit gate will block)")}}'
