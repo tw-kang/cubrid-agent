@@ -424,6 +424,13 @@ for h in $_hooks; do
   else pass "hook script present and executable: $_p"; fi
 done
 
+# The submit gate is the only check that can strand finished work — it denies the last step of a
+# ~1-hour pipeline — so it gets a behavioural test rather than a grep for a marker string. The test
+# pins both directions: every body-flag spelling a human actually types must pass, and each defect
+# (no --body-file, a hand-composed body, a leftover TODO, an unread case count) must deny.
+if _t=$(bash scripts/test-gate-pr-submit.sh 2>&1); then pass "submit gate behaves: $_t"
+else fail "submit gate test failed — run scripts/test-gate-pr-submit.sh:"; printf '         %s\n' "$_t"; fi
+
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"
 
