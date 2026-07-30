@@ -161,6 +161,20 @@ for f in skills/qa/create-*/SKILL.md; do
 done
 [ "$_bad" -eq 0 ] && pass "every create-* skill carries the attachment rule"
 
+# CUBRIDQA-1485: the three required CLIs are installed after one consent, so the flag the skill
+# tells the operator to pass must exist in the script it points at. Drift either way is silent —
+# a skill passing an unknown flag now aborts the run, and a script gaining the flag nobody invokes
+# is dead code.
+_setup_sh=skills/qa/setup-cubrid-agent/scripts/setup.sh
+_in_script=0; _in_skill=0
+grep -q -- '--install-clis)' "$_setup_sh" && _in_script=1
+grep -q -- '--install-clis' skills/qa/setup-cubrid-agent/SKILL.md && _in_skill=1
+if [ "$_in_script" -eq 1 ] && [ "$_in_skill" -eq 1 ]; then
+  pass "setup skill and setup.sh agree on --install-clis"
+else
+  fail "--install-clis is in $([ "$_in_script" -eq 1 ] && echo 'setup.sh but not the SKILL' || echo 'the SKILL but not setup.sh') — the setup skill would tell the operator to run a flag that does not exist, or ship a flag nobody invokes"
+fi
+
 # ---------------------------------------------------------------------------
 group "Skill frontmatter"
 

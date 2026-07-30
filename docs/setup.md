@@ -29,11 +29,12 @@ source ~/.cubrid-agent/env.sh     # CTP를 실행하는 세션마다 (CTP_HOME·
 
 ```bash
 git clone https://github.com/tw-kang/cubrid-agent.git && cd cubrid-agent
-bash skills/qa/setup-cubrid-agent/scripts/setup.sh              # Tier 2 전부($HOME 표준). TODO는 사람이 처리(§2·§3)
+bash skills/qa/setup-cubrid-agent/scripts/setup.sh --install-clis # Tier 2 전부($HOME 표준) + 필수 CLI 3종 설치(§3)
+bash skills/qa/setup-cubrid-agent/scripts/setup.sh              # 설치 없이 확인·안내만. TODO는 사람이 처리(§2·§3)
 bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 스킬용 — 빌드서버 192.168.1.91:8080
 ```
 
-- setup 스크립트는 **멱등**(재실행 안전)·**비대화식**이며 CWD 비의존이다(정본은 setup-cubrid-agent 스킬 안, 루트 래퍼 없음 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)). 하는 일/안 하는 일 경계는 [deployment.md](./deployment.md)의 3계층: Tier 2(머신 상태)는 스크립트가, Tier 3(자격)는 사람이.
+- setup 스크립트는 **멱등**(재실행 안전)·**비대화식**이며 CWD 비의존이다(정본은 setup-cubrid-agent 스킬 안, 루트 래퍼 없음 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)). 하는 일/안 하는 일 경계는 [deployment.md](./deployment.md)의 3계층: Tier 2(머신 상태)는 스크립트가, Tier 3 중 **CLI 설치는 동의 한 번 뒤 스크립트가**(`--install-clis`, §3), **자격증명은 사람이**.
 - gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요. 단 **Jira 사용자명이 해석돼 있어야** 대기열 JQL이 동작한다: `export CUBRID_JIRA_USER=<계정>` 하거나 `/cubrid-agent:setup-cubrid-agent`를 한 번 돌려 `env.sh`가 내보내게 한다(ADR 0004). 값이 없으면 스킬은 0건을 보고하지 않고 중단한다.
 - 부품 스킬은 이 repo의 `skills/qa/`에 **소스로 들어 있다**(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 별도 clone·심링크는 불필요하지만, **플러그인이 로드하는 건 `plugin.json`에 적힌 6종뿐**이다(setup + 파이프라인 5종). 기본 `skills/` 스캔은 한 단계만 보므로 `skills/qa/<이름>/`은 자동 발견되지 않는다 — 부품 16종을 쓰려면 `npx skills add tw-kang/cubrid-agent -s <이름>`으로 따로 깐다. 어떤 설치본이 실제로 무엇을 로드했는지는 `claude plugin details cubrid-agent`로 확인한다(6종 = 세션당 상시 ~1,185 tok).
 
@@ -64,9 +65,21 @@ export CUBRID_JIRA_USER="..."; export CUBRID_JIRA_PASSWORD="..."   # 표준 (또
 gh auth login                                                       # 또는 GH_TOKEN. fork=각자 gh 계정(ADR 0004), base=CUBRID
 ```
 
-## 3. CLI 수동 설치 (sudo 필요 — setup.sh는 확인·안내만)
+## 3. CLI 설치 — 기본은 셋업이 깐다, 아래는 수동 경로
 
-1. **cubrid-jira** ([github.com/vimkim/cubrid-jira](https://github.com/vimkim/cubrid-jira)) — 전제: **Python 3.14+**, **pandoc 2.19 이상**.
+`gh`·`pandoc`·`cubrid-jira` 세 개는 선택이 아니라 전제다(없으면 이슈를 못 읽고, Jira 쓰기가 실패하고, PR을 못 낸다). 그래서 **`/cubrid-agent:setup-cubrid-agent`가 무엇을 설치할지 먼저 보여주고 동의를 한 번 받은 뒤 직접 깐다** — 스킬이 `setup.sh --install-clis`로 실행한다. repo 개발자가 직접 돌릴 때도 같다:
+
+```bash
+bash skills/qa/setup-cubrid-agent/scripts/setup.sh --install-clis
+```
+
+멱등이다 — **능력 검사를 통과하는 도구는 건드리지 않으므로** 재실행하면 아무것도 설치하지 않는다. 플래그를 빼면 예전처럼 확인·안내만 한다(CUBRIDQA-1485).
+
+강제할 수 없는 것 두 가지: **`gh`는 root가 필요해서** `sudo -n`이 안 통하면(비밀번호를 묻는 머신) 명령만 넘긴다. **자격증명은 절대 스크립트가 만들지 않는다**(§2). `pandoc`·`cubrid-jira`는 `~/.local` 아래로 들어가므로 sudo가 필요 없고, `uv`가 없으면 uv도 같이 깐다.
+
+수동으로 할 때(또는 위 설치가 실패했을 때):
+
+1. **cubrid-jira** ([github.com/vimkim/cubrid-jira](https://github.com/vimkim/cubrid-jira)) — 전제: **Python 3.14+**(uv가 알아서 받아온다), **pandoc 2.19 이상**.
 
    > ⚠️ **배포판 pandoc을 쓰지 마라.** Rocky/RHEL 8의 `dnf install pandoc`은 **2.0.6**을 주는데, 이 버전엔 `jira` reader/writer가 **둘 다 없다**. writer가 없으면 markdown 본문을 넣는 **쓰기(`update`·`comment`)가 하드 실패**한다. reader가 없으면 읽기는 CLI 버전에 갈린다 — **2026-07-30 이전 설치본은 이슈 본문이 에러 없이 빈칸으로** 나오고(셋업은 통과했다고 보고하고 에이전트는 아무 내용 없이 판정한다), 그 이후 설치본은 경고 한 줄과 함께 **Jira 마크업 원문**으로 폴백한다. 최소 2.19인 이유: 2.9.1은 reader·writer가 있지만 쓰기에서 **마크다운 표의 헤더 행을 버린다**(실측). 상세는 CUBRIDQA-1473·1478.
 

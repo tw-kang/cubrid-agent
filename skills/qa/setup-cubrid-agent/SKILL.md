@@ -1,6 +1,6 @@
 ---
 name: setup-cubrid-agent
-description: "Provision a freshly installed cubrid-agent so its skills become runnable. Runs the bundled setup.sh to lay down the $HOME machine assets (testcases and engine clones, CTP, the env file), then walks the operator through the Tier-3 steps the script can only flag -- sudo CLI installs (pandoc, gh, cubrid-jira), credentials, and sanity checks -- and ends with a per-skill readiness report. This is the manual entrypoint to run once after install; invoke it as /setup-cubrid-agent. It never writes credentials into the repo and never installs a CUBRID build on its own -- the build is issue-dependent, so it only guides the --build step. NOT for: running the pipeline skills, injecting secrets, or installing a CUBRID build unattended."
+description: "Provision a freshly installed cubrid-agent so its skills become runnable. Asks the operator once for consent, then runs the bundled setup.sh so it both lays down the $HOME machine assets (testcases and engine clones, CTP, the env file) and installs the three CLIs the skills require -- gh, pandoc >= 2.19, cubrid-jira -- instead of only naming them. Then it resolves whatever could not be forced (a sudo password, the JDK), runs sanity checks, and ends with a per-skill readiness report. This is the manual entrypoint to run once after install; invoke it as /setup-cubrid-agent. Credentials stay the operator's and never land in the repo, and it never installs a CUBRID build on its own -- the build is issue-dependent, so it only guides the --build step. NOT for: running the pipeline skills, injecting secrets, or installing a CUBRID build unattended."
 disable-model-invocation: true
 ---
 
@@ -12,32 +12,40 @@ Bring a freshly installed cubrid-agent to the "install + one setup → usable" b
 
 ## What it does / does NOT
 
-**Does:** run the bundled `setup.sh`; parse its TODO lines; guide the operator through sudo CLI installs and credential setup (executing the installs with the operator's approval); run sanity checks; print a per-skill readiness report.
+**Does:** ask the operator once for consent, then run the bundled `setup.sh` so it lays down the `$HOME` assets **and installs the three CLIs the skills require**; resolve whatever the script could not force; run sanity checks; print a per-skill readiness report.
 
 **Does NOT:** inject or print credentials (Tier 3 is the human's; secrets never land in the repo or a script); install a CUBRID build unattended (the build is issue-dependent — it only guides `--build`); run any pipeline skill.
 
 ## Process
 
-### 1. Run the provisioning script
+### 1. Ask once, then run the provisioning script
+
+`gh`, `pandoc` and `cubrid-jira` are not optional — without them the pipeline skills cannot read an issue, write to Jira, or open a PR. So the script installs them rather than naming them, and the operator's consent is collected **once, here**, before anything is touched. State exactly what will change:
+
+- **`gh`** — needs root (`sudo dnf` / `sudo apt-get`). The only one that does.
+- **`pandoc 2.19.2`** — a static build unpacked into `~/.local`, no sudo. Never the distro package (RHEL 8 ships 2.0.6, which has no `jira` reader/writer).
+- **`cubrid-jira`** — `uv tool install` into `~/.local`, no sudo; `uv` is installed the same way when absent.
+- Not installed either way: **credentials** (yours alone) and a **CUBRID build** (issue-dependent, `--build`).
 
 Run the `scripts/setup.sh` that ships next to this SKILL.md — it is the **canonical and only** copy (there is no repo-root wrapper; ADR-0003). Resolve it in this order:
 
 1. `${CLAUDE_PLUGIN_ROOT}/skills/qa/setup-cubrid-agent/scripts/setup.sh` when `CLAUDE_PLUGIN_ROOT` is set (plugin channel);
 2. otherwise the `scripts/setup.sh` in this skill's own directory (npx channel, or a repo checkout at `skills/qa/setup-cubrid-agent/scripts/setup.sh`).
 
-Run it plain (no args) first: `bash <resolved-path>`. It is idempotent and non-interactive — safe to re-run. It clones the `$HOME` assets only when absent (never touches an existing clone), makes `~/.cubrid-agent/`, and writes `~/.cubrid-agent/env.sh`. It prints `OK` / `TODO` lines and a final `TODO N건` count.
+On **yes**: `bash <resolved-path> --install-clis`. On **no**: `bash <resolved-path>` — identical run minus the installs, with every missing tool reported as a `TODO` carrying its command. Either way it is idempotent and non-interactive: it installs only what its capability checks say is missing (so a re-run installs nothing), clones the `$HOME` assets only when absent, makes `~/.cubrid-agent/`, writes `~/.cubrid-agent/env.sh`, and ends with `OK` / `TODO` lines plus a TODO count.
 
-### 2. Resolve the TODO lines (Tier 3 — with the operator)
+### 2. Resolve what the script could not force (Tier 3 — with the operator)
 
-Read the `TODO` lines and clear each one. Show the operator the exact command before running anything that needs `sudo`, and run it only on their approval. Reference: `docs/setup.md` §2–§3.
+With `--install-clis` a CLI still showing up as `TODO` means its install could not be forced — read the line, it says which. The common one is `gh`: `sudo` asked for a password, which a script cannot answer, so the exact command is in the TODO and the operator runs it themselves. Everything below is what remains a human's job. Reference: `docs/setup.md` §2–§3.
 
-- **JDK (`javac`) missing** — `sudo dnf install java-1.8.0-openjdk-devel` (Debian/Ubuntu: `sudo apt install default-jdk`), then re-run `setup.sh` so it detects the JDK and rewrites `env.sh`.
-- **`pandoc` missing, or reported without a jira reader/writer** — needs **>= 2.19**, and **do not use the distro package** (`dnf`/`apt` on RHEL 8 ships 2.0.6, which has neither format: writing a markdown issue body hard-fails, and reading an issue comes back empty instead of erroring on a `cubrid-jira` older than 2026-07-30). No sudo needed, and no `gh` either — a public release asset downloads unauthenticated, so this works before `gh` is installed or logged in (both of which may still be open TODOs in this same run). Drop a static build into `~/.local`, which shadows any system pandoc by `$PATH` order: `mkdir -p ~/.local && curl -fL -o /tmp/pandoc.tar.gz https://github.com/jgm/pandoc/releases/download/2.19.2/pandoc-2.19.2-linux-amd64.tar.gz && tar xzf /tmp/pandoc.tar.gz -C ~/.local --strip-components=1`. Verify the capability, not the binary: `pandoc --list-input-formats | grep -qx jira`.
-- **`cubrid-jira` missing** — needs Python 3.14+ and pandoc >= 2.19; `uv tool install git+https://github.com/vimkim/cubrid-jira.git` (or `pipx install …`; never `pip install -e .`). An install older than 2026-07-29 lacks authenticated reads and the `attachment` subcommand, so the skills fail outright. Above that floor, take the latest rather than a date — two fixes landed two hours apart on 2026-07-30, so the date names both and neither. The latest buys: an old pandoc no longer blanks the body, and a 401 stops after one attempt instead of one per related issue. Either way: `uv tool upgrade cubrid-jira`.
-- **`gh` missing** — the dnf/apt steps in stage2-setup §3.
+- **JDK (`javac`) missing** — the script does not install this one (distro package, needs root): `sudo dnf install java-1.8.0-openjdk-devel` (Debian/Ubuntu: `sudo apt install default-jdk`), then re-run `setup.sh` so it detects the JDK and rewrites `env.sh`.
+- **`gh` still TODO** — `sudo` asked for a password, or the machine has neither `dnf` nor `apt-get`. Give the operator the command the TODO already carries: `sudo dnf install -y 'dnf-command(config-manager)' && sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo && sudo dnf install -y gh` (other distros: `docs/setup.md` §3).
+- **`pandoc` still TODO** — the download or extract failed, or the machine is not x86_64. It needs **>= 2.19**, and **never the distro package** (`dnf`/`apt` on RHEL 8 ships 2.0.6, which has neither format: writing a markdown issue body hard-fails, and reading an issue comes back empty instead of erroring on a `cubrid-jira` older than 2026-07-30). No sudo needed, and no `gh` either — a public release asset downloads unauthenticated. A static build in `~/.local` shadows any system pandoc by `$PATH` order: `mkdir -p ~/.local && curl -fL -o /tmp/pandoc.tar.gz https://github.com/jgm/pandoc/releases/download/2.19.2/pandoc-2.19.2-linux-amd64.tar.gz && tar xzf /tmp/pandoc.tar.gz -C ~/.local --strip-components=1`. Verify the capability, not the binary: `pandoc --list-input-formats | grep -qx jira`.
+- **`cubrid-jira` still TODO** — `uv tool install git+https://github.com/vimkim/cubrid-jira.git` (or `pipx install …`; never `pip install -e .`); uv fetches the Python 3.14+ it needs, so there is no system-Python prerequisite. An install older than 2026-07-29 lacks authenticated reads and the `attachment` subcommand, so the skills fail outright. Above that floor, take the latest rather than a date — two fixes landed two hours apart on 2026-07-30, so the date names both and neither. The latest buys: an old pandoc no longer blanks the body, and a 401 stops after one attempt instead of one per related issue. Either way: `uv tool upgrade cubrid-jira`.
+- **`~/.local/bin` not on PATH** — the script reports this when it installed there but a new shell would not see it. `export PATH="$HOME/.local/bin:$PATH"` in `~/.bashrc`; without it the next session behaves as if pandoc and cubrid-jira were never installed.
 - **Credentials missing** — do NOT set them for the operator; give the checklist and let them run it: `export CUBRID_JIRA_USER=… CUBRID_JIRA_PASSWORD=…` (or a `~/.netrc` `machine jira.cubrid.org`, `chmod 600`); `gh auth login` (or `GH_TOKEN`). Never echo a credential value.
 
-After installs, **re-run `setup.sh`** and confirm the TODO count drops. CLI installs and credentials are the operator's to finish — a leftover TODO is a partial setup, not a failure (see the report).
+After any of these, **re-run `setup.sh`** and confirm the TODO count drops. Credentials — and any install that needed a sudo password — are the operator's to finish; a leftover TODO is a partial setup, not a failure (see the report).
 
 ### 3. Sanity checks
 

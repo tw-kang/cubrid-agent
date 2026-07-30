@@ -73,7 +73,7 @@ script directly, and expect no hook gates on those CLIs.
 
 | Skill | What it does |
 | --- | --- |
-| `setup-cubrid-agent` | Provisions a fresh install to the "install + one setup → usable" bar — runs `setup.sh` for the `$HOME` machine assets, walks the operator through the sudo installs and credentials it can only flag, and prints a per-skill readiness report. Manual only (`/cubrid-agent:setup-cubrid-agent`). |
+| `setup-cubrid-agent` | Provisions a fresh install to the "install + one setup → usable" bar — asks once, then runs `setup.sh` for the `$HOME` machine assets **and** the three required CLIs (`gh`, `pandoc`, `cubrid-jira`), resolves what it could not force, and prints a per-skill readiness report. Manual only (`/cubrid-agent:setup-cubrid-agent`). |
 
 ### Pipeline (always-on in the plugin)
 
@@ -102,11 +102,13 @@ The plugin does not load these — install one with
 ## Requirements
 
 - **`git`, `jq`** — used by the hook gates and skills.
-- **`cubrid-jira` + `pandoc` >= 2.19** — every skill that reads a CBRD issue needs
-  both. Take pandoc from a static release, **not** the distro package: RHEL 8 ships
-  2.0.6, which has no `jira` reader, and `cubrid-jira` does not check pandoc's exit
-  status — so issue bodies come back **empty instead of erroring**. Check the
-  capability, not the binary: `pandoc --list-input-formats | grep -qx jira`.
+- **`gh`, `cubrid-jira`, `pandoc` >= 2.19** — not optional: without them a skill
+  cannot open a PR, read a CBRD issue, or write to Jira. `/cubrid-agent:setup-cubrid-agent`
+  asks once and installs all three, so you normally do not install them by hand.
+  Take pandoc from a static release, **not** the distro package: RHEL 8 ships 2.0.6,
+  which has no `jira` reader, so a Jira write hard-fails and an issue body can come
+  back **empty instead of erroring**. Check the capability, not the binary:
+  `pandoc --list-input-formats | grep -qx jira`.
 - **A local CUBRID build + CTP** — required by the `verify-*` skills and the
   verify stage of `author-testcase`. `/cubrid-agent:setup-cubrid-agent` provisions
   these; see also `docs/setup.md`.

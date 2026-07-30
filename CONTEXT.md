@@ -44,7 +44,7 @@ author-testcase ─Draft PR─► [review-testcase 심사 ─► 사람 approve�
 - **`.agents/` = 에이전트용 규범(횡단) + thin ADR:**
   - 규범: `design-principles.md`(DP1 병렬 실행, **DP2 사용자 관점·블랙박스 테스트**, DP3 언어 정책), `issue-tracker.md`, `triage-labels.md`, `domain.md`.
   - **thin ADR set** (`.agents/adr/`): "제품·저장소가 왜 이 모양인가"만 담는다 — ship-as-plugin, dual-channel 배포, setup-entrypoint 스킬, 개인 식별자 제거, 이 doc-strategy(repo=제품·설계=Jira). `.agents/adr/`로 옮기며 **0001–0005로 재번호**했고, 옛 전역 단일 시퀀스 규칙은 폐기됐다.
-- **`docs/` = 사람용 런북/참조:** 설치(stage2-setup), 배포 구조(deployment), 공식 dev-process. 외부 기여자는 제품 + 이 문서로 충분하다.
+- **`docs/` = 사람용 런북/참조:** 설치(setup), 배포 구조(deployment), 공식 dev-process. 외부 기여자는 제품 + 이 문서로 충분하다.
 - **루트 `CONTEXT.md`(이 파일):** 단일 용어집 + 파이프라인 지도. (구 `CONTEXT-MAP.md` + 에이전트별 `docs/agents/*/CONTEXT.md` ×5를 흡수·대체.)
 - **Jira(CUBRIDQA):** 에이전트·스킬 설계(DESIGN, 방법론 ADR, staging, hook-gates 설계). 역사는 git commit이 보존한다.
 

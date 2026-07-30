@@ -4,17 +4,38 @@
 # CWD-independent, so it works from anywhere and a Stage 3 container can RUN this path as-is. Decision: ADR 0003.
 # Model & decisions: docs/deployment.md (3 tiers, $HOME runtime standard), ADR 0001 (component-skill absorption / plugin repackaging).
 # Idempotent & non-interactive — safe to re-run; never touches an existing clone (creates only when absent).
-# Does NOT: install CLIs that need sudo (only prints the command), inject credentials (Tier 3 — a human's job).
+# With --install-clis it also installs the three CLIs the skills require (gh, pandoc, cubrid-jira); without the
+# flag they are only checked and reported. The flag exists so the operator's consent is collected once, in the
+# skill, while this script stays non-interactive — a Stage 3 container RUNs it and CI executes it unattended.
+# Does NOT: inject credentials, ever (Tier 3 — a human's job); install a CUBRID build unless given --build.
 set -u
 
 AGENT_DIR="$HOME/.cubrid-agent"
 BUILD_URL=""
-[ "${1:-}" = "--build" ] && BUILD_URL="${2:?usage: setup.sh [--build <build-url>]}"
+INSTALL_CLIS=0
 
 TODOS=0
 ok()   { printf '  OK   %s\n' "$1"; }
 todo() { printf '  TODO %s\n' "$1"; TODOS=$((TODOS+1)); }
+step() { printf '  ..   %s\n' "$1"; }
 fail() { printf '  FAIL %s\n' "$1" >&2; exit 1; }
+
+USAGE="usage: setup.sh [--build <build-url>] [--install-clis]"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --build)        BUILD_URL="${2:?$USAGE}"; shift 2 ;;
+    --install-clis) INSTALL_CLIS=1; shift ;;
+    *)              fail "unknown argument: $1 ($USAGE)" ;;
+  esac
+done
+
+# Everything installed without sudo lands in ~/.local/bin. Make sure THIS run can see a binary it
+# just installed, and remember whether the operator's own shell can — the checks below resolve by PATH,
+# so a missing entry would make a successful install look like a failed one on the next login.
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) LOCAL_BIN_ON_PATH=1 ;;
+  *) LOCAL_BIN_ON_PATH=0; PATH="$HOME/.local/bin:$PATH" ;;
+esac
 
 echo "== Required tools =="
 for c in git jq grep; do command -v "$c" >/dev/null || fail "$c not found (required)"; done
@@ -154,35 +175,132 @@ else
   todo "no CUBRID build — setup --build <url> (build server 192.168.1.91:8080; not needed unless using CTP skills)"
 fi
 
-echo "== CLIs & credentials — Tier 3 (human's job; only checked here) =="
+# --- Tier 3 CLI installs. Only reached with --install-clis, i.e. after the skill got a yes. -------
+# Each installer runs ONLY when its capability check already failed, so a re-run installs nothing.
+GH_DNF_CMD="sudo dnf install -y 'dnf-command(config-manager)' && sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo && sudo dnf install -y gh"
+
+pandoc_can_jira() {
+  pandoc --list-input-formats 2>/dev/null | grep -qx jira \
+    && pandoc --list-output-formats 2>/dev/null | grep -qx jira
+}
+cj_can_attachment() { command -v cubrid-jira >/dev/null && cubrid-jira attachment --help >/dev/null 2>&1; }
+pandoc_ver() { pandoc --version 2>/dev/null | head -1 | cut -d' ' -f2; }
+
+install_gh() { # the ONLY CLI needing root. rc 2 = sudo wants a password, which a script cannot answer.
+  sudo -n true 2>/dev/null || return 2
+  if command -v dnf >/dev/null; then
+    step "installing gh with dnf (sudo)"
+    sudo -n dnf install -y 'dnf-command(config-manager)' >/dev/null 2>&1
+    sudo -n dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo >/dev/null 2>&1
+    sudo -n dnf install -y gh >/dev/null 2>&1
+  elif command -v apt-get >/dev/null; then
+    step "installing gh with apt-get (sudo)"
+    sudo -n apt-get install -y gh >/dev/null 2>&1
+  else
+    return 1
+  fi
+  hash -r 2>/dev/null
+  command -v gh >/dev/null
+}
+
+install_pandoc() { # no sudo, no gh: a public release asset needs neither. ~/.local/bin shadows a system pandoc.
+  [ "$(uname -m)" = x86_64 ] || return 3
+  local ver=2.19.2 tgz
+  tgz=$(mktemp) || return 1
+  step "installing pandoc $ver into ~/.local (no sudo)"
+  if curl -fsSL -o "$tgz" \
+       "https://github.com/jgm/pandoc/releases/download/$ver/pandoc-$ver-linux-amd64.tar.gz" \
+     && mkdir -p "$HOME/.local" \
+     && tar xzf "$tgz" -C "$HOME/.local" --strip-components=1; then
+    rm -f "$tgz"; hash -r 2>/dev/null; pandoc_can_jira; return $?
+  fi
+  rm -f "$tgz"; return 1
+}
+
+install_uv() {
+  command -v uv >/dev/null && return 0
+  step "installing uv into ~/.local (no sudo)"
+  curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null 2>&1
+  hash -r 2>/dev/null
+  command -v uv >/dev/null
+}
+
+install_cubrid_jira() { # uv fetches its own Python 3.14, so no system Python requirement
+  install_uv || return 1
+  if command -v cubrid-jira >/dev/null; then
+    step "upgrading cubrid-jira (the installed build predates 'attachment')"
+    uv tool upgrade cubrid-jira >/dev/null 2>&1
+  else
+    step "installing cubrid-jira with uv (no sudo)"
+    uv tool install git+https://github.com/vimkim/cubrid-jira.git >/dev/null 2>&1
+  fi
+  hash -r 2>/dev/null
+  cj_can_attachment
+}
+
+if [ "$INSTALL_CLIS" -eq 1 ]; then
+  echo "== CLIs — installing whatever is missing; credentials stay yours =="
+else
+  echo "== CLIs & credentials — Tier 3 (human's job; only checked here) =="
+fi
+
+# gh — kept first because it is the one that can stall on a sudo password; a failure here must not
+# stop pandoc and cubrid-jira, which need no root at all.
+if command -v gh >/dev/null; then ok "gh"
+elif [ "$INSTALL_CLIS" -eq 1 ]; then
+  install_gh; _rc=$?
+  case $_rc in
+    0) ok "gh (installed)" ;;
+    2) todo "gh needs root and sudo asked for a password this script cannot answer — run it yourself: $GH_DNF_CMD (docs/setup.md §3)" ;;
+    *) todo "gh install failed (no dnf/apt-get, or the repo step failed) — install by hand: docs/setup.md §3" ;;
+  esac
+else todo "install gh — docs/setup.md §3"; fi
+
+# pandoc: check the CAPABILITY, not the presence. cubrid-jira renders issue text with
+# `pandoc -f jira` / `--to jira`. Without the writer a Jira write hard-fails; without the reader an
+# older cubrid-jira returns an EMPTY body instead of erroring. The RHEL 8 package is 2.0.6 — neither.
+_pandoc_ver=$(pandoc_ver)
+if [ -n "$_pandoc_ver" ] && pandoc_can_jira; then ok "pandoc $_pandoc_ver (jira reader + writer)"
+elif [ "$INSTALL_CLIS" -eq 1 ]; then
+  install_pandoc; _rc=$?
+  case $_rc in
+    0) ok "pandoc $(pandoc_ver) (installed; jira reader + writer)" ;;
+    3) todo "pandoc: no static build for $(uname -m) — install >= 2.19 by hand (docs/setup.md §3)" ;;
+    *) todo "pandoc install failed (download or extract) — install >= 2.19 by hand (docs/setup.md §3)" ;;
+  esac
+elif [ -z "$_pandoc_ver" ]; then
+  todo "install pandoc >= 2.19 (cubrid-jira renders issue text with it) — docs/setup.md §3"
+else
+  todo "pandoc $_pandoc_ver has no jira reader/writer — Jira writes hard-fail and issue bodies can read back EMPTY. Install >= 2.19 (no sudo needed) — docs/setup.md §3"
+fi
+
 # cubrid-jira: check the CAPABILITY, not the presence. The tool never bumps its version
 # (every build is `1.0.0`), so `command -v` and `--version` both pass on a build that is
 # missing what the skills call. `attachment --help` is the floor probe: no `attachment`
 # means an install older than 2026-07-29, which also has no authenticated reads and so
 # answers every CUBRIDQA read with HTTP 401. The commit id is printed rather than compared —
 # git shas carry no order offline, so the operator matches it against docs/setup.md §3.
-_cj_commit=$(sed -n 's/.*"commit_id": *"\([0-9a-f]\{7,40\}\)".*/\1/p' \
-  "$HOME"/.local/share/uv/tools/cubrid-jira/lib/python3*/site-packages/cubrid_jira-*.dist-info/direct_url.json \
-  2>/dev/null | head -1 | cut -c1-12)
-if ! command -v cubrid-jira >/dev/null; then
-  todo "install cubrid-jira — docs/setup.md §3"
-elif ! cubrid-jira attachment --help >/dev/null 2>&1; then
-  todo "cubrid-jira is older than 2026-07-29${_cj_commit:+ (uv install: $_cj_commit)}: no 'attachment' subcommand and no authenticated reads, so the skills fail with 'invalid choice' and HTTP 401 on CUBRIDQA. Run: uv tool upgrade cubrid-jira — docs/setup.md §3"
-else
+cj_commit() {
+  sed -n 's/.*"commit_id": *"\([0-9a-f]\{7,40\}\)".*/\1/p' \
+    "$HOME"/.local/share/uv/tools/cubrid-jira/lib/python3*/site-packages/cubrid_jira-*.dist-info/direct_url.json \
+    2>/dev/null | head -1 | cut -c1-12
+}
+_cj_commit=$(cj_commit)
+if cj_can_attachment; then
   ok "cubrid-jira${_cj_commit:+ (uv install: $_cj_commit)} — attachment + authenticated reads present"
-fi
-command -v gh          >/dev/null && ok "gh"          || todo "install gh — docs/setup.md §3"
-# pandoc: check the CAPABILITY, not the presence. cubrid-jira renders issue text with
-# `pandoc -f jira` / `--to jira`, and a pandoc without those formats makes reads come back
-# EMPTY rather than failing — the distro package on RHEL 8 is 2.0.6, which has neither.
-_pandoc_ver=$(pandoc --version 2>/dev/null | head -1 | cut -d' ' -f2)
-if [ -z "$_pandoc_ver" ]; then
-  todo "install pandoc >= 2.19 (cubrid-jira renders issue text with it) — docs/setup.md §3"
-elif pandoc --list-input-formats 2>/dev/null | grep -qx jira \
-  && pandoc --list-output-formats 2>/dev/null | grep -qx jira; then
-  ok "pandoc $_pandoc_ver (jira reader + writer)"
+elif [ "$INSTALL_CLIS" -eq 1 ]; then
+  if install_cubrid_jira; then _cj_commit=$(cj_commit); ok "cubrid-jira${_cj_commit:+ (uv install: $_cj_commit)} — installed; attachment + authenticated reads present"
+  else todo "cubrid-jira install failed — uv tool install git+https://github.com/vimkim/cubrid-jira.git (docs/setup.md §3)"; fi
+elif ! command -v cubrid-jira >/dev/null; then
+  todo "install cubrid-jira — docs/setup.md §3"
 else
-  todo "pandoc $_pandoc_ver has no jira reader/writer — issue bodies read back EMPTY instead of erroring. Install >= 2.19 (no sudo needed) — docs/setup.md §3"
+  todo "cubrid-jira is older than 2026-07-29${_cj_commit:+ (uv install: $_cj_commit)}: no 'attachment' subcommand and no authenticated reads, so the skills fail with 'invalid choice' and HTTP 401 on CUBRIDQA. Run: uv tool upgrade cubrid-jira — docs/setup.md §3"
+fi
+
+# A tool in ~/.local/bin that the operator's shell cannot see is not installed as far as the next
+# session is concerned — report it rather than letting the next run re-install on top of itself.
+if [ "$LOCAL_BIN_ON_PATH" -eq 0 ] && { [ -x "$HOME/.local/bin/pandoc" ] || [ -x "$HOME/.local/bin/cubrid-jira" ]; }; then
+  todo "~/.local/bin is not on your PATH, so the tools installed there are invisible to a new shell — add: export PATH=\"\$HOME/.local/bin:\$PATH\" to ~/.bashrc"
 fi
 if [ -n "${CUBRID_JIRA_USER:-}" ] && [ -n "${CUBRID_JIRA_PASSWORD:-}" ]; then ok "jira credentials (env — standard)"
 elif [ -n "$QA_USER" ] && grep -qs 'jira\.cubrid\.org' "$HOME/.netrc"; then ok "jira credentials (.netrc — also allowed; user=$QA_USER)"
@@ -192,4 +310,5 @@ else todo "gh auth — gh auth login (or GH_TOKEN)"; fi
 
 echo
 if [ "$TODOS" -eq 0 ]; then echo "setup complete — no TODOs left. Launch: docs/setup.md §4"
-else echo "setup complete — ${TODOS} TODO(s) (above: CLI installs & credentials are a human's job)"; fi
+elif [ "$INSTALL_CLIS" -eq 1 ]; then echo "setup complete — ${TODOS} TODO(s) above (credentials are yours to set; a CLI TODO here means its install could not be forced)"
+else echo "setup complete — ${TODOS} TODO(s) (above: CLI installs & credentials are a human's job; re-run with --install-clis to install them)"; fi
