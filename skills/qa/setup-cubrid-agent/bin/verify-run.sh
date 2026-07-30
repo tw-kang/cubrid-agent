@@ -12,24 +12,39 @@
 # whether a mismatch means the testcase or the engine is wrong. Those are judgments; this only reports
 # what CTP did and writes the facts a hook can gate on.
 #
+# The answer half of the same argument (S1): the empty-answer trick was five prose steps — seed an
+# empty .answer, run, hunt the .result, eyeball it, `cp` it over — and each was its own model turn even
+# though only the eyeballing is judgment. --generate does the seeding, the run, and PRINTS the produced
+# output so the judging happens in the same turn; --promote does the copy and records that the answer
+# came from CTP rather than a keyboard (which is exactly what lint.answer_not_handwritten claims).
+# They are deliberately two calls: the judgment between them is the whole point of the trick.
+#
 # Usage: verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH]
-#                                 [--timeout SECONDS] [--keep-conf]
+#                                 [--timeout SECONDS] [--generate | --promote [--from PATH]]
 set -u
 
-USAGE='verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH] [--timeout SECONDS]'
-KEY=""; RUNS=3; CATEGORY=sql; TCPATH=""; TIMEOUT=900
+USAGE='verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH] [--timeout SECONDS] [--generate|--promote [--from PATH]]'
+KEY=""; RUNS=3; CATEGORY=sql; TCPATH=""; TIMEOUT=900; GENERATE=0; PROMOTE=0; FROM=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --runs)     RUNS=${2:-3}; shift 2 ;;
     --category) CATEGORY=${2:-sql}; shift 2 ;;
     --tc-path)  TCPATH=${2:-}; shift 2 ;;
     --timeout)  TIMEOUT=${2:-900}; shift 2 ;;
+    --generate) GENERATE=1; shift ;;
+    --promote)  PROMOTE=1; shift ;;
+    --from)     FROM=${2:-}; shift 2 ;;
     -h|--help)  printf '%s\n' "$USAGE"; exit 0 ;;
     -*)         printf 'verify-run: unknown option: %s\n%s\n' "$1" "$USAGE" >&2; exit 1 ;;
     *)          KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
   esac
 done
 [ -n "$KEY" ] || { printf 'verify-run: need an issue key\n%s\n' "$USAGE" >&2; exit 1; }
+if [ "$GENERATE" = 1 ] && [ "$PROMOTE" = 1 ]; then
+  printf 'verify-run: --generate and --promote cannot be combined — you must read the generated output and decide it matches the issue'"'"'s stated post-fix behavior before promoting it. That judgment is the reason the answer is generated instead of written.\n' >&2
+  exit 1
+fi
+[ "$GENERATE" = 1 ] && RUNS=1
 case "$RUNS" in ''|*[!0-9]*) printf 'verify-run: --runs must be a number\n' >&2; exit 1 ;; esac
 [ "$RUNS" -ge 1 ] || RUNS=1
 
@@ -81,6 +96,43 @@ case "$TCPATH" in /*) SQL=$TCPATH ;; *) SQL="$TC/$TCPATH" ;; esac
 # .../sql/_36_guava/cbrd_26431/cases/x.sql -> _36_guava/cbrd_26431
 REL=$(printf '%s' "$SQL" | sed -E "s|^$TC/sql/||; s|/cases/[^/]*$||")
 ANSWER=$(printf '%s' "$SQL" | sed 's|/cases/|/answers/|; s|\.sql$|.answer|')
+
+# The CCI cross-check keeps its answer in a sidecar: promoting CCI output over .answer would replace
+# the JDBC-confirmed answer with another driver's output, and the two differ on purpose when they do.
+ANSWER_TARGET=$ANSWER
+[ "$CATEGORY" = sql_by_cci ] && ANSWER_TARGET="${ANSWER}_cci"
+
+if [ "$PROMOTE" = 1 ]; then
+  SRC=$FROM
+  [ -n "$SRC" ] || SRC=$([ "$HAVE_JQ" = 1 ] && [ -f "$MANIFEST" ] && jq -r '.verify.answer.result // empty' "$MANIFEST" 2>/dev/null)
+  [ -n "$SRC" ] || { printf 'verify-run: nothing to promote — run --generate first (it records the .result path), or pass --from PATH.\n' >&2; exit 1; }
+  [ -f "$SRC" ] || { printf 'verify-run: %s no longer exists. CTP overwrites its result on every run, so re-run --generate.\n' "$SRC" >&2; exit 1; }
+  mkdir -p "$(dirname "$ANSWER_TARGET")" && cp "$SRC" "$ANSWER_TARGET" || exit 1
+  printf '[verify] %s  promoted CTP output → %s (%s lines)\n' "$KEY" "$ANSWER_TARGET" "$(wc -l < "$ANSWER_TARGET" | tr -d ' ')"
+  # lint.answer_not_handwritten is a claim about provenance, so the step that establishes it writes it:
+  # this file is a byte copy of what the engine printed. An agent asserting the same field about its own
+  # work is the weakest possible evidence for the one thing the field exists to rule out.
+  patch_manifest '.verify.answer = ((.verify.answer // {}) + {result: $s, promoted: true, target: $t})
+    | .lint = ((.lint // {}) + {answer_not_handwritten: true})' --arg s "$SRC" --arg t "$ANSWER_TARGET"
+  printf '  recorded: verify.answer.promoted, lint.answer_not_handwritten=true (byte copy of CTP output)\n'
+  printf '  next : confirm it — verify-run.sh %s --runs 3 — then commit the answer alongside the case.\n' "$KEY"
+  exit 0
+fi
+
+if [ "$GENERATE" = 1 ]; then
+  if [ -s "$ANSWER_TARGET" ]; then
+    printf 'verify-run: %s already has content (%s lines) — generation is for an answer that does not exist yet, and overwriting one that does would destroy a confirmed answer. Move it aside first if you really mean to regenerate.\n' \
+      "$ANSWER_TARGET" "$(wc -l < "$ANSWER_TARGET" | tr -d ' ')" >&2
+    exit 1
+  fi
+  mkdir -p "$(dirname "$ANSWER_TARGET")" && : > "$ANSWER_TARGET" \
+    || { printf 'verify-run: could not seed an empty answer at %s\n' "$ANSWER_TARGET" >&2; exit 1; }
+  # Measured, because the prose had it wrong: an empty answer file does not make CTP *skip* the case —
+  # nothing can match an empty answer, so it reports Fail:1 and writes the engine's real output to the
+  # result directory. That Fail is the expected outcome of generation, not a problem to report.
+  printf '  seeded : empty %s — nothing matches an empty answer, so CTP reports Fail and writes the real output to the result dir (that Fail is expected here)\n' "$ANSWER_TARGET"
+fi
+
 [ -f "$ANSWER" ] || printf '  warning: no answer file at %s — CTP will SKIP the case (Total:1 Success:0 Fail:0)\n' "$ANSWER"
 
 CONF_SRC="$CTP_HOME/conf/$CATEGORY.conf"
@@ -115,6 +167,32 @@ printf '   elapse: %s\n' "${ELAPSE:-?}"   # CTP prints no unit; do not assert on
 if [ "$CTP_RC" -eq 124 ]; then
   blocked blocked_no_ctp "ctp.sh exceeded ${TIMEOUT}s and was killed — see $LOG"
 fi
+
+# Generation ends here: with an empty answer CTP reports Success:0 Fail:0 by design, so the pass/fail
+# bookkeeping below would call the expected outcome a failure. What matters is the output itself, and it
+# is printed rather than pointed at — the judgment ("is this the post-fix behavior the issue states?")
+# then happens in the same turn instead of costing another read.
+if [ "$GENERATE" = 1 ]; then
+  RESULT_FILE=""
+  [ -n "$RESULT_DIR" ] && RESULT_FILE=$(find "$RESULT_DIR" -name '*.result' 2>/dev/null | head -1)
+  if [ -z "$RESULT_FILE" ]; then
+    printf '  no .result under %s — nothing was produced to promote. Log: %s\n' "${RESULT_DIR:-<the log names no result directory>}" "$LOG"
+    patch_manifest '.verify.answer = ((.verify.answer // {}) + {promoted: false, log: $l}) | del(.verify.answer.result)' --arg l "$LOG"
+    exit 1
+  fi
+  _n=$(wc -l < "$RESULT_FILE" | tr -d ' ')
+  printf '  result : %s (%s lines)\n' "$RESULT_FILE" "$_n"
+  patch_manifest '.verify.answer = ((.verify.answer // {}) + {result: $r, promoted: false})' --arg r "$RESULT_FILE"
+  if [ "$_n" -gt 80 ]; then printf '  ---- CTP output, first 80 of %s lines (read the file for the rest) ----\n' "$_n"
+  else printf '  ---- CTP output (whole file) ----\n'; fi
+  sed -n '1,80p' "$RESULT_FILE" | sed 's/^/  | /'
+  printf '  ---- end ----\n'
+  printf '  YOUR call: does this match the post-fix behavior the issue states (error code, row count, message)?\n'
+  printf '  yes → verify-run.sh %s --promote%s   ·   no → fix the .sql and regenerate; never edit this output by hand\n' \
+    "$KEY" "$([ "$CATEGORY" != sql ] && printf ' --category %s' "$CATEGORY")"
+  exit 0
+fi
+
 if [ "$OK" -eq 0 ] && [ "$BAD" -eq 0 ]; then
   printf '  CTP reported neither Success nor Fail — the case was skipped or the run died. Log: %s\n' "$LOG"
   patch_manifest '.verify = ((.verify // {}) + {build: $b, determinism: {runs: ($r|tonumber), all_pass: false}, log: $l})

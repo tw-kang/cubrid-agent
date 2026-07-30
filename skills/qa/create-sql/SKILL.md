@@ -49,6 +49,7 @@ The `.answer` is the expected output and **must come from CTP**, not your keyboa
 1. Write the `.sql` into `cases/`.
 2. **Seed an empty `answers/cbrd_XXXXX.answer` first** — CTP's interactive `run` skips any case that has no answer file (it runs nothing: `Total:1 / Success:0 / Fail:0`). With the empty answer present, run it through `verify-sql` (needs a build URL — use one given, else ask). The run diffs against the empty answer (`Fail:1`) and writes the real output to `$CTP_HOME/sql/result/<date>/schedule_…/sql/cbrd_XXXXX.result` — in the result tree, **not** next to the `.sql`.
 3. Promote it: copy that `.result` over the seeded answer (`answers/cbrd_XXXXX.answer`), then re-run to confirm `Success:1`.
+   - **Inside the author-testcase pipeline steps 2–3 are two commands, not six**: `~/.cubrid-agent/bin/verify-run.sh CBRD-XXXXX --generate` (seed + run + print the output) → you judge it → `--promote` (copy + record the provenance). Hand-run the steps only for an ad-hoc `.sql` with no run manifest.
 4. Read the `.answer` and confirm it matches intent — DDL/DML show affected row count; SELECT shows headers + rows; errors show `Error:-NNN\n<message>`; each statement's output is split by `===...===` lines.
 
 No build URL / no CUBRID env? Drop an empty `.answer` and tell the user to fill it later with `verify-sql`.
