@@ -40,7 +40,8 @@ PR number as arg (default: oldest open SQL TC PR). Author-agnostic.
 
 ## 3. L1 — convention lint (static)
 Reuse the `create-sql` checklist + mining-promoted auto-lint (details in [`references/review-perspectives.md`](./references/review-perspectives.md) 'Automatic lint rules to promote to L1'):
-- header block (≤200 chars, English), `evaluate 'Case N'` numbering, DROP-before-CREATE, cleanup (`deallocate prepare`, restore SET), path/naming, English comments, no expected value leaking into comments/SQL.
+- header block (≤200 chars, English), `evaluate 'Case N'` numbering, DROP-before-CREATE, cleanup (`deallocate prepare`, restore SET), naming, English comments, no expected value leaking into comments/SQL.
+- **Placement — check the tree, not just the filename.** An issue whose type is `Correct Error` and whose `fixVersions` is empty belongs under `sql/_13_issues/_{yy}_{1|2}h/cases/`; a release dir (`sql/_{no}_{release_code}/cbrd_XXXXX/`) is for an improvement, a feature, or a fix that already shipped. Two PRs put unreleased bug fixes in a release dir and this lens passed both because it only looked at naming form (CUBRIDQA-1486). Read the issue's type and `fixVersions`, then say which tree the file should be in.
 - **auto-lint**: multi-row SELECT missing `ORDER BY` (only when a real tie is possible — a unique key or `COUNT(*)`/1-row is exempt), `set trace on`↔`off` imbalance, empty `.queryPlan` vs answer plan output, `evaluate` label missing, `prepare` without `deallocate`.
 
 ## 4. L2 — domain lenses (static, few-shot-driven) — DP1 parallel

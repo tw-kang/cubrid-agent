@@ -25,16 +25,22 @@ Generate a CUBRID CTP SQL testcase that passes review on the first try. A good t
 The path is how CTP locates and categorizes a test. The `.sql` and its `.answer` share basename, split across sibling `cases/` and `answers/` dirs.
 
 ```
-# Bug fix:            $TC/sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
-#                                                     answers/cbrd_XXXXX.answer
-# Bug fix (released):  $TC/sql/_{no}_{release_code}/cbrd_XXXXX/cases/cbrd_XXXXX.sql   # e.g. _36_guava/cbrd_25913/
-#                                                              answers/cbrd_XXXXX.answer
-# Feature:            $TC/sql/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
-#                                                                  answers/cbrd_XXXXX.answer
-# Medium:             $TC/medium/...
+# Bug fix, not yet shipped      $TC/sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
+#   (issue type Correct Error,                            answers/cbrd_XXXXX.answer
+#    fixVersions empty) — the DEFAULT for the Resolved queue
+# Bug fix already shipped in a release
+#   (fixVersions non-empty):    $TC/sql/_{no}_{release_code}/cbrd_XXXXX/cases/cbrd_XXXXX.sql
+#                                                                    answers/cbrd_XXXXX.answer
+# Improvement / feature         $TC/sql/_{no}_{release_code}/cbrd_XXXXX/cases/cbrd_XXXXX.sql
+#   (Improve Function/Performance, Task)                             answers/cbrd_XXXXX.answer
+# Feature group:                $TC/sql/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
+#                                                                    answers/cbrd_XXXXX.answer
+# Medium:                       $TC/medium/...
 ```
 
-`{yy}` = 2-digit year, `{1|2}h` = first/second half of year. Multiple tests for one issue get a suffix (`cbrd_27100_select.sql`, `cbrd_27100_update.sql`), all sharing one `cases/`+`answers/` pair — never make a subdirectory per individual `.sql`. When the issue targets a named release, prefer that release dir (`_{no}_{release_code}/cbrd_XXXXX/`, e.g. `_36_guava/cbrd_25913/` — one dir per issue) over `_13_issues`; check where sibling issues of the same release landed and match them.
+`{yy}` = 2-digit year, `{1|2}h` = first/second half of year. Multiple tests for one issue get a suffix (`cbrd_27100_select.sql`, `cbrd_27100_update.sql`), all sharing one `cases/`+`answers/` pair — never make a subdirectory per individual `.sql`. **What selects the tree is the issue type plus whether the fix has shipped — never the Planned Version.** A `Correct Error` with an empty `fixVersions` goes under `_13_issues/_{yy}_{1|2}h/cases/` no matter how prominent the release it is planned for; create the half-year dir if it does not exist yet. Only an improvement, a feature, or a bug fix that already shipped goes into a release dir (`_{no}_{release_code}/cbrd_XXXXX/` — one dir per issue).
+
+Planned Version cannot select a directory: the whole Resolved queue carries the same one, so treating it as the signal sends every bug fix into the release dir. That is exactly what happened — two TCs landed in `_36_guava/` and both drew the same review objection (CUBRIDQA-1486). The corpus says the same thing: every `cbrd_*` dir under `_36_guava/` is an Improve or a Task (`cbrd_25447`, `cbrd_26104`, `cbrd_26258`, `cbrd_26266`, `cbrd_25776`), not one is a `Correct Error`. **When you match against siblings, match on issue type, not on release.**
 
 ## Lifecycle contract
 

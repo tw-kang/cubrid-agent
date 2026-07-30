@@ -28,13 +28,16 @@ note=$(jq -r '.verify.fail_to_pass.note // ""' "$MANIFEST")
 appr=$(jq -r '.review.failpass_approved // false' "$MANIFEST")
 verdict=$(jq -r '.review.verdict // "missing"' "$MANIFEST")
 cci=$(jq -r '.verify.cci.checked // false' "$MANIFEST")
-# header_scope / header_size default to true only when ABSENT: both were added after the first
-# runs (CUBRIDQA-1481), and the lint hook writes them on every TC .sql write, so only pre-existing
-# manifests lack them. Test for the key rather than writing `.lint.header_scope // true` — jq's
-# `//` substitutes for `false` as well as null, so that form would turn a real violation into a
-# pass, i.e. a check that cannot fail.
+# header_scope / header_size / placement default to true only when ABSENT: all three were added
+# after the first runs (CUBRIDQA-1481, -1486), and the lint hook writes them on every TC .sql write,
+# so only pre-existing manifests lack them. Test for the key rather than writing
+# `.lint.header_scope // true` — jq's `//` substitutes for `false` as well as null, so that form
+# would turn a real violation into a pass, i.e. a check that cannot fail. It also matters for
+# `placement`, which the hook writes as **null** when Select did not record the issue facts needed
+# to decide: present-but-null must block (unverifiable placement is not a pass), while a manifest
+# that predates the check keeps passing.
 _dflt='def d(k): if ((.lint // {})|has(k)) then .lint[k] else true end;'
-lint=$(jq -r "$_dflt"'[.lint.header,.lint.evaluate,.lint.cleanup,.lint.answer_not_handwritten,.lint.english_comments,d("header_scope"),d("header_size")]|all' "$MANIFEST" 2>/dev/null)
+lint=$(jq -r "$_dflt"'[.lint.header,.lint.evaluate,.lint.cleanup,.lint.answer_not_handwritten,.lint.english_comments,d("header_scope"),d("header_size"),d("placement")]|all' "$MANIFEST" 2>/dev/null)
 
 p=""
 [ "$det" = true ] || p="$p\n- determinism not confirmed (verify.determinism.all_pass≠true)"

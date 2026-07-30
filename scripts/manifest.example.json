@@ -1,9 +1,10 @@
 {
   "issue": "CBRD-26799",
+  "select": { "issue_type": "Correct Error", "fix_versions": [] },
   "branch": "tc/cbrd-26799",
   "build": "11.5.0.2300-04192d6",
   "submitted": false,
-  "author": { "sql": "sql/_36_guava/cbrd_26799/cases/cbrd_26799.sql", "answer_generated": true },
+  "author": { "sql": "sql/_13_issues/_26_2h/cases/cbrd_26799.sql", "answer_generated": true },
   "verify": {
     "status": "passed",
     "success": true,
@@ -17,5 +18,5 @@
     "fail_to_pass": { "status": "best_effort", "prefix_build": "11.5.0.2211-12a1a05", "note": "race — not reproducible on local multi-core, left to CI / low-spec machines" }
   },
   "review": { "verdict": "PASS", "loops": 2, "failpass_approved": true },
-  "lint": { "header": true, "header_scope": true, "header_size": true, "evaluate": true, "cleanup": true, "answer_not_handwritten": true, "english_comments": true }
+  "lint": { "header": true, "header_scope": true, "header_size": true, "placement": true, "evaluate": true, "cleanup": true, "answer_not_handwritten": true, "english_comments": true }
 }

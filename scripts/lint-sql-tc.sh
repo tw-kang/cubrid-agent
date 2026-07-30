@@ -44,15 +44,39 @@ header_size=true
 hlines=$(awk '/^\/\*\*/{f=1} f{c++} /\*\//{if(f){print c; exit}}' "$FILE")
 [ -n "$hlines" ] && [ "$hlines" -gt 20 ] && header_size=false
 
-# Record into manifest.lint (create skeleton if absent).
 MDIR="$HOME/.cubrid-agent/$KEY"
 MANIFEST="$MDIR/manifest.json"
 mkdir -p "$MDIR"
 [ -f "$MANIFEST" ] || printf '{}' > "$MANIFEST"
+
+# Placement (CUBRIDQA-1486): an unreleased bug fix belongs under _13_issues, not in a release dir.
+# Both TCs the pipeline produced went to `sql/_36_guava/cbrd_XXXXX/` and both drew the same review
+# objection — the orchestrator hardcoded that path and create-sql's example cited one of them, so
+# nothing in the run could notice. The decision needs two issue facts the hook cannot see from the
+# file, so Select records them; an unrecorded pair is reported as unverifiable, not as a pass.
+#
+# Deliberately narrow: it fires only on the per-issue release dir (`sql/_NN_name/cbrd_XXXXX/cases/`),
+# the shape that was rejected. Adding a bug case to an existing feature-group dir (e.g.
+# `sql/_19_apricot/_03_index_skip_scan/cases/`) is legitimate and must not be flagged.
+case "$FILE" in
+  */sql/_13_issues/*/cases/*)                 _tree=issues ;;
+  */sql/_[0-9][0-9]_*/cbrd_[0-9]*/cases/*)    _tree=release_per_issue ;;
+  *)                                          _tree=other ;;
+esac
+_itype=$(jq -r '.select.issue_type // empty' "$MANIFEST" 2>/dev/null)
+_nfix=$(jq -r '(.select.fix_versions // null) | if . == null then "unknown" else length end' "$MANIFEST" 2>/dev/null)
+if [ -z "$_itype" ] || [ "$_nfix" = unknown ]; then
+  placement=null   # cannot decide — Select did not record the pair
+elif [ "$_itype" = "Correct Error" ] && [ "$_nfix" = 0 ] && [ "$_tree" = release_per_issue ]; then
+  placement=false
+else
+  placement=true
+fi
 tmp=$(mktemp)
 if jq --arg k "$KEY" --argjson h "$header" --argjson e "$evaluate" --argjson c "$cleanup" \
       --argjson en "$english" --argjson hs "$header_scope" --argjson hz "$header_size" \
-   '.issue=(.issue//$k) | .lint.header=$h | .lint.evaluate=$e | .lint.cleanup=$c | .lint.english_comments=$en | .lint.header_scope=$hs | .lint.header_size=$hz' \
+      --argjson pl "$placement" \
+   '.issue=(.issue//$k) | .lint.header=$h | .lint.evaluate=$e | .lint.cleanup=$c | .lint.english_comments=$en | .lint.header_scope=$hs | .lint.header_size=$hz | .lint.placement=$pl' \
    "$MANIFEST" > "$tmp" 2>/dev/null; then mv "$tmp" "$MANIFEST"; else rm -f "$tmp"; fi
 
 probs=""
@@ -62,6 +86,8 @@ probs=""
 [ "$english" = true ]  || probs="$probs non-English text in comments (comments must be English);"
 [ "$header_scope" = true ] || probs="$probs header talks to the pipeline instead of describing the test — move stage instructions to the report, reviewer constraints to the PR Remarks, and run-validity preconditions to verify.preconditions;"
 [ "$header_size" = true ]  || probs="$probs header is $hlines lines (max 20) — compress the wording, don't drop coverage items;"
+[ "$placement" = false ] && probs="$probs wrong tree: an unreleased Correct Error belongs in sql/_13_issues/_{yy}_{1|2}h/cases/, not in a release dir (create the half-year dir if it does not exist yet) — see create-sql's directory convention;"
+[ "$placement" = null ]  && probs="$probs placement unverifiable: record select.issue_type and select.fix_versions in the manifest during Select, so the tree can be checked against the issue;"
 [ -z "$probs" ] || jq -n --arg f "$FILE" --arg p "$probs" \
   '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:("[Stage2 lint] "+$f+" convention violations:"+$p+" (recorded in manifest.lint — the submit gate will block)")}}'
 exit 0

@@ -161,6 +161,30 @@ for f in skills/qa/create-*/SKILL.md; do
 done
 [ "$_bad" -eq 0 ] && pass "every create-* skill carries the attachment rule"
 
+# CUBRIDQA-1486: the TC's directory is create-sql's call. The orchestrator hardcoded it once and
+# every TC went to the wrong tree, so two things must stay true: author-testcase defers instead of
+# pinning a path, and it records the two issue facts the placement check needs. Checking that the
+# fix is PRESENT (not that the old string is absent) is what catches a rewrite that drops it.
+_at=skills/qa/author-testcase/SKILL.md
+_miss=""
+grep -q "directory convention" "$_at" || _miss="$_miss deferral-to-create-sql"
+grep -q "select.issue_type" "$_at"   || _miss="$_miss select.issue_type-recording"
+if [ -z "$_miss" ]; then
+  pass "author-testcase defers the TC path to create-sql and records the placement facts"
+else
+  fail "author-testcase lost:$_miss — without both, the TC path is decided by whoever guesses first and the placement check cannot run"
+fi
+
+# The placement flag is written by one script and read by another; a half-move silently disables it.
+_w=0; _r=0
+grep -q 'lint.placement=' scripts/lint-sql-tc.sh && _w=1
+grep -q 'd("placement")' scripts/gate-pr-submit.sh && _r=1
+if [ "$_w" -eq 1 ] && [ "$_r" -eq 1 ]; then
+  pass "lint writes lint.placement and the submit gate reads it"
+else
+  fail "lint.placement is $([ "$_w" -eq 1 ] && echo 'written but never read by the submit gate' || echo 'read by the submit gate but never written') — a placement violation would not block anything"
+fi
+
 # CUBRIDQA-1485: the three required CLIs are installed after one consent, so the flag the skill
 # tells the operator to pass must exist in the script it points at. Drift either way is silent —
 # a skill passing an unknown flag now aborts the run, and a script gaining the flag nobody invokes
