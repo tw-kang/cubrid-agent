@@ -71,9 +71,11 @@ gh auth login                                                       # 또는 GH_
    > ⚠️ **배포판 pandoc을 쓰지 마라.** Rocky/RHEL 8의 `dnf install pandoc`은 **2.0.6**을 주는데, 이 버전엔 `jira` reader/writer가 **둘 다 없다**. cubrid-jira 읽기 경로가 `pandoc -f jira`를 부르고 실패를 검사하지 않으므로 **이슈 본문이 에러 없이 빈칸으로** 나온다 — 셋업은 통과했다고 보고하고 에이전트는 아무 내용 없이 판정한다. 최소 2.19인 이유: 2.9.1은 reader·writer가 있지만 쓰기에서 **마크다운 표의 헤더 행을 버린다**(실측). 상세는 CUBRIDQA-1473.
 
    ```bash
-   # pandoc — sudo 불필요. 정적 바이너리를 ~/.local에 풀면 시스템 pandoc을 PATH 우선순위로 가린다
-   gh release download 2.19.2 --repo jgm/pandoc -p 'pandoc-2.19.2-linux-amd64.tar.gz'
-   tar xzf pandoc-2.19.2-linux-amd64.tar.gz -C ~/.local --strip-components=1
+   # pandoc — sudo·gh 불필요(공개 릴리스 자산은 인증 없이 받힌다). 정적 바이너리를 ~/.local에
+   # 풀면 시스템 pandoc을 PATH 우선순위로 가린다. gh를 쓰면 gh 설치·인증이 선행돼야 해서 안 쓴다
+   mkdir -p ~/.local
+   curl -fL -o /tmp/pandoc.tar.gz https://github.com/jgm/pandoc/releases/download/2.19.2/pandoc-2.19.2-linux-amd64.tar.gz
+   tar xzf /tmp/pandoc.tar.gz -C ~/.local --strip-components=1
    pandoc --list-input-formats | grep -qx jira && echo OK   # 존재가 아니라 능력을 확인 (2.0.6도 command -v는 통과한다)
 
    # (uv가 없으면) curl -LsSf https://astral.sh/uv/install.sh | sh
