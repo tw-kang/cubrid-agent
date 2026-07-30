@@ -278,9 +278,12 @@ done
 # puts it there is setup.sh. Three ways this breaks silently, all checked: the helper is referenced
 # but absent from the source dir; it is present but setup.sh never installs it; or setup.sh installs
 # it under a name no skill calls. Any of them is a hard runtime failure in every skill that grounds.
-_bad=""; _refs=0
-for _h in ground-issue.sh select-queue.sh render-pr-body.sh verify-run.sh failpass-run.sh render-report.sh; do
-  _src="skills/qa/setup-cubrid-agent/bin/$_h"
+# The list is DERIVED from the directory, never written here: a hardcoded list makes the 7th helper
+# invisible to every check below — it would ship in bin/, be installed by nothing, and be called by a
+# skill whose absolute path does not exist. That is precisely the failure this block exists to catch.
+_bad=""; _refs=0; _nh=0
+for _src in skills/qa/setup-cubrid-agent/bin/*.sh; do
+  _h=$(basename "$_src"); _nh=$((_nh+1))
   [ -f "$_src" ] || _bad="$_bad missing-source($_src)"
   [ -x "$_src" ] || _bad="$_bad not-executable($_h)"
   grep -q "for h in .*$_h" skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad setup.sh-does-not-install($_h)"
@@ -292,7 +295,7 @@ for _h in ground-issue.sh select-queue.sh render-pr-body.sh verify-run.sh failpa
 done
 grep -q 'AGENT_DIR/bin' skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad no-bin-dir"
 if [ -z "$_bad" ]; then
-  pass "the installed helpers ship in the setup skill's bin/, install to ~/.cubrid-agent/bin/, and are called there ($_refs skill references)"
+  pass "all $_nh installed helpers ship in the setup skill's bin/, install to ~/.cubrid-agent/bin/, and are called there ($_refs skill references)"
 else
   fail "grounding helper wiring broken:$_bad — the skills call an absolute path that nothing puts on disk"
 fi

@@ -1,0 +1,164 @@
+`$CTP_HOME/conf/sql.conf`
+`$CTP_HOME/sql/result/.../cbrd_XXXXX.result`
+`$CUBRID_GH_FORK`
+`$CUBRID_JIRA_USER`
+`$CUBRID_TESTCASES`
+`$FORK`
+`$FORK:tc/cbrd-XXXXX`
+`$HOME`
+`$HOME/CUBRID`
+`$HOME/.cubrid-agent/CBRD-XXXXX/`
+`$HOME/.cubrid-agent/CBRD-XXXXX/manifest.json`
+`$HOME/.cubrid-agent/CBRD-XXXXX/pr-body.md`
+`$HOME/.cubrid-agent/reports/author-testcase/CBRD-XXXXX.md`
+`${HOME}/cubrid-testcases/sql`
+`$QA_USER`
+`$TC`
+`_03_iss_700000`
+`192.168.1.91:8080`
+`.answer`
+`.answer_cci`
+`answers/`
+`answers/cbrd_XXXXX.answer_cci`
+`/author-testcase CBRD-XXXXX`
+`Author → Verify → Review`
+`best_effort`
+`blocked_*`
+`blocked_no_build`
+`"blocked_no_ctp"`
+`blocked_no_ctp`
+`blocked_nondeterministic`
+`blocked_review_unresolved`
+`--body-file $HOME/.cubrid-agent/CBRD-XXXXX/pr-body.md`
+`--build <url>`
+`cases/`
+`cbrd_xxxxx`
+`[CBRD-XXXXX]`
+`CBRD-XXXXX`
+`[CBRD-XXXXX] Add SQL testcase for <English summary>`
+`cci.checked`
+`confirmed`
+`contradicted`
+`Correct Error`
+`create-sql`
+`CTP_HOME`
+`ctp.sh`
+`~/cubrid`
+`~/.cubrid-agent/bin/failpass-run.sh CBRD-XXXXX --prefix-build <version|url>`
+`~/.cubrid-agent/bin/ground-issue.sh CBRD-XXXXX`
+`~/.cubrid-agent/bin/render-pr-body.sh CBRD-XXXXX`
+`~/.cubrid-agent/bin/render-report.sh CBRD-XXXXX`
+`~/.cubrid-agent/bin/select-queue.sh`
+`~/.cubrid-agent/bin/verify-run.sh CBRD-XXXXX --generate`
+`~/.cubrid-agent/bin/verify-run.sh CBRD-XXXXX --runs 1 --category sql_by_cci`
+`~/.cubrid-agent/bin/verify-run.sh CBRD-XXXXX --runs 3`
+`CUBRID/cubrid-testcases`
+`CUBRID/cubrid-testcases:develop`
+`CUBRID_JIRA_USER`
+`.cubrid.sh`
+`~/cubrid-testcases`
+`CUBRID_TESTCASES`
+`determinism.{runs,all_pass}`
+`diff`
+`--draft`
+`Duplicate`
+`evaluate 'Case N'`
+`Fail:1`
+`failpass-run.sh`
+`fork`
+`gate-pr-submit`
+`gate-resolved`
+`gate-stop`
+`--generate --promote`
+`gh`
+`gh api user --jq .login`
+`gh pr create`
+`gh pr create --repo CUBRID/cubrid-testcases --base develop --head "$FORK:tc/cbrd-XXXXX"`
+`gh pr view`
+`gh pr view --repo CUBRID/cubrid-testcases`
+`git add`
+`git -C "$TC" status --porcelain -- sql/_36_guava/cbrd_XXXXX/`
+`git checkout`
+`git log --grep=CBRD-XXXXX`
+`git ls-tree -r <branch> -- <tc dir>`
+`grep -A2 'jira.cubrid.org' ~/.netrc | sed 's/password .*/password ****/'`
+`ground.*`
+`guava`
+`### Implementation`
+`INCOMPLETE:`
+`inconclusive`
+`INDEX_SS`
+`issue.txt`
+`JAVA_HOME`
+`lint.*`
+`lint.answer_not_handwritten`
+`lint-sql-tc`
+`[Ljava...@hash`
+`login`
+`ls-remote`
+`mktemp -d`
+`NEEDS-WORK`
+`~/.netrc`
+`Not Required`
+`origin`
+`origin/develop`
+`PASS`
+`passed`
+`;plan detail`
+`--promote --category sql_by_cci`
+`### Purpose`
+`.queryPlan`
+`read`
+`READY-FOR-VERIFY`
+`recompile`
+`### Remarks`
+`.result`
+`result_dir`
+`review.failpass_approved`
+`review.verdict`
+`run`
+`run=1`
+`run_cci`
+`scenario=$TC/sql`
+`~/scratchpad…`
+`scripts/manifest.blocked.example.json`
+`scripts/manifest.example.json`
+`select.*`
+`select.issue_type`
+`select-queue.sh`
+`SET TRACE ON`
+`/setup-cubrid-agent`
+`setup-cubrid-agent`
+`source ~/.cubrid-agent/env.sh`
+`.sql`
+`sql/_13_issues/`
+`sql_by_cci`
+`sql_by_cci.conf`
+`Start Test`
+`status=passed`
+`Success:1`
+`tc/cbrd-XXXXX`
+`*_testcases.sql`
+`test_mode=yes`
+`TODO`
+`unread`
+`verdict == PASS`
+`verified`
+`verify.*`
+`verify.build`
+`verify.cci.{checked,matches_jdbc}`
+`verify.fail_to_pass.*`
+`verify.fail_to_pass.note`
+`verify.note`
+`verify.note=<what still fails>`
+`verify.note=<why>`
+`verify.preconditions`
+`verify-run.sh`
+`verify-run.sh CBRD-XXXXX --promote`
+`verify-sql`
+`verify.status`
+`verify.status="blocked_no_build"`
+`verify.status="blocked_review_unresolved"`
+`--version <ver>`
+`view`
+`~/work…`
