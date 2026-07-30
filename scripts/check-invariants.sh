@@ -80,6 +80,8 @@ grep -q '코드로 가능한 것은 최대한 코드로' AGENTS.md  || _m="$_m c
 grep -q '/code-review' AGENTS.md                    || _m="$_m skill-chain"
 grep -q 'CUBRIDQA-1425' AGENTS.md                   || _m="$_m ticket-first-check"
 grep -q '^## DP6' .agents/design-principles.md      || _m="$_m DP6"
+grep -q '한 가지로만 읽히게' AGENTS.md               || _m="$_m unambiguous-once-short"
+grep -q '^## DP7' .agents/design-principles.md      || _m="$_m DP7"
 # The CUBRID-side delivery rules: a contributor cannot infer the PR body shape or that cubrid-jira
 # is dry-run by default, and getting either wrong is visible outside the team. CBRD-25910 is the
 # template is a file in this repo, not a copy in prose — AGENTS.md links it so the two cannot drift,
@@ -305,6 +307,14 @@ if [ "$_in_script" -eq 1 ] && [ "$_in_skill" -eq 1 ]; then
 else
   fail "--install-clis is in $([ "$_in_script" -eq 1 ] && echo 'setup.sh but not the SKILL' || echo 'the SKILL but not setup.sh') — the setup skill would tell the operator to run a flag that does not exist, or ship a flag nobody invokes"
 fi
+
+# DP7 measures skill body size instead of capping it — size alone cannot separate a body that is
+# long because the domain is, from one that is long because nobody cut it. The number belongs in
+# front of whoever reviews the next change to it.
+_sizes=$(for f in $(git ls-files 'skills/qa/*/SKILL.md'); do printf '%s %s\n' "$(wc -c < "$f")" "$f"; done | sort -rn)
+_total=$(printf '%s\n' "$_sizes" | awk '{s+=$1} END {printf "%d", s/1024}')
+_top=$(printf '%s\n' "$_sizes" | head -1 | awk '{printf "%s (%dKB)", $2, $1/1024}' | sed 's|skills/qa/||;s|/SKILL.md||')
+pass "skill bodies: $(printf '%s\n' "$_sizes" | wc -l | tr -d ' ') files, ${_total}KB total, largest $_top — no cap, DP7 measures only"
 
 # ---------------------------------------------------------------------------
 group "Skill frontmatter"
