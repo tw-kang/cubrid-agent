@@ -87,8 +87,9 @@ script directly, and expect no hook gates on those CLIs.
 | `create-sql` | Creates a CTP SQL testcase (`.sql` + generated `.answer`) from scratch. |
 | `verify-sql` | Runs one CTP SQL testcase on a local build, judges pass/fail, and diagnoses failures. |
 
-Together with `setup-cubrid-agent` these six cost about 1,185 tokens of always-on
-context per session.
+Together with `setup-cubrid-agent` these six cost about 2,000 tokens of always-on
+context per session — measured 2026-07-31, and it grows as descriptions do, so
+`claude plugin details cubrid-agent` is what prints the figure for your install.
 
 ### Component skills (`skills` CLI only)
 

@@ -36,7 +36,7 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 
 - setup 스크립트는 **멱등**(재실행 안전)·**비대화식**이며 CWD 비의존이다(정본은 setup-cubrid-agent 스킬 안, 루트 래퍼 없음 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)). 하는 일/안 하는 일 경계는 [deployment.md](./deployment.md)의 3계층: Tier 2(머신 상태)는 스크립트가, Tier 3 중 **CLI 설치는 동의 한 번 뒤 스크립트가**(`--install-clis`, §3), **자격증명은 사람이**.
 - gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요. 단 **Jira 사용자명이 해석돼 있어야** 대기열 JQL이 동작한다: `export CUBRID_JIRA_USER=<계정>` 하거나 `/cubrid-agent:setup-cubrid-agent`를 한 번 돌려 `env.sh`가 내보내게 한다(ADR 0004). 값이 없으면 스킬은 0건을 보고하지 않고 중단한다.
-- 부품 스킬은 이 repo의 `skills/in-progress/`에 **소스로 들어 있다**(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md), 2트리 분리 — [ADR 0006](../.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)). 별도 clone·심링크는 불필요하지만, **플러그인이 로드하는 건 `skills/qa/`의 6종뿐**이다(setup + 파이프라인 5종 = `plugin.json` 등재분과 일치). 부품 16종을 쓰려면 `npx skills add tw-kang/cubrid-agent -s <이름>`으로 따로 깐다(이 채널은 두 트리를 다 발견한다). 어떤 설치본이 실제로 무엇을 로드했는지는 `claude plugin details cubrid-agent`로 확인한다(6종 = 세션당 상시 ~1,185 tok).
+- 부품 스킬은 이 repo의 `skills/in-progress/`에 **소스로 들어 있다**(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md), 2트리 분리 — [ADR 0006](../.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)). 별도 clone·심링크는 불필요하지만, **플러그인이 로드하는 건 `skills/qa/`의 6종뿐**이다(setup + 파이프라인 5종 = `plugin.json` 등재분과 일치). 부품 16종을 쓰려면 `npx skills add tw-kang/cubrid-agent -s <이름>`으로 따로 깐다(이 채널은 두 트리를 다 발견한다). 어떤 설치본이 실제로 무엇을 로드했는지와 그 상시 비용은 `claude plugin details cubrid-agent`로 확인한다 — 숫자를 여기 적어두면 낡는다(2026-07-29 ~1,185 tok이 07-31엔 ~1,988 tok이었다. description이 자란 결과이고 로드 대상은 그대로다).
 
 ### 최신본 유지 — 설치는 한 번, 이후는 자동
 
