@@ -97,6 +97,22 @@ else
   fail "the development method is missing from where an agent would read it:$_m — a fresh contributor's agent would not see it"
 fi
 
+# AGENTS.md states the ticket rule in one line and points at .agents/issue-tracker.md for the rest.
+# That pointer was dangling: the tracker file documented every CLI command but not the rule itself,
+# so an agent that followed the link found nothing and kept opening tickets (31 in the 1425 tree).
+# A pointer whose target is silent is worse than no pointer — it reads as "already covered".
+_t=""
+grep -q 'CUBRIDQA-1425' .agents/issue-tracker.md          || _t="$_t parent-key"
+grep -q '새로 만들지 않는다' .agents/issue-tracker.md      || _t="$_t default-is-no-new-ticket"
+grep -q 'to-spec' .agents/issue-tracker.md                || _t="$_t subtask-is-a-spec"
+grep -q 'to-tickets' .agents/issue-tracker.md             || _t="$_t task-is-a-work-item"
+grep -q 'linkedIssues' .agents/issue-tracker.md           || _t="$_t how-to-read-the-tree"
+if [ -z "$_t" ]; then
+  pass ".agents/issue-tracker.md carries the ticket rule AGENTS.md points at (default: no new ticket)"
+else
+  fail "the ticket rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
+fi
+
 # ---------------------------------------------------------------------------
 group "ADR numbering"
 

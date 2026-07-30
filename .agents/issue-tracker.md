@@ -6,6 +6,28 @@ cubrid-agent 자체 개발 작업의 이슈·PRD는 CUBRID Jira의 **`CUBRIDQA`*
 
 관점·내용은 **한글, 사용자 관점**(코드 구현 설명이 아니라 "무엇을 적용해 어떤 동작이 바뀌었다"). 커밋·PR도 `[CUBRIDQA-XXXX]`로 태깅한다.
 
+## 티켓 구조 — 기본은 "새로 만들지 않는다"
+
+부모는 **[CUBRIDQA-1425](http://jira.cubrid.org/browse/CUBRIDQA-1425)**("cubrid-agent for qa dev process"). 이 repo의 개발 티켓은 전부 그 아래로 붙는다. 그 트리가 이미 **31건**이다(2026-07-31: sub-task 18 + 관련 Task 12 + 부모). 티켓이 늘어난 것 자체가 문제이므로 **새로 만드는 경우는 아래 둘뿐**이다.
+
+| 만드는 것 | 무엇 한 건당 | 어떻게 |
+|---|---|---|
+| **sub-task** | `/to-spec` 산출물 = **스펙 한 건**. 작업 단위가 아니다 | `create`에 `--parent`가 없다 → 아래 "curl REST 직결은 최후 수단" |
+| **Task** | `/to-tickets` 산출물 = **처리할 작업 한 건** | `create --type Task … --yes` 후 그 스펙 sub-task에 `link --type Relates`(Jira sub-task는 중첩이 안 된다) |
+
+**그 밖의 모든 것은 기존 티켓에 붙인다.** 만들기 전에 트리를 먼저 읽는다:
+
+```bash
+cubrid-jira jql 'key = CUBRIDQA-1425 OR parent = CUBRIDQA-1425 OR issue in linkedIssues(CUBRIDQA-1425) ORDER BY key' \
+  --fields summary,issuetype,status --output json
+```
+
+- 관련 티켓이 있으면 **코멘트**로 남긴다(`comment --body-file`).
+- 그 티켓이 **말하는 내용 자체가 달라졌으면** description을 고친다(`update --description-file` — replace, 아래 참조).
+- 어디에 붙일지 애매하면 만들지 말고 **CUBRIDQA-1491**(기여 규범·프로젝트 룰, 상시)에 코멘트한다.
+
+기존 sub-task 18건은 이 규칙보다 먼저 만들어져 작업 단위가 섞여 있다. **재분류하지 않는다** — 새로 만들 때만 이 규칙을 따른다.
+
 ## CLI 버전 — 최소선 2026-07-29, 권장 최신
 
 `cubrid-jira`는 semver를 올리지 않는다(전부 `1.0.0`). 그래서 "최신"은 git HEAD를 뜻한다.
@@ -57,7 +79,7 @@ uv tool upgrade cubrid-jira                                                     
 
 ## 스킬이 "issue tracker에 publish" 하라고 할 때
 
-`cubrid-jira create --project CUBRIDQA ...`로 새 Jira 이슈를 만든다(또는 웹에서 생성).
+위 "티켓 구조"를 따른다 — 스펙이면 sub-task, 작업이면 Task, **그 밖이면 기존 티켓에 코멘트**다. 스킬이 "publish"라고 말한다고 해서 무조건 새 이슈가 되는 게 아니다.
 
 ## 스킬이 "관련 티켓을 fetch" 하라고 할 때
 
