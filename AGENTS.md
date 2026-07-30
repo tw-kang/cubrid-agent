@@ -13,10 +13,27 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 
 ## 변경을 내보낼 때 — PR · 커밋 · Jira
 
-CUBRID 사내 규칙이라 취향이 아니다. PR 본문 3절은 **CBRD-25910**(Closed/Fixed)이 `.github/PULL_REQUEST_TEMPLATE.md`에 넣으라고 요구해 반영된 것이고, 근거 가이드는 `dev.cubrid.org/dev-process/gh-guide/pr-guide`다.
+CUBRID 사내 규칙이라 취향이 아니다. 본문 형식의 정본은 `CUBRID/cubrid`의 `.github/PULL_REQUEST_TEMPLATE.md`이고, 그 내용은 이것이다 — 이 repo도 `.github/PULL_REQUEST_TEMPLATE.md`에 같은 형식을 두었으므로 이 repo로 PR을 올리면 자동으로 채워진다.
+
+```markdown
+<http://jira.cubrid.org/browse/CBRD-XXXX>
+
+### Purpose
+
+N/A
+
+### Implementation
+
+N/A
+
+### Remarks
+
+N/A
+```
 
 - **PR 제목**: 항상 **영어**, `[CUBRIDQA-XXXX]`로 시작(엔진 repo는 `[CBRD-XXXXX]`).
-- **PR 본문**: 맨 위 Jira 링크 + `### Purpose` / `### Implementation` / `### Remarks`. 내용은 **한글·사용자 관점** — "무엇을 적용해서 어떤 동작이 바뀌었다"이고 **코드 구현 설명이 아니다**. Purpose=배경·문제, Implementation=적용한 것과 동작 변화, Remarks=사용 가이드·주의.
+- **PR 본문**: 위 템플릿 그대로 — 맨 위 Jira 링크 + `### Purpose` / `### Implementation` / `### Remarks`. 내용은 **한글·사용자 관점** — "무엇을 적용해서 어떤 동작이 바뀌었다"이고 **코드 구현 설명이 아니다**. Purpose=배경·문제, Implementation=적용한 것과 동작 변화, Remarks=사용 가이드·주의.
+- **`CUBRID/cubrid-testcases`에는 PR 템플릿이 없다.** TC PR 본문은 위 3절을 그대로 쓰되, 테스트케이스에만 필요한 절을 더한다 — `author-testcase`의 Submit 절 참조.
 - **head→base**: `$FORK:<branch>` → `CUBRID/<repo>:develop`. `$FORK`는 `$CUBRID_GH_FORK` 또는 `gh api user --jq .login`으로 **런타임에 구한다 — 사람 이름을 박지 않는다**(`.agents/adr/0004-remove-personal-identity-hardcoding.md`).
 - **커밋 메시지**도 `[CUBRIDQA-XXXX]`로 태깅한다.
 - **Jira 쓰기**는 `cubrid-jira`로 하고 **`--yes`가 없으면 dry-run**이다. `--description-file`은 기존 description을 **replace**한다(history엔 남는다). 쓰기 전에 dry-run 출력과 로컬 파일을 대조하라 — CLI가 한글과 인라인 마크업 사이에 공백을 넣는다.
