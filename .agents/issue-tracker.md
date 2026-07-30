@@ -6,20 +6,28 @@ cubrid-agent 자체 개발 작업의 이슈·PRD는 CUBRID Jira의 **`CUBRIDQA`*
 
 관점·내용은 **한글, 사용자 관점**(코드 구현 설명이 아니라 "무엇을 적용해 어떤 동작이 바뀌었다"). 커밋·PR도 `[CUBRIDQA-XXXX]`로 태깅한다.
 
-## CLI 최소 버전 — 2026-07-29 머지분 이상
+## CLI 버전 — 최소선 2026-07-29, 권장 2026-07-30
 
-`cubrid-jira`는 semver를 올리지 않는다(전부 `1.0.0`). 그래서 "최신"은 git HEAD를 뜻하고, 필요한 최소선은 **2026-07-29 머지분**이다. 그 이전 설치본에는 두 가지가 없다:
+`cubrid-jira`는 semver를 올리지 않는다(전부 `1.0.0`). 그래서 "최신"은 git HEAD를 뜻한다.
+
+**최소선 = 2026-07-29 머지분.** 그 이전 설치본은 스킬이 지시한 대로 **동작하지 않는다**:
 
 - **인증 읽기**(PR #3) — 없으면 read를 익명 전송해 CUBRIDQA에서 **HTTP 401**. 공개 프로젝트(CBRD)는 익명 read가 되므로 증상이 CUBRIDQA에서만 난다. 401을 보면 **재시도하지 말 것**(반복 실패는 CAPTCHA 잠금).
 - **`attachment` 서브커맨드**(PR #2) — 없으면 스킬이 지시한 명령이 `invalid choice`로 실패.
 
+**권장 = 2026-07-30 머지분.** 없어도 정상 경로는 돌지만, 조용히 틀리는 경우가 남는다:
+
+- **pandoc 읽기 폴백**(PR #4) — 낡은 pandoc에서 이슈 본문이 빈칸이 되는 대신 경고 한 줄 + Jira 마크업 원문으로 나온다. 아래 `search` 경고 참조.
+- **읽기·첨부 하드닝**(PR #5) — ① 401이 **첫 시도에서 멈춘다**(그 전에는 관련 이슈마다 재전송해 한 번의 `search`가 여러 번의 인증 실패가 됐다 — CAPTCHA 잠금의 실제 원인이었다) ② 서버가 알려준 크기를 못 믿고 **받은 바이트로** 5MiB 상한을 걸어 초과분이 디스크에 남지 않는다 ③ 첨부 파일명을 basename으로 정리해 경로 탈출을 막고 중복 이름에 `-<id>`를 붙인다 ④ 인증 없이도 공개 이슈 첨부를 받는다.
+
 확인·갱신:
 
 ```bash
-cubrid-jira attachment --help >/dev/null 2>&1 && echo OK || uv tool upgrade cubrid-jira
+cubrid-jira attachment --help >/dev/null 2>&1 && echo OK || uv tool upgrade cubrid-jira   # 최소선 확인
+uv tool upgrade cubrid-jira                                                              # 권장: 그냥 최신으로
 ```
 
-`attachment`의 존재를 대리 지표로 쓴다 — PR #2와 #3이 30초 차로 머지됐으므로 둘 중 하나만 있는 빌드는 사실상 없다.
+최소선 확인에 `attachment`의 존재를 대리 지표로 쓴다 — PR #2와 #3이 30초 차로 머지됐으므로 둘 중 하나만 있는 빌드는 사실상 없다.
 
 **curl REST 직결은 최후 수단**(CLI로 안 되는 것만). 베이스 `http://jira.cubrid.org/rest/api/2`(http — https는 302), `curl --netrc`. 지금 남은 실제 용도는 **sub-task 생성**(`create`에 `--parent`가 없다)뿐이다. 쓰기는 `--yes` 안전판이 없으니 페이로드를 먼저 확인한다.
 
@@ -31,9 +39,10 @@ cubrid-jira attachment --help >/dev/null 2>&1 && echo OK || uv tool upgrade cubr
   - 본문(description)은 markdown 파일을 주면 Jira wiki markup으로 변환된다(`--from jira`로 raw 전송 가능). heredoc 대신 파일 경로를 쓴다.
   - 이슈 타입(`--type`)은 프로젝트가 허용하는 값(예: `Task`, `Bug`, `Improvement`) 중 하나.
 - **이슈 읽기(단건)**: `cubrid-jira search <KEY>` — 캐시 우선으로 live fetch, markdown을 stdout에 출력. 오프라인은 `--cache-only`.
-  - ⚠️ **본문이 빈칸으로 나오면 이슈가 빈 게 아니라 pandoc이 낡은 것이다.** `search`는 description·comment를 `pandoc -f jira`로 렌더하고 cubrid-jira가 그 실패를 검사하지 않아, `jira` reader가 없는 pandoc(RHEL 8 배포판 2.0.6)에서는 **성공 종료 + 빈 본문**이 된다. 확실히 읽어야 하면 pandoc 무관 경로인 `cubrid-jira jql 'key = <KEY>' --fields summary,description,comment,attachment --output json`으로 원문(Jira 마크업)을 직접 본다 — 실제로 이것 때문에 CUBRIDQA-1443의 4664자 본문을 "비어 있다"고 오판한 적이 있다(CUBRIDQA-1473).
+  - ⚠️ **본문이 빈칸으로 나오면 이슈가 빈 게 아니라 pandoc이 낡은 것이다.** `search`는 description·comment를 `pandoc -f jira`로 렌더한다. `jira` reader가 없는 pandoc(RHEL 8 배포판 2.0.6)에서 **2026-07-29 이전 설치본은 성공 종료 + 빈 본문**을 낸다 — 실제로 이것 때문에 CUBRIDQA-1443의 4664자 본문을 "비어 있다"고 오판한 적이 있다(CUBRIDQA-1473). 2026-07-30 이후 설치본(PR #4)은 `Warning: pandoc cannot convert Jira wiki markup …`을 stderr에 한 번 찍고 **원문을 그대로** 내보낸다. **에이전트가 읽을 때는 버전에 관계없이** pandoc 무관 경로인 `cubrid-jira jql 'key = <KEY>' --fields summary,description,comment,attachment --output json`을 쓴다(CUBRIDQA-1478).
 - **이슈 목록/검색**: `cubrid-jira jql "<JQL>" [--output json] [--max N] [--fields ...]`
   - 예: `cubrid-jira jql "project = CUBRIDQA AND status != Closed ORDER BY updated DESC" --output json` — 에이전트/jq 파이프용 raw JSON.
+- **첨부 다운로드**: `cubrid-jira attachment <KEY> --output json` — 전부 받고 파일별 매니페스트를 한 줄 JSON으로 출력(`--list`는 메타데이터만). 기본 저장 위치는 `~/.local/share/cubrid-jira/attachments/<KEY>/`(`$CUBRID_JIRA_DIR`가 있으면 그 아래, `--out DIR`로 지정 가능)이고, 각 항목의 `path`가 실제 경로다. 5MiB 초과는 받지 않고 `skipped` 사유만 남긴다 — 코어·바이너리가 디스크에 쌓이지 않는다.
 - **댓글**: 추가 `cubrid-jira comment <KEY> --body-file PATH --yes` / 목록 `comment-list` / 수정 `comment-update` / 삭제 `comment-delete`.
 - **필드 수정**: `cubrid-jira update <KEY> [--summary "..."] [--description-file PATH] [--field FIELD=VALUE] --yes`
   - `--description-file`은 기존 description을 **replace**한다(history엔 남음). `-`로 stdin 입력 가능.

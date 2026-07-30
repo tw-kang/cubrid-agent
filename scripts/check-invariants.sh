@@ -22,8 +22,9 @@ pass()  { printf '  ok   %s\n' "$1"; }
 fail()  { printf '  FAIL %s\n' "$1"; FAILED=$((FAILED+1)); }
 
 # The skills that read a CBRD issue. Each must ground on the raw JSON read, never on
-# `cubrid-jira search`, whose markdown goes through pandoc and comes back empty — with a
-# success exit — on a pandoc without the jira reader.
+# `cubrid-jira search`, whose markdown goes through pandoc: on a pandoc without the jira
+# reader it came back empty with a success exit (fixed upstream 2026-07-30 to fall back to
+# raw markup, but an installed CLI is only as new as its last upgrade).
 ISSUE_READERS=$(printf '%s\n' skills/qa/create-*/SKILL.md skills/qa/verify-*/SKILL.md \
   skills/qa/author-testcase/SKILL.md skills/qa/gate-resolved/SKILL.md \
   skills/qa/review-testcase/SKILL.md)

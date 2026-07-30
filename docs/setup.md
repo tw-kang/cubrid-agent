@@ -68,7 +68,7 @@ gh auth login                                                       # 또는 GH_
 
 1. **cubrid-jira** ([github.com/vimkim/cubrid-jira](https://github.com/vimkim/cubrid-jira)) — 전제: **Python 3.14+**, **pandoc 2.19 이상**.
 
-   > ⚠️ **배포판 pandoc을 쓰지 마라.** Rocky/RHEL 8의 `dnf install pandoc`은 **2.0.6**을 주는데, 이 버전엔 `jira` reader/writer가 **둘 다 없다**. cubrid-jira 읽기 경로가 `pandoc -f jira`를 부르고 실패를 검사하지 않으므로 **이슈 본문이 에러 없이 빈칸으로** 나온다 — 셋업은 통과했다고 보고하고 에이전트는 아무 내용 없이 판정한다. 최소 2.19인 이유: 2.9.1은 reader·writer가 있지만 쓰기에서 **마크다운 표의 헤더 행을 버린다**(실측). 상세는 CUBRIDQA-1473.
+   > ⚠️ **배포판 pandoc을 쓰지 마라.** Rocky/RHEL 8의 `dnf install pandoc`은 **2.0.6**을 주는데, 이 버전엔 `jira` reader/writer가 **둘 다 없다**. writer가 없으면 markdown 본문을 넣는 **쓰기(`update`·`comment`)가 하드 실패**한다. reader가 없으면 읽기는 CLI 버전에 갈린다 — **2026-07-30 이전 설치본은 이슈 본문이 에러 없이 빈칸으로** 나오고(셋업은 통과했다고 보고하고 에이전트는 아무 내용 없이 판정한다), 그 이후 설치본은 경고 한 줄과 함께 **Jira 마크업 원문**으로 폴백한다. 최소 2.19인 이유: 2.9.1은 reader·writer가 있지만 쓰기에서 **마크다운 표의 헤더 행을 버린다**(실측). 상세는 CUBRIDQA-1473·1478.
 
    ```bash
    # pandoc — sudo·gh 불필요(공개 릴리스 자산은 인증 없이 받힌다). 정적 바이너리를 ~/.local에
@@ -80,9 +80,10 @@ gh auth login                                                       # 또는 GH_
 
    # (uv가 없으면) curl -LsSf https://astral.sh/uv/install.sh | sh
    uv tool install git+https://github.com/vimkim/cubrid-jira.git    # 대안: pipx install git+…  (⚠ pip install -e . 금지)
-   cubrid-jira search CBRD-25913       # sanity — 본문 markdown이 나오면 OK (Description 절이 비어 있으면 위 pandoc 문제)
+   cubrid-jira search CBRD-25913       # sanity — Description 절에 내용이 있으면 OK (비어 있거나 pandoc 경고가 뜨면 위 pandoc 문제)
    ```
-   - ⚠ `show`/`get` 서브커맨드는 **없다**. 읽기는 `search <KEY>`(md) + `comment-list <KEY> --output json`(코멘트) + `jql '<query>' --output json`(대량/본문) + `attachment <KEY> --output json`(첨부 다운로드+매니페스트, 5MiB 초과는 자동 skip). **재현 절차가 comment·첨부에만 있는 이슈가 많으니 둘 다 읽어라.** 갱신 `uv tool upgrade cubrid-jira` — `attachment` 서브커맨드와 **인증 읽기**(CUBRIDQA 등 비공개 프로젝트 401 해소)는 2026-07-29 머지분부터 들어 있으니, 그 전 설치본이면 갱신해야 스킬이 지시한 대로 동작한다.
+   - ⚠ `show`/`get` 서브커맨드는 **없다**. 읽기는 `search <KEY>`(md) + `comment-list <KEY> --output json`(코멘트) + `jql '<query>' --output json`(대량/본문) + `attachment <KEY> --output json`(첨부 다운로드+매니페스트, 5MiB 초과는 자동 skip). 첨부는 `~/.local/share/cubrid-jira/attachments/<KEY>/`에 떨어지고 매니페스트의 `path`가 실제 위치를 알려준다(`--out DIR`로 변경 가능). **재현 절차가 comment·첨부에만 있는 이슈가 많으니 둘 다 읽어라.**
+   - **버전**: semver가 없어서(전부 `1.0.0`) "최신"은 git HEAD를 뜻한다. **최소선은 2026-07-29 머지분** — 그 전 설치본은 `attachment` 서브커맨드가 없고(스킬 지시가 `invalid choice`로 실패) **인증 읽기**도 없다(CUBRIDQA 등 비공개 프로젝트에서 HTTP 401). **2026-07-30 머지분을 권장** — 낡은 pandoc에서 본문이 빈칸이 되지 않고, 잘못된 비밀번호로 401이 났을 때 CLI가 **첫 시도에서 멈춘다**(그 전에는 관련 이슈마다 재전송해 CAPTCHA 잠금을 유발). 갱신은 `uv tool upgrade cubrid-jira`.
 2. **gh** — Rocky/RHEL 8 계열(dnf). Debian/Ubuntu는 apt, 그 외 [cli.github.com/manual](https://cli.github.com/manual) 참조.
    ```bash
    sudo dnf install -y 'dnf-command(config-manager)'
@@ -107,7 +108,7 @@ gh auth login                                                       # 또는 GH_
 | DB setup 중 `javac not found` | `JAVA_HOME`이 JRE | `source ~/.cubrid-agent/env.sh`(setup이 JDK 탐지) |
 | CTP `run`이 케이스를 스킵(`Total:1/Success:0/Fail:0`) | `.answer` 파일 없음 | empty-answer 트릭(빈 answer → 실행 → `.result` 승격) |
 | fail→pass가 병렬 경로를 안 탐 | `taskset` ≤2코어 → 병렬 disable | **≥4코어**로 실행 |
-| 이슈 본문이 비어 보임 | **pandoc이 낡아 `jira` reader가 없다**(2.0.6). `cubrid-jira`가 pandoc 실패를 검사하지 않아 빈 문자열이 본문이 된다 | pandoc 2.19+ 설치(§3). 급하면 pandoc 무관 경로인 `jql '<query>' --output json`으로 원문(Jira 마크업) 직접 읽기 — LLM은 `h2.`·`||표||`를 그대로 읽는다 |
+| 이슈 본문이 비어 보임 | **pandoc이 낡아 `jira` reader가 없다**(2.0.6). 2026-07-30 이전 `cubrid-jira`는 pandoc 실패를 검사하지 않아 빈 문자열이 본문이 된다(그 이후 설치본은 경고 한 줄 + 원문) | pandoc 2.19+ 설치(§3). 급하면 pandoc 무관 경로인 `jql '<query>' --output json`으로 원문(Jira 마크업) 직접 읽기 — LLM은 `h2.`·`||표||`를 그대로 읽는다 |
 | PR 검증이 엉뚱한 브랜치 검사 | 원본 conf `scenario=`는 `~/cubrid-testcases` 지시 | PR 워크트리 검증 시 conf 사본에 scenario를 worktree로 덮기(review-testcase가 안내) |
 
 ## 6. Jira 쓰기 — 호출 의도로 게이팅 (Stage 2 규칙)
