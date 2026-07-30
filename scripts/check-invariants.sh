@@ -300,6 +300,25 @@ else
   fail "grounding helper wiring broken:$_bad — the skills call an absolute path that nothing puts on disk"
 fi
 
+# The identity rule is duplicated on purpose — `npx skills add` copies one skill's own directory, so a
+# skill that resolves $QA_USER cannot link to a shared file (ADR 0003's channel constraint). What is
+# checkable is that no copy drifts into losing a part: the two copies already differ in wording, and
+# the part most likely to be dropped as boilerplate is the credential-safety half. Atoms, not byte
+# equality — each skill states the rule in its own context, and equality would fight that.
+_bad=""; _nid=0
+for _f in $(grep -l 'QA_USER' skills/*/*/SKILL.md 2>/dev/null); do
+  _nid=$((_nid+1))
+  grep -qF 'ADR 0004' "$_f"    || _bad="$_bad $(basename "$(dirname "$_f")"):no-ADR-0004"
+  grep -qF 'never parse' "$_f" || _bad="$_bad $(basename "$(dirname "$_f")"):may-parse-netrc"
+  grep -qF 'netrc' "$_f"       || _bad="$_bad $(basename "$(dirname "$_f")"):no-netrc-rule"
+  grep -qF 'hostname' "$_f"    || _bad="$_bad $(basename "$(dirname "$_f")"):no-hostname-guard"
+done
+if [ -z "$_bad" ] && [ "$_nid" -gt 0 ]; then
+  pass "all $_nid skills that resolve \$QA_USER carry the whole identity rule (ADR 0004 + never-parse-netrc + hostname guard)"
+else
+  fail "identity rule drifted:${_bad:- no skill resolves \$QA_USER, which cannot be right} — a copy that lost the credential half is how a password reaches a transcript"
+fi
+
 # ground-issue.sh writes a manifest for every issue it grounds, including each candidate a Select
 # sweep screened and dropped. Without gate-stop's "grounding alone is not a run" guard, those become
 # permanent stop-reminders about issues nobody is working on — the coupling is invisible from either
