@@ -113,6 +113,33 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --install-clis
 ```
 정확한 문구 없이도 자연어로 뜬다("gate-resolved 돌려줘", "이 PR 리뷰해줘", "다음 이슈 tc 작성" 등 — 각 SKILL.md의 트리거 참조).
 
+**처음 쓸 때는 targeted(키 지정)로.** 큐 판정을 기다리지 않아 무엇이 도는지 보기 쉽다. 단 targeted는 **실제 쓰기가 나간다** — Jira 전이·코멘트(gate-resolved), ready-for-review PR(author-testcase), GitHub 리뷰 게시(review-testcase). 인자를 뺀 batch는 초안·Draft다(§6).
+
+### 실행 중 — 30~60분, 조용한 게 정상
+
+이슈 한 건이 **30~60분** 걸린다(2026-07-30 실측 62분, 라운드 구조 개선 후 30분대 목표 — 재계측 전). 절반은 CTP 실행 대기이고, CTP 세션 하나가 기동에만 ~85초를 쓴다. 멈춘 게 아닌지는 산출물이 순서대로 생기는지로 본다:
+
+`reports/author-testcase/_queue-<날짜>.md`(Select 끝) → `<KEY>/issue.md`(Ground) → `<KEY>/s*.log`(CTP: 답지 생성→결정성→CCI→fail→pass) → `<KEY>/manifest.json`(게이트 기록) → `reports/author-testcase/<KEY>.md`(리포트). 전부 `~/.cubrid-agent/` 아래다.
+
+### 끝난 뒤 — 결과 읽기
+
+```bash
+jq '{verify: .verify.status, review: .review.verdict, submitted,
+     failed_lint: (.lint | to_entries | map(select(.value != true)) | from_entries)}' \
+  ~/.cubrid-agent/CBRD-XXXXX/manifest.json
+```
+
+- `verify.status` = `passed` | `blocked_no_build` | `blocked_no_ctp` | `blocked_nondeterministic` | `blocked_review_unresolved`. `passed`가 아니면 "여기서 멈췄다"는 뜻이고 이유는 `verify.note`에 있다 — **실패가 아니라 정해진 정지점**이다.
+- `review.verdict` = `PASS` | `NEEDS-WORK` 둘뿐.
+- `lint.*` 8개는 훅이 파일 쓸 때 자동 기록(헤더 형식·길이, 케이스 번호, cleanup, 영문 주석, 답지 출처, 배치 경로). 위 명령은 통과하지 못한 것만 보여준다.
+- `verify.preconditions`에 `verified: false`가 있으면 초록불이어도 결론은 유보다.
+
+**배치인데 "0건, 정지"는 정상이다** — 실측에서 대기열 8건이 전부 Select에서 탈락했다(이미 처리됨·SQL로 관측 불가·중복). 큐를 넓히는 건 사람의 결정이라 자동으로 넓히지 않는다.
+
+**`gh` 미인증으로 돌리면 중복 검사가 GitHub를 못 본다** — 남이 이미 만든 TC를 또 만들 수 있다. `gh auth login`을 먼저.
+
+**Claude Code의 auto-memory는 끄기를 권한다** — `~/.claude/settings.json`에 `"autoMemoryEnabled": false`. 켜져 있으면 에이전트가 이전 실행의 판정을 캐시해 다시 도출하지 않아, 같은 이슈가 사람마다 다른 결과를 내고 실행 시간 측정도 믿을 수 없게 된다(CUBRIDQA-1488).
+
 ## 5. 함정 체크리스트 (PoC에서 규명 — setup.sh가 대부분 선처리, 진단용으로 유지)
 
 | 증상 | 원인 | 대처 |
