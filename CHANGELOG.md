@@ -7,6 +7,14 @@ until the first tagged release, the plugin resolves to its git commit SHA
 
 ## [Unreleased]
 
+### Rollout stage
+
+This release is **Stage 2 — team-internal rollout**: teammates install the plugin and invoke the
+skills by hand, and every Jira or GitHub write is gated on that human invocation. Unattended
+operation — triggers, cron, pod execution — is not in this release. What the stages are, which one
+comes next, and the history of getting here live in CUBRIDQA-1425; this file records only where the
+released version stands.
+
 ### Changed
 
 - **Repackaged as a Claude Code plugin (dual channel).** The repository root is
@@ -28,7 +36,7 @@ until the first tagged release, the plugin resolves to its git commit SHA
   16 stay on disk under `skills/qa/` but the plugin does not load them: the default
   `skills/` scan does not recurse into `skills/qa/`, so only declared paths load.
   Reach those 16 through the `skills` CLI channel.
-- **Ported the Stage-2 hook gates to plugin form.** The three quality-gate hooks
+- **Ported the hook gates to plugin form.** The three quality-gate hooks
   moved from `.claude/settings.json` + `.claude/hooks/` to `hooks/hooks.json` +
   `scripts/`, addressed with `${CLAUDE_PLUGIN_ROOT}`.
 

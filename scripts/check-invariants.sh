@@ -55,6 +55,21 @@ _design_back=$(git ls-files 'docs/agents/*' | grep -E '/(DESIGN|CONTEXT)\.md$')
 if [ -z "$_design_back" ]; then pass "no DESIGN.md / CONTEXT.md under docs/agents/ (they live in Jira)"
 else fail "design docs back in repo:"; printf '         %s\n' $_design_back; fi
 
+# The repo carries the product, not the rollout. Stage numbering is progress bookkeeping: it dates
+# instantly, it advertised capabilities that did not exist (three skills shipped a Stage-3 roadmap),
+# and two hooks printed "[Stage2]" at a teammate who has no idea what stage 2 is. Jira (CUBRIDQA-1425)
+# owns the stage sequence and its history; CHANGELOG names the stage of the released version, and the
+# ADRs keep theirs because a decision without its context stops being reviewable.
+# This file is excluded because it has to spell out the pattern it forbids, and it quotes the
+# "[Stage2]" prefix the hooks used to print as the example of what went wrong.
+_staged=$(git ls-files | grep -v -E '^(CHANGELOG\.md|\.agents/adr/|scripts/check-invariants\.sh$)' \
+  | while read -r f; do [ -f "$f" ] && grep -lE '[Ss]tage[ _-]?[0-9]|스테이지' "$f" 2>/dev/null; done)
+if [ -z "$_staged" ]; then
+  pass "no stage bookkeeping outside CHANGELOG and the ADRs (rollout lives in CUBRIDQA-1425)"
+else
+  fail "rollout-stage labels are back in the repo — move them to CUBRIDQA-1425:"; printf '         %s\n' $_staged
+fi
+
 # Whoever clones this repo develops it with an agent, and an agent reads AGENTS.md before anything
 # else — so the two method rules have to be IN that file, not only in .agents/. Losing either one
 # reproduces a measured cost: the code-first rule is why a TC took 62 minutes (CUBRIDQA-1487), and

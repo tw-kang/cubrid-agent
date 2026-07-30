@@ -1,5 +1,5 @@
 #!/bin/bash
-# Stage 2 hard gate — block TC PR submission until the run manifest confirms every gate.
+# TC PR submission gate — block submission until the run manifest confirms every gate.
 # Event: PreToolUse / Bash. Manifest: $HOME/.cubrid-agent/<CBRD-XXXXX>/manifest.json (written by author-testcase).
 # Trusted-teammate guardrail: catches a skipped gate, not adversarial bypass.
 set -u

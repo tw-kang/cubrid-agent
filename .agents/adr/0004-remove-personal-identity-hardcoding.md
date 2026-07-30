@@ -48,9 +48,9 @@ repo가 private인 채로 `claude plugin marketplace add tw-kang/cubrid-agent`�
 
 ## Consequences
 
-- **Stage 3 이전 시 설치가 다시 막힌다** — CUBRID org private repo는 익명 clone이 안 되므로 `marketplace add`에 gh HTTPS 인증 또는 SSH known_hosts+키가 선행돼야 한다(배경의 그 벽). Stage 3 셋업 문서에 "설치 전 GitHub 자격 준비"를 선행 단계로 넣는다.
+- **org 이전 시 설치가 다시 막힌다** — CUBRID org private repo는 익명 clone이 안 되므로 `marketplace add`에 gh HTTPS 인증 또는 SSH known_hosts+키가 선행돼야 한다(배경의 그 벽). Stage 3 셋업 문서에 "설치 전 GitHub 자격 준비"를 선행 단계로 넣는다.
 - B·C 치환 대상 파일: `setup.sh`, `gate-pr-submit.sh`, `skills/qa/author-testcase/SKILL.md`(+evals), `skills/qa/gate-resolved/SKILL.md`, 그리고 dev 문서 `docs/agents/author-testcase/{CONTEXT,DESIGN,docs/adr/0003}`, `docs/agents/gate-resolved/DESIGN.md`, `docs/agents/test-runner/DESIGN.md`, `docs/deployment.md`, `docs/stage2-hook-gates.md`, `docs/guides/stage2-setup.md`.
-- Stage 3에서 자격은 Secret→env라 B는 `CUBRID_GH_FORK`(또는 gh 토큰 계정), C는 `CUBRID_JIRA_USER` 앞 갈래만 쓴다 — dual-source가 자동으로 env 경로로 수렴.
+- 무인 실행에서 자격은 Secret→env라 B는 `CUBRID_GH_FORK`(또는 gh 토큰 계정), C는 `CUBRID_JIRA_USER` 앞 갈래만 쓴다 — dual-source가 자동으로 env 경로로 수렴. 이전 시점은 CUBRIDQA-1425.
 
 ## Considered Options
 

@@ -34,7 +34,7 @@ author-testcase ─Draft PR─► [review-testcase 심사 ─► 사람 approve�
 | **test-runner** | Test→Tested (`Verify`) | 머지된 신규 TC가 야간 회귀에서 연속 2일 안정 PASS하는지 baseline 델타로 판독해 승격을 권고하는 판독형 | [CUBRIDQA-1444](https://jira.cubrid.org/browse/CUBRIDQA-1444) |
 | **close-backport** | Tested→Closed / Backport (`Close` / `Need Backport`) | 종결 또는 백포트. 스위트 전체 회귀 무결(내 머지가 다른 TC를 깼는가)까지 확인 | 설계 전 — 부모 [CUBRIDQA-1425](https://jira.cubrid.org/browse/CUBRIDQA-1425) |
 
-스킬 이름 = 에이전트 이름. 구현체(Stage 2)는 `skills/qa/<name>/`.
+스킬 이름 = 에이전트 이름. 구현체는 `skills/qa/<name>/`.
 
 ## 저장소 배치
 
@@ -80,9 +80,9 @@ author-testcase ─Draft PR─► [review-testcase 심사 ─► 사람 approve�
 |---|---|
 | **판정형 vs 생성형** | gate-resolved·test-runner은 산출물을 만들지 않고 **판정(권고)** 을 낸다(판독형 포함). author-testcase는 **산출물(TC·PR)을 생성**한다. review-testcase는 **평가(권고)** |
 | **횡단 에이전트** | Jira 상태 전이가 아니라 PR 수명주기(open→review→merge)에 붙는 에이전트(review-testcase). 대상은 작성자 무관(사람 PR + 봇 PR) 전체 sql TC PR |
-| **완성 정의(실제 쓰기)** | 스킬의 종료 산출물 = 초안이 아니라 **실제 Jira 전이·코멘트·필드 쓰기**. Stage 2(사람 호출)에서도 적용(설계는 Jira) |
+| **완성 정의(실제 쓰기)** | 스킬의 종료 산출물 = 초안이 아니라 **실제 Jira 전이·코멘트·필드 쓰기**. 사람이 호출하는 지금도 적용(설계는 Jira) |
 | **targeted / batch** | 사람이 이슈 키를 **나열**한 대상 지정 호출 = targeted(실제 쓰기), 스킬이 **JQL/큐 쿼리**로 만든 집합 호출 = batch(초안). 개수 무관 |
-| **Stage 1 / 2 / 3** | 롤아웃 3단계 — PoC / 팀 수동 트리거 / 무인 자동. 정본은 CUBRIDQA(staging) |
+| **롤아웃 단계** | 이 repo는 결과물만 담는다. 단계와 그 이력은 CUBRIDQA-1425가 관리하고, 지금 배포된 것이 어느 단계인지는 `CHANGELOG.md`만 적는다 |
 
 ### 제품·저장소 형태 결정 (ADR 0005 어휘)
 

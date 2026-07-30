@@ -8,7 +8,7 @@ The repository ships through **two channels from one source**:
 
 - **Claude Code** installs it as a **plugin** (root `.claude-plugin/`), which
   loads six skills — setup plus the five pipeline skills — and wires in the
-  Stage-2 quality-gate hooks.
+  quality-gate hooks.
 - **Other agent CLIs** (Codex, Cursor, Gemini, …) install individual skills with
   the [`skills`](https://github.com/vercel-labs/skills) CLI. This is also the only
   channel that reaches the 16 component skills, which the plugin does not load.
@@ -112,7 +112,7 @@ The plugin does not load these — install one with
 - **A local CUBRID build + CTP** — required by the `verify-*` skills and the
   verify stage of `author-testcase`. `/cubrid-agent:setup-cubrid-agent` provisions
   these; see also `docs/setup.md`.
-- The Stage-2 hooks only act on CUBRID testcase PRs (`gh pr create` against
+- The hooks only act on CUBRID testcase PRs (`gh pr create` against
   `cubrid-testcases`); they leave every other command alone.
 
 ## Repository layout
@@ -121,7 +121,7 @@ The plugin does not load these — install one with
 .claude-plugin/    plugin.json + marketplace.json (source "./")
 skills/qa/         22 skills on disk, catalog layout; plugin.json declares 6
                    (1 setup + 5 pipeline), the other 16 ship via the skills CLI
-hooks/hooks.json   Stage-2 quality-gate hook config
+hooks/hooks.json   quality-gate hook config
 scripts/           hook scripts, addressed via ${CLAUDE_PLUGIN_ROOT},
                    plus check-invariants.sh (dev-only, run by CI)
 docs/              design notes, ADRs, deployment (Korean, non-shipping)

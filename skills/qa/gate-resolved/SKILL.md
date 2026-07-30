@@ -78,7 +78,7 @@ Bifurcate by `issuetype`: **Correct Error=bug**, else=feature.
 
 ## 4. Transition + report + rejection draft
 
-- **pass** → `Start Test` (targeted: execute the `Start Test` transition, plus the QA Scenario field write if re-judged; batch: propose/draft. Stage 3 unmanned: auto-run + trigger author-testcase).
+- **pass** → `Start Test` (targeted: execute the `Start Test` transition, plus the QA Scenario field write if re-judged; batch: propose/draft).
 - **bounce** → **sub-task guard first**, then `Need Something`. If the issue is a **sub-task**, check parent + sibling sub-tasks: if a sibling handles TC/scenario authoring, that sibling covers the test → **do not bounce** (skip/pass this one). Bouncing per-individual-sub-task causes **status ping-pong** (dev re-resolves → bounce again). Only bounce when no sibling covers it and it's not plannable: `cubrid-jira transition <KEY> --to "Need Something" --yes` (targeted: execute `Need Something` + post the rejection comment with the bot signature; batch: draft only). A guard trip (sub-task sibling covers it, or the CBRD-26909 "is this intended?" repro case) **downgrades to a draft + @mention question rather than writing**. Rejection comment in Korean, to the developer.
 
 Transition map (measured 2026-07-16): **Need Something→Handover** (bounce), **Start Test→Test** (pass), Assign QA→Resolved (stays put), QA Not Satisfied→Confirmed (fix inadequate, out of scope), Ask Reconfirmation→Open (out of scope).
@@ -92,15 +92,9 @@ Rejection comment template (Korean — posted to the developer on the Jira issue
 ```
 **Avoid false positives:** a repro "typo" can be the intended input for a line-accuracy bug (PoC CBRD-26909) — ask "is this intended?", don't auto-bounce.
 
-## Stage matrix
+## Completion is the real write, not the draft
 
-| | Select scope | QA Scenario change | Transition execution | Passing issues |
-|---|---|---|---|---|
-| **PoC (Stage 1)** | assignee=$QA_USER | propose only | manual (draft) | bounces only |
-| **Team-internal rollout (Stage 2)** | all guava Resolved | targeted: real write / batch: draft (guard-downgrade) | targeted: real write / batch: draft (guard-downgrade) | bounce |
-| **Automation (Stage 3)** | all guava Resolved | unmanned auto (trigger/cron) | unmanned auto (trigger/cron) | trigger author-testcase (Start Test) |
-
-The targeted-vs-batch completion rule (targeted = real write, batch = draft, guard trip downgrades to draft + @question) applies Stage 2 onward (completion = real write).
+A **targeted** call (a human named the keys) executes the transition, posts the rejection comment and writes the QA Scenario field. A **batch** call (a queue this skill built from a query) leaves all three as drafts for a human to post. A guard trip downgrades a targeted call to a draft plus an @question rather than posting.
 
 ## Output
 

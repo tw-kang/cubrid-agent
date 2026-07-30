@@ -79,9 +79,5 @@ Checks:
 - **Targeted invocation: the skill posts the review** (bot signature); no approve/merge. **Batch invocation: draft only** — human reviews the draft, then posts.
 - **Report** to `$HOME/.cubrid-agent/reports/review-testcase/PR-NNNN.md`: per-layer results, execution log summary, verdict rationale.
 
-## Staging
-- **Stage 2 (now)**: targeted = post the review / batch = draft only. L2 lenses parallel, L3 local CTP. Approve/merge stays human.
-- **Stage 3**: unmanned auto-post (PR opened/updated trigger via webhook/CI), non-SQL categories, quorum-contributing auto-approve.
-
 ## Note — backtest vs live
 The few-shot bank cites source PRs; that isolation matters only for **backtesting** (don't feed a target PR's own entries). On a **live** PR there's no answer key — use the whole bank freely.

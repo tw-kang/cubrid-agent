@@ -1,5 +1,5 @@
 #!/bin/bash
-# Stage 2 convention lint — after a TC .sql write, lint mechanical rules and record them
+# TC convention lint — after a TC .sql write, lint mechanical rules and record them
 # into the run manifest so the PreToolUse submit gate can't be silently bypassed.
 # Event: PostToolUse / Write|Edit. Non-blocking (feedback only).
 set -u
@@ -113,5 +113,5 @@ probs=""
 [ "$_pwhy" = halfyear ] && probs="$probs wrong half-year dir: a new case goes in $_curhy (the half-year you are writing it in), not $_hy — no date on the issue selects this dir; create $_curhy if it does not exist yet;"
 [ "$placement" = null ]  && probs="$probs placement unverifiable: record select.issue_type in the manifest during Select, so the tree can be checked against the issue type;"
 [ -z "$probs" ] || jq -n --arg f "$FILE" --arg p "$probs" \
-  '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:("[Stage2 lint] "+$f+" convention violations:"+$p+" (recorded in manifest.lint — the submit gate will block)")}}'
+  '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:("[TC lint] "+$f+" convention violations:"+$p+" (recorded in manifest.lint — the submit gate will block)")}}'
 exit 0

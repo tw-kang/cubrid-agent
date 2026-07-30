@@ -44,4 +44,4 @@ Open → Confirmed → Analysis → Develop → Handover → Resolved → Test �
 - cubrid-agent 4 에이전트 = **QA-side 자동화**: gate-resolved(Resolved QA-readiness 검토 → 부적격 `Need Something`으로 Handover 반송), author-testcase(Resolved→Test), test-runner(Test→Tested), close-backport(Tested→Closed/Backport). **Check-in Fix(Handover→Resolved)는 개발자 몫**, dev-side(Open~Develop)는 범위 밖.
 - **QA 시나리오 필드** = author-testcase Select 게이트(CUBRIDQA-1429)의 공식 출처.
 - **리포트 = QA home**(repo 아님) → reports/ 커밋 제외 결정과 정합.
-- **Merge 규칙** = 우리 PR/커밋 규칙. **build/test=CircleCI** = Stage 3 자동화 접점.
+- **Merge 규칙** = 우리 PR/커밋 규칙. **build/test=CircleCI** = 무인 자동화의 접점(CUBRIDQA-1425).

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Stage 2 stop reminder — if a run manifest exists whose gates are incomplete and that was not
+# TC stop reminder — if a run manifest exists whose gates are incomplete and that was not
 # submitted, remind. The reminder is injected as `additionalContext`, and injected context
 # re-invokes the model: `exit 0` alone does NOT prevent a stop loop — honouring `stop_hook_active`
 # does. Without that guard the model wakes, stops, fires this hook again, and idles in a loop.
@@ -40,6 +40,6 @@ for m in "$DIR"/CBRD-*/manifest.json; do
 done
 [ -n "$pending$stuck" ] && jq -n --arg p "$pending" --arg s "$stuck" \
   '{hookSpecificOutput:{hookEventName:"Stop",additionalContext:(
-     (if $p != "" then "[Stage2] Incomplete TC manifest(s) (gates not passed):"+$p+" — finish passing the remaining determinism/review gates before submitting." else "" end)
-   + (if $s != "" then (if $p != "" then " " else "" end)+"[Stage2] Past the loop bound with gates still open:"+$s+" — stop iterating and record the sanctioned terminal state instead: verify.status=\"blocked_review_unresolved\" + verify.note=<what still fails> + the written report. The branch keeps the work." else "" end))}}'
+     (if $p != "" then "[TC gate] Incomplete TC manifest(s) (gates not passed):"+$p+" — finish passing the remaining determinism/review gates before submitting." else "" end)
+   + (if $s != "" then (if $p != "" then " " else "" end)+"[TC gate] Past the loop bound with gates still open:"+$s+" — stop iterating and record the sanctioned terminal state instead: verify.status=\"blocked_review_unresolved\" + verify.note=<what still fails> + the written report. The branch keeps the work." else "" end))}}'
 exit 0

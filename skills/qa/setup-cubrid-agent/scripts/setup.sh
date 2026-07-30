@@ -1,12 +1,12 @@
 #!/bin/bash
-# cubrid-agent Stage 2 setup — provisions Tier 2 (machine state) into the $HOME standard layout.
+# cubrid-agent setup — provisions the machine state into the $HOME standard layout.
 # This is the canonical script of the setup-cubrid-agent skill (entrypoint: /setup-cubrid-agent).
-# CWD-independent, so it works from anywhere and a Stage 3 container can RUN this path as-is. Decision: ADR 0003.
+# CWD-independent, so it works from anywhere and a container image can RUN this path as-is. Decision: ADR 0003.
 # Model & decisions: docs/deployment.md (3 tiers, $HOME runtime standard), ADR 0001 (component-skill absorption / plugin repackaging).
 # Idempotent & non-interactive — safe to re-run; never touches an existing clone (creates only when absent).
 # With --install-clis it also installs the three CLIs the skills require (gh, pandoc, cubrid-jira); without the
 # flag they are only checked and reported. The flag exists so the operator's consent is collected once, in the
-# skill, while this script stays non-interactive — a Stage 3 container RUNs it and CI executes it unattended.
+# skill, while this script stays non-interactive — a container RUNs it and CI executes it unattended.
 # Does NOT: inject credentials, ever (Tier 3 — a human's job); install a CUBRID build unless given --build.
 set -u
 

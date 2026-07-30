@@ -1,8 +1,8 @@
-# Stage 2 셋업 — 팀 수동 트리거 (1순위 3종 스킬)
+# 셋업 — 팀원이 자기 머신에서 3종 스킬을 돌리기까지
 
-팀원이 **자기 로컬에서** 1순위 3종 스킬(`gate-resolved` · `author-testcase` · `review-testcase`)을 기동하기 위한 실행 가이드. 구조 정본(자산 3계층·확정 결정)은 [deployment.md](./deployment.md), 단계 모델은 staging.md (CUBRIDQA-1425).
+팀원이 **자기 로컬에서** 1순위 3종 스킬(`gate-resolved` · `author-testcase` · `review-testcase`)을 기동하기 위한 실행 가이드. 구조 정본(자산 3계층·확정 결정)은 [deployment.md](./deployment.md). 롤아웃 단계는 이 repo가 관리하지 않는다 — 정본은 CUBRIDQA-1425.
 
-> **Stage 2 = "배포"가 아니라 "공유"**. PoC의 로컬 흐름을 팀이 각자 재현하도록 패키징한 것. 검증은 로컬 CTP, **Jira 쓰기는 호출 의도로 게이팅**한다 — 사람이 키를 나열한 targeted 호출은 전이·코멘트·필드를 실제로 쓰고, JQL/큐로 만든 batch 호출은 초안 유지(오탐 가드가 걸리면 targeted여도 초안+@질의로 강등). 머지/승인과 무인 자동 호출은 여전히 사람/Stage 3. k8s·pod·자동 스케줄·무인 batch 쓰기는 전부 Stage 3. See ADR-0016 (CUBRIDQA-1440).
+> **"배포"가 아니라 "공유"**. 한 사람의 로컬 흐름을 팀이 각자 재현하도록 패키징한 것. 검증은 로컬 CTP, **Jira 쓰기는 호출 의도로 게이팅**한다 — 사람이 키를 나열한 targeted 호출은 전이·코멘트·필드를 실제로 쓰고, JQL/큐로 만든 batch 호출은 초안 유지(오탐 가드가 걸리면 targeted여도 초안+@질의로 강등). 머지/승인은 여전히 사람이 한다. 무인 자동 호출·k8s·pod·자동 스케줄·무인 batch 쓰기는 이 repo 밖이다 — CUBRIDQA-1440·1425.
 
 ## 0. 한눈에 — 3종 스킬과 필요 자원
 
@@ -58,7 +58,7 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 
 ## 2. 자격 (Tier 3 — 사람만, repo·스크립트에 넣지 않는다)
 
-표준은 **환경변수**(Stage 3 k8s Secret과 같은 형식), Stage 2에선 파일 방식 병행 허용:
+표준은 **환경변수**(컨테이너의 k8s Secret과 같은 형식), 지금은 파일 방식 병행 허용:
 
 ```bash
 export CUBRID_JIRA_USER="..."; export CUBRID_JIRA_PASSWORD="..."   # 표준 (또는 ~/.netrc: machine jira.cubrid.org, chmod 600)
@@ -151,13 +151,13 @@ jq '{verify: .verify.status, review: .review.verdict, submitted,
 | 이슈 본문이 비어 보임 | **pandoc이 낡아 `jira` reader가 없다**(2.0.6). 2026-07-30 이전 `cubrid-jira`는 pandoc 실패를 검사하지 않아 빈 문자열이 본문이 된다(그 이후 설치본은 경고 한 줄 + 원문) | pandoc 2.19+ 설치(§3). 급하면 pandoc 무관 경로인 `jql '<query>' --output json`으로 원문(Jira 마크업) 직접 읽기 — LLM은 `h2.`·`||표||`를 그대로 읽는다 |
 | PR 검증이 엉뚱한 브랜치 검사 | 원본 conf `scenario=`는 `~/cubrid-testcases` 지시 | PR 워크트리 검증 시 conf 사본에 scenario를 worktree로 덮기(review-testcase가 안내) |
 
-## 6. Jira 쓰기 — 호출 의도로 게이팅 (Stage 2 규칙)
+## 6. Jira 쓰기 — 호출 의도로 게이팅
 
-세 스킬은 **targeted 호출(사람이 이슈/PR 키를 나열)에서 실제로 쓴다** — gate-resolved의 전이(Need Something/Start Test)·반송 코멘트·QA Scenario 필드, review-testcase의 PR 리뷰 코멘트, author-testcase의 ready-for-review PR. **batch 호출(JQL/큐 쿼리로 만든 집합, 건수 무관)은 초안 유지**. targeted여도 오탐 가드(형제 sub-task가 이미 커버, repro "오타"가 line-정확도 버그의 의도된 입력일 수 있음(CBRD-26909), 저신뢰)가 걸리면 게시하지 않고 초안+@질의로 강등한다. 머지/승인은 여전히 사람이 하고, `Start Test` 전이는 gate-resolved 소유다(author-testcase가 대신 쏘지 않음). 무인 자동 전이·cron batch 쓰기만 Stage 3. See ADR-0016 (CUBRIDQA-1440).
+세 스킬은 **targeted 호출(사람이 이슈/PR 키를 나열)에서 실제로 쓴다** — gate-resolved의 전이(Need Something/Start Test)·반송 코멘트·QA Scenario 필드, review-testcase의 PR 리뷰 코멘트, author-testcase의 ready-for-review PR. **batch 호출(JQL/큐 쿼리로 만든 집합, 건수 무관)은 초안 유지**. targeted여도 오탐 가드(형제 sub-task가 이미 커버, repro "오타"가 line-정확도 버그의 의도된 입력일 수 있음(CBRD-26909), 저신뢰)가 걸리면 게시하지 않고 초안+@질의로 강등한다. 머지/승인은 여전히 사람이 하고, `Start Test` 전이는 gate-resolved 소유다(author-testcase가 대신 쏘지 않음). 무인 자동 전이·cron batch 쓰기는 이 repo 밖이다(CUBRIDQA-1440).
 
 ## 7. 구성 요소
 
-- **setup-cubrid-agent 스킬 + `scripts/setup.sh`**(Tier 2 자동화, 진입점 `/cubrid-agent:setup-cubrid-agent` — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) — 스크립트가 `$HOME` 표준 배치(D7: `~/cubrid-testcases`·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, Stage 3 컨테이너 재사용 가능(D5). conf 사본 불필요(원본 conf가 이미 `${HOME}` 기준). 정본은 스킬 안 단 하나(루트 래퍼 없음).
+- **setup-cubrid-agent 스킬 + `scripts/setup.sh`**(Tier 2 자동화, 진입점 `/cubrid-agent:setup-cubrid-agent` — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) — 스크립트가 `$HOME` 표준 배치(D7: `~/cubrid-testcases`·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, 컨테이너 이미지에서 그대로 재사용 가능(D5). conf 사본 불필요(원본 conf가 이미 `${HOME}` 기준). 정본은 스킬 안 단 하나(루트 래퍼 없음).
 - **부품 스킬** — 이 repo `skills/qa/`에 소스로 들어 있다(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 플러그인은 로드하지 않으므로 `npx skills add` 채널로 개별 설치(§0 표 아래 주석).
 - **스킬 자기완결**(D8) — 스킬·hook은 `docs/`를 런타임 참조하지 않는다. review-testcase 연료(few-shot bank·카탈로그)는 스킬 `references/`에 내장.
 - **hook 하드 게이트**([`hooks/`](../hooks/)) — `gate-pr-submit`(제출 차단)·`lint-sql-tc`(린트→manifest)·`gate-stop`(리마인드).
