@@ -135,10 +135,17 @@ while IFS=$'\x1f' read -r fname fsize fmime fpath fdown fskip; do
     image/*)
       VIEW_LIST="$VIEW_LIST$fpath|$desc"$'\n' ;;
     application/pdf)
-      if command -v pdftotext >/dev/null 2>&1 && pdftotext -layout "$fpath" "$fpath.txt" 2>/dev/null; then
+      # Two different unreads, because they need different actions from the reader: no extractor is
+      # fixed by installing one, while a present extractor that fails usually means an encrypted PDF
+      # — and CBRD issues do attach those, with the password published in a comment (CBRD-26177).
+      if ! command -v pdftotext >/dev/null 2>&1; then
+        add_unread "$fname" "PDF and no pdftotext (poppler-utils) to extract it — install poppler-utils and ground again; its contents are unknown until then, do not guess them from the name"
+      elif pdftotext -layout "$fpath" "$fpath.txt" 2>"$RUN_DIR/.pdf.err"; then
         READ_LIST="$READ_LIST$fpath.txt|pdf text, extracted"$'\n'
       else
-        add_unread "$fname" "PDF and no pdftotext (poppler-utils) to extract it — its contents are unknown, do not guess them from the name"
+        _why=$(tr '\n' ' ' < "$RUN_DIR/.pdf.err" 2>/dev/null | cut -c1-90)
+        rm -f "$fpath.txt"
+        add_unread "$fname" "pdftotext could not read this PDF (${_why:-no reason given}) — often an encrypted PDF whose password is published in an issue comment; if so, extract it with: pdftotext -layout -upw '<password>' '$fpath' '$fpath.txt'"
       fi ;;
     *)
       # Archives carry the intended case set often enough that skipping them defeats the point.
