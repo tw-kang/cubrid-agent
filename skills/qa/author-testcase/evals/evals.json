@@ -9,7 +9,7 @@
       "assertions": [
         {
           "name": "runs_full_pipeline_stages",
-          "description": "The output/report shows evidence that the Select, Ground, Author, Verify, Review, and Submit stages ran in that order"
+          "description": "The output/report shows evidence that the stages ran in order — Select, Ground, then a static loop of Author/lint/Review R1, then Verify once, then Review R2 on the generated answer, then Submit — with the CTP chain entered only after the static review passed"
         },
         {
           "name": "delegates_author_and_verify",
