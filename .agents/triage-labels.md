@@ -14,6 +14,6 @@
 
 ## Jira 라벨 적용 주의
 
-이 트래커는 Jira다. 라벨은 `cubrid-jira update <KEY> --label ... --yes`로 붙이는데, `--label`은 **라벨 전체 목록을 교체**한다. 트리아지 라벨 하나만 추가하려 해도 **기존 라벨 전부 + 새 라벨**을 함께 넘겨야 한다(안 그러면 기존 라벨이 지워진다). 먼저 `cubrid-jira search <KEY>`로 현재 라벨을 읽고 최종 집합을 통째로 전달할 것. 자세한 규약은 `issue-tracker.md` 참조.
+이 트래커는 Jira다. `cubrid-jira update <KEY> --label ...`은 라벨 하나를 추가하는 게 아니라 **전체 목록을 교체**한다 — 그래서 트리아지 라벨을 붙이는 일이 기존 라벨을 지우는 일이 될 수 있다. 절차(현재 라벨을 먼저 읽는 방법, 개별 add/remove가 없다는 점)는 [`issue-tracker.md`](./issue-tracker.md)의 "라벨 주의" 절 하나에만 둔다.
 
 오른쪽 열은 실제로 쓰는 라벨 어휘에 맞게 편집하면 된다.

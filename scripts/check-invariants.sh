@@ -113,6 +113,22 @@ else
   fail "the ticket rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
 fi
 
+# DP7-2: one fact, one place. These two were written twice and the copies drifted inside this repo —
+# the language-policy list disagreed with itself (`.claude-plugin/plugin.json·marketplace.json` in
+# AGENTS.md vs `.claude-plugin/` in DP3, and each pointed at the other as canonical), and the label
+# procedure sat in both triage-labels.md and issue-tracker.md while the former also linked the latter.
+# CLAUDE.md is excluded: it is the symlink to AGENTS.md (asserted above), not a second copy.
+_dup=""
+_lang=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '\*\*영문(배포 대상)\*\*' 2>/dev/null)
+[ "$(printf '%s\n' "$_lang" | grep -c .)" = 1 ] || _dup="$_dup language-policy-list[$(echo $_lang)]"
+_lbl=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '현재 라벨을 읽' 2>/dev/null)
+[ "$(printf '%s\n' "$_lbl" | grep -c .)" = 1 ] || _dup="$_dup label-procedure[$(echo $_lbl)]"
+if [ -z "$_dup" ]; then
+  pass "the language-policy list and the label procedure each live in exactly one file (DP7-2)"
+else
+  fail "a rule is written in two places and will drift:$_dup — keep one, link from the other"
+fi
+
 # ---------------------------------------------------------------------------
 group "ADR numbering"
 
