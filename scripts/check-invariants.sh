@@ -80,6 +80,13 @@ grep -q '코드로 가능한 것은 최대한 코드로' AGENTS.md  || _m="$_m c
 grep -q '/code-review' AGENTS.md                    || _m="$_m skill-chain"
 grep -q 'CUBRIDQA-1425' AGENTS.md                   || _m="$_m ticket-first-check"
 grep -q '^## DP6' .agents/design-principles.md      || _m="$_m DP6"
+# The CUBRID-side delivery rules: a contributor cannot infer the PR body shape or that cubrid-jira
+# is dry-run by default, and getting either wrong is visible outside the team. CBRD-25910 is the
+# source, so the three headings are the marker; $FORK guards against a person's name coming back.
+grep -q '### Purpose' AGENTS.md                     || _m="$_m pr-body-shape"
+grep -q 'CBRD-25910' AGENTS.md                      || _m="$_m pr-rule-source"
+grep -qF '$FORK:<branch>' AGENTS.md                 || _m="$_m fork-not-a-person"
+grep -q '없으면 dry-run' AGENTS.md                  || _m="$_m jira-write-is-dry-run"
 if [ -z "$_m" ]; then
   pass "AGENTS.md states the development method (code-first + skill chain) and DP6 backs it"
 else
