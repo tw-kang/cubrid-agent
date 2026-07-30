@@ -95,7 +95,7 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --install-clis
    uv tool install git+https://github.com/vimkim/cubrid-jira.git    # 대안: pipx install git+…  (⚠ pip install -e . 금지)
    cubrid-jira search CBRD-25913       # sanity — Description 절에 내용이 있으면 OK (비어 있거나 pandoc 경고가 뜨면 위 pandoc 문제)
    ```
-   - ⚠ `show`/`get` 서브커맨드는 **없다**. 읽기는 `search <KEY>`(md) + `comment-list <KEY> --output json`(코멘트) + `jql '<query>' --output json`(대량/본문) + `attachment <KEY> --output json`(첨부 다운로드+매니페스트, 5MiB 초과는 자동 skip). 첨부는 `~/.local/share/cubrid-jira/attachments/<KEY>/`에 떨어지고 매니페스트의 `path`가 실제 위치를 알려준다(`--out DIR`로 변경 가능). **재현 절차가 comment·첨부에만 있는 이슈가 많으니 둘 다 읽어라.**
+   - ⚠ `show`/`get` 서브커맨드는 **없다**. 읽기는 `search <KEY>`(md) + `comment-list <KEY> --output json`(코멘트) + `jql '<query>' --output json`(대량/본문) + `attachment <KEY> --output json`(첨부 다운로드+매니페스트, 5MiB 초과는 자동 skip). 첨부는 `~/.local/share/cubrid-jira/attachments/<KEY>/`에 떨어지고 매니페스트의 `path`가 실제 위치를 알려준다(`--out DIR`로 변경 가능). **재현 절차가 comment·첨부에만 있는 이슈가 많으니 둘 다 읽어라.** 단 스킬은 이 명령들을 직접 부르지 않고 `~/.cubrid-agent/bin/ground-issue.sh <KEY>` 하나를 쓴다(§7).
    - **버전**: semver가 없어서(전부 `1.0.0`) "최신"은 git HEAD를 뜻한다. **최소선은 2026-07-29 머지분** — 그 전 설치본은 `attachment` 서브커맨드가 없고(스킬 지시가 `invalid choice`로 실패) **인증 읽기**도 없다(CUBRIDQA 등 비공개 프로젝트에서 HTTP 401). **그 위로는 날짜로 고르지 말고 그냥 최신을 쓴다** — 2026-07-30에 두 건이 두 시간 간격으로 머지돼 "07-30 머지분"으로는 구분이 안 된다. 최신이 사는 것: 낡은 pandoc에서 본문이 빈칸이 되지 않고, 잘못된 비밀번호로 401이 났을 때 CLI가 **첫 시도에서 멈춘다**(그 전에는 관련 이슈마다 재전송해 CAPTCHA 잠금을 유발). 갱신은 `uv tool upgrade cubrid-jira`.
 2. **gh** — Rocky/RHEL 8 계열(dnf). Debian/Ubuntu는 apt, 그 외 [cli.github.com/manual](https://cli.github.com/manual) 참조.
    ```bash
@@ -119,7 +119,7 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --install-clis
 
 이슈 한 건이 **30분~1시간+** 걸린다(2026-07-30 실측 62분, 라운드 구조 개선 후 30분대 목표 — 재계측 전). 절반은 CTP 실행 대기이고, CTP 세션 하나가 기동에만 ~85초를 쓴다. 멈춘 게 아닌지는 산출물이 순서대로 생기는지로 본다:
 
-`reports/author-testcase/_queue-<날짜>.md`(Select 끝) → `<KEY>/issue.md`(Ground) → `<KEY>/s*.log`(CTP: 답지 생성→결정성→CCI→fail→pass) → `<KEY>/manifest.json`(게이트 기록) → `reports/author-testcase/<KEY>.md`(리포트). 전부 `~/.cubrid-agent/` 아래다.
+`reports/author-testcase/_queue-<날짜>.md`(Select 끝) → `<KEY>/issue.txt`+`<KEY>/attachments/`(Ground) → `<KEY>/s*.log`(CTP: 답지 생성→결정성→CCI→fail→pass) → `<KEY>/manifest.json`(게이트 기록) → `reports/author-testcase/<KEY>.md`(리포트). 전부 `~/.cubrid-agent/` 아래다.
 
 ### 끝난 뒤 — 결과 읽기
 
@@ -161,6 +161,7 @@ jq '{verify: .verify.status, review: .review.verdict, submitted,
 - **부품 스킬** — 이 repo `skills/qa/`에 소스로 들어 있다(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 플러그인은 로드하지 않으므로 `npx skills add` 채널로 개별 설치(§0 표 아래 주석).
 - **스킬 자기완결**(D8) — 스킬·hook은 `docs/`를 런타임 참조하지 않는다. review-testcase 연료(few-shot bank·카탈로그)는 스킬 `references/`에 내장.
 - **hook 하드 게이트**([`hooks/`](../hooks/)) — `gate-pr-submit`(제출 차단)·`lint-sql-tc`(린트→manifest)·`gate-stop`(리마인드).
+- **이슈 grounding = 명령 하나**, `~/.cubrid-agent/bin/ground-issue.sh <KEY>` (setup이 깐다) — 본문+**전체 코멘트**를 `<KEY>/issue.txt`로, 첨부 전체를 `<KEY>/attachments/`로 내려받고 **내용 기준으로** 분류해 읽을 것을 알려준다(`read`/`view`/못 읽으면 `unread`+사유). 스킬이 산문으로 갖고 있던 규칙 — `search` 금지(pandoc), mimeType 불신, 압축 풀기, PDF는 `pdftotext` 필요 — 이 스크립트 한 곳에 있다. 스킬은 절대경로로 부르므로 **헬퍼가 바뀌면 setup을 다시 돌려야** 새 사본이 깔린다.
 - **run 디렉토리 = `~/.cubrid-agent/<KEY>/`** (`CBRD-XXXXX`, review-testcase는 `PR-NNNN`) — 실행 하나가 남기는 것은 TC 자체를 빼고 **전부 여기**다. manifest(`manifest.json`, 스키마 [`scripts/manifest.example.json`](../scripts/manifest.example.json))가 이미 여기 있고 hook 둘(`lint-sql-tc`·`gate-pr-submit`)이 이 경로를 찾는다. 스킬은 홈이나 현재 디렉토리에 쓰지 않고, 없던 디렉토리를 새로 만들지도 않는다(`~/scratchpad…` 같은 것 — 사람 파일과 구분이 안 된다). **실행이 끝나도 지우지 않는다** — 실패한 실행의 잔여물이 진단 자료다. 리포트는 `reports/<스킬>/`, worktree는 `worktrees/`에 따로 둔다.
 - **CCI 교차 검증**(author-testcase Verify) — 원본 `$CTP_HOME/conf/sql_by_cci.conf`로 `run_cci`, 기본 sql(JDBC) 출력과 다르면 `.answer_cci`.
 

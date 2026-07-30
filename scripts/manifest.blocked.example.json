@@ -2,6 +2,8 @@
   "_comment": "Blocked run: authored and committed, but Verify could not run on this machine. verify.status=blocked_* + verify.note + a written report is the sanctioned 'cannot verify' terminal state — gate-stop stops reminding, and gate-pr-submit still refuses to submit.",
   "issue": "CBRD-26799",
   "select": { "issue_type": "Correct Error" },
+  "ground": { "comments": 4, "attachments": { "total": 2, "read": 1, "images": 0,
+    "unread": [ { "filename": "design.pdf", "reason": "PDF and no pdftotext (poppler-utils) to extract it — its contents are unknown, do not guess them from the name" } ] } },
   "branch": "tc/cbrd-26799",
   "build": null,
   "submitted": false,

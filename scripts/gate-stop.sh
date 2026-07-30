@@ -14,6 +14,10 @@ stuck=""
 for m in "$DIR"/CBRD-*/manifest.json; do
   [ -f "$m" ] || continue
   [ "$(jq -r '.submitted // false' "$m" 2>/dev/null)" = true ] && continue
+  # Grounding alone is not an in-flight TC run. ground-issue.sh writes a manifest for every issue it
+  # grounds — including each candidate a Select sweep screened and discarded — and those have no gate
+  # to close, so reminding about them would be permanent noise.
+  jq -e 'has("author") or has("verify") or has("review")' "$m" >/dev/null 2>&1 || continue
   key=$(jq -r '.issue // "?"' "$m" 2>/dev/null)
   # Sanctioned "cannot verify" terminal state (e.g. no fix-including build on this machine):
   # verify.status=blocked_* plus a note plus a written report. Those gates can never close, so

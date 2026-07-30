@@ -124,13 +124,18 @@ done
 # ---------------------------------------------------------------------------
 group "Rules that must hold in EVERY skill, not most of them"
 
-# CUBRIDQA-1478: ground on the raw read. `--output json` next to a jql call is the marker.
+# CUBRIDQA-1478: ground on the pandoc-free read, never on `cubrid-jira search` — an old pandoc
+# without the `jira` reader hands back a degraded or empty body with a SUCCESS exit, so the skill
+# cannot tell a blank description from a real one. Two ways to satisfy it now: call ground-issue.sh
+# (which does the raw read itself) or keep the inline `jql … --output json`. The migrated skills use
+# the first, the not-yet-migrated ones the second — both are checked, neither is optional.
 _bad=0
 for f in $ISSUE_READERS; do
-  if grep -q 'jql' "$f" && grep -q -- '--output json' "$f"; then :
-  else fail "$f reads an issue without the raw \`jql ... --output json\` path"; _bad=$((_bad+1)); fi
+  if grep -q 'ground-issue.sh' "$f"; then :
+  elif grep -q 'jql' "$f" && grep -q -- '--output json' "$f"; then :
+  else fail "$f reads an issue without a pandoc-free path (ground-issue.sh, or inline \`jql ... --output json\`)"; _bad=$((_bad+1)); fi
 done
-[ "$_bad" -eq 0 ] && pass "all $(printf '%s\n' $ISSUE_READERS | wc -l | tr -d ' ') issue-reading skills use the raw read"
+[ "$_bad" -eq 0 ] && pass "all $(printf '%s\n' $ISSUE_READERS | wc -l | tr -d ' ') issue-reading skills use the pandoc-free read"
 
 # CUBRIDQA-1480: an orchestrator with no work-directory instruction invents one in $HOME.
 _bad=0
@@ -153,13 +158,44 @@ for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell 
 done
 [ "$_bad" -eq 0 ] && pass "every header-documenting create-* skill bounds both header scope and size"
 
-# CUBRIDQA-1443: the attachment rule reached 4 of 12 skills and nobody noticed.
+# CUBRIDQA-1443: the attachment rule reached 4 of 12 skills and nobody noticed. Restating it per
+# skill is what let it drift, so a skill now satisfies this by delegating to ground-issue.sh —
+# which classifies by content and reports what it could not read — or, until it is migrated, by
+# carrying the hand-run rule. Accepting either keeps the guarantee while the migration is partial.
 _bad=0
 for f in skills/qa/create-*/SKILL.md; do
-  grep -q 'attachment <KEY>' "$f" \
+  grep -q 'ground-issue.sh' "$f" || grep -q 'attachment <KEY>' "$f" \
     || { fail "$f is missing the mandatory attachment-reading rule"; _bad=$((_bad+1)); }
 done
 [ "$_bad" -eq 0 ] && pass "every create-* skill carries the attachment rule"
+
+# The grounding helper is invoked by absolute path (~/.cubrid-agent/bin/), so the only thing that
+# puts it there is setup.sh. Three ways this breaks silently, all checked: the helper is referenced
+# but absent from the source dir; it is present but setup.sh never installs it; or setup.sh installs
+# it under a name no skill calls. Any of them is a hard runtime failure in every skill that grounds.
+_helper_src=skills/qa/setup-cubrid-agent/scripts/ground-issue.sh
+_refs=$(grep -l 'bin/ground-issue.sh' skills/qa/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+_bad=""
+[ -f "$_helper_src" ] || _bad="$_bad missing-source($_helper_src)"
+[ -x "$_helper_src" ] || _bad="$_bad not-executable"
+grep -q 'for h in .*ground-issue.sh' skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad setup.sh-does-not-install-it"
+grep -q 'AGENT_DIR/bin' skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad no-bin-dir"
+[ "$_refs" -gt 0 ] || _bad="$_bad no-skill-calls-it"
+if [ -z "$_bad" ]; then
+  pass "ground-issue.sh ships in the setup skill, installs to ~/.cubrid-agent/bin/, and $_refs skill(s) call it there"
+else
+  fail "grounding helper wiring broken:$_bad — the skills call an absolute path that nothing puts on disk"
+fi
+
+# ground-issue.sh writes a manifest for every issue it grounds, including each candidate a Select
+# sweep screened and dropped. Without gate-stop's "grounding alone is not a run" guard, those become
+# permanent stop-reminders about issues nobody is working on — the coupling is invisible from either
+# file alone, which is why it is asserted here.
+if grep -q 'has("author") or has("verify") or has("review")' scripts/gate-stop.sh; then
+  pass "gate-stop ignores grounding-only manifests"
+else
+  fail "gate-stop lost its grounding-only guard — every issue ground-issue.sh touched would nag forever"
+fi
 
 # CUBRIDQA-1488 (DP5): a skill's judgment must not depend on agent memory. The host injects
 # CLAUDE.md and a memory dir whether we like it or not, so what is checkable is that no skill
