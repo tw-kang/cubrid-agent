@@ -67,7 +67,7 @@
 
 - **repo 비제품 문서 ~70파일/578KB → ~15파일.** thin ADR 5 + `.agents/` 규범 4 + `docs/` 런북 3 + `CONTEXT.md` + README/CHANGELOG. 나머지는 Jira/git.
 - **thin ADR 재번호** — `.agents/adr/`로 옮기며 0014/0015/0017/0018/0019 → 0001-0005 연속 시퀀스(전역 단일 시퀀스 규칙 폐기). 0018(개인 식별자 제거)은 배포 형태 결정이라 thin set에 포함. 참조는 Jira/git으로 이동하므로 재번호 비용 낮음.
-- **CLI(fix 브랜치)로 백필** — 설치된 `cubrid-jira`는 read를 익명 전송해 CUBRIDQA에서 401을 낸다. fix 브랜치 `feat/authenticated-reads`(= PR #3)의 CLI로 `update --from jira --yes`를 쓴다(curl 아님). 레시피는 `.agents/issue-tracker.md`의 임시 섹션. **PR #3 머지 시** 설치본 CLI가 바로 되고 그 섹션은 삭제.
+- **CLI(fix 브랜치)로 백필** — 당시 설치본 `cubrid-jira`는 read를 익명 전송해 CUBRIDQA에서 401을 냈으므로, fix 브랜치 `feat/authenticated-reads`(= PR #3)의 CLI로 `update --from jira --yes`를 썼다(curl 아님). **PR #3은 2026-07-29 머지됐고 설치본 CLI로 바로 되므로 그 임시 절은 삭제됐다** — 지금 남은 규약은 `.agents/issue-tracker.md`의 "CLI 최소 버전"(2026-07-29 머지분 이상).
 - **실행은 별도 단계** — 이 ADR은 결정 기록이다. 파일 이동·삭제·`CONTEXT.md` 합성·Jira 백필은 `/to-spec → /to-tickets → /implement`(1454 하위)에서. Jira 백필은 `--yes` 안전판이 없는 PUT이라 티켓별 승인 후 전송.
 - **Track B(SKILL.md 런타임 토큰 다이어트)는 범위 밖** — evals 재검증이 필요해 별도 CUBRIDQA 티켓으로 분리.
 - **언어 정책 유지** — 잔존 문서는 한글(팀용), 제품은 영문.
