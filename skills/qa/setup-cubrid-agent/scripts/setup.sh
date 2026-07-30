@@ -172,7 +172,7 @@ if [ -n "$BUILD_URL" ]; then
 elif [ -d "$HOME/CUBRID" ]; then
   ok "CUBRID present: \$HOME/CUBRID (whether it contains the target issue's fix is checked by the pipeline)"
 else
-  todo "no CUBRID build — setup --build <url> (build server 192.168.1.91:8080; not needed unless using CTP skills)"
+  todo "no CUBRID build — setup --build <url> (build server 192.168.1.91:8080, URL shape http://192.168.1.91:8080/REPO_ROOT/store_01/<version>/drop/CUBRID-<version>-Linux.x86_64.sh; list store_01/ first, old builds get pruned and a version named in an issue may already be 404. Not needed unless using CTP skills)"
 fi
 
 # --- Tier 3 CLI installs. Only reached with --install-clis, i.e. after the skill got a yes. -------
@@ -302,6 +302,11 @@ fi
 if [ "$LOCAL_BIN_ON_PATH" -eq 0 ] && { [ -x "$HOME/.local/bin/pandoc" ] || [ -x "$HOME/.local/bin/cubrid-jira" ]; }; then
   todo "~/.local/bin is not on your PATH, so the tools installed there are invisible to a new shell — add: export PATH=\"\$HOME/.local/bin:\$PATH\" to ~/.bashrc"
 fi
+# PDF attachments: the mandatory "read every attachment" rule cannot be met without a text
+# extractor — the Read tool cannot render a PDF either. Checked, not installed: it needs root and
+# is outside the three CLIs this script installs, so the operator decides (CUBRIDQA-1488).
+if command -v pdftotext >/dev/null; then ok "pdftotext (PDF attachments readable)"
+else todo "pdftotext missing — a PDF attachment will be recorded as unread instead of read: sudo dnf install -y poppler-utils (Debian/Ubuntu: sudo apt install poppler-utils)"; fi
 if [ -n "${CUBRID_JIRA_USER:-}" ] && [ -n "${CUBRID_JIRA_PASSWORD:-}" ]; then ok "jira credentials (env — standard)"
 elif [ -n "$QA_USER" ] && grep -qs 'jira\.cubrid\.org' "$HOME/.netrc"; then ok "jira credentials (.netrc — also allowed; user=$QA_USER)"
 else todo "jira credentials — export CUBRID_JIRA_USER/CUBRID_JIRA_PASSWORD (or ~/.netrc with a 'login <user>' token)"; fi

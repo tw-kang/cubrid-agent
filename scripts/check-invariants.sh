@@ -161,6 +161,20 @@ for f in skills/qa/create-*/SKILL.md; do
 done
 [ "$_bad" -eq 0 ] && pass "every create-* skill carries the attachment rule"
 
+# CUBRIDQA-1488 (DP5): a skill's judgment must not depend on agent memory. The host injects
+# CLAUDE.md and a memory dir whether we like it or not, so what is checkable is that no skill
+# *instructs* reading or writing them: knowledge a judgment needs belongs in the skill body,
+# references/, env.sh or the manifest, where a PR can review it. Currently zero — this keeps it
+# zero. `memory` also appears legitimately (broker shared memory, an OOM quote), so match the
+# instruction shapes, not the bare word.
+_mem=$(grep -rlniE '(read|write|check|update|consult|save)[^.]{0,40}(agent |project )?memory|memory (tool|file|dir)|~/\.claude/(CLAUDE\.md|memory)|\.omc/|notepad' \
+  skills/qa/*/SKILL.md 2>/dev/null | sort -u)
+if [ -z "$_mem" ]; then
+  pass "no skill instructs the agent to depend on memory (DP5)"
+else
+  fail "these skills reference agent memory — move the knowledge into the skill body, references/, env.sh or the manifest (DP5, CUBRIDQA-1488): $(printf '%s' "$_mem" | tr '\n' ' ')"
+fi
+
 # CUBRIDQA-1486: the TC's directory is create-sql's call. The orchestrator hardcoded it once and
 # every TC went to the wrong tree, so two things must stay true: author-testcase defers instead of
 # pinning a path, and it records the two issue facts the placement check needs. Checking that the
