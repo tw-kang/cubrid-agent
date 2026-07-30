@@ -20,7 +20,7 @@ CUBRID 사내 규칙이라 취향이 아니다.
 - **PR 제목**: 항상 **영어**, `[CUBRIDQA-XXXX]`로 시작(엔진 repo는 `[CBRD-XXXXX]`).
 - **`CUBRID/cubrid-testcases`에는 PR 템플릿이 없다.** TC PR 본문은 사람이 짜지 않는다 — `author-testcase`의 Submit 절이 부르는 `render-pr-body.sh`가 manifest와 `.sql`에서 만든다.
 - **head→base**: `$FORK:<branch>` → `CUBRID/<repo>:develop`. `$FORK`는 `$CUBRID_GH_FORK` 또는 `gh api user --jq .login`으로 **런타임에 구한다 — 사람 이름을 박지 않는다**(`.agents/adr/0004-remove-personal-identity-hardcoding.md`).
-- **커밋 메시지**도 `[CUBRIDQA-XXXX]`로 태깅한다.
+- **커밋 메시지**도 `[CUBRIDQA-XXXX]`로 태깅하되 **그 일을 실제로 소유한 티켓**을 쓴다. 편의로 한 티켓에 몰지 않는다 — 티켓 남발의 반대 실수이고 추적성은 똑같이 깨진다. 규범·프로젝트 룰 변경은 CUBRIDQA-1491(상시).
 - **Jira 쓰기**는 `cubrid-jira`로 하고 **`--yes`가 없으면 dry-run**이다. `--description-file`은 기존 description을 **replace**한다(history엔 남는다). 쓰기 전에 dry-run 출력과 로컬 파일을 대조하라 — CLI가 한글과 인라인 마크업 사이에 공백을 넣는다.
 - **CBRD 이슈 description은 권고이지 강제가 아니다.** 공식 템플릿은 존재하지 않는다(10년치 CBRD에 정의한 티켓 0건). 관례만 있다 — 버그는 `Repro`·`Expected Result`·`Actual Result`·`Test Build`, 그 외는 `Description`·`Implementation`·`Specification Changes`·`Acceptance Criteria`·`Definition of Done`. 채택률이 41~76%라 강제하면 CBRD 자신보다 엄격해진다. CBRD가 실제로 요구하는 것은 절 구조가 아니라 **description만 읽고 무엇이 바뀌었는지 이해되는 자립성**이다(`docs/dev-process.md` p17). 참고: 일부 이슈의 `{anchor:...}` 절은 템플릿이 아니라 **AI 도구가 남긴 흔적**이니 따라 쓰지 마라.
 
