@@ -20,10 +20,11 @@
 /
 ├── CONTEXT.md                 ← 단일 용어집 + 파이프라인 지도 = 진입점
 ├── .agents/
-│   ├── adr/                   ← 제품·저장소 형태 결정 (thin, 0001–0005)
+│   ├── adr/                   ← 제품·저장소 형태 결정 (thin, 0001–0006)
 │   ├── design-principles.md
 │   ├── issue-tracker.md  triage-labels.md  domain.md
 ├── docs/                      ← 사람용 런북 (setup·deployment·dev-process)
+├── skills/in-progress/        ← 배포 안 하는 스킬 — 여기서 개발, 완성되면 qa로 승격 (ADR 0006)
 └── .claude-plugin/ · skills/qa/ · hooks/ · scripts/   ← 제품(배포되는 전부)
 
 # 에이전트 상세 설계(DESIGN·방법론 ADR)는 repo가 아니라 Jira(CUBRIDQA) 티켓에 산다.

@@ -35,17 +35,19 @@ Plugin skills are namespaced, so `/cubrid-agent:<skill>` is the canonical name a
 the one autocomplete offers. The bare `/<skill>` also reaches it unless another
 command already claims that name.
 
-**The plugin loads six skills, not all 22.** Files for all 22 ship, but
-`plugin.json` declares six skill paths and the default `skills/` scan does not
-recurse into `skills/qa/`, so an install loads exactly those six — the 16 component
-skills are absent from the session, not lazily loaded. `claude plugin details
-cubrid-agent` prints what an install actually loaded and its always-on token cost.
-To use a component skill, install it through the `skills` CLI channel below.
+**The plugin loads six skills, not all 22 — and the directory says which.**
+`skills/qa/` holds the shipped set and nothing else: every directory there is
+declared in `plugin.json`, and those six are what an install loads. `skills/in-progress/`
+holds the 16 component skills, still being built; they are absent from the session,
+not lazily loaded. A skill is promoted by moving it into `skills/qa/` and adding its
+`plugin.json` line in the same commit. `claude plugin details cubrid-agent` prints
+what an install actually loaded and its always-on token cost. To use a component
+skill anyway, install it through the `skills` CLI channel below.
 
 ### Other CLIs (agent skills)
 
-Skills live in the catalog layout `skills/qa/<name>/SKILL.md`, which the `skills`
-CLI discovers directly from GitHub — no publish step:
+Skills keep the catalog layout `skills/<tree>/<name>/SKILL.md`, which the `skills`
+CLI discovers directly from GitHub — no publish step, and both trees are found:
 
 ```bash
 # one skill into one or more agents (project scope by default)
@@ -119,8 +121,10 @@ The plugin does not load these — install one with
 
 ```
 .claude-plugin/    plugin.json + marketplace.json (source "./")
-skills/qa/         22 skills on disk, catalog layout; plugin.json declares 6
-                   (1 setup + 5 pipeline), the other 16 ship via the skills CLI
+skills/qa/         the shipped set — 6 skills (1 setup + 5 pipeline), each one
+                   declared in plugin.json
+skills/in-progress/ 16 component skills, not shipped; promoted into skills/qa/
+                   when done. Reachable through the skills CLI channel
 hooks/hooks.json   quality-gate hook config
 scripts/           hook scripts, addressed via ${CLAUDE_PLUGIN_ROOT},
                    plus check-invariants.sh (dev-only, run by CI)

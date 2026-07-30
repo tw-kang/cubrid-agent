@@ -10,7 +10,7 @@ cubrid-agent를 팀원 머신과 k8s pod에 배포하는 구조의 정본. 실�
 
 | Tier | 정의 | 자산 | 전달 |
 |---|---|---|---|
-| **1. clone이 나른다** | git 버전관리 | cubrid-agent 루트 플러그인 — **자기완결** 스킬 22종 `skills/qa/`(연료 포함, 별도 repo 없음 — ADR 0001) + hook `hooks/`+`scripts/` + 매니페스트 `.claude-plugin/`. **파일은 22종이 다 오지만 플러그인이 로드하는 건 `plugin.json` 등재분 6종**(setup 1 + 파이프라인 5)이고, 부품 16종은 `npx skills add` 채널 전용이다. `docs/`는 dev-only — 실행에 불필요 | `git clone` 또는 `claude plugin install` |
+| **1. clone이 나른다** | git 버전관리 | cubrid-agent 루트 플러그인 — **자기완결** 스킬 22종(연료 포함, 별도 repo 없음 — ADR 0001) + hook `hooks/`+`scripts/` + 매니페스트 `.claude-plugin/`. **파일은 22종이 다 오지만 로드는 `skills/qa/`의 6종**(setup 1 + 파이프라인 5 = `plugin.json` 등재분)이고, `skills/in-progress/`의 부품 16종은 `npx skills add` 채널 전용이다([ADR 0006](../.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)). `docs/`는 dev-only — 실행에 불필요 | `git clone` 또는 `claude plugin install` |
 | **2. 스크립트가 만든다** | 재현 가능한 머신 상태 — **`$HOME` 표준 배치** | `~/cubrid-testcases`(+`fork` 리모트)·`~/cubrid`·CTP(`~/cubrid-testtools/CTP`), `~/.cubrid-agent/`(env.sh·manifest·reports·worktrees), (옵션) `$HOME/CUBRID` 빌드. **conf 사본 불필요** — CTP 원본 conf가 이미 `scenario=${HOME}/cubrid-testcases/sql`·비기본 포트 | **`/cubrid-agent:setup-cubrid-agent`** (= `skills/qa/setup-cubrid-agent/scripts/setup.sh`, 멱등·비대화식, 기존 clone 불가침 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) |
 | **3. 사람이 넣는다** | 자격 — repo 금지 | cubrid-jira 자격, gh 인증 | env(표준) 또는 .netrc/`gh auth login` |
 
@@ -18,7 +18,7 @@ cubrid-agent를 팀원 머신과 k8s pod에 배포하는 구조의 정본. 실�
 
 | # | 결정 | 내용 |
 |---|---|---|
-| D1 | 부품 스킬 전달 | **repo에 내장** — 흡수(ADR 0001)로 스킬 22종(setup 1 + 파이프라인 5 + 부품 16)이 `skills/qa/`에 포함. clone/플러그인 설치가 곧 **파일** 전달 — 별도 clone·심링크 불필요. 단 **로드**는 등재분 6종만이며 부품 16종은 `npx skills add`로 깔아야 스킬로 뜬다 |
+| D1 | 부품 스킬 전달 | **repo에 내장** — 흡수(ADR 0001)로 스킬 22종이 포함되고, 배포분 6종(setup 1 + 파이프라인 5)은 `skills/qa/`, 부품 16종은 `skills/in-progress/`에 나뉜다(ADR 0006). clone/플러그인 설치가 곧 **파일** 전달 — 별도 clone·심링크 불필요. 단 **로드**는 `skills/qa/`의 6종만이며 부품 16종은 `npx skills add`로 깔아야 스킬로 뜬다 |
 | D2 | setup.sh 범위 | **이슈무관 상태 전부 + 빌드는 `--build <url>` 옵션**. 신뢰 빌드는 이슈 의존이라 setup에 고정 불가 — 이슈별 빌드 교체는 파이프라인(verify)이 담당 |
 | D3 | 경로 규약 | **`$HOME` 규약 + 자동탐지** — CUBRID=`$HOME/CUBRID`(소켓 108자 충족), JDK는 javac에서 탐지. 새 환경변수 도입 안 함 |
 | D4 | 자격 표준 | **env 표준**(`CUBRID_JIRA_USER/PASSWORD`, `GH_TOKEN`) — cubrid-jira의 에이전트 권장 순서와 일치. 팀원 머신은 .netrc·`gh auth login` 병행 허용, **pod는 Secret→env만** |

@@ -21,11 +21,16 @@ group() { printf '\n== %s ==\n' "$1"; }
 pass()  { printf '  ok   %s\n' "$1"; }
 fail()  { printf '  FAIL %s\n' "$1"; FAILED=$((FAILED+1)); }
 
+# Skills live in two trees (ADR 0006): skills/qa/ is the shipped set — every directory there is
+# registered in plugin.json — and skills/in-progress/ is what is still being built. Rule checks
+# below glob `skills/*/` so they sweep BOTH: a skill has to be conformant before promotion, or
+# promotion becomes a fix-up round. Only checks about the shipped set itself name skills/qa/.
+
 # The skills that read a CBRD issue. Each must ground on the raw JSON read, never on
 # `cubrid-jira search`, whose markdown goes through pandoc: on a pandoc without the jira
 # reader it came back empty with a success exit (fixed upstream 2026-07-30 to fall back to
 # raw markup, but an installed CLI is only as new as its last upgrade).
-ISSUE_READERS=$(printf '%s\n' skills/qa/create-*/SKILL.md skills/qa/verify-*/SKILL.md \
+ISSUE_READERS=$(printf '%s\n' skills/*/create-*/SKILL.md skills/*/verify-*/SKILL.md \
   skills/qa/author-testcase/SKILL.md skills/qa/gate-resolved/SKILL.md \
   skills/qa/review-testcase/SKILL.md)
 
@@ -197,6 +202,27 @@ for n in $_advertised; do
     || fail "docs advertise /cubrid-agent:$n but plugin.json does not declare it — the command does not exist"
 done
 
+# The directory IS the answer to "does this ship?" (ADR 0006, CUBRIDQA-1492): skills/qa/ holds the
+# shipped set and nothing else, skills/in-progress/ holds what is still being built. Before the
+# split, all 22 skills sat in skills/qa/ and only the manifest knew which 6 loaded — which is how
+# docs came to advertise skills the plugin never loads (CUBRIDQA-1472). Promotion is one move plus
+# one manifest line; this check is what makes forgetting either half fail loudly.
+_split=""
+for s in $_declared; do
+  case "$s" in ./skills/qa/*|skills/qa/*) ;; *) _split="$_split declared-outside-qa($s)" ;; esac
+done
+for d in skills/qa/*/; do
+  d=${d%/}; printf '%s\n' "$_declared" | grep -qx "\./$d" || _split="$_split in-qa-but-unregistered($(basename "$d"))"
+done
+for d in skills/in-progress/*/; do
+  d=${d%/}; printf '%s\n' "$_declared" | grep -qx "\./$d" && _split="$_split in-progress-but-registered($(basename "$d"))"
+done
+if [ -z "$_split" ]; then
+  pass "skills/qa/ is exactly the registered set ($(printf '%s\n' "$_declared" | wc -l | tr -d ' ')), skills/in-progress/ ($(ls -d skills/in-progress/*/ 2>/dev/null | wc -l | tr -d ' ')) ships nothing"
+else
+  fail "the shipped/in-progress split is broken:$_split — promote by moving into skills/qa/ AND adding the plugin.json line, in one commit"
+fi
+
 # ---------------------------------------------------------------------------
 group "Rules that must hold in EVERY skill, not most of them"
 
@@ -227,10 +253,13 @@ done
 # only "header" is a C/Java include, not an artifact comment block.
 _bad=0
 for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell create-isolation; do
-  grep -q 'describes the test, not the run' "skills/qa/$f/SKILL.md" \
-    || { fail "skills/qa/$f/SKILL.md documents a header but not what the header is not for"; _bad=$((_bad+1)); }
-  grep -q 'within 20 lines' "skills/qa/$f/SKILL.md" \
-    || { fail "skills/qa/$f/SKILL.md documents a header but not the 20-line scannability bound"; _bad=$((_bad+1)); }
+  # The rule follows the skill, not the tree: create-sql ships, the other five are in-progress.
+  _p=$(ls -d skills/*/"$f"/SKILL.md 2>/dev/null | head -1)
+  [ -n "$_p" ] || { fail "$f is named by this check but exists in neither skills tree"; _bad=$((_bad+1)); continue; }
+  grep -q 'describes the test, not the run' "$_p" \
+    || { fail "$_p documents a header but not what the header is not for"; _bad=$((_bad+1)); }
+  grep -q 'within 20 lines' "$_p" \
+    || { fail "$_p documents a header but not the 20-line scannability bound"; _bad=$((_bad+1)); }
 done
 [ "$_bad" -eq 0 ] && pass "every header-documenting create-* skill bounds both header scope and size"
 
@@ -239,7 +268,7 @@ done
 # which classifies by content and reports what it could not read — or, until it is migrated, by
 # carrying the hand-run rule. Accepting either keeps the guarantee while the migration is partial.
 _bad=0
-for f in skills/qa/create-*/SKILL.md; do
+for f in skills/*/create-*/SKILL.md; do
   grep -q 'ground-issue.sh' "$f" || grep -q 'attachment <KEY>' "$f" \
     || { fail "$f is missing the mandatory attachment-reading rule"; _bad=$((_bad+1)); }
 done
@@ -249,7 +278,7 @@ done
 # puts it there is setup.sh. Three ways this breaks silently, all checked: the helper is referenced
 # but absent from the source dir; it is present but setup.sh never installs it; or setup.sh installs
 # it under a name no skill calls. Any of them is a hard runtime failure in every skill that grounds.
-_refs=$(grep -l 'bin/ground-issue.sh' skills/qa/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+_refs=$(grep -l 'bin/ground-issue.sh' skills/*/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
 _bad=""
 for _h in ground-issue.sh render-pr-body.sh; do
   _src="skills/qa/setup-cubrid-agent/bin/$_h"
@@ -288,7 +317,7 @@ fi
 #
 # So match memory ARTIFACTS and the one semantic shape that bit us (a cached verdict), not the bare
 # word: "frees broker shared memory" and an OOM quote must stay clean.
-_mem_scope=$(git ls-files 'skills/qa/*/SKILL.md' 'skills/qa/*/references/*.md' 'skills/qa/*/evals/*.json')
+_mem_scope=$(git ls-files 'skills/*/*/SKILL.md' 'skills/*/*/references/*.md' 'skills/*/*/evals/*.json')
 _mem=$(grep -lEi \
   -e '~/\.claude/|CLAUDE\.md|MEMORY\.md' \
   -e '(auto|project|agent|session|persistent)[- ]memor(y|ies)' \
@@ -343,9 +372,9 @@ fi
 # DP7 measures skill body size instead of capping it — size alone cannot separate a body that is
 # long because the domain is, from one that is long because nobody cut it. The number belongs in
 # front of whoever reviews the next change to it.
-_sizes=$(for f in $(git ls-files 'skills/qa/*/SKILL.md'); do printf '%s %s\n' "$(wc -c < "$f")" "$f"; done | sort -rn)
+_sizes=$(for f in $(git ls-files 'skills/*/*/SKILL.md'); do printf '%s %s\n' "$(wc -c < "$f")" "$f"; done | sort -rn)
 _total=$(printf '%s\n' "$_sizes" | awk '{s+=$1} END {printf "%d", s/1024}')
-_top=$(printf '%s\n' "$_sizes" | head -1 | awk '{printf "%s (%dKB)", $2, $1/1024}' | sed 's|skills/qa/||;s|/SKILL.md||')
+_top=$(printf '%s\n' "$_sizes" | head -1 | awk '{printf "%s (%dKB)", $2, $1/1024}' | sed 's|skills/[a-z-]*/||;s|/SKILL.md||')
 pass "skill bodies: $(printf '%s\n' "$_sizes" | wc -l | tr -d ' ') files, ${_total}KB total, largest $_top — no cap, DP7 measures only"
 
 # ---------------------------------------------------------------------------
@@ -373,7 +402,7 @@ else
       fail "$f description is $_len characters (> 1024, the Agent Skills spec limit)"; _bad=$((_bad+1))
     fi
   done <<EOF
-$(git ls-files 'skills/qa/*/SKILL.md')
+$(git ls-files 'skills/*/*/SKILL.md')
 EOF
   [ "$_bad" -eq 0 ] && pass "every skill description is within the spec's 1024-character limit"
 fi

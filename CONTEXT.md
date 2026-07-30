@@ -34,16 +34,16 @@ author-testcase ─Draft PR─► [review-testcase 심사 ─► 사람 approve�
 | **test-runner** | Test→Tested (`Verify`) | 머지된 신규 TC가 야간 회귀에서 연속 2일 안정 PASS하는지 baseline 델타로 판독해 승격을 권고하는 판독형 | [CUBRIDQA-1444](https://jira.cubrid.org/browse/CUBRIDQA-1444) |
 | **close-backport** | Tested→Closed / Backport (`Close` / `Need Backport`) | 종결 또는 백포트. 스위트 전체 회귀 무결(내 머지가 다른 TC를 깼는가)까지 확인 | 설계 전 — 부모 [CUBRIDQA-1425](https://jira.cubrid.org/browse/CUBRIDQA-1425) |
 
-스킬 이름 = 에이전트 이름. 구현체는 `skills/qa/<name>/`.
+스킬 이름 = 에이전트 이름. 구현체는 배포분이면 `skills/qa/<name>/`, 아직 배포하지 않는 것이면 `skills/in-progress/<name>/`([ADR 0006](.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)).
 
 ## 저장소 배치
 
 [ADR 0005](.agents/adr/0005-repo-is-product-design-lives-in-jira.md)에 따라 문서를 "배포되는가·누가 읽는가"로 나눈다.
 
-- **루트 플러그인 = 제품(배포되는 전부):** `.claude-plugin/` · `skills/qa/` · `hooks/` · `scripts/`. 저장소의 존재 이유.
+- **루트 플러그인 = 제품(배포되는 전부):** `.claude-plugin/` · `skills/qa/` · `hooks/` · `scripts/`. 저장소의 존재 이유. **`skills/qa/`는 `plugin.json` 등재분과 정확히 일치**하고, 아직 배포하지 않는 스킬은 `skills/in-progress/`에서 개발한다 — 완성되면 이동+등재로 승격한다([ADR 0006](.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)).
 - **`.agents/` = 에이전트용 규범(횡단) + thin ADR:**
   - 규범: `design-principles.md`(DP1 병렬 실행, **DP2 사용자 관점·블랙박스 테스트**, DP3 언어 정책), `issue-tracker.md`, `triage-labels.md`, `domain.md`.
-  - **thin ADR set** (`.agents/adr/`): "제품·저장소가 왜 이 모양인가"만 담는다 — ship-as-plugin, dual-channel 배포, setup-entrypoint 스킬, 개인 식별자 제거, 이 doc-strategy(repo=제품·설계=Jira). `.agents/adr/`로 옮기며 **0001–0005로 재번호**했고, 옛 전역 단일 시퀀스 규칙은 폐기됐다.
+  - **thin ADR set** (`.agents/adr/`): "제품·저장소가 왜 이 모양인가"만 담는다 — ship-as-plugin, dual-channel 배포, setup-entrypoint 스킬, 개인 식별자 제거, 이 doc-strategy(repo=제품·설계=Jira), 배포분/개발 중 2트리. `.agents/adr/`로 옮기며 **0001–0005로 재번호**했고, 옛 전역 단일 시퀀스 규칙은 폐기됐다.
 - **`docs/` = 사람용 런북/참조:** 설치(setup), 배포 구조(deployment), 공식 dev-process. 외부 기여자는 제품 + 이 문서로 충분하다.
 - **루트 `CONTEXT.md`(이 파일):** 단일 용어집 + 파이프라인 지도. (구 `CONTEXT-MAP.md` + 에이전트별 `docs/agents/*/CONTEXT.md` ×5를 흡수·대체.)
 - **Jira(CUBRIDQA):** 에이전트·스킬 설계(DESIGN, 방법론 ADR, staging, hook-gates 설계). 역사는 git commit이 보존한다.
