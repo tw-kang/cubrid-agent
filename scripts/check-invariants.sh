@@ -279,7 +279,7 @@ done
 # but absent from the source dir; it is present but setup.sh never installs it; or setup.sh installs
 # it under a name no skill calls. Any of them is a hard runtime failure in every skill that grounds.
 _bad=""; _refs=0
-for _h in ground-issue.sh render-pr-body.sh verify-run.sh render-report.sh; do
+for _h in ground-issue.sh select-queue.sh render-pr-body.sh verify-run.sh render-report.sh; do
   _src="skills/qa/setup-cubrid-agent/bin/$_h"
   [ -f "$_src" ] || _bad="$_bad missing-source($_src)"
   [ -x "$_src" ] || _bad="$_bad not-executable($_h)"
@@ -433,6 +433,12 @@ done
 # (no --body-file, a hand-composed body, a leftover TODO, an unread case count) must deny.
 if _t=$(bash scripts/test-gate-pr-submit.sh 2>&1); then pass "submit gate behaves: $_t"
 else fail "submit gate test failed — run scripts/test-gate-pr-submit.sh:"; printf '         %s\n' "$_t"; fi
+
+# Select's screens get the same treatment for the opposite reason: they run FIRST, and a screen that
+# wrongly reports "nothing found" when the lookup failed sends two operators at the same TC. Only a
+# stubbed network can reach that path, so it is a behavioural test, not a grep.
+if _t=$(bash scripts/test-select-queue.sh 2>&1); then pass "select queue behaves: $_t"
+else fail "select queue test failed — run scripts/test-select-queue.sh:"; printf '         %s\n' "$_t"; fi
 
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"

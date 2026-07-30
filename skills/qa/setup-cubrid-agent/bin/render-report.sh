@@ -76,6 +76,23 @@ fi
 
   printf '## Select\n\n'
   printf -- '- 이슈 타입: %s · QA Scenario: %s · Planned version: %s\n' "$(u '.select.issue_type')" "$(u '.select.qa_scenario')" "$(u '.select.planned_version')"
+  # Queue basis: the manifest's frozen copy first, else the shared queue file — but only if that file
+  # still lists THIS key, since select-queue.sh overwrites it on every build and a stale queue would
+  # otherwise be cited as this run's basis. The fallback exists because the manifest copy is written
+  # only for the head candidate, and the `checks_incomplete` line is the one a reader must not lose:
+  # it says the already-processed screen was partial.
+  Q="$MANIFEST"
+  [ -n "$(m '.select.queue.summary')" ] || {
+    _qf="$HOME/.cubrid-agent/select-queue.json"
+    if [ -f "$_qf" ] && jq -e --arg k "$KEY" 'any(.queue[]?; .key == $k)' "$_qf" >/dev/null 2>&1; then
+      Q=$(mktemp) && jq '{select:{queue:.}}' "$_qf" > "$Q" 2>/dev/null
+    fi
+  }
+  _q=$(jq -r '.select.queue.summary // ""' "$Q" 2>/dev/null)
+  [ -n "$_q" ] && printf -- '- 큐: %s\n' "$_q"
+  jq -r '(.select.queue.dropped // [])[] | "  - 기계 제외: \(.key) — \(.reason)"' "$Q" 2>/dev/null
+  jq -r '(.select.queue.checks_incomplete // [])[] | "  - **스크리닝 불완전**: \(.)"' "$Q" 2>/dev/null
+  [ "$Q" != "$MANIFEST" ] && rm -f "$Q"
   _repro=$(m '.select.repro'); [ -n "$_repro" ] && printf -- '- repro 위치: %s\n' "$_repro"
   printf '\n## Ground\n\n'
   printf -- '- fix: %s\n' "$(u '.ground.fix_commit')"
