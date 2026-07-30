@@ -23,8 +23,8 @@
 #                                 [--timeout SECONDS] [--generate | --promote [--from PATH]]
 set -u
 
-USAGE='verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH] [--timeout SECONDS] [--generate|--promote [--from PATH]]'
-KEY=""; RUNS=3; CATEGORY=sql; TCPATH=""; TIMEOUT=900; GENERATE=0; PROMOTE=0; FROM=""
+USAGE='verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH] [--timeout SECONDS] [--generate|--promote [--from PATH]] [--no-manifest]'
+KEY=""; RUNS=3; CATEGORY=sql; TCPATH=""; TIMEOUT=900; GENERATE=0; PROMOTE=0; FROM=""; NORECORD=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --runs)     RUNS=${2:-3}; shift 2 ;;
@@ -34,6 +34,11 @@ while [ $# -gt 0 ]; do
     --generate) GENERATE=1; shift ;;
     --promote)  PROMOTE=1; shift ;;
     --from)     FROM=${2:-}; shift 2 ;;
+    # For a run whose result must NOT become the record: failpass-run.sh runs this testcase on a
+    # PRE-FIX build, where a Fail is the desired outcome. Recording it would delete verify.status and
+    # overwrite determinism with the deliberate failure — the submit gate would then read the pre-fix
+    # run as the verification.
+    --no-manifest) NORECORD=1; shift ;;
     -h|--help)  printf '%s\n' "$USAGE"; exit 0 ;;
     -*)         printf 'verify-run: unknown option: %s\n%s\n' "$1" "$USAGE" >&2; exit 1 ;;
     *)          KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
@@ -66,6 +71,7 @@ HAVE_JQ=0; command -v jq >/dev/null 2>&1 && HAVE_JQ=1
 # note carrying a quote would otherwise produce a malformed jq program and lose the whole record.
 patch_manifest() {  # patch_manifest <jq filter> [--arg k v ...]
   _filter=$1; shift
+  [ "$NORECORD" = 0 ] || return 0
   [ "$HAVE_JQ" = 1 ] || { printf '  (jq missing — manifest NOT updated; install jq and re-run)\n'; return 0; }
   [ -f "$MANIFEST" ] || printf '{}\n' > "$MANIFEST"
   jq "$@" "$_filter" "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST"

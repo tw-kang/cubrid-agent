@@ -279,7 +279,7 @@ done
 # but absent from the source dir; it is present but setup.sh never installs it; or setup.sh installs
 # it under a name no skill calls. Any of them is a hard runtime failure in every skill that grounds.
 _bad=""; _refs=0
-for _h in ground-issue.sh select-queue.sh render-pr-body.sh verify-run.sh render-report.sh; do
+for _h in ground-issue.sh select-queue.sh render-pr-body.sh verify-run.sh failpass-run.sh render-report.sh; do
   _src="skills/qa/setup-cubrid-agent/bin/$_h"
   [ -f "$_src" ] || _bad="$_bad missing-source($_src)"
   [ -x "$_src" ] || _bad="$_bad not-executable($_h)"
@@ -439,6 +439,13 @@ else fail "submit gate test failed — run scripts/test-gate-pr-submit.sh:"; pri
 # stubbed network can reach that path, so it is a behavioural test, not a grep.
 if _t=$(bash scripts/test-select-queue.sh 2>&1); then pass "select queue behaves: $_t"
 else fail "select queue test failed — run scripts/test-select-queue.sh:"; printf '         %s\n' "$_t"; fi
+
+# The build swap is the one helper that changes what the machine IS, and a half-finished swap leaves a
+# pre-fix engine installed while every later verify still reports green. Its test stubs the installer
+# and CTP so the four stranding paths — unreachable fixed build, an install that exits 0 without
+# installing, a failed restore, and a pre-fix result overwriting the record — are all reachable offline.
+if _t=$(bash scripts/test-failpass-run.sh 2>&1); then pass "fail→pass swap behaves: $_t"
+else fail "fail→pass test failed — run scripts/test-failpass-run.sh:"; printf '         %s\n' "$_t"; fi
 
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"
