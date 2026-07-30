@@ -33,7 +33,7 @@ cci=$(jq -r '.verify.cci.checked // false' "$MANIFEST")
 # so only pre-existing manifests lack them. Test for the key rather than writing
 # `.lint.header_scope // true` — jq's `//` substitutes for `false` as well as null, so that form
 # would turn a real violation into a pass, i.e. a check that cannot fail. It also matters for
-# `placement`, which the hook writes as **null** when Select did not record the issue facts needed
+# `placement`, which the hook writes as **null** when Select did not record the issue type needed
 # to decide: present-but-null must block (unverifiable placement is not a pass), while a manifest
 # that predates the check keeps passing.
 _dflt='def d(k): if ((.lint // {})|has(k)) then .lint[k] else true end;'

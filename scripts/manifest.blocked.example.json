@@ -1,7 +1,7 @@
 {
   "_comment": "Blocked run: authored and committed, but Verify could not run on this machine. verify.status=blocked_* + verify.note + a written report is the sanctioned 'cannot verify' terminal state — gate-stop stops reminding, and gate-pr-submit still refuses to submit.",
   "issue": "CBRD-26799",
-  "select": { "issue_type": "Correct Error", "fix_versions": [] },
+  "select": { "issue_type": "Correct Error" },
   "branch": "tc/cbrd-26799",
   "build": null,
   "submitted": false,

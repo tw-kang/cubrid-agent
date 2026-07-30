@@ -1,6 +1,6 @@
 {
   "issue": "CBRD-26799",
-  "select": { "issue_type": "Correct Error", "fix_versions": [] },
+  "select": { "issue_type": "Correct Error" },
   "branch": "tc/cbrd-26799",
   "build": "11.5.0.2300-04192d6",
   "submitted": false,
