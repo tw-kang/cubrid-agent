@@ -54,6 +54,8 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 
 즉 자동 갱신이 꺼진 상태로 오래 쓰면 옛 스킬이 돌면서도 눈치채기 어렵다. 실제 로드되는 위치는 마켓플레이스 clone이 아니라 버전으로 고정된 캐시(`~/.claude/plugins/cache/cubrid-agent/cubrid-agent/<커밋SHA>/`)이고, 어느 버전을 쓰는지는 `claude plugin list` 또는 `~/.claude/plugins/installed_plugins.json`으로 확인한다.
 
+**플러그인이 갱신되면 `/cubrid-agent:setup-cubrid-agent`를 한 번 더 돌려라.** 플러그인 갱신은 스킬 본문을 바꾸지만 `~/.cubrid-agent/bin/`의 헬퍼 사본은 그대로 둔다 — 새 스킬이 새 플래그(예: `verify-run.sh --generate`)를 부르면 옛 사본은 `unknown option`으로 죽는다. setup은 멱등이고 헬퍼를 항상 덮어쓰므로 재실행이 곧 갱신이다. 그 상황에 걸리면 헬퍼가 **스스로 그 사실을 말한다**("this installed copy is stale … run /setup-cubrid-agent").
+
 > ⚠️ `.claude-plugin/plugin.json`에 `version`을 **넣지 마라**. 생략하면 git 커밋 SHA가 버전이 되어 **매 커밋이 새 버전**으로 감지된다. semver를 넣는 순간 그 값을 올리지 않는 한 새 커밋이 전달되지 않는다.
 
 ## 2. 자격 (Tier 3 — 사람만, repo·스크립트에 넣지 않는다)

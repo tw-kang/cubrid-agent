@@ -29,7 +29,7 @@ while [ $# -gt 0 ]; do
     --run-dir) RUN_DIR="${2:?$USAGE}"; shift 2 ;;
     --refresh) REFRESH=1; shift ;;
     -h|--help) printf '%s\n' "$USAGE"; exit 0 ;;
-    -*)        printf 'ground-issue: unknown option: %s\n%s\n' "$1" "$USAGE" >&2; exit 1 ;;
+    -*)        printf 'ground-issue: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
     *)         KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
   esac
 done

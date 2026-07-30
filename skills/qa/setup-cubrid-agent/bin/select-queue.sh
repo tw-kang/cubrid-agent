@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
     --assignee) ASSIGNEE="${2:?$USAGE}"; shift 2 ;;
     --json)     AS_JSON=1; shift ;;
     -h|--help)  printf '%s\n' "$USAGE"; exit 0 ;;
-    *)          printf 'select-queue: unknown argument: %s\n%s\n' "$1" "$USAGE" >&2; exit 1 ;;
+    *)          printf 'select-queue: unknown argument: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
   esac
 done
 

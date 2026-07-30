@@ -40,7 +40,7 @@ while [ $# -gt 0 ]; do
     # run as the verification.
     --no-manifest) NORECORD=1; shift ;;
     -h|--help)  printf '%s\n' "$USAGE"; exit 0 ;;
-    -*)         printf 'verify-run: unknown option: %s\n%s\n' "$1" "$USAGE" >&2; exit 1 ;;
+    -*)         printf 'verify-run: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
     *)          KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
   esac
 done
