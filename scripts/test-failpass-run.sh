@@ -27,7 +27,7 @@ export CUBRID="$T/CUBRID"; mkdir -p "$CUBRID/bin" "$CUBRID/lib"
 cat > "$CUBRID/bin/cubrid_rel" <<'STUB'
 #!/bin/bash
 [ -s "$STATE/installed" ] || exit 1
-printf 'CUBRID 11.5 (%s) (64bit release build for linux)\n' "$(cat "$STATE/installed")"
+printf 'CUBRID 11.5 (%s) (64bit %s build for linux)\n' "$(cat "$STATE/installed")" "$(cat "$STATE/type" 2>/dev/null || echo release)"
 STUB
 touch "$CUBRID/lib/libcubrid_all_locales.so"
 
@@ -42,13 +42,16 @@ _ver=$(printf '%s' "$_url" | grep -oE 'CUBRID-[0-9.]+-[0-9a-f]+' | sed 's/^CUBRI
 # no-op case a version-less URL produces in real life (a local installer path, a renamed file).
 [ -n "$_ver" ] || { echo "[ERROR] nothing to install from $_url"; exit 0; }
 if [ "${STUB_INSTALL_SILENT_FAIL:-}" = "$_ver" ]; then echo "[ERROR] pretend download failed"; exit 0; fi
-printf '%s' "$_ver" > "$STATE/installed"
-echo "installed $_ver"
+case "$_url" in *-debug.sh|*-debug.tar.gz) _type=debug ;; *) _type=release ;; esac
+printf '%s' "$_ver" > "$STATE/installed"; printf '%s' "$_type" > "$STATE/type"
+printf '%s/%s\n' "$_ver" "$_type" >> "$STATE/installs"   # the combined phase is judged on this count
+echo "installed $_ver ($_type)"
 STUB
 cat > "$CTP_HOME/bin/ctp.sh" <<'STUB'
 #!/bin/bash
-cat > /dev/null            # consume the run/quit commands
-_v=$(cat "$STATE/installed" 2>/dev/null)
+cat > "$STATE/ctp-stdin"    # keep what we were asked to run: the argument shape is a real defect surface
+_v=$(cat "$STATE/installed" 2>/dev/null); _t=$(cat "$STATE/type" 2>/dev/null || echo release)
+[ -f "$STATE/assert" ] && [ "$_t" = debug ] && printf 'assertion "pgptr != NULL" failed at file page_buffer.c line 42\n'
 mkdir -p "$STATE/result/sql"
 printf 'engine output for %s\n' "$_v" > "$STATE/result/sql/cbrd_99999.result"
 if grep -qx "$_v" "$STATE/failing" 2>/dev/null; then printf 'Fail:1\n'; else printf 'Success:1\n'; fi
@@ -79,15 +82,16 @@ RUN="$HOME/.cubrid-agent/$KEY"; mkdir -p "$RUN"
 FIX=11.5.0.2300-04192d6
 PRE=11.4.0.1000-deadbee
 url() { printf 'https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build/%s/drop/CUBRID-%s-Linux.x86_64.sh' "$1" "$1"; }
+dbg_url() { printf 'https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build/%s/drop/CUBRID-%s-Linux.x86_64-debug.sh' "$1" "$1"; }
 
 T_PASS=0; T_FAIL=0; FAILURES=""
 note_fail() { T_FAIL=$((T_FAIL+1)); FAILURES="$FAILURES
     $1"; }
 
 reset_state() {  # <installed version> [failing versions...]
-  printf '%s' "$1" > "$STATE/installed"; shift
+  printf '%s' "$1" > "$STATE/installed"; printf 'release' > "$STATE/type"; : > "$STATE/installs"; shift
   : > "$STATE/failing"; for v in "$@"; do printf '%s\n' "$v" >> "$STATE/failing"; done
-  printf '%s\n%s\n' "$(url "$FIX")" "$(url "$PRE")" > "$STATE/reachable"
+  printf '%s\n%s\n%s\n' "$(url "$FIX")" "$(url "$PRE")" "$(dbg_url "$FIX")" > "$STATE/reachable"
   unset STUB_INSTALL_SILENT_FAIL
   cat > "$RUN/manifest.json" <<JSON
 {"issue":"$KEY","author":{"path":"sql/_36_guava/cbrd_99999/cases/cbrd_99999.sql"},
@@ -107,6 +111,9 @@ run() {  # run <name> <expected exit> <fragment> [args...]
 }
 st() { jq -r '.verify.fail_to_pass.status // "none"' "$RUN/manifest.json" 2>/dev/null; }
 inst() { cat "$STATE/installed" 2>/dev/null; }
+insttype() { printf '%s/%s' "$(cat "$STATE/installed" 2>/dev/null)" "$(cat "$STATE/type" 2>/dev/null)"; }
+installs() { wc -l < "$STATE/installs" 2>/dev/null | tr -d " " || echo 0; }
+dbgf() { jq -r --arg k "$1" '(.verify.debug // {}) | if has($k) then (.[$k]|tostring) else "none" end' "$RUN/manifest.json" 2>/dev/null; }
 expect() { # expect <name> <what> <got> <want>
   [ "$3" = "$4" ] && T_PASS=$((T_PASS+1)) || note_fail "$1: $2 is \"$3\", expected \"$4\""; }
 
@@ -184,6 +191,32 @@ expect "version-less URL" "status" "$(st)" inconclusive
 expect "version-less URL" "installed build" "$(inst)" "$FIX"
 grep -qF 'contradicted' "$OUTF" && note_fail "version-less URL: reported contradicted instead of failing the install" \
   || T_PASS=$((T_PASS+1))
+
+# ── one swap phase: pre-fix → fix-debug → fix-release, three installs, three runs ─────────────────
+# Two separate phases cost four installs and four CTP sessions to answer three questions, and the extra
+# restore is pure waste: the last install of the combined order IS the restore.
+reset_state "$FIX" "$PRE"
+if run "combined phase confirms fail→pass" 0 "status=confirmed" --prefix-build "$PRE" --with-debug-check; then
+  expect "combined phase" "installs"            "$(installs)"        3
+  expect "combined phase" "ends on fix release" "$(insttype)"        "$FIX/release"
+  expect "combined phase" "debug result"        "$(dbgf result)"     clean
+  expect "combined phase" "debug checked"       "$(dbgf checked)"    true
+  expect "combined phase" "fail_to_pass"        "$(st)"              confirmed
+fi
+
+# The debug twin has to be proven reachable before anything is installed, like the other two builds.
+reset_state "$FIX" "$PRE"
+printf '%s\n%s\n' "$(url "$FIX")" "$(url "$PRE")" > "$STATE/reachable"
+run "debug twin unreachable refuses early" 3 "not reachable" --prefix-build "$PRE" --with-debug-check \
+  && expect "debug twin unreachable" "installs" "$(installs)" 0
+
+# An assert on the debug build is recorded, and the machine still comes back to release.
+reset_state "$FIX" "$PRE"
+: > "$STATE/assert"
+run "assert on the debug build" 0 "status=confirmed" --prefix-build "$PRE" --with-debug-check
+expect "assert on the debug build" "debug result"        "$(dbgf result)" assert
+expect "assert on the debug build" "ends on fix release" "$(insttype)"    "$FIX/release"
+rm -f "$STATE/assert"
 
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'failpass-run: %d/%d\n' "$T_PASS" "$T_PASS"

@@ -21,14 +21,19 @@
 #                                   [--tc-path PATH] [--timeout SECONDS]
 set -u
 
-USAGE='usage: failpass-run.sh CBRD-XXXXX --prefix-build <url|version> [--fixed-build <url|version>] [--tc-path PATH] [--timeout SECONDS]'
-KEY=""; PREFIX_IN=""; FIXED_IN=""; TCPATH=""; TIMEOUT=900
+USAGE='usage: failpass-run.sh CBRD-XXXXX --prefix-build <url|version> [--fixed-build <url|version>] [--with-debug-check] [--tc-path PATH] [--timeout SECONDS]'
+KEY=""; PREFIX_IN=""; FIXED_IN=""; TCPATH=""; TIMEOUT=900; WITH_DEBUG=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --prefix-build) PREFIX_IN="${2:?$USAGE}"; shift 2 ;;
     --fixed-build)  FIXED_IN="${2:?$USAGE}"; shift 2 ;;
     --tc-path)      TCPATH="${2:?$USAGE}"; shift 2 ;;
     --timeout)      TIMEOUT="${2:?$USAGE}"; shift 2 ;;
+    # One swap phase instead of two. Separately, the debug check installs the debug twin and restores
+    # release, then this installs the pre-fix build and restores release again — four installs and four
+    # CTP sessions for three questions. Ordered pre-fix → fix-debug → fix-release, the same three
+    # questions cost three installs and three runs, and the last install IS the restore.
+    --with-debug-check) WITH_DEBUG=1; shift ;;
     -h|--help)      printf '%s\n' "$USAGE"; exit 0 ;;
     -*)             printf 'failpass-run: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
     *)              KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
@@ -86,12 +91,18 @@ FIXED_VER=$(installed_version) || FIXED_VER=""
 
 PREFIX_URL=$(to_url "$PREFIX_IN"); PREFIX_VER=$(url_version "$PREFIX_URL")
 FIXED_URL=$(to_url "${FIXED_IN:-$FIXED_VER}")
-swap_set_baseline "$FIXED_VER" "$FIXED_URL" "" "PRE-FIX"
+FIXED_TYPE=$(installed_build_type) || FIXED_TYPE=""
+DEBUG_URL=$(debug_url "${FIXED_IN:-$FIXED_VER}")
+# The baseline carries its TYPE here: with --with-debug-check the machine passes through the debug twin,
+# whose version is identical, so a version-only baseline would call the restore already done.
+swap_set_baseline "$FIXED_VER" "$FIXED_URL" "$FIXED_TYPE" "PRE-FIX"
 
 # Order matters: BOTH URLs are proven before anything is installed. Discovering that the fixed build
 # has been pruned from the server *after* installing the pre-fix one is how a machine gets stranded —
 # and build pruning is normal here, so this is not a theoretical case.
-for _p in "prefix:$PREFIX_URL" "fixed:$FIXED_URL"; do
+_urls="prefix:$PREFIX_URL fixed:$FIXED_URL"
+[ "$WITH_DEBUG" = 1 ] && _urls="$_urls debug:$DEBUG_URL"
+for _p in $_urls; do
   _n=${_p%%:*}; _u=${_p#*:}
   reachable "$_u" || {
     if [ "$_n" = fixed ]; then
@@ -139,6 +150,28 @@ case $PRC in
   0) PREFIX_OUTCOME=PASS ;;
   *) PREFIX_OUTCOME=blocked ;;
 esac
+
+if [ "$WITH_DEBUG" = 1 ]; then
+  printf '  debug   : %s\n' "$DEBUG_URL"
+  STAMP="$RUN_DIR/.debug-stamp"; : > "$STAMP"
+  if install_build "$DEBUG_URL" "$FIXED_VER" debug debug; then
+    run_case debug; DRC=$?
+    _dlog="$RUN_DIR/verify-sql.debug.log"
+    _marker=$(engine_markers "$_dlog" "$STAMP")
+    if [ -n "$_marker" ]; then
+      printf '  *** the debug engine reported an assertion or a crash ***\n    %s\n' "$_marker"
+      record_debug true assert "the debug build tripped an assertion or crashed while running this testcase" "$_marker" "$FIXED_VER" "$_dlog"
+    elif [ "$DRC" = 0 ]; then
+      record_debug true clean "ran clean on the debug build ($FIXED_VER): no assertion, output matches the release answer" "" "$FIXED_VER" "$_dlog"
+    elif [ "$DRC" = 1 ]; then
+      record_debug true differs "output differs from the release answer on the debug build, with no assertion — debug-only messages are one legitimate cause" "" "$FIXED_VER" "$_dlog"
+    else
+      record_debug false inconclusive "the debug run was blocked (verify-run exit $DRC)" "" "$FIXED_VER" "$_dlog"
+    fi
+  else
+    record_debug false inconclusive "the debug build ($FIXED_VER) did not install; see $RUN_DIR/install-debug.log" "" "$FIXED_VER" ""
+  fi
+fi
 
 swap_restore || exit 3
 run_case fixed; FRC=$?

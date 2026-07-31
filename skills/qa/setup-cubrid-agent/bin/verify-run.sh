@@ -106,9 +106,14 @@ fi
 case "$TCPATH" in /*) SQL=$TCPATH ;; *) SQL="$TC/$TCPATH" ;; esac
 [ -f "$SQL" ] || { printf 'verify-run: testcase not found: %s\n' "$SQL" >&2; exit 1; }
 
-# CTP's interactive `run` takes the case directory relative to the conf's scenario root:
-# .../sql/_36_guava/cbrd_26431/cases/x.sql -> _36_guava/cbrd_26431
-REL=$(printf '%s' "$SQL" | sed -E "s|^$TC/sql/||; s|/cases/[^/]*$||")
+# CTP's interactive `run` takes a path relative to the conf's scenario root, and it accepts the CASE FILE
+# itself — measured: `run _13_issues/_26_2h/cases/cbrd_25913.sql` reports Total:1 while
+# `run _13_issues/_26_2h` reports Total:2. Passing the directory was wrong in both directions. Every
+# bug-fix TC lives in `_13_issues/<half>/cases/` alongside its siblings (that is the corpus convention,
+# not a per-issue directory), so the directory form ran unrelated cases and folded their results into
+# this verdict: the pass count stopped being 1, so `Success:1` never matched and all_pass was false
+# forever, while two failing cases reported `Fail:2` and the failure became invisible.
+REL=$(printf '%s' "$SQL" | sed -E "s|^$TC/sql/||")
 ANSWER=$(printf '%s' "$SQL" | sed 's|/cases/|/answers/|; s|\.sql$|.answer|')
 
 # The CCI cross-check keeps its answer in a sidecar: promoting CCI output over .answer would replace
@@ -231,6 +236,16 @@ if [ "$ALL_PASS" != true ] && [ -n "$RESULT_DIR" ] && [ -f "$ANSWER" ]; then
   fi
 fi
 
+# The CCI cross-check is a DIFFERENT question from the run that produced the answer, so it gets its own
+# field instead of overwriting this one's. It used to write verify.determinism/status/category, which
+# turned "3 runs, all pass" into "1 run" the moment the cross-check ran — the evidence still said passed,
+# but it no longer described the run it claimed to. And since this helper already knows whether CCI
+# matched, it records verify.cci itself rather than asking the agent to retype what it just measured.
+if [ "$CATEGORY" = sql_by_cci ]; then
+  patch_manifest '.verify.cci = {checked: true, matches_jdbc: ($p == "true"), runs: ($r|tonumber), log: $l}
+    | (if $df != "" then .verify.cci.diff = $df else . end)' \
+    --arg r "$RUNS" --arg p "$ALL_PASS" --arg l "$LOG" --arg df "$DIFF"
+else
 patch_manifest '.verify = ((.verify // {}) + {build: $b, category: $c,
                              determinism: {runs: ($r|tonumber), all_pass: ($p == "true")}, log: $l})
   | (if $rd != "" then .verify.result_dir = $rd else del(.verify.result_dir) end)
@@ -238,13 +253,25 @@ patch_manifest '.verify = ((.verify // {}) + {build: $b, category: $c,
   | (if $p == "true" then .verify.status = "passed" else del(.verify.status) end)' \
   --arg b "$BUILD" --arg c "$CATEGORY" --arg r "$RUNS" --arg p "$ALL_PASS" \
   --arg l "$LOG" --arg rd "$RESULT_DIR" --arg df "$DIFF"
+fi
 
 if [ "$ALL_PASS" = true ]; then
-  printf '  recorded: verify.build, verify.determinism(all_pass=true), verify.status=passed\n'
-  printf '  NOT recorded (your judgment): fail_to_pass attribution, whether this build contains the fix, cci cross-check\n'
+  # The message has to name the field that was actually written, or it becomes another record that
+  # contradicts the run it describes.
+  if [ "$CATEGORY" = sql_by_cci ]; then
+    printf '  recorded: verify.cci(checked=true, matches_jdbc=true) — the CCI output matches the answer, so no .answer_cci sidecar is needed\n'
+    printf '  NOT recorded (your judgment): fail_to_pass attribution, whether this build contains the fix\n'
+  else
+    printf '  recorded: verify.build, verify.determinism(all_pass=true), verify.status=passed\n'
+    printf '  NOT recorded (your judgment): fail_to_pass attribution, whether this build contains the fix, cci cross-check\n'
+  fi
   exit 0
 else
+  if [ "$CATEGORY" = sql_by_cci ]; then
+    printf '  recorded: verify.cci(checked=true, matches_jdbc=false)%s — the CCI output differs, so promote it to the .answer_cci sidecar with --promote --category sql_by_cci\n' "$([ -n "$DIFF" ] && printf ', verify.cci.diff')"
+  else
   printf '  recorded: verify.build, verify.determinism(all_pass=false)%s — verify.status left unset\n' "$([ -n "$DIFF" ] && printf ', verify.diff')"
+  fi
   printf '  A mismatch is not automatically the testcase being wrong. Read the diff before deciding.\n'
   exit 1
 fi

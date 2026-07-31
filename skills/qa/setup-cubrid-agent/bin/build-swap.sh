@@ -129,3 +129,32 @@ swap_restore() {
   swap_restore_failed=1
   return 1
 }
+
+# ── engine markers ────────────────────────────────────────────────────────────────────────────────
+# Shared because both the debug check and the debug half of a combined fail→pass run ask the same
+# question, and the two rules that make the answer sound must not drift: only ENGINE-owned output is
+# searched (never captured stdout, which carries the answer diff — a testcase whose own output contains
+# "assert" would otherwise be recorded as tripping one), and `abort` is not a marker because
+# "transaction aborted" is ordinary SQL output.
+engine_markers() {  # engine_markers <ctp log> [stamp file for server logs]
+  local _m=""
+  _m=$(grep -hiE 'assert|Segmentation fault|core dumped|SIGSEGV|SIGABRT' "$1" 2>/dev/null | head -1)
+  if [ -z "$_m" ] && [ -n "${2:-}" ] && [ -d "$CUB/log" ]; then
+    _m=$(find "$CUB/log" -type f -name '*.err' -newer "$2" 2>/dev/null \
+         | xargs -r grep -hiE 'assert|Segmentation fault|core dumped|SIGSEGV|SIGABRT' 2>/dev/null | head -1)
+  fi
+  printf '%s' "$_m"
+}
+
+# verify.debug has one shape and two writers (debug-check.sh, and the debug half of a combined
+# fail→pass run), so the shape lives here. `checked` says whether the debug run actually happened; the
+# submit gate reads that rather than inferring it from silence.
+record_debug() {  # record_debug <checked true|false> <result> <note> <marker> <build> <log>
+  command -v jq >/dev/null 2>&1 || { printf '  (jq missing — verify.debug NOT recorded)\n'; return 0; }
+  [ -f "$MANIFEST" ] || printf '{}\n' > "$MANIFEST"
+  jq --argjson c "$1" --arg r "$2" --arg n "$3" --arg m "$4" --arg b "$5" --arg l "$6" \
+     '.verify.debug = ({checked: $c, result: $r, type: "debug", build: $b, note: $n}
+        | (if $m != "" then . + {marker: $m} else . end)
+        | (if $l != "" then . + {log: $l} else . end))' \
+     "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST" || rm -f "$MANIFEST.tmp"
+}

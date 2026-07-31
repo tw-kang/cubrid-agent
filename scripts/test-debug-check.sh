@@ -46,7 +46,7 @@ echo "installed $_ver ($_type)"
 STUB
 cat > "$CTP_HOME/bin/ctp.sh" <<'STUB'
 #!/bin/bash
-cat > /dev/null
+cat > "$STATE/ctp-stdin"
 _t=$(cat "$STATE/type" 2>/dev/null || echo release)
 mkdir -p "$STATE/result/sql"
 printf 'engine output for %s\n' "$_t" > "$STATE/result/sql/cbrd_99999.result"
@@ -199,6 +199,14 @@ printf 'assertion count after recovery: 3\n' > "$D/answers/cbrd_99999.answer"
 run "diff text is not an engine marker" 1 "verify.debug.result=differs"
 expect "diff text" "result" "$(dbg result)" differs
 printf 'engine output for release\n' > "$D/answers/cbrd_99999.answer"
+
+# ── the case FILE is what gets run, not its directory ─────────────────────────────────────────────
+# Every bug-fix TC shares `_13_issues/<half>/cases/` with its siblings, so a directory argument runs
+# their cases too and folds their results into this verdict (measured: Total:2 instead of Total:1).
+reset_state
+run "runs the case file" 0 "clean"
+grep -q 'cases/cbrd_99999.sql' "$STATE/ctp-stdin" && T_PASS=$((T_PASS+1)) \
+  || note_fail "runs the case file: CTP was asked to run $(head -1 "$STATE/ctp-stdin"), not the case file"
 
 # ── an explicit version is accepted ──────────────────────────────────────────────────────────────
 reset_state

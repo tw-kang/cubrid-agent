@@ -140,11 +140,7 @@ fi
 #     so a testcase whose own output contains the word "assert" (a TC written for an assert bug is the
 #     obvious case) would be recorded as tripping one, and `assert` has no note to clear it.
 #   * `abort` is not a marker — "transaction aborted" is ordinary SQL output.
-MARKER=$(grep -hiE 'assert|Segmentation fault|core dumped|SIGSEGV|SIGABRT' "$RUN_LOG" 2>/dev/null | head -1)
-if [ -z "$MARKER" ] && [ -d "$CUB/log" ]; then
-  MARKER=$(find "$CUB/log" -type f -name '*.err' -newer "$STAMP" 2>/dev/null \
-           | xargs -r grep -hiE 'assert|Segmentation fault|core dumped|SIGSEGV|SIGABRT' 2>/dev/null | head -1)
-fi
+MARKER=$(engine_markers "$RUN_LOG" "$STAMP")
 
 if [ -n "$MARKER" ]; then
   printf '  *** the debug engine reported an assertion or a crash ***\n    %s\n' "$MARKER"
