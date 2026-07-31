@@ -320,6 +320,21 @@ else
   printf '         %s\n' "$_ips"
 fi
 
+# Progressive disclosure only works if the body points at the file: a reference nothing links to is not
+# "loaded on demand", it is deleted with extra steps. This is the failure mode of the very refactor that
+# creates references/ — detail moves out, the link is forgotten, and the rule silently stops existing.
+_unlinked=""
+for _r in $(git ls-files 'skills/*/*/references/*'); do
+  _skill=$(dirname "$(dirname "$_r")")
+  grep -qF "references/$(basename "$_r")" "$_skill/SKILL.md" 2>/dev/null \
+    || _unlinked="$_unlinked ${_r#skills/}"
+done
+if [ -z "$_unlinked" ]; then
+  pass "every references/ file is linked from the SKILL.md that owns it ($(git ls-files 'skills/*/*/references/*' | wc -l | tr -d ' ') files)"
+else
+  fail "reference file(s) nothing links to — moving detail there without a link deletes it:$_unlinked"
+fi
+
 # A skill directory is a distribution unit: whatever sits in it reaches every teammate who installs the
 # plugin. A measurement byproduct (SKILL.md.bold / SKILL.md.tokens, from the body-slimming check) was
 # swept in by `git add -A` and shipped in one commit — deleting the two files fixed that instance and
