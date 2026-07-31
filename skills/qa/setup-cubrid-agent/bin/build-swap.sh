@@ -20,21 +20,24 @@
 # store prunes — and the build a fail→pass check needs is an OLD one, exactly what gets pruned first.
 # Same path shape and the same artifact (identical Content-Length), ~2s slower on 275MB. Point
 # CUBRID_BUILD_BASE at the internal build server to use that instead.
+# The contract, asserted rather than described: a caller that sources this before setting them would
+# otherwise fail later, inside an install, with a message about something else.
+: "${CUB:?build-swap.sh: the caller must set CUB (the CUBRID install dir) before sourcing}"
+: "${INSTALLER:?build-swap.sh: the caller must set INSTALLER (CTP run_cubrid_install) before sourcing}"
+: "${RUN_DIR:?build-swap.sh: the caller must set RUN_DIR (where install logs go) before sourcing}"
+
 BUILD_BASE=${CUBRID_BUILD_BASE:-https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build}
 
-to_url() {
+# One builder, two entry points: the release and debug artifacts differ only by that suffix, and the
+# pass-a-URL-through case is the same rule for both.
+to_url() {  # to_url <version|url> [artifact suffix]
   case "$1" in
     http://*|https://*|/*) printf '%s' "$1" ;;
-    *) printf '%s/%s/drop/CUBRID-%s-Linux.x86_64.sh' "$BUILD_BASE" "$1" "$1" ;;
+    *) printf '%s/%s/drop/CUBRID-%s-Linux.x86_64%s.sh' "$BUILD_BASE" "$1" "$1" "${2:-}" ;;
   esac
 }
 # The debug twin sits next to the release one under the same version directory.
-debug_url() {
-  case "$1" in
-    http://*|https://*|/*) printf '%s' "$1" ;;
-    *) printf '%s/%s/drop/CUBRID-%s-Linux.x86_64-debug.sh' "$BUILD_BASE" "$1" "$1" ;;
-  esac
-}
+debug_url() { to_url "$1" -debug; }
 url_version() { printf '%s' "$1" | grep -oE 'CUBRID-[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-[0-9a-f]+' | sed 's/^CUBRID-//' | head -1; }
 reachable() {
   case "$1" in
@@ -58,8 +61,8 @@ installed_build_type() {
 }
 
 install_build() {  # install_build <url> <expected version or ""> <label> [expected type]
-  _log="$RUN_DIR/install-$3.log"
-  _before=$(installed_version) || _before=""
+  local _log="$RUN_DIR/install-$3.log"
+  local _before=$(installed_version) || _before=""
   printf '  install %s: %s\n' "$3" "$1"
   sh "$INSTALLER" "$1" > "$_log" 2>&1
   # run_cubrid_install can return 0 having failed, so the binary is the authority, not the exit code.
@@ -67,8 +70,8 @@ install_build() {  # install_build <url> <expected version or ""> <label> [expec
   # CHANGED. `[ -n "$2" ]` alone silently disabled the whole check whenever the URL carried no parsable
   # version (a local installer path, a renamed file), and the run then continued on the build it was
   # supposed to have replaced and reported a verdict about it.
-  _got=$(installed_version) || _got=""
-  _why=""
+  local _got=$(installed_version) || _got=""
+  local _why=""
   if [ -n "$2" ]; then
     [ "$_got" = "$2" ] || _why="cubrid_rel reports \"${_got:-nothing}\", expected \"$2\""
   else
@@ -78,7 +81,7 @@ install_build() {  # install_build <url> <expected version or ""> <label> [expec
   # Type, when the caller asks for one: this is what catches a no-op debug install, whose version is
   # identical to the release build that is already there.
   if [ -z "$_why" ] && [ -n "${4:-}" ]; then
-    _gt=$(installed_build_type) || _gt=""
+    local _gt=$(installed_build_type) || _gt=""
     [ "$_gt" = "$4" ] || _why="cubrid_rel reports a \"${_gt:-unknown}\" build, expected \"$4\" (the version matches either way, so nothing was installed)"
   fi
   if [ -n "$_why" ]; then
@@ -106,6 +109,7 @@ swap_restore() {
   # A second attempt from the EXIT trap would repeat a minutes-long install that already failed, and
   # bury the recovery command it printed under a duplicate of the same failure.
   [ "$swap_restore_failed" = 1 ] && return 1
+  local _cur _curt
   _cur=$(installed_version) || _cur=""
   _curt=$(installed_build_type) || _curt=""
   if [ "$_cur" = "$swap_baseline_ver" ] && { [ -z "$swap_baseline_type" ] || [ "$_curt" = "$swap_baseline_type" ]; }; then

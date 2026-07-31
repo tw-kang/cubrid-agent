@@ -23,8 +23,8 @@
 #                                 [--timeout SECONDS] [--generate | --promote [--from PATH]]
 set -u
 
-USAGE='verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH] [--timeout SECONDS] [--generate|--promote [--from PATH]] [--no-manifest]'
-KEY=""; RUNS=3; CATEGORY=sql; TCPATH=""; TIMEOUT=900; GENERATE=0; PROMOTE=0; FROM=""; NORECORD=0
+USAGE='verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH] [--timeout SECONDS] [--generate|--promote [--from PATH]] [--no-manifest] [--log-label S]'
+KEY=""; RUNS=3; CATEGORY=sql; TCPATH=""; TIMEOUT=900; GENERATE=0; PROMOTE=0; FROM=""; NORECORD=0; LABEL=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --runs)     RUNS=${2:-3}; shift 2 ;;
@@ -39,6 +39,10 @@ while [ $# -gt 0 ]; do
     # overwrite determinism with the deliberate failure — the submit gate would then read the pre-fix
     # run as the verification.
     --no-manifest) NORECORD=1; shift ;;
+    # Without a label every run of the same category writes verify-<category>.log, so the pre-fix run,
+    # the debug run and the release verification each overwrote the evidence of the one before — and a
+    # caller that greps that log for engine markers would then read a different run's output.
+    --log-label)   LABEL=${2:-}; shift 2 ;;
     -h|--help)  printf '%s\n' "$USAGE"; exit 0 ;;
     -*)         printf 'verify-run: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
     *)          KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
@@ -152,7 +156,7 @@ sed "s|^scenario=.*|scenario=$TC/sql|" "$CONF_SRC" > "$CONF"
 
 RUN_CMD=run
 [ "$CATEGORY" = sql_by_cci ] && RUN_CMD=run_cci
-LOG="$RUN_DIR/verify-$CATEGORY.log"
+LOG="$RUN_DIR/verify-$CATEGORY${LABEL:+.$LABEL}.log"
 
 printf '[verify] %s  build %s  %s x%d\n  case : %s\n  conf : %s\n' "$KEY" "$BUILD" "$CATEGORY" "$RUNS" "$REL" "$CONF"
 

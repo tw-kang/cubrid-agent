@@ -55,7 +55,7 @@ record() {  # record <checked true|false> <result> <note> [marker]
      '.verify.debug = ({checked: $c, result: $r, type: "debug", build: $b, note: $n}
         | (if $m != "" then . + {marker: $m} else . end)
         | (if $l != "" then . + {log: $l} else . end))' \
-     "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST"
+     "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST" || rm -f "$MANIFEST.tmp"
 }
 
 INSTALLER="$CTP_HOME/common/script/run_cubrid_install"
@@ -65,7 +65,16 @@ INSTALLER="$CTP_HOME/common/script/run_cubrid_install"
 
 # shellcheck source=build-swap.sh disable=SC1091
 . "$SELF_DIR/build-swap.sh" || { printf 'debug-check: build-swap.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
-swap_record_failure() { record false inconclusive "$1"; }
+# Additive, not a replacement: by the time a restore fails this run may already have recorded an assert,
+# and overwriting `.verify.debug` with "inconclusive" would delete the engine finding it was reporting.
+swap_record_failure() {
+  if [ "$HAVE_JQ" = 1 ] && [ -f "$MANIFEST" ] && jq -e '(.verify.debug // {}) | has("result")' "$MANIFEST" >/dev/null 2>&1; then
+    jq --arg n "$1" '.verify.debug.restore_failed = $n' "$MANIFEST" > "$MANIFEST.tmp" \
+      && mv "$MANIFEST.tmp" "$MANIFEST" || rm -f "$MANIFEST.tmp"
+  else
+    record false inconclusive "$1"
+  fi
+}
 
 # The release build now installed is the baseline: it is what gets restored, and its answer is the one
 # CI compares against.
@@ -79,7 +88,7 @@ REL_TYPE=$(installed_build_type) || REL_TYPE=""
 DBG_URL=$(debug_url "${VERSION_IN:-$REL_VER}")
 DBG_VER=$(url_version "$DBG_URL"); [ -n "$DBG_VER" ] || DBG_VER=$REL_VER
 REL_URL=$(to_url "$REL_VER")
-RUN_LOG="$RUN_DIR/verify-sql.log"
+RUN_LOG="$RUN_DIR/verify-sql.debug.log"
 
 # Both URLs are proven before anything is installed: finding out that the release build cannot be
 # reinstalled *after* swapping to debug is how a machine ends up stuck on an engine full of asserts.
@@ -90,7 +99,10 @@ reachable "$DBG_URL" || {
   printf 'debug-check: the debug build is not reachable at\n  %s\nNothing was installed. Check the version — the debug twin lives next to the release one under the same version directory.\n' "$DBG_URL" >&2
   record false inconclusive "refused before any install: the debug build ($DBG_URL) is not reachable"; exit 3; }
 
-swap_set_baseline "$REL_VER" "$REL_URL" release DEBUG
+# The detected type, not the literal: if cubrid_rel ever stops saying "release build", an empty
+# type makes swap_restore fall back to matching on version alone (the escape failpass-run.sh
+# relies on) instead of reporting a machine that never moved as stranded on debug.
+swap_set_baseline "$REL_VER" "$REL_URL" "$REL_TYPE" DEBUG
 # Not silenced, and not left to the end: the trap is the only caller on the path where this is
 # interrupted mid-run, and that is exactly when the machine must not be left on a debug engine.
 trap 'swap_restore || true' EXIT
@@ -105,28 +117,49 @@ install_build "$DBG_URL" "$DBG_VER" debug debug || {
 TC_ARGS=()
 [ -n "$TCPATH" ] && TC_ARGS=(--tc-path "$TCPATH")
 OUT="$RUN_DIR/debug-check.out"
+STAMP="$RUN_DIR/.debug-stamp"; : > "$STAMP"
 # --no-manifest: this run must not become the verification the submit gate reads. The answer is
 # confirmed on release, and a debug run's numbers are not that.
-"$VERIFY" "$KEY" --runs 1 --no-manifest --timeout "$TIMEOUT" "${TC_ARGS[@]+"${TC_ARGS[@]}"}" > "$OUT" 2>&1
+"$VERIFY" "$KEY" --runs 1 --no-manifest --log-label debug --timeout "$TIMEOUT" "${TC_ARGS[@]+"${TC_ARGS[@]}"}" > "$OUT" 2>&1
 RC=$?
 sed -n '/^  runs :/p' "$OUT" | sed 's/^/  debug /'
 
-# An assert or a crash outranks the pass/fail comparison: a case can print exactly the expected rows
-# and still have tripped an assertion on the way. `abort` is deliberately NOT a marker — "transaction
-# aborted" is ordinary SQL output.
-MARKER=$(grep -hiE 'assert|Segmentation fault|core dumped|SIGSEGV|SIGABRT' "$RUN_LOG" "$OUT" 2>/dev/null | head -1)
+# A blocked run is settled before any marker logic: with nothing to compare, there is no verdict to
+# reach, and the old order let a leftover log from an earlier run decide one.
+if [ "$RC" != 0 ] && [ "$RC" != 1 ]; then
+  record false inconclusive "the debug run was blocked (verify-run exit $RC) — see $OUT"
+  printf '  recorded: verify.debug.result=inconclusive — the debug run never produced a comparison.\n'
+  swap_restore || exit 3
+  exit 3
+fi
 
-swap_restore || exit 3
+# An assert or a crash outranks the pass/fail comparison: a case can print exactly the expected rows and
+# still have tripped an assertion on the way. Two rules make the search sound:
+#   * only ENGINE-owned output is searched — this run's own CTP log, plus any server error log the run
+#     touched. NOT the captured stdout: verify-run.sh prints the first 20 lines of the answer diff there,
+#     so a testcase whose own output contains the word "assert" (a TC written for an assert bug is the
+#     obvious case) would be recorded as tripping one, and `assert` has no note to clear it.
+#   * `abort` is not a marker — "transaction aborted" is ordinary SQL output.
+MARKER=$(grep -hiE 'assert|Segmentation fault|core dumped|SIGSEGV|SIGABRT' "$RUN_LOG" 2>/dev/null | head -1)
+if [ -z "$MARKER" ] && [ -d "$CUB/log" ]; then
+  MARKER=$(find "$CUB/log" -type f -name '*.err' -newer "$STAMP" 2>/dev/null \
+           | xargs -r grep -hiE 'assert|Segmentation fault|core dumped|SIGSEGV|SIGABRT' 2>/dev/null | head -1)
+fi
 
 if [ -n "$MARKER" ]; then
   printf '  *** the debug engine reported an assertion or a crash ***\n    %s\n' "$MARKER"
+  # Recorded BEFORE the restore: the restore can fail, and an engine finding must not be lost with it.
   record true assert "the debug build tripped an assertion or crashed while running this testcase" "$MARKER"
+  swap_restore || exit 3
   printf '  recorded: verify.debug.result=assert — submission stays blocked.\n'
   printf '  This is NOT an answer to fix: an assert firing on a supported statement is an engine defect,\n'
   printf '  so it goes to the developer with the marker and the log (%s). If instead the testcase drives\n' "$RUN_LOG"
   printf '  the engine outside what it supports, that is the testcase to change — your call, not this script'"'"'s.\n'
+  printf '  If a reviewer accepts a known engine assert as out of this TC'"'"'s scope, that decision is theirs to\n'
+  printf '  record as review.debug_approved (with verify.debug.note) — the author cannot clear it alone.\n'
   exit 1
 fi
+swap_restore || exit 3
 case $RC in
   0) record true clean "ran clean on the debug build ($DBG_VER): no assertion, output matches the release answer"
      printf '  recorded: verify.debug.result=clean\n'
@@ -138,7 +171,4 @@ case $RC in
      printf '  what CI compares. Read the diff in %s. If the difference is debug-only noise, say so in\n' "$OUT"
      printf '  verify.debug.note; if the testcase is genuinely build-dependent, that is a testcase problem.\n'
      exit 1 ;;
-  *) record false inconclusive "the debug run was blocked (verify-run exit $RC) — see $OUT"
-     printf '  recorded: verify.debug.result=inconclusive — the debug run never produced a comparison.\n'
-     exit 3 ;;
 esac

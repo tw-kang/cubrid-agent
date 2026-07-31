@@ -281,6 +281,8 @@ done
 # The list is DERIVED from the directory, never written here: a hardcoded list makes the 7th helper
 # invisible to every check below — it would ship in bin/, be installed by nothing, and be called by a
 # skill whose absolute path does not exist. That is precisely the failure this block exists to catch.
+# One definition of "this file is a library another helper sources", used by both checks below.
+_is_lib() { grep -q "\. \"\$SELF_DIR/$1\"" skills/qa/setup-cubrid-agent/bin/*.sh 2>/dev/null; }
 _bad=""; _refs=0; _nh=0
 for _src in skills/qa/setup-cubrid-agent/bin/*.sh; do
   _h=$(basename "$_src"); _nh=$((_nh+1))
@@ -292,8 +294,7 @@ for _src in skills/qa/setup-cubrid-agent/bin/*.sh; do
   # A library another helper sources is exempt from the skill-reference rule — no skill invokes it by
   # path, and it still has to be installed, which the check above covers.
   _n=$(grep -l "bin/$_h" skills/*/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
-  _sourced=$(grep -l "\. \"\$SELF_DIR/$_h\"" skills/qa/setup-cubrid-agent/bin/*.sh 2>/dev/null | wc -l | tr -d ' ')
-  [ "$_n" -gt 0 ] || [ "$_sourced" -gt 0 ] || _bad="$_bad no-skill-calls($_h)"
+  [ "$_n" -gt 0 ] || _is_lib "$_h" || _bad="$_bad no-skill-calls($_h)"
   _refs=$((_refs + _n))
 done
 grep -q 'AGENT_DIR/bin' skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad no-bin-dir"
@@ -344,7 +345,7 @@ _hint='this installed copy is stale'
 _miss=""; _n=0
 for _f in skills/qa/setup-cubrid-agent/bin/*.sh; do
   # A sourced library parses no arguments, so it has no unknown-option path to carry the hint.
-  grep -q "\. \"\$SELF_DIR/$(basename "$_f")\"" skills/qa/setup-cubrid-agent/bin/*.sh 2>/dev/null && continue
+  _is_lib "$(basename "$_f")" && continue
   _n=$((_n+1)); grep -qF "$_hint" "$_f" || _miss="$_miss $(basename "$_f")"
 done
 _variants=$(grep -hoF -e "$_hint (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it." skills/qa/setup-cubrid-agent/bin/*.sh | sort -u | wc -l | tr -d ' ')

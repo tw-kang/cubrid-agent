@@ -28,6 +28,9 @@ note=$(jq -r '.verify.fail_to_pass.note // ""' "$MANIFEST")
 appr=$(jq -r '.review.failpass_approved // false' "$MANIFEST")
 verdict=$(jq -r '.review.verdict // "missing"' "$MANIFEST")
 cci=$(jq -r '.verify.cci.checked // false' "$MANIFEST")
+# Absent means "not run", so it denies — unlike the lint keys below, which default to true when absent
+# because those manifests predate the check and the hook writes them on every TC write. A verification
+# nobody performed cannot be inferred from a file, which is why cci and debug are the other way round.
 # `has`, not `//`: jq's // substitutes for `false` too, so `.verify.debug.checked // false` cannot tell
 # a recorded false from a missing key — and this check has to distinguish "the debug run said so" from
 # "nobody ran it". Same reason the lint block below tests for the key.
@@ -61,7 +64,12 @@ case "$dbg/$dbgr" in
   true/differs)
     [ -n "$dbgn" ] || p="$p\n- the debug run's output differs from the release answer and nothing explains it — put why in verify.debug.note (debug-only messages are a legitimate cause), or fix the testcase; never promote debug output into .answer" ;;
   true/assert)
-    p="$p\n- the debug build tripped an assertion or crashed on this testcase (see verify.debug.marker) — that is an engine finding for the developer, not an answer to adjust, so submission stays blocked" ;;
+    # The only result with no self-service escape, because "the engine asserted" is not something the
+    # author can answer away. It can still be cleared, but only by a reviewer accepting it as outside
+    # this TC's scope — the same shape as review.failpass_approved for a best_effort fail→pass.
+    if [ "$(jq -r '.review.debug_approved // false' "$MANIFEST")" = true ] && [ -n "$dbgn" ]; then :; else
+      p="$p\n- the debug build tripped an assertion or crashed on this testcase (see verify.debug.marker) — an engine finding for the developer, not an answer to adjust. It clears only when a reviewer accepts it as out of this testcase's scope: review.debug_approved=true plus verify.debug.note"
+    fi ;;
   *)
     p="$p\n- debug build not checked (verify.debug.checked=$dbg, result=$dbgr) — run ~/.cubrid-agent/bin/debug-check.sh $KEY; CI runs debug regression and an assert found there is attributed to this testcase" ;;
 esac

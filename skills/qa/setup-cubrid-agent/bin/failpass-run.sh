@@ -121,7 +121,9 @@ TC_ARGS=()
 run_case() {  # run_case <label> -> 0 pass, 1 fail(mismatch), 3 blocked
   _out="$RUN_DIR/failpass-$1.out"
   # --no-manifest: a deliberate pre-fix failure must never become the record the submit gate reads.
-  "$VERIFY" "$KEY" --runs 1 --no-manifest --timeout "$TIMEOUT" "${TC_ARGS[@]+"${TC_ARGS[@]}"}" > "$_out" 2>&1
+  # --log-label: without it both runs here and the release verification all write verify-sql.log, so each
+  # overwrote the evidence of the one before — and this script's own diagnosis then read another run.
+  "$VERIFY" "$KEY" --runs 1 --no-manifest --log-label "$1" --timeout "$TIMEOUT" "${TC_ARGS[@]+"${TC_ARGS[@]}"}" > "$_out" 2>&1
   _rc=$?
   sed -n '/^  runs :/p' "$_out" | sed "s/^/  $1/"
   return $_rc

@@ -190,7 +190,14 @@ m '.verify.debug = {checked:true, result:"differs"}'
 run "unexplained difference"     deny "never promote debug output"   "$BASE --body-file $GEN"
 m '.verify.debug = {checked:true, result:"differs", note:"debug-only warning line, absent in release"}'
 run "explained difference"       ok   ""                             "$BASE --body-file $GEN"
-m '.verify.debug = {checked:true, result:"clean"}'
+# An assert clears only through a reviewer, and only with the note — the author cannot approve their own,
+# which is the same shape as review.failpass_approved. Without an escape at all, a TC that legitimately
+# meets a known engine assert could never be submitted.
+m '.verify.debug = {checked:true, result:"assert", marker:"assertion failed at page_buffer.c"} | .review.debug_approved = true'
+run "assert, approved but unexplained" deny "review.debug_approved=true plus verify.debug.note" "$BASE --body-file $GEN"
+m '.verify.debug.note = "CBRD-27000: known assert on this path, developer accepted it as out of scope"'
+run "assert, reviewer-approved with a note" ok "" "$BASE --body-file $GEN"
+m 'del(.review.debug_approved) | .verify.debug = {checked:true, result:"clean"}'
 
 # --- the artifact conditions still gate, and they report first ---------------------------------
 good_body
