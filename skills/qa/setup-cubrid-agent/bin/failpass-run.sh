@@ -41,8 +41,12 @@ SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
 VERIFY="$SELF_DIR/verify-run.sh"
 [ -x "$VERIFY" ] || { printf 'failpass-run: verify-run.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$VERIFY" >&2; exit 1; }
 
+# env.sh sources CUBRID's .cubrid.sh, which appends to LD_LIBRARY_PATH and PATH without guarding
+# them — fatal under `set -u` wherever they are not already exported. An interactive login has them
+# (bashrc sourced .cubrid.sh earlier) and a non-interactive ssh does not, so this aborted the script
+# on the second machine while looking fine on the first. -u is lifted for that one line only.
 # shellcheck disable=SC1090
-[ -f "$HOME/.cubrid-agent/env.sh" ] && . "$HOME/.cubrid-agent/env.sh"
+if [ -f "$HOME/.cubrid-agent/env.sh" ]; then set +u; . "$HOME/.cubrid-agent/env.sh"; set -u; fi
 CTP_HOME=${CTP_HOME:-}
 [ -n "$CTP_HOME" ] || { for d in "$HOME/CTP" "$HOME/cubrid-testtools/CTP"; do [ -x "$d/bin/ctp.sh" ] && CTP_HOME=$d && break; done; }
 CUB=${CUBRID:-$HOME/CUBRID}

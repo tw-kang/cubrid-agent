@@ -43,8 +43,12 @@ for c in cubrid-jira jq git; do
     exit 1; }
 done
 
+# env.sh sources CUBRID's .cubrid.sh, which appends to LD_LIBRARY_PATH and PATH without guarding
+# them — fatal under `set -u` wherever they are not already exported. An interactive login has them
+# (bashrc sourced .cubrid.sh earlier) and a non-interactive ssh does not, so this aborted the script
+# on the second machine while looking fine on the first. -u is lifted for that one line only.
 # shellcheck disable=SC1090
-[ -f "$HOME/.cubrid-agent/env.sh" ] && . "$HOME/.cubrid-agent/env.sh"
+if [ -f "$HOME/.cubrid-agent/env.sh" ]; then set +u; . "$HOME/.cubrid-agent/env.sh"; set -u; fi
 TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
 
 # ── identity (ADR 0004: resolved per user, never hardcoded) ───────────────────────────────────────
