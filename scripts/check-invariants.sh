@@ -535,6 +535,13 @@ else fail "submit gate test failed — run scripts/test-gate-pr-submit.sh:"; pri
 # Select's screens get the same treatment for the opposite reason: they run FIRST, and a screen that
 # wrongly reports "nothing found" when the lookup failed sends two operators at the same TC. Only a
 # stubbed network can reach that path, so it is a behavioural test, not a grep.
+# The lint hook writes the fields the submit gate refuses work over, and it had no test at all: its
+# header check matched `/**` and the key on one line while the corpus puts the key on the next, so
+# lint.header was false for all 47 corpus testcases that have a header block. A gate that blocks correct
+# work is worse than no gate, and only a test against corpus-shaped fixtures says so.
+if _t=$(bash scripts/test-lint-sql-tc.sh 2>&1); then pass "TC lint behaves: $_t"
+else fail "TC lint test failed — run scripts/test-lint-sql-tc.sh:"; printf '         %s\n' "$_t"; fi
+
 if _t=$(bash scripts/test-select-queue.sh 2>&1); then pass "select queue behaves: $_t"
 else fail "select queue test failed — run scripts/test-select-queue.sh:"; printf '         %s\n' "$_t"; fi
 

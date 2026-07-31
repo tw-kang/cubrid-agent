@@ -37,7 +37,7 @@ cci=$(jq -r '.verify.cci.checked // false' "$MANIFEST")
 dbg=$(jq -r 'if ((.verify.debug // {}) | has("checked")) then (.verify.debug.checked|tostring) else "missing" end' "$MANIFEST")
 dbgr=$(jq -r '.verify.debug.result // "missing"' "$MANIFEST")
 dbgn=$(jq -r '.verify.debug.note // ""' "$MANIFEST")
-# header_scope / header_size / placement default to true only when ABSENT: all three were added
+# header_scope / header_size / header_no_dashdash / placement default to true only when ABSENT: all three were added
 # after the first runs (CUBRIDQA-1481, -1486), and the lint hook writes them on every TC .sql write,
 # so only pre-existing manifests lack them. Test for the key rather than writing
 # `.lint.header_scope // true` — jq's `//` substitutes for `false` as well as null, so that form
@@ -46,7 +46,7 @@ dbgn=$(jq -r '.verify.debug.note // ""' "$MANIFEST")
 # to decide: present-but-null must block (unverifiable placement is not a pass), while a manifest
 # that predates the check keeps passing.
 _dflt='def d(k): if ((.lint // {})|has(k)) then .lint[k] else true end;'
-lint=$(jq -r "$_dflt"'[.lint.header,.lint.evaluate,.lint.cleanup,.lint.answer_not_handwritten,.lint.english_comments,d("header_scope"),d("header_size"),d("placement")]|all' "$MANIFEST" 2>/dev/null)
+lint=$(jq -r "$_dflt"'[.lint.header,.lint.evaluate,.lint.cleanup,.lint.answer_not_handwritten,.lint.english_comments,d("header_scope"),d("header_size"),d("header_no_dashdash"),d("placement")]|all' "$MANIFEST" 2>/dev/null)
 
 p=""
 [ "$det" = true ] || p="$p\n- determinism not confirmed (verify.determinism.all_pass≠true)"
