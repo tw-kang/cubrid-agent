@@ -323,16 +323,22 @@ fi
 # Progressive disclosure only works if the body points at the file: a reference nothing links to is not
 # "loaded on demand", it is deleted with extra steps. This is the failure mode of the very refactor that
 # creates references/ — detail moves out, the link is forgotten, and the rule silently stops existing.
-_unlinked=""
-for _r in $(git ls-files 'skills/*/*/references/*'); do
-  _skill=$(dirname "$(dirname "$_r")")
-  grep -qF "references/$(basename "$_r")" "$_skill/SKILL.md" 2>/dev/null \
+_unlinked=""; _nref=0
+# The skill directory is whatever precedes /references/ — `dirname` twice would resolve a nested
+# references/sub/x.md to the references dir itself and report every one of them unlinked.
+while IFS= read -r _r; do
+  [ -n "$_r" ] || continue
+  _nref=$((_nref+1))
+  _skill=${_r%%/references/*}
+  grep -qF "references/${_r#*/references/}" "$_skill/SKILL.md" 2>/dev/null \
     || _unlinked="$_unlinked ${_r#skills/}"
-done
+done <<EOF
+$(git ls-files 'skills/*/*/references/*')
+EOF
 if [ -z "$_unlinked" ]; then
-  pass "every references/ file is linked from the SKILL.md that owns it ($(git ls-files 'skills/*/*/references/*' | wc -l | tr -d ' ') files)"
+  pass "every references/ file is named by the SKILL.md that owns it ($_nref files)"
 else
-  fail "reference file(s) nothing links to — moving detail there without a link deletes it:$_unlinked"
+  fail "reference file(s) no SKILL.md names — moving detail there without a link deletes it:$_unlinked"
 fi
 
 # A skill directory is a distribution unit: whatever sits in it reaches every teammate who installs the

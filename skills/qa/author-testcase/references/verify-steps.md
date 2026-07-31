@@ -23,10 +23,11 @@ produced. `--promote` copies that output over the answer and records `lint.answe
 
 - **An empty answer makes CTP report `Fail:1`, not a skip.** Nothing can match an empty file. That Fail
   is the expected outcome of generation; the real output is in `$CTP_HOME/sql/result/.../cbrd_XXXXX.result`.
-- **`--generate --promote` in one call is refused.** The judgment between them — "is this the post-fix
-  behaviour the issue states?" — is the entire point of generating an answer instead of writing one.
-- **Promoting over a non-empty answer is refused.** Generation is for an answer that does not exist yet;
-  overwriting a confirmed one destroys the thing CI compares against.
+- The body says both refusals; the reason for the first is that the judgment between the two calls —
+  "is this the post-fix behaviour the issue states?" — is the entire point of generating an answer
+  rather than writing one.
+  The second exists because generation is for an answer that does not exist yet: overwriting a confirmed
+  one destroys the thing CI compares against.
 - `lint.answer_not_handwritten` is written by the step that *copies* the file, not asserted by the agent
   about its own work. An agent's claim is the weakest possible evidence for the one thing that field
   exists to rule out.
@@ -43,7 +44,7 @@ and CTP's masked compare is what the regression suite itself uses. A nondetermin
 `[Ljava...@hash`, an OID, a timestamp, a multi-row result with no `ORDER BY` — is an Author problem, not
 a Verify one: feed it back.
 
-## S3 — path coverage
+## Path coverage (body item 3 — not a session of its own)
 
 A green TC on a path the fix never touches is worthless. Prove the path with `;plan detail`, a
 `.queryPlan` sidecar, or `SET TRACE ON; <query>; SHOW TRACE;`, and size the data to clear the thresholds
@@ -78,20 +79,17 @@ found while authoring than in someone's nightly.
 `failpass-run.sh --prefix-build <version|url>` installs the pre-fix build, runs the TC once (a FAIL is the
 goal), restores the fixed build, runs it again (a PASS is the goal), and records `verify.fail_to_pass.*`.
 
-- **Both build URLs are proven reachable before anything is installed.** The internal build server prunes
-  old builds, so the build a fail→pass check needs is exactly the one that goes missing — and discovering
-  that *after* installing the pre-fix build strands the machine on it. The public archive keeps a build
-  until develop is released, which is why it is the default (`CUBRID_BUILD_BASE` overrides).
+- **Both build URLs are proven reachable before anything is installed.** The build a fail→pass check needs
+  is an OLD one, which is exactly what gets pruned — and discovering that the fixed build cannot be
+  reinstalled *after* installing the pre-fix one strands the machine. (Which archive is the default, and
+  how to change it, is in `SKILL.md`'s Before-you-start.)
 - **The restore is an EXIT trap, not a later step.** A sequence that dies in the middle would otherwise
   leave a pre-fix engine installed, after which every later verify runs against the bug and still reports
   green.
 - The inner runs pass `--no-manifest`: a deliberate pre-fix failure must never become the verification the
   submit gate reads. Each run also gets its own `--log-label`, because three runs of the same category
   otherwise write one log and overwrite each other's evidence.
-- `confirmed` only for FAIL→PASS. `contradicted` means the TC passes without the fix (no regression
-  value — either it never reaches the fix path, or the build already contains it); `inconclusive` means the
-  run proved nothing. Both leave submit blocked.
-- A timing-sensitive race may legitimately not reproduce: that is `best_effort`, which needs
-  `verify.fail_to_pass.note` **and** `review.failpass_approved`. Pin the server to **≥4 cores** when the
-  repro needs parallelism — `system_core_count` is affinity-aware and ≤2 disables it. With no pre-fix
-  build available at all, ground the pre-fix behaviour from the issue's Repro/Expected and say so.
+- `contradicted` (the body's term) has two causes worth separating: the TC never reaches the fix path, or
+  the build you named already contains the fix.
+- The ≥4-core rule the body states is about `system_core_count` being affinity-aware: pinning the server
+  to ≤2 cores does not slow parallelism down, it *disables* it, so the repro cannot occur at all.
