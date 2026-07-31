@@ -78,7 +78,7 @@ RUN="$HOME/.cubrid-agent/$KEY"; mkdir -p "$RUN"
 
 FIX=11.5.0.2300-04192d6
 PRE=11.4.0.1000-deadbee
-url() { printf 'http://192.168.1.91:8080/REPO_ROOT/store_01/%s/drop/CUBRID-%s-Linux.x86_64.sh' "$1" "$1"; }
+url() { printf 'https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build/%s/drop/CUBRID-%s-Linux.x86_64.sh' "$1" "$1"; }
 
 T_PASS=0; T_FAIL=0; FAILURES=""
 note_fail() { T_FAIL=$((T_FAIL+1)); FAILURES="$FAILURES

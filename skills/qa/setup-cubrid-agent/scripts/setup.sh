@@ -193,7 +193,7 @@ if [ -n "$BUILD_URL" ]; then
 elif [ -d "$HOME/CUBRID" ]; then
   ok "CUBRID present: \$HOME/CUBRID (whether it contains the target issue's fix is checked by the pipeline)"
 else
-  todo "no CUBRID build — setup --build <url> (build server 192.168.1.91:8080, URL shape http://192.168.1.91:8080/REPO_ROOT/store_01/<version>/drop/CUBRID-<version>-Linux.x86_64.sh; list store_01/ first, old builds get pruned and a version named in an issue may already be 404 — off the network, or when a build has been pruned, the same shape is served at https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build. Not needed unless using CTP skills)"
+  todo "no CUBRID build — setup --build <url> (URL shape https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build/<version>/drop/CUBRID-<version>-Linux.x86_64.sh, version including the commit hash; that archive keeps a build until develop is released, while the internal build server prunes, so a version named in an issue may 404 there. Set CUBRID_BUILD_BASE to use the internal server. Not needed unless using CTP skills)"
 fi
 
 # --- Tier 3 CLI installs. Only reached with --install-clis, i.e. after the skill got a yes. -------

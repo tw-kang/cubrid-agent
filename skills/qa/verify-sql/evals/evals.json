@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "1001.sql 파일 실행해줘. 빌드는 http://192.168.1.91:8080/REPO_ROOT/store_01/11.4.5.1856-4124b9c/drop/CUBRID-11.4.5.1856-4124b9c-Linux.x86_64.sh 이야. 파일 경로는 /home/dev/cubrid-testcases/sql/_01_object/_01_type/_001_nchar_nvarchar/cases/1001.sql",
+      "prompt": "1001.sql 파일 실행해줘. 빌드는 https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build/11.4.5.1856-4124b9c/drop/CUBRID-11.4.5.1856-4124b9c-Linux.x86_64.sh 이야. 파일 경로는 /home/dev/cubrid-testcases/sql/_01_object/_01_type/_001_nchar_nvarchar/cases/1001.sql",
       "expected_output": "After installing CUBRID, runs CTP in interactive mode under the sql category and reports the PASS/FAIL result",
       "assertions": [
         {
@@ -27,7 +27,7 @@
     },
     {
       "id": 2,
-      "prompt": "medium tc 실행해봐. 빌드 URL: http://192.168.1.91:8080/REPO_ROOT/store_01/11.4.5.1856-4124b9c/drop/CUBRID-11.4.5.1856-4124b9c-Linux.x86_64.sh, 파일: /home/dev/cubrid-testcases/medium/_01_fixed/cases/2439.sql",
+      "prompt": "medium tc 실행해봐. 빌드 URL: https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build/11.4.5.1856-4124b9c/drop/CUBRID-11.4.5.1856-4124b9c-Linux.x86_64.sh, 파일: /home/dev/cubrid-testcases/medium/_01_fixed/cases/2439.sql",
       "expected_output": "After installing CUBRID, runs CTP in interactive mode under the medium category and reports the PASS/FAIL result",
       "assertions": [
         {

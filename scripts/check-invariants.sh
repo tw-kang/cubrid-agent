@@ -300,6 +300,22 @@ else
   fail "grounding helper wiring broken:$_bad — the skills call an absolute path that nothing puts on disk"
 fi
 
+# This repo ships publicly as a plugin, so an internal address in it is both an information leak and a
+# dead end for anyone outside that network — the build-server URL was hardcoded in 9 places, including
+# the default a script actually downloaded from. The public archive serves the same artifact and keeps a
+# build until develop is released, so the internal server is now reachable only through
+# CUBRID_BUILD_BASE, and nothing names it.
+# The 10/8 range is matched only in a URL or host:port context on purpose: CUBRID's own versions look
+# like 10.1.3.7698, and a check that cannot tell those apart would be turned off within a week.
+_ips=$(git grep -nE '192\.168\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}|(//|@)10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|\b10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]+' \
+        -- . ':!scripts/check-invariants.sh' 2>/dev/null)
+if [ -z "$_ips" ]; then
+  pass "no internal IP address is named anywhere in the repo (the build archive is a public hostname)"
+else
+  fail "internal address(es) in tracked files — use the public archive, or CUBRID_BUILD_BASE:"
+  printf '         %s\n' "$_ips"
+fi
+
 # A skill directory is a distribution unit: whatever sits in it reaches every teammate who installs the
 # plugin. A measurement byproduct (SKILL.md.bold / SKILL.md.tokens, from the body-slimming check) was
 # swept in by `git add -A` and shipped in one commit — deleting the two files fixed that instance and

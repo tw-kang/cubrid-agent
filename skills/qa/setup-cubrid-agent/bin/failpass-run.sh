@@ -75,9 +75,14 @@ installed_version() {
   "$CUB/bin/cubrid_rel" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-[0-9a-f]+' | head -1
 }
 # A bare version is accepted as well as a URL, because that is what an issue comment names. The shape
-# is the build server's, and it needs the FULL version including the commit hash: the truncated form
-# (11.5.0.2300 without -04192d6) 404s.
-BUILD_BASE=${CUBRID_BUILD_BASE:-http://192.168.1.91:8080/REPO_ROOT/store_01}
+# needs the FULL version including the commit hash: the truncated form (11.5.0.2300 without -04192d6)
+# 404s.
+#
+# The public archive is the default, and for this script's purpose it is the better source: it keeps a
+# build until develop is released, while the internal store prunes — and the build a fail→pass check
+# needs is an OLD one, exactly what gets pruned first. Same path shape and the same artifact (identical
+# Content-Length), ~2s slower on 275MB. Point CUBRID_BUILD_BASE at the internal server to use it.
+BUILD_BASE=${CUBRID_BUILD_BASE:-https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build}
 to_url() {
   case "$1" in
     http://*|https://*|/*) printf '%s' "$1" ;;

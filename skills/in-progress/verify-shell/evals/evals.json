@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "cubrid-testcases-private-ex/shell/_01_utility/_01_sqlx/bug_cubrid2125/cases/bug_cubrid2125.sh 이 케이스 수행해줘. 빌드 URL은 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
+      "prompt": "cubrid-testcases-private-ex/shell/_01_utility/_01_sqlx/bug_cubrid2125/cases/bug_cubrid2125.sh 이 케이스 수행해줘. 빌드 URL은 https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh",
       "expected_output": "Install CUBRID from the build URL, run the test, and report the result (OK/NOK). Include root-cause analysis on failure.",
       "files": [],
       "assertions": [
@@ -15,7 +15,7 @@
     },
     {
       "id": 2,
-      "prompt": "bug_1562 shell tc 돌려봐. 빌드는 http://192.168.1.91:8080/REPO_ROOT/store_01/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh 이걸로 설치해",
+      "prompt": "bug_1562 shell tc 돌려봐. 빌드는 https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build/11.5.0.2164-66e9279/drop/CUBRID-11.5.0.2164-66e9279-Linux.x86_64.sh 이걸로 설치해",
       "expected_output": "Look up the testcase path by name, install CUBRID, run the test, and report the result.",
       "files": [],
       "assertions": [

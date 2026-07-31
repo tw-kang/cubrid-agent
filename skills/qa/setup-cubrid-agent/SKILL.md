@@ -60,7 +60,7 @@ After any of these, **re-run `setup.sh`** and confirm the TODO count drops. Cred
 
 ### 4. CUBRID build — guide only, never run
 
-The `verify` skills and the verify stage of author-testcase need a CUBRID **release** build **that contains the target issue's fix** at `$HOME/CUBRID`. The build is issue-dependent, so this skill does **not** install one. Guide the operator to re-run the same `scripts/setup.sh` with `--build <url>` from the build server (`192.168.1.91:8080`, inside the CUBRID network) — or, off the network, from the public archive `https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build`, which serves the same `<base>/<version>/drop/CUBRID-<version>-Linux.x86_64.sh` shape and the same artifact. `verify-sql` can also install a build per issue.
+The `verify` skills and the verify stage of author-testcase need a CUBRID **release** build **that contains the target issue's fix** at `$HOME/CUBRID`. The build is issue-dependent, so this skill does **not** install one. Guide the operator to re-run the same `scripts/setup.sh` with `--build <url>` from the build archive `https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build` (`<base>/<version>/drop/CUBRID-<version>-Linux.x86_64.sh`, version including the commit hash). It keeps a build until develop is released and works off the CUBRID network; the internal build server serves the same shape and the same artifact for anyone who prefers it (`CUBRID_BUILD_BASE`). `verify-sql` can also install a build per issue.
 
 ### 5. Per-skill readiness report
 

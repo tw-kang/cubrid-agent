@@ -31,7 +31,7 @@ source ~/.cubrid-agent/env.sh     # CTP를 실행하는 세션마다 (CTP_HOME·
 git clone https://github.com/tw-kang/cubrid-agent.git && cd cubrid-agent
 bash skills/qa/setup-cubrid-agent/scripts/setup.sh --install-clis # Tier 2 전부($HOME 표준) + 필수 CLI 3종 설치(§3)
 bash skills/qa/setup-cubrid-agent/scripts/setup.sh              # 설치 없이 확인·안내만. TODO는 사람이 처리(§2·§3)
-bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 스킬용 — 빌드서버 192.168.1.91:8080
+bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 스킬용 — ftp.cubrid.org/CUBRID_Engine/nightly/daily_build (사내 빌드서버를 쓰려면 CUBRID_BUILD_BASE)
 ```
 
 - setup 스크립트는 **멱등**(재실행 안전)·**비대화식**이며 CWD 비의존이다(정본은 setup-cubrid-agent 스킬 안, 루트 래퍼 없음 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)). 하는 일/안 하는 일 경계는 [deployment.md](./deployment.md)의 3계층: Tier 2(머신 상태)는 스크립트가, Tier 3 중 **CLI 설치는 동의 한 번 뒤 스크립트가**(`--install-clis`, §3), **자격증명은 사람이**.
