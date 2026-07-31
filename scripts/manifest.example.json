@@ -1,6 +1,7 @@
 {
   "issue": "CBRD-26799",
-  "select": { "issue_type": "Correct Error" },
+  "select": { "issue_type": "Correct Error",
+              "reauthor_reason": "only when redoing an issue that already has an upstream PR — the submit gate denies an unexplained one" },
   "ground": { "comments": 4, "attachments": { "total": 3, "read": 2, "images": 1, "unread": [] } },
   "branch": "tc/cbrd-26799",
   "build": "11.5.0.2300-04192d6",

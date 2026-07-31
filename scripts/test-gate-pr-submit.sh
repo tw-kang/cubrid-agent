@@ -22,6 +22,18 @@ RUN="$T/.cubrid-agent/$KEY"
 mkdir -p "$RUN"
 GEN="$RUN/pr-body.md"
 
+# `gh` is stubbed for every case, not just the ones about it: the gate's re-author check calls
+# `gh pr list`, and with the real binary on PATH this suite would query GitHub 30 times and change
+# answer depending on what exists upstream. The fixture decides; STUB_GH_FAIL covers the failure path,
+# which must never turn into a deny.
+STUBBIN="$T/stub"; mkdir -p "$STUBBIN"; export PATH="$STUBBIN:$PATH"
+cat > "$STUBBIN/gh" <<'STUB'
+#!/bin/bash
+[ -n "${STUB_GH_FAIL:-}" ] && { echo "gh: not authenticated" >&2; exit 4; }
+if [ -n "${STUB_GH_PRS:-}" ] && [ -f "${STUB_GH_PRS}" ]; then cat "$STUB_GH_PRS"; else echo '[]'; fi
+STUB
+chmod +x "$STUBBIN/gh"
+
 # Every artifact condition satisfied, so only the body checks decide the outcome.
 cat > "$RUN/manifest.json" <<'JSON'
 {"verify":{"determinism":{"all_pass":true},"fail_to_pass":{"status":"confirmed"},"cci":{"checked":true}},
@@ -147,6 +159,22 @@ run "origin/develop not fetched" deny "origin/develop is not in" "$BASE --body-f
 $G update-ref refs/remotes/origin/develop "$BASESHA"
 
 unset CUBRID_TESTCASES
+
+# --- re-authoring over an existing upstream PR: a decision, not an accident --------------------
+# A targeted call skips Select's already-processed screen on purpose, so the gate asks for the reason
+# rather than forbidding the re-author. The PR here is on someone ELSE's fork — the case a branch check
+# cannot see, and the one that ends in two PRs for one issue.
+good_body
+PRFIX="$T/prs.json"
+echo '[{"number":3049,"state":"OPEN","author":{"login":"another-operator"}}]' > "$PRFIX"
+STUB_GH_PRS="$PRFIX" run "existing PR, no reason"   deny "PR #3049 (OPEN, another-operator) already exists" "$BASE --body-file $GEN"
+run "no PR upstream"                                ok   ""  "$BASE --body-file $GEN"
+STUB_GH_PRS="$PRFIX" STUB_GH_FAIL=1 \
+  run "gh failure is not a deny"                    ok   ""  "$BASE --body-file $GEN"
+jq '.select.reauthor_reason = "PoC PR #3049 predates the pipeline; redoing it with a generated answer"' \
+  "$RUN/manifest.json" > "$RUN/m.tmp" && mv "$RUN/m.tmp" "$RUN/manifest.json"
+STUB_GH_PRS="$PRFIX" run "existing PR + recorded reason" ok "" "$BASE --body-file $GEN"
+jq 'del(.select.reauthor_reason)' "$RUN/manifest.json" > "$RUN/m.tmp" && mv "$RUN/m.tmp" "$RUN/manifest.json"
 
 # --- the artifact conditions still gate, and they report first ---------------------------------
 good_body

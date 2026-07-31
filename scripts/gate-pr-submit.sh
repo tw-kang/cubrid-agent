@@ -118,5 +118,23 @@ if git -C "$TC" rev-parse --git-dir >/dev/null 2>&1 && [ -n "$BR" ] && git -C "$
   fi
 fi
 
+# Re-authoring an issue that already has an upstream PR has to be a decision, not an accident. A
+# targeted call (/author-testcase CBRD-XXXXX) deliberately skips Select's already-processed screen —
+# that is how a TC gets redone on purpose — so this does not forbid it, it requires the reason to be
+# recorded. What it actually catches is the case branch checks cannot: a PR opened from ANOTHER
+# operator's fork, or one whose branch was since deleted. For a PR on your own fork §7's push has
+# already updated it before this hook runs, so the deny arrives late — it still says where to look.
+# `gh` failure is never a deny (a false deny strands an hour of finished work, same trade as the base
+# check above), and neither is a recorded reason, however short.
+_reason=$(jq -r '(.select.reauthor_reason // "") | tostring' "$MANIFEST" 2>/dev/null)
+if [ -z "$_reason" ] && [ -n "$BR" ] && command -v gh >/dev/null 2>&1; then
+  _lbr=$(printf '%s' "$BR" | tr '[:upper:]' '[:lower:]')
+  if _prs=$(gh pr list --repo CUBRID/cubrid-testcases --state all --head "$_lbr" \
+              --json number,state,author 2>/dev/null); then
+    _pr=$(printf '%s' "$_prs" | jq -r '.[0] | select(.number) | "#\(.number) (\(.state), \(.author.login // "?"))"' 2>/dev/null)
+    [ -n "$_pr" ] && p="$p\n- PR $_pr already exists upstream for $_lbr, and the manifest records no reason for redoing it — if this is a deliberate re-author, put why in .select.reauthor_reason (jq '.select.reauthor_reason = \"<why>\"'); if it is not, you are about to duplicate that PR's work"
+  fi
+fi
+
 [ -z "$p" ] || deny "$(printf 'TC PR submission gate: %s not satisfied:%b' "$KEY" "$p")"
 exit 0

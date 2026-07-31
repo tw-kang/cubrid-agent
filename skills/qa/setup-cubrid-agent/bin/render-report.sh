@@ -38,8 +38,12 @@ if [ -f "$OUT" ] && [ "$FORCE" -ne 1 ]; then
   exit 1
 fi
 
+# env.sh sources CUBRID's .cubrid.sh, which appends to LD_LIBRARY_PATH and PATH without guarding
+# them — fatal under `set -u` wherever they are not already exported. An interactive login has them
+# (bashrc sourced .cubrid.sh earlier) and a non-interactive ssh does not, so this aborted the script
+# on the second machine while looking fine on the first. -u is lifted for that one line only.
 # shellcheck disable=SC1090
-[ -f "$HOME/.cubrid-agent/env.sh" ] && . "$HOME/.cubrid-agent/env.sh"
+if [ -f "$HOME/.cubrid-agent/env.sh" ]; then set +u; . "$HOME/.cubrid-agent/env.sh"; set -u; fi
 TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
 
 m() { jq -r "$1 // \"\"" "$MANIFEST" 2>/dev/null; }
@@ -94,6 +98,8 @@ fi
   jq -r '(.select.queue.checks_incomplete // [])[] | "  - **스크리닝 불완전**: \(.)"' "$QSRC" 2>/dev/null
   [ "$QSRC" != "$MANIFEST" ] && rm -f "$QSRC"
   _repro=$(m '.select.repro'); [ -n "$_repro" ] && printf -- '- repro 위치: %s\n' "$_repro"
+  # A re-author over an existing PR is the one Select decision a reader must not have to infer.
+  _ra=$(m '.select.reauthor_reason'); [ -n "$_ra" ] && printf -- '- **재작성**: 이미 PR이 있는 이슈를 다시 썼다 — %s\n' "$_ra"
   printf '\n## Ground\n\n'
   printf -- '- fix: %s\n' "$(u '.ground.fix_commit')"
   _fpr=$(m '.ground.fix_pr'); [ -n "$_fpr" ] && printf -- '- fix PR: %s\n' "$_fpr"
