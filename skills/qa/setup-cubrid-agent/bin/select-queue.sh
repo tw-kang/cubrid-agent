@@ -35,6 +35,8 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+case "$MAX" in ''|*[!0-9]*) printf 'select-queue: --max must be a number\n' >&2; exit 1 ;; esac
+
 for c in cubrid-jira jq git; do
   command -v "$c" >/dev/null 2>&1 || {
     printf 'select-queue: %s is not installed — run /setup-cubrid-agent --install-clis and try again.\n' "$c" >&2
@@ -165,17 +167,20 @@ while IFS= read -r row; do
   fi
 done < <(printf '%s' "$CAND" | jq -c '.[]')
 
+# Built once: the same lines land in the queue file and in the head candidate's manifest, and a
+# second copy of the conversion is a second place to get it wrong.
+INCOMPLETE_JSON=$(printf '%s' "$INCOMPLETE" | jq -R -s 'split("\n") | map(select(length>0))')
 NQ=$(printf '%s' "$QUEUE" | jq 'length')
 ND=$(printf '%s' "$DROPPED" | jq 'length')
 HEAD_KEY=$(printf '%s' "$QUEUE" | jq -r '.[0].key // empty')
 # Korean, because this string is report content: render-report.sh prints it verbatim into the Select
-# section, and that report is read by the team (the language policy puts reports in Korean while this
+# section, and that report is read by the team (AGENTS.md's language policy puts report bodies in Korean while this
 # script's own agent-facing output stays English).
 SUMMARY="JQL 후보 $NCAND건 → 기계 스크리닝으로 $ND건 제외 → 판단 대기 $NQ건 (assignee=$QA_USER, version=$VERSION, $BUILT)"
 
 jq -n --argjson q "$QUEUE" --argjson d "$DROPPED" --arg j "$JQL" --arg b "$BUILT" \
       --arg u "$QA_USER" --arg v "$VERSION" --arg f "$FORK" --arg s "$SUMMARY" \
-      --argjson n "$NCAND" --argjson inc "$(printf '%s' "$INCOMPLETE" | jq -R -s 'split("\n") | map(select(length>0))')" \
+      --argjson n "$NCAND" --argjson inc "$INCOMPLETE_JSON" \
   '{built:$b, assignee:$u, version:$v, fork:$f, jql:$j, candidates:$n,
     summary:$s, dropped:$d, queue:$q, checks_incomplete:$inc}' > "$OUT" || exit 1
 
@@ -187,7 +192,7 @@ if [ -n "$HEAD_KEY" ]; then
   mkdir -p "$(dirname "$_m")" && { [ -f "$_m" ] || printf '{}' > "$_m"; }
   _t=$(mktemp)
   if jq --arg k "$HEAD_KEY" --arg s "$SUMMARY" --arg b "$BUILT" --argjson d "$DROPPED" \
-        --argjson inc "$(printf '%s' "$INCOMPLETE" | jq -R -s 'split("\n") | map(select(length>0))')" \
+        --argjson inc "$INCOMPLETE_JSON" \
      '.issue = (.issue // $k)
       | .select.queue = {built:$b, summary:$s, dropped:$d, checks_incomplete:$inc}' \
      "$_m" > "$_t" 2>/dev/null; then mv "$_t" "$_m"; else rm -f "$_t"; fi

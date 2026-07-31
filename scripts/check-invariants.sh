@@ -300,6 +300,39 @@ else
   fail "grounding helper wiring broken:$_bad — the skills call an absolute path that nothing puts on disk"
 fi
 
+# A skill directory is a distribution unit: whatever sits in it reaches every teammate who installs the
+# plugin. A measurement byproduct (SKILL.md.bold / SKILL.md.tokens, from the body-slimming check) was
+# swept in by `git add -A` and shipped in one commit — deleting the two files fixed that instance and
+# nothing else, so the surface is asserted here instead. Only the four asset kinds the skills actually
+# use are allowed; anything else has to justify itself by being added to this list.
+_bad=""
+for _f in $(git ls-files 'skills/*/*/*'); do
+  case ${_f#skills/*/*/} in
+    SKILL.md|references/*|evals/*|examples/*|bin/*|scripts/*) ;;
+    *) _bad="$_bad $_f" ;;
+  esac
+done
+if [ -z "$_bad" ]; then
+  pass "skill directories carry only skill assets (SKILL.md, references/, evals/, examples/, bin/, scripts/)"
+else
+  fail "these files ship inside a skill directory but are not skill assets:$_bad — every teammate who installs the plugin receives them"
+fi
+
+# The stale-copy hint is byte-identical in every helper on purpose (one sentence, one wording), and it
+# is the sort of copy that rots: the next helper is written by copying an older one. Same directory and
+# same install unit, so unlike the cross-skill duplication forced by ADR 0003 this one is checkable.
+_hint='this installed copy is stale'
+_miss=""; _n=0
+for _f in skills/qa/setup-cubrid-agent/bin/*.sh; do
+  _n=$((_n+1)); grep -qF "$_hint" "$_f" || _miss="$_miss $(basename "$_f")"
+done
+_variants=$(grep -hoF -e "$_hint (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it." skills/qa/setup-cubrid-agent/bin/*.sh | sort -u | wc -l | tr -d ' ')
+if [ -z "$_miss" ] && [ "$_variants" = 1 ]; then
+  pass "all $_n helpers tell the operator when their installed copy is stale, in one wording"
+else
+  fail "stale-copy hint drifted:${_miss:+ missing in$_miss}${_variants:+ ($_variants wordings)} — a helper whose flags moved on would only say 'unknown option'"
+fi
+
 # The identity rule is duplicated on purpose — `npx skills add` copies one skill's own directory, so a
 # skill that resolves $QA_USER cannot link to a shared file (ADR 0003's channel constraint). What is
 # checkable is that no copy drifts into losing a part: the two copies already differ in wording, and

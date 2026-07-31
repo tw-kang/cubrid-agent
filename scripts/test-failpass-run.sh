@@ -38,6 +38,9 @@ cat > "$CTP_HOME/common/script/run_cubrid_install" <<'STUB'
 # trusting the exit code — STUB_INSTALL_SILENT_FAIL reproduces exactly that.
 _url=$1
 _ver=$(printf '%s' "$_url" | grep -oE 'CUBRID-[0-9.]+-[0-9a-f]+' | sed 's/^CUBRID-//' | head -1)
+# An installer given something whose name carries no version does nothing and still exits 0 — the
+# no-op case a version-less URL produces in real life (a local installer path, a renamed file).
+[ -n "$_ver" ] || { echo "[ERROR] nothing to install from $_url"; exit 0; }
 if [ "${STUB_INSTALL_SILENT_FAIL:-}" = "$_ver" ]; then echo "[ERROR] pretend download failed"; exit 0; fi
 printf '%s' "$_ver" > "$STATE/installed"
 echo "installed $_ver"
@@ -169,6 +172,18 @@ expect "restore fails" "manifest names the stranded build" \
 # ── a bare version is accepted where a URL is ─────────────────────────────────────────────────────
 reset_state "$FIX" "$PRE"
 run "bare version resolves to the build-server URL" 0 "confirmed" --prefix-build "$PRE"
+
+# ── a URL with no parsable version must not disable the install check ─────────────────────────────
+# The first version asserted the installed version only when the URL named one, so a version-less URL
+# skipped the check, ran the testcase on the FIXED build, saw it pass, and recorded `contradicted` —
+# "this TC has no regression value" — which is a false verdict rather than an error.
+reset_state "$FIX" "$PRE"
+LOCAL_INSTALLER="$T/installer.sh"; : > "$LOCAL_INSTALLER"
+run "version-less URL is caught, not believed" 3 "nothing was installed" --prefix-build "$LOCAL_INSTALLER"
+expect "version-less URL" "status" "$(st)" inconclusive
+expect "version-less URL" "installed build" "$(inst)" "$FIX"
+grep -qF 'contradicted' "$OUTF" && note_fail "version-less URL: reported contradicted instead of failing the install" \
+  || T_PASS=$((T_PASS+1))
 
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'failpass-run: %d/%d\n' "$T_PASS" "$T_PASS"

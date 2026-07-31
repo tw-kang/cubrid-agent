@@ -48,7 +48,6 @@ CTP_HOME=${CTP_HOME:-}
 CUB=${CUBRID:-$HOME/CUBRID}
 RUN_DIR="$HOME/.cubrid-agent/$KEY"
 MANIFEST="$RUN_DIR/manifest.json"
-LOG_DIR="$RUN_DIR"
 mkdir -p "$RUN_DIR"
 
 HAVE_JQ=0; command -v jq >/dev/null 2>&1 && HAVE_JQ=1
@@ -118,13 +117,26 @@ done
 
 # ── install, with the restore guaranteed by a trap rather than by reaching the end ────────────────
 install_build() {  # install_build <url> <expected version or ""> <label>
-  _log="$LOG_DIR/install-$3.log"
+  _log="$RUN_DIR/install-$3.log"
+  _before=$(installed_version) || _before=""
   printf '  install %s: %s\n' "$3" "$1"
   sh "$INSTALLER" "$1" > "$_log" 2>&1
   # run_cubrid_install can return 0 having failed, so the binary is the authority, not the exit code.
+  # Two assertions, because `[ -n "$2" ]` alone silently disables the check whenever the URL carries no
+  # parsable version — a local installer path, or a filename that is not CUBRID-<ver>-Linux…. In that
+  # case the run continued on the FIXED build and reported the testcase as `contradicted`: a false "this
+  # TC has no regression value" verdict, which is worse than any error. So: exact version when the URL
+  # names one, and otherwise the weaker fact that still has to hold — the installed version CHANGED.
   _got=$(installed_version) || _got=""
-  if [ -n "$2" ] && [ "$_got" != "$2" ]; then
-    printf '  install %s FAILED — cubrid_rel reports "%s", expected "%s". Log: %s\n' "$3" "${_got:-nothing}" "$2" "$_log"
+  if [ -n "$2" ]; then
+    _why=""; [ "$_got" = "$2" ] || _why="cubrid_rel reports \"${_got:-nothing}\", expected \"$2\""
+  else
+    _why=""
+    [ -n "$_got" ] || _why="cubrid_rel reports nothing"
+    [ -z "$_why" ] && [ "$_got" = "$_before" ] && _why="cubrid_rel still reports \"$_got\" — the URL names no version to check against, and nothing changed, so nothing was installed"
+  fi
+  if [ -n "$_why" ]; then
+    printf '  install %s FAILED — %s. Log: %s\n' "$3" "$_why" "$_log"
     grep -m3 '\[ERROR\]' "$_log" 2>/dev/null | sed 's/^/    /'
     return 1
   fi
@@ -155,14 +167,19 @@ restore_fixed() {
   RESTORE_FAILED=1
   return 1
 }
-trap 'restore_fixed >/dev/null 2>&1 || true' EXIT
+# NOT silenced. The first version sent the trap's output to /dev/null so the normal path would not print
+# the restore twice — but on the path where the trap is the ONLY caller (Ctrl-C during the pre-fix run)
+# that threw away the loudest message this script has, the one naming the stranded build and the command
+# to fix it. Duplicate output is already prevented by restore_fixed's own RESTORED/RESTORE_FAILED flags.
+trap 'restore_fixed || true' EXIT
+trap 'printf "\n  interrupted — restoring the fixed build before exiting\n"; restore_fixed || true; exit 130' INT TERM
 
 printf '[failpass] %s\n  fixed  : %s\n  prefix : %s\n' "$KEY" "$FIXED_VER" "${PREFIX_VER:-$PREFIX_URL}"
 
 TC_ARGS=()
 [ -n "$TCPATH" ] && TC_ARGS=(--tc-path "$TCPATH")
 run_case() {  # run_case <label> -> 0 pass, 1 fail(mismatch), 3 blocked
-  _out="$LOG_DIR/failpass-$1.out"
+  _out="$RUN_DIR/failpass-$1.out"
   # --no-manifest: a deliberate pre-fix failure must never become the record the submit gate reads.
   "$VERIFY" "$KEY" --runs 1 --no-manifest --timeout "$TIMEOUT" "${TC_ARGS[@]+"${TC_ARGS[@]}"}" > "$_out" 2>&1
   _rc=$?
@@ -171,7 +188,7 @@ run_case() {  # run_case <label> -> 0 pass, 1 fail(mismatch), 3 blocked
 }
 
 install_build "$PREFIX_URL" "$PREFIX_VER" prefix || {
-  record inconclusive "the pre-fix build ($PREFIX_VER) did not install; see $LOG_DIR/install-prefix.log"
+  record inconclusive "the pre-fix build ($PREFIX_VER) did not install; see $RUN_DIR/install-prefix.log"
   exit 3; }
 
 run_case prefix; PRC=$?
@@ -199,7 +216,7 @@ fi
 if [ "$FIXED_OUTCOME" != PASS ]; then
   record inconclusive "the fixed build $FIXED_VER did not pass ($FIXED_OUTCOME) — either the answer is wrong or this machine is not in the state the answer was generated in; the pre-fix run said $PREFIX_OUTCOME"
   printf '  recorded: status=inconclusive — the fixed build did not pass, so the pre-fix result proves nothing.\n'
-  printf '  Read %s before touching the .sql.\n' "$LOG_DIR/failpass-fixed.out"
+  printf '  Read %s before touching the .sql.\n' "$RUN_DIR/failpass-fixed.out"
   exit 1
 fi
 record contradicted "the testcase PASSED on the pre-fix build $PREFIX_VER — it does not detect this bug"
