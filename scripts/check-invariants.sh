@@ -289,8 +289,11 @@ for _src in skills/qa/setup-cubrid-agent/bin/*.sh; do
   grep -q "for h in .*$_h" skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad setup.sh-does-not-install($_h)"
   # Per helper, not once for the set: a helper nobody calls is dead weight that still gets installed,
   # and the check that only counted ground-issue.sh would have passed while the other two rotted.
+  # A library another helper sources is exempt from the skill-reference rule — no skill invokes it by
+  # path, and it still has to be installed, which the check above covers.
   _n=$(grep -l "bin/$_h" skills/*/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
-  [ "$_n" -gt 0 ] || _bad="$_bad no-skill-calls($_h)"
+  _sourced=$(grep -l "\. \"\$SELF_DIR/$_h\"" skills/qa/setup-cubrid-agent/bin/*.sh 2>/dev/null | wc -l | tr -d ' ')
+  [ "$_n" -gt 0 ] || [ "$_sourced" -gt 0 ] || _bad="$_bad no-skill-calls($_h)"
   _refs=$((_refs + _n))
 done
 grep -q 'AGENT_DIR/bin' skills/qa/setup-cubrid-agent/scripts/setup.sh || _bad="$_bad no-bin-dir"
@@ -340,6 +343,8 @@ fi
 _hint='this installed copy is stale'
 _miss=""; _n=0
 for _f in skills/qa/setup-cubrid-agent/bin/*.sh; do
+  # A sourced library parses no arguments, so it has no unknown-option path to carry the hint.
+  grep -q "\. \"\$SELF_DIR/$(basename "$_f")\"" skills/qa/setup-cubrid-agent/bin/*.sh 2>/dev/null && continue
   _n=$((_n+1)); grep -qF "$_hint" "$_f" || _miss="$_miss $(basename "$_f")"
 done
 _variants=$(grep -hoF -e "$_hint (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it." skills/qa/setup-cubrid-agent/bin/*.sh | sort -u | wc -l | tr -d ' ')
@@ -517,6 +522,12 @@ else fail "select queue test failed — run scripts/test-select-queue.sh:"; prin
 # installing, a failed restore, and a pre-fix result overwriting the record — are all reachable offline.
 if _t=$(bash scripts/test-failpass-run.sh 2>&1); then pass "fail→pass swap behaves: $_t"
 else fail "fail→pass test failed — run scripts/test-failpass-run.sh:"; printf '         %s\n' "$_t"; fi
+
+# The debug swap shares that machinery and adds the one assertion the others do not need: a debug build
+# reports the SAME version as its release twin, so only the build TYPE can prove the install happened.
+# Without it a no-op install reports `clean` — a verdict about a build that was never under test.
+if _t=$(bash scripts/test-debug-check.sh 2>&1); then pass "debug check behaves: $_t"
+else fail "debug check test failed — run scripts/test-debug-check.sh:"; printf '         %s\n' "$_t"; fi
 
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"

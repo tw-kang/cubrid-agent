@@ -36,7 +36,8 @@ chmod +x "$STUBBIN/gh"
 
 # Every artifact condition satisfied, so only the body checks decide the outcome.
 cat > "$RUN/manifest.json" <<'JSON'
-{"verify":{"determinism":{"all_pass":true},"fail_to_pass":{"status":"confirmed"},"cci":{"checked":true}},
+{"verify":{"determinism":{"all_pass":true},"fail_to_pass":{"status":"confirmed"},"cci":{"checked":true},
+           "debug":{"checked":true,"result":"clean"}},
  "review":{"verdict":"PASS"},
  "lint":{"header":true,"evaluate":true,"cleanup":true,"answer_not_handwritten":true,
          "english_comments":true,"header_scope":true,"header_size":true,"placement":true}}
@@ -175,6 +176,21 @@ jq '.select.reauthor_reason = "PoC PR #3049 predates the pipeline; redoing it wi
   "$RUN/manifest.json" > "$RUN/m.tmp" && mv "$RUN/m.tmp" "$RUN/manifest.json"
 STUB_GH_PRS="$PRFIX" run "existing PR + recorded reason" ok "" "$BASE --body-file $GEN"
 jq 'del(.select.reauthor_reason)' "$RUN/manifest.json" > "$RUN/m.tmp" && mv "$RUN/m.tmp" "$RUN/manifest.json"
+
+# --- the debug build: an assert blocks outright, a difference can be explained -----------------
+good_body
+m() { jq "$1" "$RUN/manifest.json" > "$RUN/m.tmp" && mv "$RUN/m.tmp" "$RUN/manifest.json"; }
+m 'del(.verify.debug)'
+run "debug never checked"        deny "debug build not checked"      "$BASE --body-file $GEN"
+m '.verify.debug = {checked:false, result:"inconclusive"}'
+run "debug run was blocked"      deny "debug build not checked"      "$BASE --body-file $GEN"
+m '.verify.debug = {checked:true, result:"assert", marker:"assertion failed at page_buffer.c"}'
+run "assert blocks outright"     deny "engine finding for the developer" "$BASE --body-file $GEN"
+m '.verify.debug = {checked:true, result:"differs"}'
+run "unexplained difference"     deny "never promote debug output"   "$BASE --body-file $GEN"
+m '.verify.debug = {checked:true, result:"differs", note:"debug-only warning line, absent in release"}'
+run "explained difference"       ok   ""                             "$BASE --body-file $GEN"
+m '.verify.debug = {checked:true, result:"clean"}'
 
 # --- the artifact conditions still gate, and they report first ---------------------------------
 good_body

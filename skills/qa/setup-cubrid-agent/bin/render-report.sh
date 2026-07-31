@@ -116,6 +116,16 @@ fi
   _dr=$(m '.verify.determinism.runs'); _dp=$(m '.verify.determinism.all_pass')
   printf -- '- 결정성: %s회 반복, all_pass=%s\n' "${_dr:-?}" "${_dp:-미기록}"
   printf -- '- CCI 교차검증: checked=%s, matches_jdbc=%s\n' "$(u '.verify.cci.checked')" "$(u '.verify.cci.matches_jdbc')"
+  # The debug run is the one a reader is most likely to assume happened; print it, including the marker,
+  # because an assert is an engine finding that has to travel with its evidence.
+  _dbg=$(jq -r 'if ((.verify.debug // {}) | has("result")) then .verify.debug.result else "" end' "$MANIFEST" 2>/dev/null)
+  if [ -n "$_dbg" ]; then
+    printf -- '- debug 빌드 실행: %s (checked=%s, build=%s)\n' "$_dbg" "$(u '.verify.debug.checked')" "$(u '.verify.debug.build')"
+    _dm=$(m '.verify.debug.marker'); [ -n "$_dm" ] && printf -- '  - **assert/크래시 흔적**: `%s`\n' "$_dm"
+    _dn=$(m '.verify.debug.note');   [ -n "$_dn" ] && printf -- '  - 메모: %s\n' "$_dn"
+  else
+    printf -- '- debug 빌드 실행: 미기록 — debug-check.sh 를 돌리지 않았다\n'
+  fi
   printf -- '- fail→pass: %s\n' "$(u '.verify.fail_to_pass.status')"
   _fn=$(m '.verify.fail_to_pass.note'); [ -n "$_fn" ] && printf '\n<details><summary>fail→pass 상세·귀속 한계</summary>\n\n%s\n\n</details>\n\n' "$_fn"
   _rd=$(m '.verify.result_dir'); [ -n "$_rd" ] && printf -- '- 결과: `%s`\n' "$_rd"

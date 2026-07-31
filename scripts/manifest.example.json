@@ -17,6 +17,8 @@
       { "what": "t's heap spans >= parallel_sort_page_threshold (2048) data pages", "verified": true }
     ],
     "cci": { "checked": true, "matches_jdbc": true },
+    "debug": { "checked": true, "result": "clean", "type": "debug", "build": "11.5.0.2300-04192d6",
+               "note": "result is clean | assert | differs | inconclusive; assert blocks outright, differs needs this note" },
     "fail_to_pass": { "status": "best_effort", "prefix_build": "11.5.0.2211-12a1a05", "note": "race — not reproducible on local multi-core, left to CI / low-spec machines" }
   },
   "review": { "verdict": "PASS", "loops": 2, "failpass_approved": true },

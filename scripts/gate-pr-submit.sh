@@ -28,6 +28,12 @@ note=$(jq -r '.verify.fail_to_pass.note // ""' "$MANIFEST")
 appr=$(jq -r '.review.failpass_approved // false' "$MANIFEST")
 verdict=$(jq -r '.review.verdict // "missing"' "$MANIFEST")
 cci=$(jq -r '.verify.cci.checked // false' "$MANIFEST")
+# `has`, not `//`: jq's // substitutes for `false` too, so `.verify.debug.checked // false` cannot tell
+# a recorded false from a missing key — and this check has to distinguish "the debug run said so" from
+# "nobody ran it". Same reason the lint block below tests for the key.
+dbg=$(jq -r 'if ((.verify.debug // {}) | has("checked")) then (.verify.debug.checked|tostring) else "missing" end' "$MANIFEST")
+dbgr=$(jq -r '.verify.debug.result // "missing"' "$MANIFEST")
+dbgn=$(jq -r '.verify.debug.note // ""' "$MANIFEST")
 # header_scope / header_size / placement default to true only when ABSENT: all three were added
 # after the first runs (CUBRIDQA-1481, -1486), and the lint hook writes them on every TC .sql write,
 # so only pre-existing manifests lack them. Test for the key rather than writing
@@ -47,6 +53,18 @@ fi
 [ "$verdict" = PASS ] || p="$p\n- review not passed (review.verdict=$verdict)"
 [ "$cci" = true ] || p="$p\n- CCI cross-check not run (verify.cci.checked≠true) — cross-check with sql_by_cci; if it differs from the default sql (JDBC) output, add .answer_cci"
 [ "$lint" = true ] || p="$p\n- convention lint not satisfied (some lint.* is false — see the PostToolUse lint hook)"
+# The debug build is where CI finds an assert this TC trips, and it attributes it to the TC. An assert
+# is never an answer to adjust — it is an engine finding — so it blocks rather than asking for a note,
+# while a plain output difference can be explained (debug-only messages are a real cause).
+case "$dbg/$dbgr" in
+  true/clean) ;;
+  true/differs)
+    [ -n "$dbgn" ] || p="$p\n- the debug run's output differs from the release answer and nothing explains it — put why in verify.debug.note (debug-only messages are a legitimate cause), or fix the testcase; never promote debug output into .answer" ;;
+  true/assert)
+    p="$p\n- the debug build tripped an assertion or crashed on this testcase (see verify.debug.marker) — that is an engine finding for the developer, not an answer to adjust, so submission stays blocked" ;;
+  *)
+    p="$p\n- debug build not checked (verify.debug.checked=$dbg, result=$dbgr) — run ~/.cubrid-agent/bin/debug-check.sh $KEY; CI runs debug regression and an assert found there is attributed to this testcase" ;;
+esac
 
 # The body must be render-pr-body.sh's output, not prose (CUBRIDQA-1487). author-testcase says
 # "generate it, do not compose it" and nothing enforced it, so two defects reached reviewers: the

@@ -1,0 +1,127 @@
+#!/bin/bash
+# Shared build-swap machinery. SOURCED by failpass-run.sh and debug-check.sh, never run on its own.
+#
+# Why it is shared (DP7): both callers do the same dangerous thing — install a different CUBRID under a
+# machine, run one testcase, put the original back — and the first version of that code carried two
+# defects that made it report something untrue (a version assertion that switched itself off, and a
+# restore whose failure message went to /dev/null). Fixing those twice, in two copies that drifted, is
+# how the second copy keeps the bug.
+#
+# Contract: the caller defines CUB (the CUBRID install dir), INSTALLER (CTP's run_cubrid_install) and
+# RUN_DIR (where install logs go) BEFORE sourcing this, and may define a `swap_record_failure <note>`
+# function — swap_restore calls it when the machine is left on the wrong build, so the manifest says so
+# even when nothing but an EXIT trap is still running.
+
+# A bare version is accepted as well as a URL, because that is what an issue comment names. The shape
+# needs the FULL version including the commit hash: the truncated form (11.5.0.2300 without -04192d6)
+# 404s.
+#
+# The public archive is the default: it keeps a build until develop is released, while the internal
+# store prunes — and the build a fail→pass check needs is an OLD one, exactly what gets pruned first.
+# Same path shape and the same artifact (identical Content-Length), ~2s slower on 275MB. Point
+# CUBRID_BUILD_BASE at the internal build server to use that instead.
+BUILD_BASE=${CUBRID_BUILD_BASE:-https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build}
+
+to_url() {
+  case "$1" in
+    http://*|https://*|/*) printf '%s' "$1" ;;
+    *) printf '%s/%s/drop/CUBRID-%s-Linux.x86_64.sh' "$BUILD_BASE" "$1" "$1" ;;
+  esac
+}
+# The debug twin sits next to the release one under the same version directory.
+debug_url() {
+  case "$1" in
+    http://*|https://*|/*) printf '%s' "$1" ;;
+    *) printf '%s/%s/drop/CUBRID-%s-Linux.x86_64-debug.sh' "$BUILD_BASE" "$1" "$1" ;;
+  esac
+}
+url_version() { printf '%s' "$1" | grep -oE 'CUBRID-[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-[0-9a-f]+' | sed 's/^CUBRID-//' | head -1; }
+reachable() {
+  case "$1" in
+    /*) [ -f "$1" ] ;;
+    *)  command -v curl >/dev/null 2>&1 || return 0   # cannot check; let the installer report it
+        curl -fsI --max-time 20 "$1" >/dev/null 2>&1 ;;
+  esac
+}
+
+installed_version() {
+  [ -x "$CUB/bin/cubrid_rel" ] || return 1
+  "$CUB/bin/cubrid_rel" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-[0-9a-f]+' | head -1
+}
+# release | debug. A debug build reports the SAME version as its release twin, so for a debug swap this
+# is the only thing that can be asserted after the install — the version check would pass on a machine
+# that never left release, and the run would then report a verdict about a build nobody tested.
+installed_build_type() {
+  [ -x "$CUB/bin/cubrid_rel" ] || return 1
+  "$CUB/bin/cubrid_rel" 2>/dev/null | grep -oiE '(release|debug) build' | head -1 \
+    | grep -oiE 'release|debug' | tr '[:upper:]' '[:lower:]'
+}
+
+install_build() {  # install_build <url> <expected version or ""> <label> [expected type]
+  _log="$RUN_DIR/install-$3.log"
+  _before=$(installed_version) || _before=""
+  printf '  install %s: %s\n' "$3" "$1"
+  sh "$INSTALLER" "$1" > "$_log" 2>&1
+  # run_cubrid_install can return 0 having failed, so the binary is the authority, not the exit code.
+  # Version: exact when the URL names one, otherwise the weaker fact that still has to hold — it
+  # CHANGED. `[ -n "$2" ]` alone silently disabled the whole check whenever the URL carried no parsable
+  # version (a local installer path, a renamed file), and the run then continued on the build it was
+  # supposed to have replaced and reported a verdict about it.
+  _got=$(installed_version) || _got=""
+  _why=""
+  if [ -n "$2" ]; then
+    [ "$_got" = "$2" ] || _why="cubrid_rel reports \"${_got:-nothing}\", expected \"$2\""
+  else
+    [ -n "$_got" ] || _why="cubrid_rel reports nothing"
+    [ -z "$_why" ] && [ "$_got" = "$_before" ] && _why="cubrid_rel still reports \"$_got\" — the URL names no version to check against, and nothing changed, so nothing was installed"
+  fi
+  # Type, when the caller asks for one: this is what catches a no-op debug install, whose version is
+  # identical to the release build that is already there.
+  if [ -z "$_why" ] && [ -n "${4:-}" ]; then
+    _gt=$(installed_build_type) || _gt=""
+    [ "$_gt" = "$4" ] || _why="cubrid_rel reports a \"${_gt:-unknown}\" build, expected \"$4\" (the version matches either way, so nothing was installed)"
+  fi
+  if [ -n "$_why" ]; then
+    printf '  install %s FAILED — %s. Log: %s\n' "$3" "$_why" "$_log"
+    grep -m3 '\[ERROR\]' "$_log" 2>/dev/null | sed 's/^/    /'
+    return 1
+  fi
+  # sql.conf does not build the locale library, and a missing one fails DB startup on the fresh install.
+  if [ ! -f "$CUB/lib/libcubrid_all_locales.so" ] && [ -x "$CUB/bin/make_locale.sh" ]; then
+    sh "$CUB/bin/make_locale.sh" -t 64bit >> "$_log" 2>&1 \
+      || printf '  warning: make_locale.sh failed (see %s) — DB startup may fail\n' "$_log"
+  fi
+  printf '  now on %s%s\n' "${_got:-unknown}" "$([ -n "${4:-}" ] && printf ' (%s)' "$4")"
+  return 0
+}
+
+# ── the restore, which must happen even when nothing else does ────────────────────────────────────
+swap_baseline_ver=""; swap_baseline_url=""; swap_baseline_type=""; swap_stuck_label="WRONG"
+swap_restored=0; swap_restore_failed=0
+swap_set_baseline() {  # swap_set_baseline <version> <url> <type or ""> <label for the stuck message>
+  swap_baseline_ver=$1; swap_baseline_url=$2; swap_baseline_type=$3; swap_stuck_label=$4
+}
+swap_restore() {
+  [ "$swap_restored" = 1 ] && return 0
+  # A second attempt from the EXIT trap would repeat a minutes-long install that already failed, and
+  # bury the recovery command it printed under a duplicate of the same failure.
+  [ "$swap_restore_failed" = 1 ] && return 1
+  _cur=$(installed_version) || _cur=""
+  _curt=$(installed_build_type) || _curt=""
+  if [ "$_cur" = "$swap_baseline_ver" ] && { [ -z "$swap_baseline_type" ] || [ "$_curt" = "$swap_baseline_type" ]; }; then
+    swap_restored=1; return 0
+  fi
+  printf '  restoring %s%s\n' "$swap_baseline_ver" "$([ -n "$swap_baseline_type" ] && printf ' (%s)' "$swap_baseline_type")"
+  if install_build "$swap_baseline_url" "$swap_baseline_ver" restore "$swap_baseline_type"; then
+    swap_restored=1; return 0
+  fi
+  # The loudest failure here is: the machine is on the wrong engine and every later verify is
+  # meaningless. Name the build and the command, not just "restore failed".
+  printf '\n  *** THIS MACHINE IS STILL ON A %s BUILD (%s%s) ***\n' \
+    "$swap_stuck_label" "${_cur:-unknown}" "$([ -n "$_curt" ] && printf ', %s' "$_curt")"
+  printf '  Restore it before any further verification:\n    sh %s %s\n\n' "$INSTALLER" "$swap_baseline_url"
+  command -v swap_record_failure >/dev/null 2>&1 && \
+    swap_record_failure "RESTORE FAILED — machine left on ${_cur:-unknown}${_curt:+ ($_curt)}; $swap_baseline_ver must be reinstalled before any verify result means anything"
+  swap_restore_failed=1
+  return 1
+}

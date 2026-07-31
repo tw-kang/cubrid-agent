@@ -70,33 +70,15 @@ INSTALLER="$CTP_HOME/common/script/run_cubrid_install"
   printf 'failpass-run: %s not found — CTP provides the installer, so this cannot swap builds. Install CTP (/setup-cubrid-agent) first.\n' "${INSTALLER:-<no CTP_HOME>}" >&2
   record inconclusive "CTP installer not found; no build was swapped"; exit 3; }
 
-installed_version() {
-  [ -x "$CUB/bin/cubrid_rel" ] || return 1
-  "$CUB/bin/cubrid_rel" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-[0-9a-f]+' | head -1
-}
-# A bare version is accepted as well as a URL, because that is what an issue comment names. The shape
-# needs the FULL version including the commit hash: the truncated form (11.5.0.2300 without -04192d6)
-# 404s.
-#
-# The public archive is the default, and for this script's purpose it is the better source: it keeps a
-# build until develop is released, while the internal store prunes — and the build a fail→pass check
-# needs is an OLD one, exactly what gets pruned first. Same path shape and the same artifact (identical
-# Content-Length), ~2s slower on 275MB. Point CUBRID_BUILD_BASE at the internal server to use it.
-BUILD_BASE=${CUBRID_BUILD_BASE:-https://ftp.cubrid.org/CUBRID_Engine/nightly/daily_build}
-to_url() {
-  case "$1" in
-    http://*|https://*|/*) printf '%s' "$1" ;;
-    *) printf '%s/%s/drop/CUBRID-%s-Linux.x86_64.sh' "$BUILD_BASE" "$1" "$1" ;;
-  esac
-}
-url_version() { printf '%s' "$1" | grep -oE 'CUBRID-[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-[0-9a-f]+' | sed 's/^CUBRID-//' | head -1; }
-reachable() {
-  case "$1" in
-    /*) [ -f "$1" ] ;;
-    *)  command -v curl >/dev/null 2>&1 || return 0   # cannot check; let the installer report it
-        curl -fsI --max-time 20 "$1" >/dev/null 2>&1 ;;
-  esac
-}
+# The install/assert/restore machinery is shared with debug-check.sh — same dangerous shape, and
+# the two defects it used to carry were the kind that report something untrue. CUB, INSTALLER and
+# RUN_DIR above are its contract.
+# shellcheck source=build-swap.sh disable=SC1091
+. "$SELF_DIR/build-swap.sh" || { printf 'failpass-run: build-swap.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
+
+# swap_restore calls this when the machine is left on the pre-fix build, so the manifest says so
+# even when the only thing still running is the EXIT trap.
+swap_record_failure() { record inconclusive "$1"; }
 
 FIXED_VER=$(installed_version) || FIXED_VER=""
 [ -n "$FIXED_VER" ] || { printf 'failpass-run: no CUBRID build under %s — the fixed build must already be installed (it is what gets restored).\n' "$CUB" >&2
@@ -104,6 +86,7 @@ FIXED_VER=$(installed_version) || FIXED_VER=""
 
 PREFIX_URL=$(to_url "$PREFIX_IN"); PREFIX_VER=$(url_version "$PREFIX_URL")
 FIXED_URL=$(to_url "${FIXED_IN:-$FIXED_VER}")
+swap_set_baseline "$FIXED_VER" "$FIXED_URL" "" "PRE-FIX"
 
 # Order matters: BOTH URLs are proven before anything is installed. Discovering that the fixed build
 # has been pruned from the server *after* installing the pre-fix one is how a machine gets stranded —
@@ -124,64 +107,12 @@ done
   printf 'failpass-run: the pre-fix URL names %s, which is the build already installed — a fail→pass check against itself proves nothing.\n' "$PREFIX_VER" >&2
   record inconclusive "refused: --prefix-build names the installed build ($FIXED_VER)"; exit 1; }
 
-# ── install, with the restore guaranteed by a trap rather than by reaching the end ────────────────
-install_build() {  # install_build <url> <expected version or ""> <label>
-  _log="$RUN_DIR/install-$3.log"
-  _before=$(installed_version) || _before=""
-  printf '  install %s: %s\n' "$3" "$1"
-  sh "$INSTALLER" "$1" > "$_log" 2>&1
-  # run_cubrid_install can return 0 having failed, so the binary is the authority, not the exit code.
-  # Two assertions, because `[ -n "$2" ]` alone silently disables the check whenever the URL carries no
-  # parsable version — a local installer path, or a filename that is not CUBRID-<ver>-Linux…. In that
-  # case the run continued on the FIXED build and reported the testcase as `contradicted`: a false "this
-  # TC has no regression value" verdict, which is worse than any error. So: exact version when the URL
-  # names one, and otherwise the weaker fact that still has to hold — the installed version CHANGED.
-  _got=$(installed_version) || _got=""
-  if [ -n "$2" ]; then
-    _why=""; [ "$_got" = "$2" ] || _why="cubrid_rel reports \"${_got:-nothing}\", expected \"$2\""
-  else
-    _why=""
-    [ -n "$_got" ] || _why="cubrid_rel reports nothing"
-    [ -z "$_why" ] && [ "$_got" = "$_before" ] && _why="cubrid_rel still reports \"$_got\" — the URL names no version to check against, and nothing changed, so nothing was installed"
-  fi
-  if [ -n "$_why" ]; then
-    printf '  install %s FAILED — %s. Log: %s\n' "$3" "$_why" "$_log"
-    grep -m3 '\[ERROR\]' "$_log" 2>/dev/null | sed 's/^/    /'
-    return 1
-  fi
-  # sql.conf does not build the locale library, and a missing one fails DB startup on the fresh install.
-  if [ ! -f "$CUB/lib/libcubrid_all_locales.so" ] && [ -x "$CUB/bin/make_locale.sh" ]; then
-    sh "$CUB/bin/make_locale.sh" -t 64bit >> "$_log" 2>&1 \
-      || printf '  warning: make_locale.sh failed (see %s) — DB startup may fail\n' "$_log"
-  fi
-  printf '  now on %s\n' "${_got:-unknown}"
-  return 0
-}
-
-RESTORED=0; RESTORE_FAILED=0
-restore_fixed() {
-  [ "$RESTORED" = 1 ] && return 0
-  # A second attempt from the EXIT trap would just repeat a minutes-long install that already failed,
-  # and bury the recovery command it printed under a duplicate of the same failure.
-  [ "$RESTORE_FAILED" = 1 ] && return 1
-  _cur=$(installed_version) || _cur=""
-  [ "$_cur" = "$FIXED_VER" ] && { RESTORED=1; return 0; }
-  printf '  restoring the fixed build %s\n' "$FIXED_VER"
-  if install_build "$FIXED_URL" "$FIXED_VER" restore; then RESTORED=1; return 0; fi
-  # The loudest failure this script has: the machine is on a pre-fix engine and every later verify
-  # would be meaningless. Say the version and the command, not just "restore failed".
-  printf '\n  *** THIS MACHINE IS STILL ON A PRE-FIX BUILD (%s) ***\n' "${_cur:-unknown}"
-  printf '  Restore it before any further verification:\n    sh %s %s\n\n' "$INSTALLER" "$FIXED_URL"
-  record inconclusive "RESTORE FAILED — machine left on ${_cur:-unknown}; the fixed build $FIXED_VER must be reinstalled before any verify result means anything"
-  RESTORE_FAILED=1
-  return 1
-}
 # NOT silenced. The first version sent the trap's output to /dev/null so the normal path would not print
 # the restore twice — but on the path where the trap is the ONLY caller (Ctrl-C during the pre-fix run)
 # that threw away the loudest message this script has, the one naming the stranded build and the command
-# to fix it. Duplicate output is already prevented by restore_fixed's own RESTORED/RESTORE_FAILED flags.
-trap 'restore_fixed || true' EXIT
-trap 'printf "\n  interrupted — restoring the fixed build before exiting\n"; restore_fixed || true; exit 130' INT TERM
+# to fix it. Duplicate output is already prevented by swap_restore's own flags.
+trap 'swap_restore || true' EXIT
+trap 'printf "\n  interrupted — restoring the fixed build before exiting\n"; swap_restore || true; exit 130' INT TERM
 
 printf '[failpass] %s\n  fixed  : %s\n  prefix : %s\n' "$KEY" "$FIXED_VER" "${PREFIX_VER:-$PREFIX_URL}"
 
@@ -207,7 +138,7 @@ case $PRC in
   *) PREFIX_OUTCOME=blocked ;;
 esac
 
-restore_fixed || exit 3
+swap_restore || exit 3
 run_case fixed; FRC=$?
 case $FRC in
   0) FIXED_OUTCOME=PASS ;;
