@@ -11,7 +11,7 @@ cubrid-agent를 팀원 머신과 k8s pod에 배포하는 구조의 정본. 실�
 | Tier | 정의 | 자산 | 전달 |
 |---|---|---|---|
 | **1. clone이 나른다** | git 버전관리 | cubrid-agent 루트 플러그인 — **자기완결** 스킬 22종(연료 포함, 별도 repo 없음 — ADR 0001) + hook `hooks/`+`scripts/` + 매니페스트 `.claude-plugin/`. **파일은 22종이 다 오지만 로드는 `skills/qa/`의 6종**(setup 1 + 파이프라인 5 = `plugin.json` 등재분)이고, `skills/in-progress/`의 부품 16종은 `npx skills add` 채널 전용이다([ADR 0006](../.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)). `docs/`는 dev-only — 실행에 불필요 | `git clone` 또는 `claude plugin install` |
-| **2. 스크립트가 만든다** | 재현 가능한 머신 상태 — **`$HOME` 표준 배치** | `~/cubrid-testcases`(+`fork` 리모트)·`~/cubrid`·CTP(`~/cubrid-testtools/CTP`), `~/.cubrid-agent/`(env.sh·manifest·reports·worktrees), (옵션) `$HOME/CUBRID` 빌드. **conf 사본 불필요** — CTP 원본 conf가 이미 `scenario=${HOME}/cubrid-testcases/sql`·비기본 포트 | **`/cubrid-agent:setup-cubrid-agent`** (= `skills/qa/setup-cubrid-agent/scripts/setup.sh`, 멱등·비대화식, 기존 clone 불가침 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) |
+| **2. 스크립트가 만든다** | 재현 가능한 머신 상태 — **`$HOME` 표준 배치** | 테스트케이스 clone(+`fork` 리모트, 경로는 D7의 오버라이드 규약)·`~/cubrid`·CTP(`~/cubrid-testtools/CTP`), `~/.cubrid-agent/`(env.sh·manifest·reports·worktrees), (옵션) `$HOME/CUBRID` 빌드. **conf 사본은 setup이 만들지 않는다** — CTP 원본 conf가 이미 비기본 포트이고, `scenario=`는 `verify-run.sh`가 매 실행 run 디렉토리 사본에 덮어 쓴다 | **`/cubrid-agent:setup-cubrid-agent`** (= `skills/qa/setup-cubrid-agent/scripts/setup.sh`, 멱등·비대화식, 기존 clone 불가침 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) |
 | **3. 사람이 넣는다** | 자격 — repo 금지 | cubrid-jira 자격, gh 인증 | env(표준) 또는 .netrc/`gh auth login` |
 
 ## 확정 결정

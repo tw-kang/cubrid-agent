@@ -159,7 +159,7 @@ jq '{verify: .verify.status, review: .review.verdict, submitted,
 
 ## 7. 구성 요소
 
-- **setup-cubrid-agent 스킬 + `scripts/setup.sh`**(Tier 2 자동화, 진입점 `/cubrid-agent:setup-cubrid-agent` — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) — 스크립트가 `$HOME` 표준 배치(D7: `~/cubrid-testcases`·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, 컨테이너 이미지에서 그대로 재사용 가능(D5). conf 사본 불필요(원본 conf가 이미 `${HOME}` 기준). 정본은 스킬 안 단 하나(루트 래퍼 없음).
+- **setup-cubrid-agent 스킬 + `scripts/setup.sh`**(Tier 2 자동화, 진입점 `/cubrid-agent:setup-cubrid-agent` — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) — 스크립트가 `$HOME` 표준 배치(D7: 테스트케이스 clone·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, 컨테이너 이미지에서 그대로 재사용 가능(D5). 테스트케이스 clone 경로는 [D7](deployment.md)의 오버라이드 규약을 그대로 따른다 — 오버라이드가 있으면 기본 경로는 **만들지도 않고**, 그 값을 `env.sh`에 남기되 호출자가 export한 값이 이긴다. conf 사본은 setup이 만들지 않는다(`verify-run.sh`가 매 실행 만든다). 정본은 스킬 안 단 하나(루트 래퍼 없음).
 - **부품 스킬** — 이 repo `skills/in-progress/`에 소스로 들어 있다(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 배포분이 아니므로 플러그인은 로드하지 않는다 — `npx skills add` 채널로 개별 설치(§0 표 아래 주석).
 - **스킬 자기완결**(D8) — 스킬·hook은 `docs/`를 런타임 참조하지 않는다. review-testcase 연료(few-shot bank·카탈로그)는 스킬 `references/`에 내장.
 - **hook 하드 게이트**([`hooks/`](../hooks/)) — `gate-pr-submit`(제출 차단)·`lint-sql-tc`(린트→manifest)·`gate-stop`(리마인드).

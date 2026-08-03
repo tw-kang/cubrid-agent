@@ -76,7 +76,12 @@ clone_if_absent() { # <url> <dir> [extra git-clone args...]
   if [ -d "$dir/.git" ]; then ok "$(basename "$dir") present"
   else git clone "$@" "$url" "$dir" || fail "clone failed: $url"; ok "$(basename "$dir") cloned"; fi
 }
-clone_if_absent https://github.com/CUBRID/cubrid-testcases.git "$HOME/cubrid-testcases"
+# Resolve the testcases clone exactly as the part-skills do (deployment.md D7). Provisioning the
+# default path while every helper reads $CUBRID_TESTCASES would set up one clone and run against
+# another — and under an override the default path must not even be created.
+TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
+clone_if_absent https://github.com/CUBRID/cubrid-testcases.git "$TC"
+[ "$TC" = "$HOME/cubrid-testcases" ] || ok "testcases clone: \$CUBRID_TESTCASES=$TC (~/cubrid-testcases untouched)"
 # Fork remote for submitting TC PRs — each teammate has their own fork, derived from the gh-authenticated account (ADR 0004).
 # Source: $CUBRID_GH_FORK (override) -> gh api user. Remote name is the neutral 'fork', not a person's name.
 FORK_OWNER="${CUBRID_GH_FORK:-}"
@@ -90,8 +95,8 @@ fi
 if [ -n "$FORK_OWNER" ]; then
   FORK_URL="https://github.com/$FORK_OWNER/cubrid-testcases.git"
   # If set-url fails (remote absent) add it — authoritative so a changed $CUBRID_GH_FORK is reflected on re-run.
-  git -C "$HOME/cubrid-testcases" remote set-url fork "$FORK_URL" 2>/dev/null \
-    || git -C "$HOME/cubrid-testcases" remote add fork "$FORK_URL"
+  git -C "$TC" remote set-url fork "$FORK_URL" 2>/dev/null \
+    || git -C "$TC" remote add fork "$FORK_URL"
   ok "cubrid-testcases fork remote ($FORK_OWNER)"
 else
   todo "cubrid-testcases fork remote — re-run after gh auth (or export CUBRID_GH_FORK=<owner>)"
@@ -110,7 +115,8 @@ else
   clone_if_absent https://github.com/CUBRID/cubrid-testtools.git "$HOME/cubrid-testtools"
   CTP="$HOME/cubrid-testtools/CTP"; ok "CTP: $CTP"
 fi
-# No conf copy needed: CTP's own sql.conf / sql_by_cci.conf already use scenario=${HOME}/cubrid-testcases/sql and non-default ports.
+# No conf copy here: the stock sql.conf / sql_by_cci.conf already use non-default ports, and
+# verify-run.sh writes the `scenario=` copy per run — an override needs nothing from setup.
 
 echo "== Runtime output directory — \$HOME/.cubrid-agent =="
 mkdir -p "$AGENT_DIR/reports/gate-resolved" "$AGENT_DIR/reports/author-testcase" "$AGENT_DIR/reports/review-testcase" "$AGENT_DIR/worktrees"
@@ -175,6 +181,9 @@ else todo "jira username unresolved — export CUBRID_JIRA_USER, or give machine
   echo ': "${LD_LIBRARY_PATH:=}"; : "${PATH:=}"'
   echo '[ -f "$HOME/.cubrid.sh" ] && source "$HOME/.cubrid.sh"'
   echo "export CTP_HOME=\"$CTP\""
+  # Record the clone this run provisioned, but let a caller who already exported one win: the value is
+  # what setup found, not a decree, and a session that means a different clone must stay able to say so.
+  echo "export CUBRID_TESTCASES=\"\${CUBRID_TESTCASES:-$TC}\""
   [ -n "$JH" ] && echo "export JAVA_HOME=\"$JH\""
   [ -n "$QA_USER" ] && echo "export CUBRID_JIRA_USER=\"$QA_USER\""
 } > "$AGENT_DIR/env.sh"

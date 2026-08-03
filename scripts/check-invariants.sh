@@ -564,6 +564,11 @@ else fail "debug check test failed — run scripts/test-debug-check.sh:"; printf
 if _t=$(bash scripts/test-render-report.sh 2>&1); then pass "report commit proof behaves: $_t"
 else fail "render-report test failed — run scripts/test-render-report.sh:"; printf '         %s\n' "$_t"; fi
 
+# setup.sh provisions the machine every other skill then runs on, so a clone it puts in the wrong
+# place is wrong for the whole pipeline. Offline: the fixture stubs `git clone`.
+if _t=$(bash scripts/test-setup.sh 2>&1); then pass "setup honours the testcases override: $_t"
+else fail "setup test failed — run scripts/test-setup.sh:"; printf '         %s\n' "$_t"; fi
+
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"
 

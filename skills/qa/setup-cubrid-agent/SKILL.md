@@ -56,7 +56,7 @@ After any of these, **re-run `setup.sh`** and confirm the TODO count drops. Cred
 
 - `cubrid-jira search CBRD-25913` → issue markdown means the CLI + credentials work. Check that the **Description section has content**: an empty body with a healthy exit is the pandoc symptom above, not an empty issue — as is a `Warning: pandoc cannot convert Jira wiki markup …` on stderr, which a newer CLI prints while handing back raw markup. On `Auth failed (HTTP 401)`, **do not retry** (repeat failures trigger a CAPTCHA lockout) — an install older than 2026-07-29 has no authenticated reads, so `uv tool upgrade cubrid-jira` first, then re-check the credentials.
 - `gh auth status` → authenticated.
-- `source ~/.cubrid-agent/env.sh` in a CTP session → `CTP_HOME`, `JAVA_HOME` and `CUBRID_JIRA_USER` set. Remind the operator this `source` is per-session. If `CUBRID_JIRA_USER` is missing from it, the Jira username could not be resolved — the pipeline skills must stop rather than run a queue query that would return 0 issues.
+- `source ~/.cubrid-agent/env.sh` in a CTP session → `CTP_HOME`, `JAVA_HOME`, `CUBRID_JIRA_USER` and `CUBRID_TESTCASES` set (the last one records the clone setup provisioned, and defers to a value the session already exported). Remind the operator this `source` is per-session. If `CUBRID_JIRA_USER` is missing from it, the Jira username could not be resolved — the pipeline skills must stop rather than run a queue query that would return 0 issues.
 
 ### 4. CUBRID build — guide only, never run
 
