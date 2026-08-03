@@ -600,6 +600,12 @@ else fail "setup test failed — run scripts/test-setup.sh:"; printf '         %
 if _t=$(bash scripts/test-hint-missing-helper.sh 2>&1); then pass "missing-helper hint behaves: $_t"
 else fail "missing-helper hint test failed — run scripts/test-hint-missing-helper.sh:"; printf '         %s\n' "$_t"; fi
 
+# The one helper that decides whether a human's working tree gets checked out. Both directions are
+# load-bearing: isolating when there is nothing to lose leaves a worktree per issue on CI, and not
+# isolating when there is loses someone's staged work to a branch they do not own.
+if _t=$(bash scripts/test-prepare-tc-workspace.sh 2>&1); then pass "TC worktree decision behaves: $_t"
+else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-workspace.sh:"; printf '         %s\n' "$_t"; fi
+
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"
 
