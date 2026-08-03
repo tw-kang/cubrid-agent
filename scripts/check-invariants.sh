@@ -375,6 +375,13 @@ if [ -z "$_miss" ] && [ "$_variants" = 1 ]; then
 else
   fail "stale-copy hint drifted:${_miss:+ missing in$_miss}${_variants:+ ($_variants wordings)} — a helper whose flags moved on would only say 'unknown option'"
 fi
+# The hook that covers the other half of that cause — the helper is absent, so no helper can print
+# anything — has to prescribe the same fix, or the two halves drift apart.
+if grep -qF 'run /setup-cubrid-agent' scripts/hint-missing-helper.sh; then
+  pass "the missing-helper hint prescribes the same fix as the helpers' stale hint"
+else
+  fail "hint-missing-helper.sh no longer names 'run /setup-cubrid-agent' — it and the helpers' stale hint now send the reader different places for one cause"
+fi
 
 # The identity rule is duplicated on purpose — `npx skills add` copies one skill's own directory, so a
 # skill that resolves $QA_USER cannot link to a shared file (ADR 0003's channel constraint). What is
@@ -568,6 +575,11 @@ else fail "render-report test failed — run scripts/test-render-report.sh:"; pr
 # place is wrong for the whole pipeline. Offline: the fixture stubs `git clone`.
 if _t=$(bash scripts/test-setup.sh 2>&1); then pass "setup honours the testcases override: $_t"
 else fail "setup test failed — run scripts/test-setup.sh:"; printf '         %s\n' "$_t"; fi
+
+# The missing-helper hint fires on a command that is already going to fail, so the property its test
+# pins first is that it never blocks — a deny there would cost the rest of a compound command.
+if _t=$(bash scripts/test-hint-missing-helper.sh 2>&1); then pass "missing-helper hint behaves: $_t"
+else fail "missing-helper hint test failed — run scripts/test-hint-missing-helper.sh:"; printf '         %s\n' "$_t"; fi
 
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"
