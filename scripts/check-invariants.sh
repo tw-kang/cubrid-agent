@@ -375,6 +375,25 @@ if [ -z "$_miss" ] && [ "$_variants" = 1 ]; then
 else
   fail "stale-copy hint drifted:${_miss:+ missing in$_miss}${_variants:+ ($_variants wordings)} — a helper whose flags moved on would only say 'unknown option'"
 fi
+# One resolution rule for the testcases clone, in one wording. Two wordings coexisted for a month: the
+# part skills kept a June sentence (discover the checkout from the cwd, else ask the user) while the
+# orchestrators and every helper moved to the $HOME standard, and nothing said so because each copy read
+# fine on its own. The duplication is sanctioned — ADR 0003's channel constraint means a part skill
+# cannot link to a shared file — the drift is not.
+_rule='`$CUBRID_TESTCASES` if set, else `~/cubrid-testcases`'
+_miss=""; _n=0
+for _s in $(grep -lF 'CUBRID_TESTCASES' skills/qa/*/SKILL.md); do
+  # setup-cubrid-agent names the variable while listing what env.sh exports; that is not a resolution rule.
+  case "$_s" in */setup-cubrid-agent/*) continue ;; esac
+  _n=$((_n+1))
+  grep -qF "$_rule" "$_s" || _miss="$_miss $(basename "$(dirname "$_s")")"
+done
+if [ -z "$_miss" ] && [ "$_n" -gt 0 ]; then
+  pass "all $_n skills resolve the testcases clone in one wording"
+else
+  fail "testcases-clone rule drifted:${_miss:+ different wording in$_miss} — a skill that resolves it its own way runs against a different clone than the helpers do"
+fi
+
 # The hook that covers the other half of that cause — the helper is absent, so no helper can print
 # anything — has to prescribe the same fix, or the two halves drift apart.
 if grep -qF 'run /setup-cubrid-agent' scripts/hint-missing-helper.sh; then
