@@ -558,6 +558,12 @@ else fail "fail→pass test failed — run scripts/test-failpass-run.sh:"; print
 if _t=$(bash scripts/test-debug-check.sh 2>&1); then pass "debug check behaves: $_t"
 else fail "debug check test failed — run scripts/test-debug-check.sh:"; printf '         %s\n' "$_t"; fi
 
+# The report's commit proof is the one line a reader trusts instead of running git themselves, so it
+# gets a behavioural test rather than a grep: a proof that passes when the work is missing is worse than
+# no proof. Why its scope is what it is lives beside the code, in render-report.sh.
+if _t=$(bash scripts/test-render-report.sh 2>&1); then pass "report commit proof behaves: $_t"
+else fail "render-report test failed — run scripts/test-render-report.sh:"; printf '         %s\n' "$_t"; fi
+
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"
 

@@ -152,11 +152,40 @@ $G remote add origin https://github.com/CUBRID/cubrid-testcases.git
 $G update-ref refs/remotes/origin/develop "$BASESHA"
 
 echo stray > "$TCD/unrelated.txt"; $G add -A >/dev/null; $G commit -qm stray
-run "stray file outside the TC"  deny "outside cbrd_99999/"     "$BASE --body-file $GEN"
+run "stray file outside the TC"  deny "not this TC's"          "$BASE --body-file $GEN"
 $G reset -q --hard HEAD~1
 
 $G update-ref -d refs/remotes/origin/develop
 run "origin/develop not fetched" deny "origin/develop is not in" "$BASE --body-file $GEN"
+$G update-ref refs/remotes/origin/develop "$BASESHA"
+
+# --- the same base sanity in the layout every bug fix uses --------------------------------------
+# Under _13_issues/_YY_Nh/ the cases/ and answers/ dirs belong to the whole half-year, so no path
+# contains /cbrd_99999/ and a directory-scoped filter counts the TC's OWN files as strays — a deny
+# whose stated recovery (fetch origin/develop) can never clear it. Every Correct Error goes here, so
+# that is the common case, not an edge one; the fixture above happens to use the release layout.
+TCD2="$T/tc13"
+git init -q "$TCD2"
+G2="git -C $TCD2 -c user.email=t@t -c user.name=t"
+mkdir -p "$TCD2/sql/_13_issues/_26_2h/cases" "$TCD2/sql/_13_issues/_26_2h/answers"
+echo "-- sibling TC of the same half-year" > "$TCD2/sql/_13_issues/_26_2h/cases/cbrd_99998.sql"
+$G2 add -A >/dev/null; $G2 commit -qm base
+$G2 update-ref refs/remotes/origin/develop HEAD
+BASESHA2=$($G2 rev-parse HEAD)
+$G2 remote add origin https://github.com/CUBRID/cubrid-testcases.git
+$G2 checkout -q -b tc/cbrd-99999
+echo "evaluate 'Case 1';" > "$TCD2/sql/_13_issues/_26_2h/cases/cbrd_99999.sql"
+echo "ok" > "$TCD2/sql/_13_issues/_26_2h/answers/cbrd_99999.answer"
+$G2 add -A >/dev/null; $G2 commit -qm tc
+export CUBRID_TESTCASES="$TCD2"
+
+run "bug-fix layout: only the TC's files" ok "" "$BASE --body-file $GEN"
+
+echo stray > "$TCD2/unrelated.txt"; $G2 add -A >/dev/null; $G2 commit -qm stray
+run "bug-fix layout: a real stray"        deny "not this TC's" "$BASE --body-file $GEN"
+$G2 reset -q --hard HEAD~1
+
+export CUBRID_TESTCASES="$TCD"
 $G update-ref refs/remotes/origin/develop "$BASESHA"
 
 unset CUBRID_TESTCASES

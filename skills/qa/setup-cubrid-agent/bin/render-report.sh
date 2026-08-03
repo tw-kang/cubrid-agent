@@ -64,12 +64,20 @@ COMMITTED="미확인 (TC 경로 또는 브랜치 미기록)"
 # `-d "$TC/.git"` would be wrong: in a git worktree .git is a FILE, so the check would silently skip
 # exactly where a reviewer runs. Ask git instead.
 if [ -n "$TCPATH" ] && git -C "$TC" rev-parse --git-dir >/dev/null 2>&1; then
-  _dir=$(dirname "$(dirname "$TCPATH")")   # sql/<tree>/<key>/cases/x.sql -> sql/<tree>/<key>
-  _files=$(git -C "$TC" ls-tree -r --name-only "$BRANCH" -- "$_dir" 2>/dev/null)
-  if [ -n "$_files" ]; then
+  # Two questions, because they fail differently. Membership: a directory is the TC's own only in
+  # `_36_guava/cbrd_XXXXX/`, while every bug fix goes to `_13_issues/_YY_Nh/`, whose cases/ and answers/
+  # the whole half-year shares — so the directory bounds the search and the key-derived filename decides
+  # what belongs (that also picks up an issue's suffixed `cbrd_XXXXX_select.sql` files). Existence: the
+  # `.sql` is asked for by name, because an `.answer` committed beside an uncommitted `.sql` is exactly
+  # the work-that-is-not-there this proof exists to catch, and no filename count can see it.
+  _rel=$TCPATH; case "$_rel" in "$TC"/*) _rel=${_rel#"$TC"/} ;; esac   # a pathspec must be repo-relative
+  _dir=$(dirname "$(dirname "$_rel")")   # <tree>/cases/cbrd_x.sql -> <tree>, the parent of cases/ and answers/
+  _base=$(printf '%s' "$KEY" | tr '[:upper:]-' '[:lower:]_')   # CBRD-25913 -> cbrd_25913
+  if [ -n "$(git -C "$TC" ls-tree -r --name-only "$BRANCH" -- "$_rel" 2>/dev/null)" ]; then
+    _files=$(git -C "$TC" ls-tree -r --name-only "$BRANCH" -- "$_dir" 2>/dev/null | grep -E "/${_base}[._]")
     COMMITTED="커밋됨 — \`$BRANCH\`에 $(printf '%s\n' "$_files" | grep -c .)개 파일"
   else
-    COMMITTED="**커밋되지 않았다** — \`git ls-tree -r $BRANCH -- $_dir\`가 비어 있다"
+    COMMITTED="**커밋되지 않았다** — \`$_rel\` 가 \`$BRANCH\`에 없다"
   fi
 fi
 

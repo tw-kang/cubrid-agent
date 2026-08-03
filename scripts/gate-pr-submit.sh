@@ -120,7 +120,7 @@ fi
 # stray files and the recovery: a stale origin/develop ref is the one way this can misfire.
 TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
 BR=$(printf '%s' "$COMMAND" | grep -oiE 'tc/cbrd-[0-9]+' | head -1)
-_dir=$(printf '%s' "$KEY" | tr '[:upper:]' '[:lower:]' | tr '-' '_')   # CBRD-26431 -> cbrd_26431
+_base=$(printf '%s' "$KEY" | tr '[:upper:]-' '[:lower:]_')   # CBRD-26431 -> cbrd_26431
 # Ask git rather than testing for a .git directory: in a worktree .git is a file, and that test
 # would make this whole check skip silently on any worktree-based clone.
 if git -C "$TC" rev-parse --git-dir >/dev/null 2>&1 && [ -n "$BR" ] && git -C "$TC" rev-parse --verify -q "$BR" >/dev/null 2>&1; then
@@ -133,10 +133,15 @@ if git -C "$TC" rev-parse --git-dir >/dev/null 2>&1 && [ -n "$BR" ] && git -C "$
   if git -C "$TC" rev-parse --verify -q origin/develop >/dev/null 2>&1; then
     _mb=$(git -C "$TC" merge-base origin/develop "$BR" 2>/dev/null)
     if [ -n "$_mb" ]; then
-      _out=$(git -C "$TC" diff --name-only "$_mb".."$BR" 2>/dev/null | grep -v "/$_dir/")
+      # A TC directory exists only in the release layout; every bug fix goes to _13_issues/_YY_Nh/,
+      # whose cases/ and answers/ the whole half-year shares. Filtering on a directory therefore
+      # called the TC's own files strays and denied a correct submission — with a recovery hint
+      # (fetch origin/develop) that could never clear it. Both layouts name the files after the key,
+      # and so do an issue's suffixed .sql files, so the filename is what decides membership.
+      _out=$(git -C "$TC" diff --name-only "$_mb".."$BR" 2>/dev/null | grep -vE "/${_base}[._]")
       _n=$(printf '%s' "$_out" | grep -c . )
       if [ "${_n:-0}" -gt 0 ]; then
-        p="$p\n- the branch changes $_n file(s) outside $_dir/ — the base is wrong or unrelated commits came along: $(printf '%s' "$_out" | head -3 | tr '\n' ' ')… If the branch really is based on a newer develop, run: git -C $TC fetch origin develop, then submit again"
+        p="$p\n- the branch changes $_n file(s) that are not this TC's ($_base.*) — the base is wrong or unrelated commits came along: $(printf '%s' "$_out" | head -3 | tr '\n' ' ')… If the branch really is based on a newer develop, run: git -C $TC fetch origin develop, then submit again"
       fi
     fi
   else
