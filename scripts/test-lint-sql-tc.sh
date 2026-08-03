@@ -119,6 +119,48 @@ seed_manifest
 lint "$BUG_DIR/cbrd_99999.sql"
 expect "no issue type recorded" placement null
 
+# --- length advice: reported, never recorded, never a violation ----------------------------------
+# The gate fields are a 20-line ceiling and nothing at all about comment volume, and writing to a
+# ceiling lands well above the practice — a 17-line header and five comment lines shipped with every
+# gate green. The advice quotes the corpus quartile instead of inventing a limit, so it must fire on
+# the top quartile, stay silent below it, and leave the recorded fields untouched either way.
+never_says() {  # never_says <name> <fragment>
+  grep -qF -- "$2" "$T/out" && note_fail "$1: the message says \"$2\" when it should not" || T_PASS=$((T_PASS+1))
+}
+long_header() {  # long_header <key> <total lines>
+  printf '/**\n * This test case verifies %s: a thing that must hold.\n * Coverage:\n' "$1"
+  _i=1; while [ "$_i" -le $(( $2 - 4 )) ]; do
+    printf ' * %d. Case %d does a thing worth one whole line of prose.\n' "$_i" "$_i"; _i=$((_i+1))
+  done
+  printf ' */\n'
+}
+chatty_body() {  # body carrying five inline -- comments
+  printf -- '--+ server-message on\n\n-- one\n-- two\n-- three\n-- four\n-- five\n'
+  printf 'DROP TABLE IF EXISTS t1;\nCREATE TABLE t1(c1 int);\n\n'
+  printf "evaluate 'Case 1. The thing';\nSELECT 1 FROM t1;\n\nDROP TABLE t1;\n\n"
+  printf -- '--+ server-message off\n'
+}
+
+seed_manifest "Correct Error"
+{ good_header CBRD-99999; body; } > "$BUG_DIR/cbrd_99999.sql"
+lint "$BUG_DIR/cbrd_99999.sql"
+never_says "a short header draws no advice" "corpus p75"
+
+{ long_header CBRD-99999 17; body; } > "$BUG_DIR/cbrd_99999.sql"
+lint "$BUG_DIR/cbrd_99999.sql"
+says   "a 17-line header draws advice"      "header is 17 lines against a corpus p75 of 16"
+expect "  ... and is still within the gate" header_size true
+
+{ good_header CBRD-99999; chatty_body; } > "$BUG_DIR/cbrd_99999.sql"
+lint "$BUG_DIR/cbrd_99999.sql"
+says   "five inline comments draw advice"   "5 inline"
+expect "  ... and record nothing"           header_size true
+never_says "  ... and are not a violation"  "convention violations"
+
+{ long_header CBRD-99999 16; body; } > "$BUG_DIR/cbrd_99999.sql"
+lint "$BUG_DIR/cbrd_99999.sql"
+never_says "the p75 itself is not flagged"  "corpus p75 of 16"
+
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'lint-sql-tc: %d/%d\n' "$T_PASS" "$T_PASS"
   exit 0

@@ -38,9 +38,10 @@ grep -E '^[[:space:]]*--' "$FILE" | LC_ALL=C grep -q '[^[:print:][:blank:]]' && 
 #   header_scope — vocabulary. Measured on the corpus, it fires on 0 of 58 human-authored cbrd_*
 #     headers and on the two worst lines of the leak above, so it separates run-talk from
 #     test-description without flagging legitimate prose.
-#   header_size  — 20 lines, so both audiences can scan it. 90% of existing corpus headers already
-#     fit (median 7, p90 19). Three do not (25, 32, 34 lines, all human-authored); they are not
-#     retroactively wrong because this hook only fires on a file being written.
+#   header_size  — 20 lines, so both audiences can scan it. Measured 2026-08-03 over the 59 corpus
+#     cases that carry a header block: median 9, p75 16, p90 24, and 52 of 59 (88%) are within 20.
+#     The seven that are not are human-authored and not retroactively wrong — this hook only fires on
+#     a file being written.
 header_scope=true
 awk '/^\/\*\*/{f=1} f{print} /\*\//{if(f)exit}' "$FILE" \
   | grep -qEi '(Verify|Review) lane|MUST check|manifest|fail->pass|fail→pass|subagent|Draft PR|the report' \
@@ -56,6 +57,18 @@ awk '/^\/\*\*/{f=1} f{print} /\*\//{if(f)exit}' "$FILE" | grep -q -- '--' && hea
 header_size=true
 hlines=$(awk '/^\/\*\*/{f=1} f{c++} /\*\//{if(f){print c; exit}}' "$FILE")
 [ -n "$hlines" ] && [ "$hlines" -gt 20 ] && header_size=false
+
+# Advice, not a gate. Length has a long tail in the corpus, so there is no honest threshold to fail on
+# — but the top quartile is worth saying out loud, because the rule an author reads is a 20-line
+# ceiling, and writing to a ceiling lands well above the practice (this is how a 17-line header and
+# five comment lines got shipped while every gate stayed green). Thresholds are the corpus p75s
+# measured above; `--` comments: n=380, median 1, p75 4, and 189 of 380 have none at all.
+advice=""
+[ -n "$hlines" ] && [ "$hlines" -gt 16 ] \
+  && advice="$advice header is $hlines lines against a corpus p75 of 16 (median 9) — the Coverage list is the usual cause, and the evaluate labels already name every case;"
+_cmt=$(grep -cE '^[[:space:]]*--[^+]' "$FILE")
+[ "${_cmt:-0}" -gt 4 ] \
+  && advice="$advice $_cmt inline \`--\` comments against a corpus p75 of 4 (median 1; half the corpus has none) — drop what the statement already says, keep only a reason that would not survive a rewrite;"
 
 MDIR="$HOME/.cubrid-agent/$KEY"
 MANIFEST="$MDIR/manifest.json"
@@ -126,6 +139,13 @@ probs=""
 [ "$_pwhy" = tree ]     && probs="$probs wrong tree: a bug fix (Correct Error) belongs in sql/_13_issues/_{yy}_{1|2}h/cases/ regardless of its version fields, not in a release dir (create the half-year dir if it does not exist yet) — see create-sql's directory convention;"
 [ "$_pwhy" = halfyear ] && probs="$probs wrong half-year dir: a new case goes in $_curhy (the half-year you are writing it in), not $_hy — no date on the issue selects this dir; create $_curhy if it does not exist yet;"
 [ "$placement" = null ]  && probs="$probs placement unverifiable: record select.issue_type in the manifest during Select, so the tree can be checked against the issue type;"
-[ -z "$probs" ] || jq -n --arg f "$FILE" --arg p "$probs" \
-  '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:("[TC lint] "+$f+" convention violations:"+$p+" (recorded in manifest.lint — the submit gate will block)")}}'
+_msg=""
+[ -z "$probs" ]  || _msg="[TC lint] $FILE convention violations:$probs (recorded in manifest.lint — the submit gate will block)"
+if [ -n "$advice" ]; then
+  [ -n "$_msg" ] && _msg="$_msg
+"
+  _msg="$_msg[TC lint] $FILE reads long against the corpus:$advice Advice only — nothing records or blocks on this."
+fi
+[ -z "$_msg" ] || jq -n --arg m "$_msg" \
+  '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$m}}'
 exit 0
