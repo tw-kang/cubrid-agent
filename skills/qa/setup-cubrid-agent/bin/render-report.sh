@@ -14,14 +14,18 @@
 # Usage: render-report.sh CBRD-XXXXX [--force]
 set -u
 
+SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
+# shellcheck source=common.sh disable=SC1091
+. "$SELF_DIR/common.sh" || { printf 'render-report: common.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
+
 USAGE='render-report.sh CBRD-XXXXX [--force]'
 KEY=""; FORCE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --force)   FORCE=1; shift ;;
     -h|--help) printf '%s\n' "$USAGE"; exit 0 ;;
-    -*)        printf 'render-report: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
-    *)         KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
+    -*)        reject_unknown "$USAGE" "$1" ;;
+    *)         KEY=$(parse_issue_key "$1"); shift ;;
   esac
 done
 [ -n "$KEY" ] || { printf 'render-report: need an issue key\n%s\n' "$USAGE" >&2; exit 1; }
@@ -38,19 +42,13 @@ if [ -f "$OUT" ] && [ "$FORCE" -ne 1 ]; then
   exit 1
 fi
 
-# env.sh sources CUBRID's .cubrid.sh, which appends to LD_LIBRARY_PATH and PATH without guarding
-# them — fatal under `set -u` wherever they are not already exported. An interactive login has them
-# (bashrc sourced .cubrid.sh earlier) and a non-interactive ssh does not, so this aborted the script
-# on the second machine while looking fine on the first. -u is lifted for that one line only.
-# shellcheck disable=SC1090
-if [ -f "$HOME/.cubrid-agent/env.sh" ]; then set +u; . "$HOME/.cubrid-agent/env.sh"; set -u; fi
-TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
-
 m() { jq -r "$1 // \"\"" "$MANIFEST" 2>/dev/null; }
 u() { v=$(m "$1"); [ -n "$v" ] && printf '%s' "$v" || printf '미기록'; }
 
 TCPATH=$(m '.author.path')
 BRANCH=$(m '.author.branch'); [ -n "$BRANCH" ] || BRANCH="tc/$(printf '%s' "$KEY" | tr '[:upper:]' '[:lower:]')"
+# Read from wherever the branch is actually checked out (why: tc_root_for_branch in common.sh).
+_wt=$(tc_root_for_branch "$TC" "$BRANCH"); [ -n "$_wt" ] && TC=$_wt
 
 # Case count from the .sql itself, never retyped.
 NCASE='?'

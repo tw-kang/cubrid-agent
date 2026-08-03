@@ -15,6 +15,10 @@
 # usage: debug-check.sh CBRD-XXXXX [--version <version|url>] [--tc-path PATH] [--timeout SECONDS]
 set -u
 
+SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
+# shellcheck source=common.sh disable=SC1091
+. "$SELF_DIR/common.sh" || { printf 'debug-check: common.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
+
 USAGE='usage: debug-check.sh CBRD-XXXXX [--version <version|url>] [--tc-path PATH] [--timeout SECONDS]'
 KEY=""; VERSION_IN=""; TCPATH=""; TIMEOUT=900
 while [ $# -gt 0 ]; do
@@ -23,20 +27,15 @@ while [ $# -gt 0 ]; do
     --tc-path)  TCPATH="${2:?$USAGE}"; shift 2 ;;
     --timeout)  TIMEOUT="${2:?$USAGE}"; shift 2 ;;
     -h|--help)  printf '%s\n' "$USAGE"; exit 0 ;;
-    -*)         printf 'debug-check: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
-    *)          KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
+    -*)         reject_unknown "$USAGE" "$1" ;;
+    *)          KEY=$(parse_issue_key "$1"); shift ;;
   esac
 done
 [ -n "$KEY" ] || { printf 'debug-check: need an issue key\n%s\n' "$USAGE" >&2; exit 1; }
 
-SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
 VERIFY="$SELF_DIR/verify-run.sh"
 [ -x "$VERIFY" ] || { printf 'debug-check: verify-run.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$VERIFY" >&2; exit 1; }
 
-# env.sh sources CUBRID's .cubrid.sh, which appends to LD_LIBRARY_PATH and PATH without guarding them —
-# fatal under `set -u` wherever they are not already exported (a non-interactive ssh session).
-# shellcheck disable=SC1090
-if [ -f "$HOME/.cubrid-agent/env.sh" ]; then set +u; . "$HOME/.cubrid-agent/env.sh"; set -u; fi
 CTP_HOME=${CTP_HOME:-}
 [ -n "$CTP_HOME" ] || { for d in "$HOME/CTP" "$HOME/cubrid-testtools/CTP"; do [ -x "$d/bin/ctp.sh" ] && CTP_HOME=$d && break; done; }
 CUB=${CUBRID:-$HOME/CUBRID}

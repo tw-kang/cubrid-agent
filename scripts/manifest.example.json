@@ -1,26 +1,80 @@
 {
   "issue": "CBRD-26799",
-  "select": { "issue_type": "Correct Error",
-              "reauthor_reason": "only when redoing an issue that already has an upstream PR — the submit gate denies an unexplained one" },
-  "ground": { "comments": 4, "attachments": { "total": 3, "read": 2, "images": 1, "unread": [] } },
+  "select": {
+    "issue_type": "Correct Error",
+    "reauthor_reason": "only when redoing an issue that already has an upstream PR — the submit gate denies an unexplained one"
+  },
+  "ground": {
+    "comments": 4,
+    "attachments": {
+      "total": 3,
+      "read": 2,
+      "images": 1,
+      "unread": []
+    },
+    "fix_commit": "49a95b91b [CBRD-25913] Issue with allowing subqueries in the EXECUTE statement's USING clause (#5906)",
+    "fix_pr": "https://github.com/CUBRID/cubrid/pull/5906",
+    "fix_commits_found": 1
+  },
   "branch": "tc/cbrd-26799",
   "build": "11.5.0.2300-04192d6",
   "submitted": false,
-  "author": { "sql": "sql/_13_issues/_26_2h/cases/cbrd_26799.sql", "answer_generated": true },
+  "author": {
+    "sql": "sql/_13_issues/_26_2h/cases/cbrd_26799.sql",
+    "answer_generated": true
+  },
   "verify": {
     "status": "passed",
     "success": true,
-    "determinism": { "n": 3, "all_pass": true },
-    "path_coverage": { "checked": true, "method": "queryplan", "on_path": true },
+    "determinism": {
+      "n": 3,
+      "all_pass": true
+    },
+    "path_coverage": {
+      "checked": true,
+      "method": "queryplan",
+      "on_path": true
+    },
     "preconditions": [
-      { "what": "server parallelism >= 2 (default 4) on > 2 cores, else the sort runs serial and never enters the fixed path", "verified": true },
-      { "what": "t's heap spans >= parallel_sort_page_threshold (2048) data pages", "verified": true }
+      {
+        "what": "server parallelism >= 2 (default 4) on > 2 cores, else the sort runs serial and never enters the fixed path",
+        "verified": true
+      },
+      {
+        "what": "t's heap spans >= parallel_sort_page_threshold (2048) data pages",
+        "verified": true
+      }
     ],
-    "cci": { "checked": true, "matches_jdbc": true },
-    "debug": { "checked": true, "result": "clean", "type": "debug", "build": "11.5.0.2300-04192d6",
-               "note": "result is clean | assert | differs | inconclusive; assert blocks outright, differs needs this note" },
-    "fail_to_pass": { "status": "best_effort", "prefix_build": "11.5.0.2211-12a1a05", "note": "race — not reproducible on local multi-core, left to CI / low-spec machines" }
+    "cci": {
+      "checked": true,
+      "matches_jdbc": true
+    },
+    "debug": {
+      "checked": true,
+      "result": "clean",
+      "type": "debug",
+      "build": "11.5.0.2300-04192d6",
+      "note": "result is clean | assert | differs | inconclusive; assert blocks outright, differs needs this note"
+    },
+    "fail_to_pass": {
+      "status": "best_effort",
+      "prefix_build": "11.5.0.2211-12a1a05",
+      "note": "race — not reproducible on local multi-core, left to CI / low-spec machines"
+    }
   },
-  "review": { "verdict": "PASS", "loops": 2, "failpass_approved": true },
-  "lint": { "header": true, "header_scope": true, "header_size": true, "placement": true, "evaluate": true, "cleanup": true, "answer_not_handwritten": true, "english_comments": true }
+  "review": {
+    "verdict": "PASS",
+    "loops": 2,
+    "failpass_approved": true
+  },
+  "lint": {
+    "header": true,
+    "header_scope": true,
+    "header_size": true,
+    "placement": true,
+    "evaluate": true,
+    "cleanup": true,
+    "answer_not_handwritten": true,
+    "english_comments": true
+  }
 }

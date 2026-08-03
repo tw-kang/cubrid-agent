@@ -22,6 +22,10 @@
 # usage: ground-issue.sh <KEY> [--run-dir DIR] [--refresh]
 set -u
 
+SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
+# shellcheck source=common.sh disable=SC1091
+. "$SELF_DIR/common.sh" || { printf 'ground-issue: common.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
+
 USAGE="usage: ground-issue.sh <CBRD-XXXXX> [--run-dir DIR] [--refresh]"
 KEY=""; RUN_DIR=""; REFRESH=0
 while [ $# -gt 0 ]; do
@@ -29,8 +33,8 @@ while [ $# -gt 0 ]; do
     --run-dir) RUN_DIR="${2:?$USAGE}"; shift 2 ;;
     --refresh) REFRESH=1; shift ;;
     -h|--help) printf '%s\n' "$USAGE"; exit 0 ;;
-    -*)        printf 'ground-issue: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
-    *)         KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
+    -*)        reject_unknown "$USAGE" "$1" ;;
+    *)         KEY=$(parse_issue_key "$1"); shift ;;
   esac
 done
 [ -n "$KEY" ] || { printf 'ground-issue: need an issue key\n%s\n' "$USAGE" >&2; exit 1; }
@@ -174,6 +178,28 @@ done < <(jq -r '.attachments[]? | [.filename, (.size|tostring), (.mimeType // ""
 
 NATT=$(jq -r '.count // 0' "$ATT_JSON")
 
+# ── fix commit ───────────────────────────────────────────────────────────────────────────────────
+# The mechanical half of "back the issue with code facts" (DP6): which engine commit mentions this key
+# is a git query, and agents were hand-running `git log --grep` and hand-writing the answer into the
+# manifest. Reading the fix diff and the PR discussion stays the caller's job — this only records
+# where to look.
+FIX_LINE=""; FIX_PR=""; FIX_N=0
+CUBRID_SRC=${CUBRID_SRC:-$HOME/cubrid}
+if git -C "$CUBRID_SRC" rev-parse --git-dir >/dev/null 2>&1; then
+  # Bounded, like every network touch here: an offline machine must not stall grounding.
+  timeout 20 git -C "$CUBRID_SRC" fetch -q origin develop 2>/dev/null || true
+  _base=origin/develop
+  git -C "$CUBRID_SRC" rev-parse --verify -q "$_base" >/dev/null 2>&1 || _base=HEAD
+  # Anchored so CBRD-2643 does not match CBRD-26431's commits. Newest first, deliberately: a follow-up
+  # or a revert supersedes the original on develop, and which commit is "the fix" is exactly the
+  # judgment the caller keeps — the count travels with the answer so plurality is never hidden.
+  FIX_LINE=$(git -C "$CUBRID_SRC" log -E "--grep=$KEY([^0-9]|\$)" "$_base" --format='%h %s' 2>/dev/null | head -1)
+  FIX_N=$(git -C "$CUBRID_SRC" log -E "--grep=$KEY([^0-9]|\$)" "$_base" --format='%h' 2>/dev/null | grep -c .)
+  # The merge subject convention puts the PR number last: "[CBRD-25913] ... (#5906)".
+  _prnum=$(printf '%s' "$FIX_LINE" | grep -oE '#[0-9]+' | tail -1 | tr -d '#')
+  [ -n "$_prnum" ] && FIX_PR="https://github.com/CUBRID/cubrid/pull/$_prnum"
+fi
+
 # ── manifest ─────────────────────────────────────────────────────────────────────────────────────
 # select.issue_type comes from JIRA rather than from the agent restating it: the lint hook needs it
 # to check the TC's tree, and an unrecorded type makes placement unverifiable, which blocks submit.
@@ -182,16 +208,24 @@ MANIFEST="$RUN_DIR/manifest.json"
 tmp=$(mktemp)
 if jq --arg k "$KEY" --arg t "$ITYPE" --argjson nc "$NCOMM" --argjson na "${NATT:-0}" \
       --argjson unread "$UNREAD_JSON" \
+      --arg fx "$FIX_LINE" --arg fpr "$FIX_PR" --arg fn "$FIX_N" \
       --argjson nr "$(printf '%s' "$READ_LIST" | grep -c . || true)" \
       --argjson nv "$(printf '%s' "$VIEW_LIST" | grep -c . || true)" \
    '.issue = (.issue // $k)
     | (if $t != "" then .select.issue_type = $t else . end)
-    | .ground = {comments: $nc, attachments: {total: $na, read: $nr, images: $nv, unread: $unread}}' \
+    | .ground = {comments: $nc, attachments: {total: $na, read: $nr, images: $nv, unread: $unread}}
+    | (if $fx != "" then .ground.fix_commit = $fx | .ground.fix_commits_found = ($fn|tonumber) else . end)
+    | (if $fpr != "" then .ground.fix_pr = $fpr else . end)' \
    "$MANIFEST" > "$tmp" 2>/dev/null; then mv "$tmp" "$MANIFEST"; else rm -f "$tmp"; fi
 
 # ── what the caller has to do next ───────────────────────────────────────────────────────────────
 printf '[ground] %s → %s\n' "$KEY" "$RUN_DIR"
 printf '  issue  : %s  (%s; description + %s comment(s), raw JIRA markup)\n' "$ISSUE_TXT" "${ITYPE:-type unknown}" "$NCOMM"
+if [ -n "$FIX_LINE" ]; then
+  printf '  fix    : %s%s  — read the diff: git -C %s show <sha>\n' "$FIX_LINE" "$([ "$FIX_N" -gt 1 ] && printf ' (+%s more — git -C %s log --grep=%s)' "$((FIX_N-1))" "$CUBRID_SRC" "$KEY")" "$CUBRID_SRC"
+else
+  printf '  fix    : no commit mentioning %s found on origin/develop here — a shallow or stale ~/cubrid can hide it (git -C %s fetch origin develop); otherwise find the fix yourself and record ground.fix_commit\n' "$KEY" "$CUBRID_SRC"
+fi
 printf '  attach : %s total\n' "${NATT:-0}"
 printf '%s' "$READ_LIST"   | while IFS='|' read -r p d; do [ -n "$p" ] && printf '    read : %s  (%s)\n' "$p" "$d"; done
 printf '%s' "$VIEW_LIST"   | while IFS='|' read -r p d; do [ -n "$p" ] && printf '    view : %s  (%s)\n' "$p" "$d"; done

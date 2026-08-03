@@ -21,6 +21,10 @@
 #                                   [--tc-path PATH] [--timeout SECONDS]
 set -u
 
+SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
+# shellcheck source=common.sh disable=SC1091
+. "$SELF_DIR/common.sh" || { printf 'failpass-run: common.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
+
 USAGE='usage: failpass-run.sh CBRD-XXXXX --prefix-build <url|version> [--fixed-build <url|version>] [--with-debug-check] [--tc-path PATH] [--timeout SECONDS]'
 KEY=""; PREFIX_IN=""; FIXED_IN=""; TCPATH=""; TIMEOUT=900; WITH_DEBUG=0
 while [ $# -gt 0 ]; do
@@ -35,23 +39,16 @@ while [ $# -gt 0 ]; do
     # questions cost three installs and three runs, and the last install IS the restore.
     --with-debug-check) WITH_DEBUG=1; shift ;;
     -h|--help)      printf '%s\n' "$USAGE"; exit 0 ;;
-    -*)             printf 'failpass-run: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
-    *)              KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
+    -*)             reject_unknown "$USAGE" "$1" ;;
+    *)              KEY=$(parse_issue_key "$1"); shift ;;
   esac
 done
 [ -n "$KEY" ] || { printf 'failpass-run: need an issue key\n%s\n' "$USAGE" >&2; exit 1; }
 [ -n "$PREFIX_IN" ] || { printf 'failpass-run: --prefix-build is required (a build from before the fix but after the feature that introduced the bug).\n%s\n' "$USAGE" >&2; exit 1; }
 
-SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
 VERIFY="$SELF_DIR/verify-run.sh"
 [ -x "$VERIFY" ] || { printf 'failpass-run: verify-run.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$VERIFY" >&2; exit 1; }
 
-# env.sh sources CUBRID's .cubrid.sh, which appends to LD_LIBRARY_PATH and PATH without guarding
-# them — fatal under `set -u` wherever they are not already exported. An interactive login has them
-# (bashrc sourced .cubrid.sh earlier) and a non-interactive ssh does not, so this aborted the script
-# on the second machine while looking fine on the first. -u is lifted for that one line only.
-# shellcheck disable=SC1090
-if [ -f "$HOME/.cubrid-agent/env.sh" ]; then set +u; . "$HOME/.cubrid-agent/env.sh"; set -u; fi
 CTP_HOME=${CTP_HOME:-}
 [ -n "$CTP_HOME" ] || { for d in "$HOME/CTP" "$HOME/cubrid-testtools/CTP"; do [ -x "$d/bin/ctp.sh" ] && CTP_HOME=$d && break; done; }
 CUB=${CUBRID:-$HOME/CUBRID}

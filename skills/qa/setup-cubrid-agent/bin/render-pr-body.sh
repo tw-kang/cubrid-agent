@@ -14,6 +14,10 @@
 # usage: render-pr-body.sh <KEY> [--run-dir DIR] [--force]
 set -u
 
+SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
+# shellcheck source=common.sh disable=SC1091
+. "$SELF_DIR/common.sh" || { printf 'render-pr-body: common.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
+
 USAGE="usage: render-pr-body.sh <CBRD-XXXXX> [--run-dir DIR] [--force]"
 KEY=""; RUN_DIR=""; FORCE=0
 while [ $# -gt 0 ]; do
@@ -21,8 +25,8 @@ while [ $# -gt 0 ]; do
     --run-dir) RUN_DIR="${2:?$USAGE}"; shift 2 ;;
     --force)   FORCE=1; shift ;;
     -h|--help) printf '%s\n' "$USAGE"; exit 0 ;;
-    -*)        printf 'render-pr-body: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
-    *)         KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
+    -*)        reject_unknown "$USAGE" "$1" ;;
+    *)         KEY=$(parse_issue_key "$1"); shift ;;
   esac
 done
 [ -n "$KEY" ] || { printf 'render-pr-body: need an issue key\n%s\n' "$USAGE" >&2; exit 1; }
@@ -41,9 +45,11 @@ fi
 
 m() { jq -r "$1 // empty" "$MANIFEST" 2>/dev/null; }
 
-TCROOT="${CUBRID_TESTCASES:-$HOME/cubrid-testcases}"
 SQLREL=$(m '.author.path')
-SQL="$TCROOT/$SQLREL"
+# Read the .sql from wherever the branch is actually checked out (why: tc_root_for_branch in common.sh).
+_br=$(m '.author.branch'); [ -n "$_br" ] || _br="tc/$(printf '%s' "$KEY" | tr '[:upper:]' '[:lower:]')"
+_wt=$(tc_root_for_branch "$TC" "$_br"); [ -n "$_wt" ] && TC=$_wt
+SQL="$TC/$SQLREL"
 
 # Cases: the `evaluate 'Case N: …'` labels are what CTP echoes into the answer, so they are the
 # case list by definition — and counting them is exactly what went wrong when a human did it.

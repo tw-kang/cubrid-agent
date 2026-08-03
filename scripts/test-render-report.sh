@@ -99,6 +99,23 @@ g add -A >/dev/null 2>&1; g commit -q -m "release-dir TC" >/dev/null 2>&1
 seed "sql/_36_guava/cbrd_99999/cases/cbrd_99999.sql"; render
 expect_proof "release-dir layout still counts its own two files" "2개 파일"
 
+# ── the branch lives in a worktree and the caller forgot to say so ───────────────────────────────
+# Authoring may have happened in a worktree (prepare-tc-workspace), and $CUBRID_TESTCASES may still
+# point at the clone — every helper falls back silently. The branch's checkout location is the truth
+# a variable cannot lose, so the report must read the TC from there: the case count below exists only
+# on the branch, and reading the clone's working tree would report the stale copy.
+g checkout -q -b develop 2>/dev/null                    # same commit; frees the tc branch for a worktree
+g worktree add -q "$T/wt" "$BRANCH" 2>/dev/null
+printf "evaluate 'Case 1. x';\nSELECT 1;\nevaluate 'Case 2. y';\nSELECT 2;\n" > "$T/wt/sql/_36_guava/cbrd_99999/cases/cbrd_99999.sql"
+git -C "$T/wt" -c user.name=t -c user.email=t@example.com commit -qam "two cases, only on the branch" >/dev/null 2>&1
+render                                                  # CUBRID_TESTCASES still points at the clone
+_got=$(grep -m1 '케이스 ' "$REPORT" 2>/dev/null)
+case "$_got" in
+  *"케이스 2개"*) T_PASS=$((T_PASS+1)) ;;
+  *) note_fail "worktree authoring, variable points at the clone: 케이스 line is \"$_got\", expected 2개 (read from the branch's checkout)" ;;
+esac
+expect_proof "worktree authoring: the proof still holds" "2개 파일"
+
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'render-report: %d/%d\n' "$T_PASS" "$T_PASS"
   exit 0

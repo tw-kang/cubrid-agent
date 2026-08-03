@@ -23,6 +23,10 @@
 #                                 [--timeout SECONDS] [--generate | --promote [--from PATH]]
 set -u
 
+SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
+# shellcheck source=common.sh disable=SC1091
+. "$SELF_DIR/common.sh" || { printf 'verify-run: common.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
+
 USAGE='verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH] [--timeout SECONDS] [--generate|--promote [--from PATH]] [--no-manifest] [--log-label S]'
 KEY=""; RUNS=3; CATEGORY=sql; TCPATH=""; TIMEOUT=900; GENERATE=0; PROMOTE=0; FROM=""; NORECORD=0; LABEL=""
 while [ $# -gt 0 ]; do
@@ -44,8 +48,8 @@ while [ $# -gt 0 ]; do
     # caller that greps that log for engine markers would then read a different run's output.
     --log-label)   LABEL=${2:-}; shift 2 ;;
     -h|--help)  printf '%s\n' "$USAGE"; exit 0 ;;
-    -*)         printf 'verify-run: unknown option: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
-    *)          KEY=$(printf '%s' "$1" | grep -oiE '[A-Z]+-[0-9]+' | head -1 | tr '[:lower:]' '[:upper:]'); shift ;;
+    -*)         reject_unknown "$USAGE" "$1" ;;
+    *)          KEY=$(parse_issue_key "$1"); shift ;;
   esac
 done
 [ -n "$KEY" ] || { printf 'verify-run: need an issue key\n%s\n' "$USAGE" >&2; exit 1; }
@@ -61,16 +65,9 @@ RUN_DIR="$HOME/.cubrid-agent/$KEY"
 MANIFEST="$RUN_DIR/manifest.json"
 mkdir -p "$RUN_DIR"
 
-# env.sh is what setup.sh resolved once for this machine (CUBRID, CTP_HOME, JAVA_HOME).
-# env.sh sources CUBRID's .cubrid.sh, which appends to LD_LIBRARY_PATH and PATH without guarding
-# them — fatal under `set -u` wherever they are not already exported. An interactive login has them
-# (bashrc sourced .cubrid.sh earlier) and a non-interactive ssh does not, so this aborted the script
-# on the second machine while looking fine on the first. -u is lifted for that one line only.
-# shellcheck disable=SC1090
-if [ -f "$HOME/.cubrid-agent/env.sh" ]; then set +u; . "$HOME/.cubrid-agent/env.sh"; set -u; fi
+# env.sh (sourced by common.sh) is what setup.sh resolved once for this machine (CUBRID, CTP_HOME, JAVA_HOME).
 CTP_HOME=${CTP_HOME:-}
 [ -n "$CTP_HOME" ] || { for d in "$HOME/CTP" "$HOME/cubrid-testtools/CTP"; do [ -x "$d/bin/ctp.sh" ] && CTP_HOME=$d && break; done; }
-TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
 
 # jq patches the manifest in place; without it the run still happens but nothing is recorded, and a
 # silently unrecorded verify is exactly what the submit gate cannot distinguish from a skipped one.

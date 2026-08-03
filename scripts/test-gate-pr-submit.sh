@@ -188,6 +188,27 @@ $G2 reset -q --hard HEAD~1
 export CUBRID_TESTCASES="$TCD"
 $G update-ref refs/remotes/origin/develop "$BASESHA"
 
+# --- the variable travels in the command, not in the hook's env -----------------------------------
+# author-testcase has the agent pass CUBRID_TESTCASES=<path> inline on every call, but a PreToolUse
+# hook runs in the harness process: an inline assignment reaches the command's child, never the hook.
+# The gate has to read it out of the command string itself, or a run on a separate clone is judged
+# against the default one — here that clone's branch changes a file the fixture clone never had, so
+# the deny below only fires if the embedded path was honoured.
+echo stray > "$TCD2/unrelated.txt"; $G2 add -A >/dev/null; $G2 commit -qm stray
+_saved_tc=$CUBRID_TESTCASES; unset CUBRID_TESTCASES
+run "embedded CUBRID_TESTCASES is honoured" deny "not this TC's" \
+    "CUBRID_TESTCASES=$TCD2 $BASE --body-file $GEN"
+# The command text reaches the hook pre-expansion, exactly like the body path above — an unexpanded
+# $HOME must not make the base check silently skip.
+run "embedded value with unexpanded \$HOME"  deny "not this TC's" \
+    "CUBRID_TESTCASES=\$HOME/${TCD2##*/} $BASE --body-file $GEN"
+export CUBRID_TESTCASES="$_saved_tc"
+# When both speak, the command wins: the inline assignment is what the command will actually run
+# under, while the hook's env is whatever the harness happened to inherit.
+run "embedded value beats the hook's env"    deny "not this TC's" \
+    "CUBRID_TESTCASES=$TCD2 $BASE --body-file $GEN"
+$G2 reset -q --hard HEAD~1
+
 unset CUBRID_TESTCASES
 
 # --- re-authoring over an existing upstream PR: a decision, not an accident --------------------

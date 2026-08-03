@@ -22,6 +22,10 @@
 # usage: select-queue.sh [--max N] [--version VER] [--assignee USER] [--json]
 set -u
 
+SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
+# shellcheck source=common.sh disable=SC1091
+. "$SELF_DIR/common.sh" || { printf 'select-queue: common.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
+
 USAGE='usage: select-queue.sh [--max N] [--version VER] [--assignee USER] [--json]'
 MAX=50; VERSION=${CUBRID_PLANNED_VERSION:-guava}; ASSIGNEE=""; AS_JSON=0
 while [ $# -gt 0 ]; do
@@ -31,7 +35,7 @@ while [ $# -gt 0 ]; do
     --assignee) ASSIGNEE="${2:?$USAGE}"; shift 2 ;;
     --json)     AS_JSON=1; shift ;;
     -h|--help)  printf '%s\n' "$USAGE"; exit 0 ;;
-    *)          printf 'select-queue: unknown argument: %s\n%s\n  If that is a documented flag, this installed copy is stale (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it.\n' "$1" "$USAGE" >&2; exit 1 ;;
+    *)          reject_unknown "$USAGE" "$1" argument ;;
   esac
 done
 
@@ -43,13 +47,7 @@ for c in cubrid-jira jq git; do
     exit 1; }
 done
 
-# env.sh sources CUBRID's .cubrid.sh, which appends to LD_LIBRARY_PATH and PATH without guarding
-# them — fatal under `set -u` wherever they are not already exported. An interactive login has them
-# (bashrc sourced .cubrid.sh earlier) and a non-interactive ssh does not, so this aborted the script
-# on the second machine while looking fine on the first. -u is lifted for that one line only.
-# shellcheck disable=SC1090
-if [ -f "$HOME/.cubrid-agent/env.sh" ]; then set +u; . "$HOME/.cubrid-agent/env.sh"; set -u; fi
-TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
+# env.sh and $TC come from common.sh, sourced at the top.
 
 # ── identity (ADR 0004: resolved per user, never hardcoded) ───────────────────────────────────────
 # The guard matters more than the resolution: a wrong-but-plausible $QA_USER returns 0 issues with a

@@ -115,10 +115,17 @@ fi
 # upstream with 1,630 files changed. Cutting a TC branch there produces a PR carrying all of it, and
 # nothing upstream would have stopped it. The stray-file test catches every version of this (wrong
 # base, unrelated commits, an accidental edit) without a network call.
-# Limits, on purpose: if the clone is not at $CUBRID_TESTCASES or ~/cubrid-testcases we skip rather
-# than guess — a false deny here strands an hour of finished work. Same reason the message names the
-# stray files and the recovery: a stale origin/develop ref is the one way this can misfire.
-TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
+# Limits, on purpose: if the clone is at none of the three sources below we skip rather than guess —
+# a false deny here strands an hour of finished work. Same reason the message names the stray files
+# and the recovery: a stale origin/develop ref is the one way this can misfire.
+# The command string is consulted first: author-testcase has the agent pass CUBRID_TESTCASES=<path>
+# inline, and an inline assignment reaches the command's child process, never this hook — reading only
+# the hook's own env would judge a separate-clone run against the default clone. The command text is
+# pre-expansion (same reason the body path below normalizes), so expand what the shell would have.
+_ctc=$(printf '%s' "$COMMAND" | grep -oE '(^|[[:space:]])CUBRID_TESTCASES=[^[:space:]]+' | head -1 | sed 's/^[[:space:]]*//' | cut -d= -f2-)
+_ctc=${_ctc//\"/}; _ctc=${_ctc//\'/}
+_ctc=${_ctc/#\~/$HOME}; _ctc=${_ctc//\$\{HOME\}/$HOME}; _ctc=${_ctc//\$HOME/$HOME}
+TC=${_ctc:-${CUBRID_TESTCASES:-$HOME/cubrid-testcases}}
 BR=$(printf '%s' "$COMMAND" | grep -oiE 'tc/cbrd-[0-9]+' | head -1)
 _base=$(printf '%s' "$KEY" | tr '[:upper:]-' '[:lower:]_')   # CBRD-26431 -> cbrd_26431
 # Ask git rather than testing for a .git directory: in a worktree .git is a file, and that test

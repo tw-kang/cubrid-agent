@@ -367,7 +367,11 @@ _miss=""; _n=0
 for _f in skills/qa/setup-cubrid-agent/bin/*.sh; do
   # A sourced library parses no arguments, so it has no unknown-option path to carry the hint.
   _is_lib "$(basename "$_f")" && continue
-  _n=$((_n+1)); grep -qF "$_hint" "$_f" || _miss="$_miss $(basename "$_f")"
+  # A helper may carry the hint itself or delegate to common.sh's reject_unknown, which carries the
+  # one canonical copy — the wording count below still holds it to a single variant. Merely sourcing
+  # common.sh is not delegation: the call has to be there, or an unknown flag dies hintless.
+  _n=$((_n+1))
+  grep -qF "$_hint" "$_f" || grep -q 'reject_unknown' "$_f" || _miss="$_miss $(basename "$_f")"
 done
 _variants=$(grep -hoF -e "$_hint (the plugin updated, ~/.cubrid-agent/bin did not) — run /setup-cubrid-agent to refresh it." skills/qa/setup-cubrid-agent/bin/*.sh | sort -u | wc -l | tr -d ' ')
 if [ -z "$_miss" ] && [ "$_variants" = 1 ]; then
@@ -589,6 +593,11 @@ else fail "debug check test failed — run scripts/test-debug-check.sh:"; printf
 # no proof. Why its scope is what it is lives beside the code, in render-report.sh.
 if _t=$(bash scripts/test-render-report.sh 2>&1); then pass "report commit proof behaves: $_t"
 else fail "render-report test failed — run scripts/test-render-report.sh:"; printf '         %s\n' "$_t"; fi
+
+# The PR body's case count feeds the submit gate, and authoring may have happened in a worktree the
+# variable no longer names — the renderer must read from the branch's real checkout.
+if _t=$(bash scripts/test-render-pr-body.sh 2>&1); then pass "PR body renderer behaves: $_t"
+else fail "render-pr-body test failed — run scripts/test-render-pr-body.sh:"; printf '         %s\n' "$_t"; fi
 
 # setup.sh provisions the machine every other skill then runs on, so a clone it puts in the wrong
 # place is wrong for the whole pipeline. Offline: the fixture stubs `git clone`.

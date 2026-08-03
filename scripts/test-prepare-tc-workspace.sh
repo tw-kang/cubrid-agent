@@ -134,6 +134,34 @@ run
 [ "$RC" -eq 0 ] && [ "$OUT" = "$WT" ] && T_PASS=$((T_PASS+1)) \
   || note_fail "detached HEAD: expected isolation, got rc=$RC out=\"$OUT\""
 
+# ── the branch survives its checkout: worktree removed, commits intact ───────────────────────────
+# A branch with committed work but no checkout anywhere must be picked up, not recut from the base —
+# `-b` would fail outright, and recutting would strand the commits.
+fresh_clone
+printf 'mine\n' > "$T/tc/sql/wip.txt"
+run                                                    # isolates
+printf 'authored\n' > "$WT/sql/case.txt"
+git -C "$WT" -c user.name=t -c user.email=t@example.com add -A >/dev/null 2>&1
+git -C "$WT" -c user.name=t -c user.email=t@example.com commit -qm "committed round" >/dev/null 2>&1
+rm -rf "$WT"; g -C "$T/tc" worktree prune 2>/dev/null   # the checkout is gone, the branch is not
+run
+[ "$RC" -eq 0 ] && [ "$OUT" = "$WT" ] && T_PASS=$((T_PASS+1)) \
+  || note_fail "branch without a checkout (dirty clone): expected a fresh worktree on it, got rc=$RC out=\"$OUT\""
+[ -f "$WT/sql/case.txt" ] && T_PASS=$((T_PASS+1)) \
+  || note_fail "branch without a checkout (dirty clone): the branch's committed work did not come back"
+
+# Same state, but the clone is clean on develop — the in-place path must check the branch out, not -b it.
+fresh_clone
+run                                                    # in place, clone now on the tc branch
+printf 'authored\n' > "$T/tc/sql/case.txt"
+g -C "$T/tc" add -A >/dev/null 2>&1; g -C "$T/tc" commit -qm "committed round" >/dev/null 2>&1
+g -C "$T/tc" checkout -q develop 2>/dev/null            # branch exists, checked out nowhere
+run
+[ "$RC" -eq 0 ] && [ "$OUT" = "$T/tc" ] && T_PASS=$((T_PASS+1)) \
+  || note_fail "branch without a checkout (clean clone): expected in-place pickup, got rc=$RC out=\"$OUT\""
+[ -f "$T/tc/sql/case.txt" ] && T_PASS=$((T_PASS+1)) \
+  || note_fail "branch without a checkout (clean clone): the branch's committed work did not come back"
+
 # ── a leftover directory git does not own is not ours to reuse or delete ─────────────────────────
 fresh_clone
 printf 'mine\n' > "$T/tc/sql/wip.txt"
