@@ -85,6 +85,14 @@ patch_manifest() {  # patch_manifest <jq filter> [--arg k v ...]
   jq "$@" "$_filter" "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST"
 }
 
+# The summary line has to answer the same question patch_manifest just did. Saying "recorded:" after a
+# --no-manifest run is the same contradiction as naming the wrong field, pointed the other way: the
+# reader either trusts a record that does not exist, or stops to check whether one was overwritten.
+rec() {  # rec <what the manifest patch above would have written>
+  if [ "$NORECORD" = 0 ]; then printf '  recorded: %s\n' "$1"
+  else printf '  not recorded (--no-manifest): %s\n' "$1"; fi
+}
+
 blocked() {  # blocked <status> <note>
   printf '[verify] %s — BLOCKED: %s\n  %s\n' "$KEY" "$1" "$2"
   patch_manifest '.verify = ((.verify // {}) + {status: $s, note: $n})' --arg s "$1" --arg n "$2"
@@ -133,7 +141,7 @@ if [ "$PROMOTE" = 1 ]; then
   # work is the weakest possible evidence for the one thing the field exists to rule out.
   patch_manifest '.verify.answer = ((.verify.answer // {}) + {result: $s, promoted: true, target: $t})
     | .lint = ((.lint // {}) + {answer_not_handwritten: true})' --arg s "$SRC" --arg t "$ANSWER_TARGET"
-  printf '  recorded: verify.answer.promoted, lint.answer_not_handwritten=true (byte copy of CTP output)\n'
+  rec 'verify.answer.promoted, lint.answer_not_handwritten=true (byte copy of CTP output)'
   printf '  next : confirm it — verify-run.sh %s --runs 3 — then commit the answer alongside the case.\n' "$KEY"
   exit 0
 fi
@@ -259,18 +267,18 @@ if [ "$ALL_PASS" = true ]; then
   # The message has to name the field that was actually written, or it becomes another record that
   # contradicts the run it describes.
   if [ "$CATEGORY" = sql_by_cci ]; then
-    printf '  recorded: verify.cci(checked=true, matches_jdbc=true) — the CCI output matches the answer, so no .answer_cci sidecar is needed\n'
+    rec 'verify.cci(checked=true, matches_jdbc=true) — the CCI output matches the answer, so no .answer_cci sidecar is needed'
     printf '  NOT recorded (your judgment): fail_to_pass attribution, whether this build contains the fix\n'
   else
-    printf '  recorded: verify.build, verify.determinism(all_pass=true), verify.status=passed\n'
+    rec 'verify.build, verify.determinism(all_pass=true), verify.status=passed'
     printf '  NOT recorded (your judgment): fail_to_pass attribution, whether this build contains the fix, cci cross-check\n'
   fi
   exit 0
 else
   if [ "$CATEGORY" = sql_by_cci ]; then
-    printf '  recorded: verify.cci(checked=true, matches_jdbc=false)%s — the CCI output differs, so promote it to the .answer_cci sidecar with --promote --category sql_by_cci\n' "$([ -n "$DIFF" ] && printf ', verify.cci.diff')"
+    rec "verify.cci(checked=true, matches_jdbc=false)$([ -n "$DIFF" ] && printf ', verify.cci.diff') — the CCI output differs, so promote it to the .answer_cci sidecar with --promote --category sql_by_cci"
   else
-  printf '  recorded: verify.build, verify.determinism(all_pass=false)%s — verify.status left unset\n' "$([ -n "$DIFF" ] && printf ', verify.diff')"
+    rec "verify.build, verify.determinism(all_pass=false)$([ -n "$DIFF" ] && printf ', verify.diff') — verify.status left unset"
   fi
   printf '  A mismatch is not automatically the testcase being wrong. Read the diff before deciding.\n'
   exit 1
