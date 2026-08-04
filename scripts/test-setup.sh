@@ -111,19 +111,23 @@ grep -q . "$H3/cloned" 2>/dev/null \
   && note_fail "re-run provisions nothing new: it cloned $(tr '\n' ' ' < "$H3/cloned")" \
   || pass
 
-# ── plugin auto-update: the flag has to reach the live registry, not settings.json alone ─────────
-# A teammate who installs once and never updates keeps running the commit they first got — the whole
-# point of the flag. settings.json is read when the marketplace is registered, which is already done
-# by the time setup runs, so writing only there changes nothing the runtime reads.
+# ── plugin auto-update: the flag, and the registry that is not ours ──────────────────────────────
+# A teammate who installs once and never updates keeps running the commit they first got. Measured:
+# settings.json alone is enough — Claude Code copies the flag into known_marketplaces.json itself.
 H4="$T/h4"; mkdir -p "$H4/.claude/plugins"
 printf '{"extraKnownMarketplaces":{"cubrid-agent":{"source":{"source":"github","repo":"tw-kang/cubrid-agent"}}}}\n' > "$H4/.claude/settings.json"
-printf '{"cubrid-agent":{"source":{"source":"github","repo":"tw-kang/cubrid-agent"},"installLocation":"%s/.claude/plugins/marketplaces/cubrid-agent"}}\n' "$H4" > "$H4/.claude/plugins/known_marketplaces.json"
+printf '{"cubrid-agent":{"source":{"source":"github","repo":"tw-kang/cubrid-agent"}}}\n' > "$H4/.claude/plugins/known_marketplaces.json"
+_reg_before=$(cat "$H4/.claude/plugins/known_marketplaces.json")
 run_setup "$H4"
 [ "$(jq -r '.extraKnownMarketplaces["cubrid-agent"].autoUpdate' "$H4/.claude/settings.json" 2>/dev/null)" = true ] && pass \
   || note_fail "auto-update: settings.json was not set"
-[ "$(jq -r '.["cubrid-agent"].autoUpdate' "$H4/.claude/plugins/known_marketplaces.json" 2>/dev/null)" = true ] && pass \
-  || note_fail "auto-update: known_marketplaces.json was not set — the runtime reads this one"
-# Neither file is ours to invent: no marketplace entry means this channel is not in use at all.
+# known_marketplaces.json belongs to Claude Code — setup reads nothing from it and writes nothing to it.
+[ "$(cat "$H4/.claude/plugins/known_marketplaces.json")" = "$_reg_before" ] && pass \
+  || note_fail "auto-update: setup modified known_marketplaces.json, which Claude Code owns"
+[ -e "$H4/.claude/plugins/known_marketplaces.json.bak" ] \
+  && note_fail "auto-update: setup left a backup inside Claude Code's plugins directory" || pass
+
+# No marketplace entry means this channel is not in use: nothing to set, and no file to invent.
 H5="$T/h5"; mkdir -p "$H5/.claude"
 printf '{}\n' > "$H5/.claude/settings.json"
 run_setup "$H5"
@@ -131,6 +135,33 @@ grep -q 'nothing to set' "$H5/out" 2>/dev/null && pass \
   || note_fail "auto-update: with no marketplace entry it should say nothing to set (got: $(grep -i 'auto-update' "$H5/out" | head -1))"
 [ -f "$H5/.claude/plugins/known_marketplaces.json" ] \
   && note_fail "auto-update: it created a registry file that Claude Code owns" || pass
+
+# A write that fails must be reported as a TODO. The first version chained cp && mv && printf, so a
+# failed cp printed nothing, the caller read an empty string and announced success.
+H6="$T/h6"; mkdir -p "$H6/.claude"
+printf '{"extraKnownMarketplaces":{"cubrid-agent":{"source":{"source":"github","repo":"tw-kang/cubrid-agent"}}}}\n' > "$H6/.claude/settings.json"
+chmod 500 "$H6/.claude"
+run_setup "$H6"
+chmod 700 "$H6/.claude"
+grep -q 'could not enable plugin auto-update' "$H6/out" 2>/dev/null && pass \
+  || note_fail "auto-update: an unwritable settings.json must report a TODO (got: $(grep -i 'auto-update' "$H6/out" | head -1))"
+grep -q 'auto-update enabled' "$H6/out" 2>/dev/null \
+  && note_fail "auto-update: it reported success after failing to write" || pass
+
+# The pull closes the ten-minute gap for the run that just installed the plugin.
+H7="$T/h7"; mkdir -p "$H7/.claude" "$T/bin"
+printf '{}\n' > "$H7/.claude/settings.json"
+cat > "$T/bin/claude" <<'CLAUDESTUB'
+#!/bin/sh
+printf '%s\n' "$*" >> "$CLAUDE_LOG"
+exit 0
+CLAUDESTUB
+chmod +x "$T/bin/claude"
+CLAUDE_LOG="$H7/claude-calls"; export CLAUDE_LOG; : > "$CLAUDE_LOG"
+run_setup "$H7"
+grep -q 'plugin update cubrid-agent@cubrid-agent' "$H7/claude-calls" 2>/dev/null && pass \
+  || note_fail "setup does not pull the plugin (calls: $(tr '\n' ';' < "$H7/claude-calls" 2>/dev/null))"
+unset CLAUDE_LOG
 
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'setup: %d/%d\n' "$T_PASS" "$T_PASS"

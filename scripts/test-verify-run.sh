@@ -1,8 +1,8 @@
 #!/bin/bash
 # Behavioural test for verify-run.sh's run directory. Dev-only, run by check-invariants.sh.
 #
-# Scope is deliberately narrow: with no CTP present verify-run blocks before it runs anything, which is
-# enough to pin WHERE it writes. The CTP half still has no harness (it needs a stub engine).
+# Narrow on purpose: with no CTP present verify-run blocks before running anything, which is enough to
+# pin WHERE it writes.
 set -u
 
 BIN_DIR=$(cd "$(dirname "$(readlink -f "$0")")/../skills/qa/setup-cubrid-agent/bin" && pwd)
@@ -43,8 +43,7 @@ case "$OUT" in *'must be an absolute path'*) [ "$RC" -ne 0 ] && T_PASS=$((T_PASS
 [ ! -e "relative-dir" ] && T_PASS=$((T_PASS+1)) || { rm -rf relative-dir; note_fail "--run-dir relative: it created a directory in the cwd"; }
 
 # ── the conf must point CTP at the tree the caller named ─────────────────────────────────────────
-# This is the failure the review path exists to prevent: a conf left on the default clone verifies a
-# different branch and still reports Success. Stubs stand in for CTP and the build.
+# A conf left on the default clone verifies a different branch and still reports Success.
 CTP="$T/ctp"; mkdir -p "$CTP/bin" "$CTP/conf"
 printf '#!/bin/sh\nexit 0\n' > "$CTP/bin/ctp.sh"; chmod +x "$CTP/bin/ctp.sh"
 printf 'scenario=/somewhere/else/sql\nport=33000\n' > "$CTP/conf/sql.conf"

@@ -3,7 +3,8 @@
 # Hooks under scripts/ must NOT source this: they ship through the plugin, so at hook time this file
 # may not exist, and a hook must not source the operator's env.
 #
-# Contract: the caller runs `set -u`, then sources this with $0 being the helper.
+# Contract: the caller runs `set -u`, then sources this with $0 being the helper. Sourcing it
+# immediately sources env.sh and resolves $TC.
 
 # env.sh sources CUBRID's .cubrid.sh, which appends to LD_LIBRARY_PATH and PATH without guarding them
 # — fatal under `set -u` where they are not already exported (non-interactive ssh).

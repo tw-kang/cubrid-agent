@@ -193,7 +193,7 @@ for f in $ISSUE_READERS; do
 done
 [ "$_bad" -eq 0 ] && pass "all $(printf '%s\n' $ISSUE_READERS | wc -l | tr -d ' ') issue-reading skills use the pandoc-free read"
 
-# CUBRIDQA-1480: an orchestrator with no work-directory instruction invents one in $HOME.
+# An orchestrator with no work-directory instruction invents one in $HOME.
 _bad=0
 for f in skills/qa/gate-resolved/SKILL.md skills/qa/author-testcase/SKILL.md \
          skills/qa/review-testcase/SKILL.md; do

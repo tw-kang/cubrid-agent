@@ -1,21 +1,16 @@
 #!/bin/bash
-# Diff the rule inventory of a skill body between a git ref and the working tree — the thing that must NOT
-# change when a SKILL.md is slimmed. Output goes to stdout only: an earlier ad-hoc version of this check
-# wrote its two inventory files next to the skill it was measuring, and `git add -A` shipped them inside
-# the plugin (cdc3d43).
+# Diff the rule inventory of a skill body between a git ref and the working tree — what must NOT change
+# when a SKILL.md is slimmed. Output goes to stdout only, so nothing lands next to the skill.
 #
-# The inventory is deliberately crude: every bold span, every backticked token, every heading — with a
-# count, so deleting ONE of two occurrences shows up too (that is the copy-paste case DP7 cares about).
-# It cannot prove a rule was kept: a rule can survive as a token while losing its meaning, and a span
-# wrapped across a newline is invisible to a line-based match. Read the diff; do not just count it.
+# Crude on purpose: every bold span, backticked token and heading, WITH a count, so deleting one of two
+# occurrences shows up. It cannot prove a rule was kept — read the diff, do not just count it.
 #
 # usage: rule-inventory.sh <git-ref> <path/to/SKILL.md>
 set -u
 
 [ $# -eq 2 ] || { printf 'usage: rule-inventory.sh <git-ref> <path/to/SKILL.md>\n' >&2; exit 1; }
-# Paths are repo-relative, like every other script here: `git show <ref>:<path>` only accepts that form,
-# and resolving one against the cwd while the other resolves against the root is how this silently
-# compared two different files.
+# Repo-relative paths: `git show <ref>:<path>` only accepts that form, and mixing the two bases once
+# made this compare two different files.
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "rule-inventory: not a git repo" >&2; exit 1; }
 
 REF=$1; FILE=$2

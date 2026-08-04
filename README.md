@@ -31,6 +31,22 @@ but nothing is runnable yet: the skills need `cubrid-jira`, a CTP checkout, and
 **`/cubrid-agent:setup-cubrid-agent`** once to lay those machine assets down,
 finish the credential steps, and get a per-skill readiness report.
 
+### Staying current
+
+Auto-update is off by default for third-party marketplaces, so an install stays on
+the commit it first fetched. `setup-cubrid-agent` turns it on and pulls once; after
+that an update lands about ten minutes into a session (measured: a commit pushed at
+17:14 was installed at 17:52, nine minutes into the next working session — an idle
+session never triggers the check). To pull one immediately:
+
+```bash
+claude plugin marketplace update cubrid-agent
+claude plugin update cubrid-agent@cubrid-agent   # restart or /reload-plugins to apply
+```
+
+Re-run `/cubrid-agent:setup-cubrid-agent` after an update: it refreshes the helper
+copies under `~/.cubrid-agent/bin/`, which a plugin update does not touch.
+
 Plugin skills are namespaced, so `/cubrid-agent:<skill>` is the canonical name and
 the one autocomplete offers. The bare `/<skill>` also reaches it unless another
 command already claims that name.

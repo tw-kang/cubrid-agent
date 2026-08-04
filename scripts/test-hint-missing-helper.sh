@@ -4,9 +4,8 @@
 # Dev-only, run by check-invariants.sh. Deterministic and offline: a throwaway $HOME and a throwaway
 # plugin root, so it never reads the real ~/.cubrid-agent.
 #
-# The contract every case also checks: this hook NEVER blocks. It is a hint on a command that is about
-# to fail on its own, so a deny would only cost the rest of a compound command — and the parse has no
-# notion of quoting, so an over-eager match must stay cheap.
+# The contract every case also checks: this hook NEVER blocks. A deny would only cost the rest of a
+# compound command, and the parse has no notion of quoting, so an over-eager match must stay cheap.
 set -u
 
 HOOK=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)/hint-missing-helper.sh
@@ -72,9 +71,7 @@ run "after a separator"      hint "render-report.sh" "cd /tmp && ~/.cubrid-agent
 run "helper that does not exist anywhere" hint "does not ship" \
     "~/.cubrid-agent/bin/rendre-report.sh CBRD-99999"
 
-# Without the plugin root (npx skills channel, or the plugin uninstalled) the two causes are
-# indistinguishable, so the hint must not assert either one: claiming "the plugin ships it" about a name
-# nobody ships sends the reader to re-run setup forever.
+# Without the plugin root the two causes are indistinguishable, so the hint must assert neither.
 ( unset CLAUDE_PLUGIN_ROOT
   _o=$(printf '{"tool_input":{"command":"~/.cubrid-agent/bin/whatever.sh"}}' | bash "$HOOK" 2>&1) || exit 1
   printf '%s' "$_o" | grep -qF 'The plugin ships it' && exit 1
@@ -94,8 +91,8 @@ run "copying it"            silent "" "cp src/render-report.sh \$HOME/.cubrid-ag
 run "diffing against it"    silent "" "diff -q ~/.cubrid-agent/bin/render-report.sh skills/qa/setup-cubrid-agent/bin/render-report.sh"
 
 # --- never blocks, whatever the input --------------------------------------------------------------
-# The parse has no notion of quoting, so a helper path inside a commit message or a heredoc can read as
-# an invocation. That is accepted — but only because it costs a sentence. Pin the "only" part.
+# A helper path inside a commit message or heredoc can read as an invocation. Accepted, because it
+# costs a sentence — pin the "only" part.
 never_blocks "path quoted inside a commit message" \
     "git commit -m \"note
 ~/.cubrid-agent/bin/render-report.sh now works\""

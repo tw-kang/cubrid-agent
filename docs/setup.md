@@ -40,7 +40,7 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 
 ### 최신본 유지 — 설치는 한 번, 이후는 자동
 
-**한 번 설치하면 자동으로 최신이 된다.** Claude Code가 세션 시작 뒤(최대 10분 지연) 마켓플레이스와 설치된 플러그인을 배후에서 갱신하고, 갱신되면 `/reload-plugins` 안내가 뜨거나 다음 실행에 적용된다.
+**한 번 설치하면 자동으로 최신이 된다.** Claude Code가 세션 시작 뒤 마켓플레이스와 설치된 플러그인을 배후에서 갱신한다(실제 지연은 아래 실측).
 
 단 **서드파티 마켓플레이스는 자동 갱신이 기본 꺼져 있다.** 그래서 `/cubrid-agent:setup-cubrid-agent`가 `~/.claude/settings.json`의 `extraKnownMarketplaces["cubrid-agent"].autoUpdate` 를 **켜 준다**(멱등, 백업 `settings.json.bak`). 수동으로 켜려면 `/plugin` → Marketplaces → cubrid-agent → **Enable auto-update**.
 
@@ -54,13 +54,9 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 
 즉 자동 갱신이 꺼진 상태로 오래 쓰면 옛 스킬이 돌면서도 눈치채기 어렵다. 실제 로드되는 위치는 마켓플레이스 clone이 아니라 버전으로 고정된 캐시(`~/.claude/plugins/cache/cubrid-agent/cubrid-agent/<커밋SHA>/`)이고, 어느 버전을 쓰는지는 `claude plugin list` 또는 `~/.claude/plugins/installed_plugins.json`으로 확인한다.
 
-**자동 갱신이 켜져 있으면 실제로 언제 오는가 — 신규 계정에서 실측(2026-08-04).** 설치 직후 기본값은 **꺼짐**이고(서드파티 마켓플레이스), `/setup-cubrid-agent`가 `settings.json`에 켠다. 그 뒤 **작업 세션을 시작하면 약 9분 뒤에 스스로 올라왔다** — 38분 전에 push한 커밋을, 수동 명령 없이. 이때 Claude Code가 `known_marketplaces.json`에도 `autoUpdate`를 직접 써 넣는다. 반대로 **아무 일도 시키지 않고 띄워만 둔 세션은 15분을 기다려도 갱신되지 않았다** — 점검이 세션 시작 후 타이머로 돌기 때문으로 보이며, 유휴 상태로는 확인할 수 없다.
+**실측(신규 계정, 2026-08-04)**: 17:14에 push한 커밋이 **작업 세션 시작 9분 뒤인 17:52:20에** 수동 명령 없이 설치됐다. 이때 `known_marketplaces.json`의 `autoUpdate`도 Claude Code가 직접 써 넣는다 — **그 파일은 우리가 건드리지 않는다.** 반대로 **아무 일도 시키지 않은 유휴 세션은 15분을 기다려도 갱신되지 않았다**: 점검이 세션 시작 후 타이머로 도는 것으로 보이고, 유휴로는 트리거되지 않는다.
 
-따라서 팀 배포 관점의 답은 이렇다. **배포 직후 그 자리에서 반영되지는 않는다.** 다음 세션을 시작하고 10분쯤 지나 반영되며, 즉시 필요하면 아래 두 줄이 3.4초에 끝낸다.
-
-```
-claude plugin marketplace update cubrid-agent && claude plugin update cubrid-agent@cubrid-agent
-```
+즉 **push한 그 자리에서 반영되지는 않는다.** 그래서 `setup.sh`가 마지막에 위 두 명령을 **직접 한 번 실행한다**(`claude` CLI가 있을 때만) — 방금 설치한 사람이 10분을 기다리지 않게 하려는 것이다. fetch 자체는 3.4초지만 **적용은 재시작이나 `/reload-plugins` 이후**라는 점은 위 표와 같다.
 
 **플러그인이 갱신되면 `/cubrid-agent:setup-cubrid-agent`를 한 번 더 돌려라.** 플러그인 갱신은 스킬 본문을 바꾸지만 `~/.cubrid-agent/bin/`의 헬퍼 사본은 그대로 둔다 — 새 스킬이 새 플래그(예: `verify-run.sh --generate`)를 부르면 옛 사본은 `unknown option`으로 죽는다. setup은 멱등이고 헬퍼를 항상 덮어쓰므로 재실행이 곧 갱신이다. 그 상황에 걸리면 헬퍼가 **스스로 그 사실을 말한다**("this installed copy is stale … run /setup-cubrid-agent").
 

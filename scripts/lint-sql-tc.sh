@@ -61,7 +61,7 @@ MANIFEST="$MDIR/manifest.json"
 mkdir -p "$MDIR"
 [ -f "$MANIFEST" ] || printf '{}' > "$MANIFEST"
 
-# Placement (CUBRIDQA-1486): a bug fix belongs under _13_issues, a release dir is for every other
+# Placement: a bug fix belongs under _13_issues, a release dir is for every other
 # kind of change. Both TCs the pipeline produced went to `sql/_36_guava/cbrd_XXXXX/` and both drew
 # the same review objection — the orchestrator hardcoded that path and create-sql's example cited
 # one of them, so nothing in the run could notice.
@@ -82,7 +82,7 @@ esac
 # the issue — the corpus is unambiguous (each dir's first commit falls inside its own label: _24_2h
 # 2024-07-30, _25_1h 2025-01-15, _25_2h 2025-08-07, _26_1h 2026-01-19) while the issues inside span
 # other years. The rule as written said only "{yy} = 2-digit year" and a run put a 2026-07 TC in
-# _25_2h, which is the same ambiguity that sent bug TCs to a release dir (CUBRIDQA-1486).
+# _25_2h, the same ambiguity that once sent bug TCs to a release dir.
 # Only a NEW case file has to land in the current half-year: old dirs keep receiving edits to
 # existing TCs long after they stop receiving new cases, and flagging those would be noise.
 halfyear=true

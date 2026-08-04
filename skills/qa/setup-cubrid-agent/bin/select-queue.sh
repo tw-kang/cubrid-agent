@@ -42,7 +42,8 @@ done
 
 # ── identity (ADR 0004: resolved per user, never hardcoded) ───────────────────────────────────────
 # The guard matters more than the resolution: a wrong-but-plausible $QA_USER returns 0 issues with a
-# success exit, which reads as "nothing to author". Ad-hoc netrc parsing yields the hostname.
+# success exit, which reads as "nothing to author". Ad-hoc ~/.netrc parsing returns the hostname
+# rather than the login, which is exactly how that happens.
 QA_USER=${ASSIGNEE:-${CUBRID_JIRA_USER:-}}
 if [ -z "$QA_USER" ]; then
   printf 'select-queue: the JIRA username is unresolved (CUBRID_JIRA_USER is empty and ~/.cubrid-agent/env.sh did not set it).\n'   >&2

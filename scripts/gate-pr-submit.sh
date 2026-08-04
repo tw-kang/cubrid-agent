@@ -62,10 +62,10 @@ case "$dbg/$dbgr" in
     p="$p\n- debug build not checked (verify.debug.checked=$dbg, result=$dbgr) — run ~/.cubrid-agent/bin/debug-check.sh $KEY; CI runs debug regression and an assert found there is attributed to this testcase" ;;
 esac
 
-# The body must be render-pr-body.sh's output, not prose (CUBRIDQA-1487). author-testcase says
+# The body must be render-pr-body.sh's output, not prose. author-testcase says
 # "generate it, do not compose it" and nothing enforced it, so two defects reached reviewers: the
 # renderer's `TODO` placeholders shipping as the body, and a hand-composed count disagreeing with
-# the .sql ("8 cases" against 7 — PR #3041). The generated path is derived from the key, so the
+# the .sql ("8 cases" against 7). The generated path is derived from the key, so the
 # check is exact; requiring it also enforces the generate rule itself, where reading whatever body
 # happens to be readable would go silent in precisely the case it exists for.
 # --draft is NOT exempt: the renderer runs for batch calls too, and a draft body is still what a
