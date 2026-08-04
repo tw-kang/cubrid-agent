@@ -1,13 +1,7 @@
-# Validate the plugin + marketplace manifests and every skill/hook frontmatter
-# in one place (CUBRIDQA-1442 verification seam; ADR-0003), then assert the repo
-# invariants `claude plugin validate` cannot see — doc-set shape, dead links, and
-# the rules that must hold in every skill rather than most (CUBRIDQA-1459).
-#
-# `claude plugin validate .` is the blocking gate — it catches broken manifests,
-# malformed frontmatter, and bad hooks.json. `--strict` runs as an informational
-# step only: today it fails solely on the deliberate `version` omission
-# (commit-SHA versioning, see README "Versioning"). It is promoted to blocking
-# once semver is pinned.
+# Validate the manifests and frontmatter, then assert the repo invariants
+# `claude plugin validate` cannot see (doc-set shape, dead links, per-skill rules).
+# `--strict` is informational only: it fails solely on the deliberate `version`
+# omission, and becomes blocking once semver is pinned.
 name: validate-plugin
 
 on:
