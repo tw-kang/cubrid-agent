@@ -1,15 +1,10 @@
 #!/bin/bash
 # Render the TC PR body from the run manifest and the testcase itself, into the run directory.
 #
-# Why a script: the numbers in a PR body were being typed from memory, and reviewers caught it.
-# On PR #3041 the body claimed "8개 케이스" against 7 in the file; on #3049 two P2 findings were
-# both "this TC assumes X and the body never says so". Counting and copying are mechanical, so
-# they belong here — the agent writes Purpose, Implementation and any judgment in Remarks, and
-# nothing it writes has to be a number it counted by hand (DP6).
-#
-# Deliberately NOT new sections: the body keeps CUBRID/cubrid's three-heading shape
-# (.github/PULL_REQUEST_TEMPLATE.md), and the generated facts land as Remarks bullets. A TC PR has
-# no upstream template — CUBRID/cubrid-testcases ships none — so this is the whole definition.
+# Counting and copying are mechanical: the agent writes Purpose, Implementation and any judgment in
+# Remarks, and never a number it counted by hand.
+# The body keeps CUBRID/cubrid's three-heading shape and the generated facts land as Remarks bullets.
+# CUBRID/cubrid-testcases ships no template, so this is the whole definition.
 #
 # usage: render-pr-body.sh <KEY> [--run-dir DIR] [--force]
 set -u

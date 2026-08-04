@@ -2,22 +2,15 @@
 # Ground one CBRD issue into the run directory: the issue body + every comment as readable text,
 # every attachment downloaded and classified by what it actually is.
 #
-# Not a hook — skills call it directly, so that "read the issue and all of its attachments" is one
-# command instead of the same nine lines of prose repeated in every skill that grounds an issue.
-# What it centralises, and why prose could not:
-#
-#   * `jql`, never `search` — `search` renders markdown through pandoc, and a pandoc without the
-#     `jira` reader (the RHEL 8 package is one) returns a degraded or empty body with a success exit.
-#   * classification by content, not by mimeType or filename. Jira's mimeType is wrong often enough
-#     to matter: CBRD-27141's `qa27141.out` (the expected output of the repro) is served as
-#     `application/octet-stream` but is ASCII text, and "skip the binaries" loses it.
-#   * archives are opened. CBRD-26909 ships the developer's whole intended case set as `cases.tgz`
-#     (23 .sql/.result files) — the one attachment that matters most, and the one a mimeType rule
-#     discards as a binary.
-#   * a PDF needs `pdftotext` (poppler-utils); without it the file is recorded as unread WITH the
-#     reason, never guessed at from its name (CUBRIDQA-1488).
-#   * `select.issue_type` lands in the manifest from Jira itself, so the placement lint always has
-#     the input it needs to decide the TC's tree (CUBRIDQA-1486).
+# What it centralises:
+#   * `jql`, never `search` — search renders through pandoc, and a pandoc without the `jira` reader
+#     returns a degraded or empty body with a success exit.
+#   * classification by CONTENT: Jira's mimeType is wrong often enough to matter (an ASCII `.out`
+#     served as application/octet-stream), and "skip the binaries" would lose it.
+#   * archives are opened — a developer's whole intended case set can arrive as one .tgz.
+#   * a PDF needs pdftotext; without it the file is recorded unread WITH the reason, never guessed
+#     at from its name.
+#   * `select.issue_type` comes from Jira, so the placement lint always has its input.
 #
 # usage: ground-issue.sh <KEY> [--run-dir DIR] [--refresh]
 set -u
@@ -107,9 +100,8 @@ ITYPE=$(jq -r '.issues[0].fields.issuetype.name // empty' "$ISSUE_JSON")
 NCOMM=$(jq -r '(.issues[0].fields.comment.comments // []) | length' "$ISSUE_JSON")
 
 # ── attachments ──────────────────────────────────────────────────────────────────────────────────
-# The CLI applies the 5 MiB wire gate itself, so a core never lands on the disk; oversize files come
-# back downloaded:false with a reason, which is exactly what "record it as unread with the reason"
-# needs.
+# The CLI applies the 5 MiB wire gate, so a core never lands on disk: oversize files come back
+# downloaded:false with a reason.
 if [ "$REFRESH" = 1 ] || [ ! -s "$ATT_JSON" ]; then
   cubrid-jira attachment "$KEY" --out "$ATT_DIR" --output json > "$ATT_JSON.part" 2>"$RUN_DIR/.ground.err" \
     || { rc=$?; case $rc in 2|3|4) cli_fail "$rc" attachment ;; esac
@@ -179,10 +171,8 @@ done < <(jq -r '.attachments[]? | [.filename, (.size|tostring), (.mimeType // ""
 NATT=$(jq -r '.count // 0' "$ATT_JSON")
 
 # ── fix commit ───────────────────────────────────────────────────────────────────────────────────
-# The mechanical half of "back the issue with code facts" (DP6): which engine commit mentions this key
-# is a git query, and agents were hand-running `git log --grep` and hand-writing the answer into the
-# manifest. Reading the fix diff and the PR discussion stays the caller's job — this only records
-# where to look.
+# Which engine commit mentions this key is a git query. Reading the fix diff stays the caller's job;
+# this only records where to look.
 FIX_LINE=""; FIX_PR=""; FIX_N=0
 CUBRID_SRC=${CUBRID_SRC:-$HOME/cubrid}
 if git -C "$CUBRID_SRC" rev-parse --git-dir >/dev/null 2>&1; then

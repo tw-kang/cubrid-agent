@@ -1,13 +1,9 @@
 #!/bin/bash
 # cubrid-agent setup — provisions the machine state into the $HOME standard layout.
 # This is the canonical script of the setup-cubrid-agent skill (entrypoint: /setup-cubrid-agent).
-# CWD-independent, so it works from anywhere and a container image can RUN this path as-is. Decision: ADR 0003.
-# Model & decisions: docs/deployment.md (3 tiers, $HOME runtime standard), ADR 0001 (component-skill absorption / plugin repackaging).
-# Idempotent & non-interactive — safe to re-run; never touches an existing clone (creates only when absent).
-# With --install-clis it also installs the three CLIs the skills require (gh, pandoc, cubrid-jira); without the
-# flag they are only checked and reported. The flag exists so the operator's consent is collected once, in the
-# skill, while this script stays non-interactive — a container RUNs it and CI executes it unattended.
-# Does NOT: inject credentials, ever (Tier 3 — a human's job); install a CUBRID build unless given --build.
+# CWD-independent (ADR 0003), idempotent and non-interactive; never touches an existing clone.
+# --install-clis installs gh, pandoc and cubrid-jira; without it they are only checked.
+# Never injects credentials, and installs a CUBRID build only when given --build.
 set -u
 
 AGENT_DIR="$HOME/.cubrid-agent"
@@ -29,9 +25,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Everything installed without sudo lands in ~/.local/bin. Make sure THIS run can see a binary it
-# just installed, and remember whether the operator's own shell can — the checks below resolve by PATH,
-# so a missing entry would make a successful install look like a failed one on the next login.
+# Everything installed without sudo lands in ~/.local/bin, and the checks below resolve by PATH.
 case ":$PATH:" in
   *":$HOME/.local/bin:"*) LOCAL_BIN_ON_PATH=1 ;;
   *) LOCAL_BIN_ON_PATH=0; PATH="$HOME/.local/bin:$PATH" ;;
@@ -45,17 +39,10 @@ echo "== Component skills — bundled in this repo (plugin) (ADR 0001) =="
 ok "skills live under skills/qa/ — Claude Code: 'claude plugin install'; other CLIs: 'npx skills add' (see README). No clone+symlink needed."
 
 echo "== Plugin auto-update — so an install stays current =="
-# Claude Code auto-updates marketplaces and their installed plugins shortly after a session starts,
-# but third-party marketplaces have that OFF by default: without this flag a teammate keeps running
-# whatever commit they first installed, and `claude plugin marketplace update` does NOT change the
-# installed copy (it only refreshes the catalog). The flag cannot be declared marketplace-side, so
-# enable it here, idempotently. Note that plugin.json deliberately omits `version` — that makes the
-# git commit SHA the version, so every commit is a new version for the updater to pick up.
-# The flag has to reach BOTH files. settings.json is the one a human edits, but the runtime reads the
-# live registry, and that registry is written when the marketplace is REGISTERED — which has already
-# happened by the time setup runs. Measured on a fresh account: settings.json alone left a 15-minute
-# session pinned to the commit it first installed, while the marketplace that does update on this
-# machine (omc) carries the flag in known_marketplaces.json too.
+# Third-party marketplaces have auto-update OFF by default, and it cannot be declared marketplace-side.
+# plugin.json omits `version` on purpose, which makes the commit SHA the version.
+# The flag must reach BOTH files: settings.json is what a human edits, but the runtime reads the live
+# registry, and that registry is written when the marketplace is registered — already done by now.
 enable_autoupdate() {  # <file> <jq selector for the marketplace object> -> already|set|absent|failed
   [ -f "$1" ] || { printf 'absent\n'; return; }
   jq -e "$2" "$1" >/dev/null 2>&1 || { printf 'absent\n'; return; }
@@ -82,25 +69,22 @@ clone_if_absent() { # <url> <dir> [extra git-clone args...]
   if [ -d "$dir/.git" ]; then ok "$(basename "$dir") present"
   else git clone "$@" "$url" "$dir" || fail "clone failed: $url"; ok "$(basename "$dir") cloned"; fi
 }
-# Resolve the testcases clone exactly as the part-skills do (deployment.md D7). Provisioning the
-# default path while every helper reads $CUBRID_TESTCASES would set up one clone and run against
-# another — and under an override the default path must not even be created.
+# Resolve the clone exactly as the part-skills do (D7): under an override the default path must not
+# even be created.
 TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
 clone_if_absent https://github.com/CUBRID/cubrid-testcases.git "$TC"
 [ "$TC" = "$HOME/cubrid-testcases" ] || ok "testcases clone: \$CUBRID_TESTCASES=$TC (~/cubrid-testcases untouched)"
-# Fork remote for submitting TC PRs — each teammate has their own fork, derived from the gh-authenticated account (ADR 0004).
-# Source: $CUBRID_GH_FORK (override) -> gh api user. Remote name is the neutral 'fork', not a person's name.
+# Fork remote for TC PRs: $CUBRID_GH_FORK, else the gh-authenticated account (ADR 0004 — never a
+# hardcoded person). The remote is named 'fork'.
 FORK_OWNER="${CUBRID_GH_FORK:-}"
 if [ -z "$FORK_OWNER" ] && command -v gh >/dev/null; then
   FORK_OWNER="$(gh api user --jq .login 2>/dev/null || true)"
-  # Safety net: if the derived account has no fork, create it (idempotent — no-op if it exists).
   if [ -n "$FORK_OWNER" ] && ! gh repo view "$FORK_OWNER/cubrid-testcases" >/dev/null 2>&1; then
     gh repo fork CUBRID/cubrid-testcases --remote=false >/dev/null 2>&1 || true
   fi
 fi
 if [ -n "$FORK_OWNER" ]; then
   FORK_URL="https://github.com/$FORK_OWNER/cubrid-testcases.git"
-  # If set-url fails (remote absent) add it — authoritative so a changed $CUBRID_GH_FORK is reflected on re-run.
   git -C "$TC" remote set-url fork "$FORK_URL" 2>/dev/null \
     || git -C "$TC" remote add fork "$FORK_URL"
   ok "cubrid-testcases fork remote ($FORK_OWNER)"
@@ -121,19 +105,15 @@ else
   clone_if_absent https://github.com/CUBRID/cubrid-testtools.git "$HOME/cubrid-testtools"
   CTP="$HOME/cubrid-testtools/CTP"; ok "CTP: $CTP"
 fi
-# No conf copy here: the stock sql.conf / sql_by_cci.conf already use non-default ports, and
-# verify-run.sh writes the `scenario=` copy per run — an override needs nothing from setup.
+# No conf copy here: verify-run.sh writes the `scenario=` copy per run.
 
 echo "== Runtime output directory — \$HOME/.cubrid-agent =="
 mkdir -p "$AGENT_DIR/reports/gate-resolved" "$AGENT_DIR/reports/author-testcase" "$AGENT_DIR/reports/review-testcase" "$AGENT_DIR/worktrees"
 ok "$AGENT_DIR/{<KEY>/ (per-run dir + manifest.json; skills create it), reports/, worktrees/}"
 
-# Helpers the skills invoke by absolute path. They ship in this skill's bin/ and install into
-# ~/.cubrid-agent/bin/ so that ONE path works on both channels: the plugin sets CLAUDE_PLUGIN_ROOT
-# but `npx skills add` copies only a single skill's own directory, so no path relative to a skill
-# resolves for every skill that needs the helper (ADR 0003's reasoning, applied to shared helpers).
-# A copy, not a symlink: it must survive the source checkout being moved or deleted. Re-running
-# setup refreshes it, which is also how a repo change reaches an already-provisioned machine.
+# Helpers install into ~/.cubrid-agent/bin/ so ONE absolute path works on both channels (the plugin
+# and `npx skills add`, which copies a single skill's directory). A copy, not a symlink: it must
+# survive the source checkout moving. Re-running setup is how a repo change reaches this machine.
 SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)  # readlink: the skill dir may be symlinked in
 HELPER_SRC="$SELF_DIR/../bin"   # scripts/setup.sh is the skill's implementation; bin/ is what it installs
 mkdir -p "$AGENT_DIR/bin"
@@ -152,16 +132,13 @@ if [ -z "$JH" ] || [ ! -x "$JH/bin/javac" ]; then
 fi
 if [ -n "$JH" ] && [ -x "$JH/bin/javac" ]; then ok "JDK: $JH"
 else todo "JDK (javac) not found — e.g. sudo dnf install java-1.8.0-openjdk-devel, then re-run setup"; fi
-# Jira username (identity role C — ADR 0004). Resolve it ONCE here and export it so that no
-# skill re-parses ~/.netrc at run time: netrc tokens may sit on one line or on many, and an
-# ad-hoc "grep -A2 … | grep login" returns the HOST on the single-line form — which silently
-# turns the Select JQL into a 0-issue query instead of raising an error.
+# Resolve the Jira username ONCE (ADR 0004) so no skill re-parses ~/.netrc: an ad-hoc grep returns
+# the HOST on the single-line form, which silently turns the Select JQL into a 0-issue query.
 resolve_jira_user() {
   if [ -n "${CUBRID_JIRA_USER:-}" ]; then printf '%s\n' "$CUBRID_JIRA_USER"; return 0; fi
   [ -f "$HOME/.netrc" ] || return 0
-  # Tokens may be spread over one line or many, so walk them — but drop #-comments first
-  # (a commented-out stale entry must not win) and let only the FIRST matching machine block
-  # decide, so a later block's login can never be picked up.
+  # Tokens may be spread over one line or many; drop #-comments, and let only the first matching
+  # machine block decide.
   awk '{ sub(/#.*/, ""); for (i = 1; i <= NF; i++) t[++n] = $i }
        END { for (i = 1; i <= n; i++)
                if (t[i] == "machine" && t[i+1] == "jira.cubrid.org") {
@@ -179,16 +156,12 @@ if [ -n "$QA_USER" ]; then ok "jira username: $QA_USER"
 else todo "jira username unresolved — export CUBRID_JIRA_USER, or give machine jira.cubrid.org a 'login <user>' token in ~/.netrc"; fi
 {
   echo "# generated by setup.sh — source ~/.cubrid-agent/env.sh in each CTP session"
-  # CUBRID's own .cubrid.sh appends to LD_LIBRARY_PATH and PATH without guarding them, so under
-  # `set -u` — every helper in bin/ runs that way — sourcing it aborts the caller on any machine where
-  # the variable is not already exported. An interactive login has it (bashrc sourced .cubrid.sh
-  # earlier), a non-interactive ssh does not, which is exactly where it was found. Seed both as empty
-  # so the append is always defined.
+  # .cubrid.sh appends to LD_LIBRARY_PATH and PATH unguarded, which aborts a `set -u` caller where
+  # they are not exported (non-interactive ssh). Seed both so the append is always defined.
   echo ': "${LD_LIBRARY_PATH:=}"; : "${PATH:=}"'
   echo '[ -f "$HOME/.cubrid.sh" ] && source "$HOME/.cubrid.sh"'
   echo "export CTP_HOME=\"$CTP\""
-  # Record the clone this run provisioned, but let a caller who already exported one win: the value is
-  # what setup found, not a decree, and a session that means a different clone must stay able to say so.
+  # Record the clone this run provisioned, but let a caller who exported one win.
   echo "export CUBRID_TESTCASES=\"\${CUBRID_TESTCASES:-$TC}\""
   [ -n "$JH" ] && echo "export JAVA_HOME=\"$JH\""
   [ -n "$QA_USER" ] && echo "export CUBRID_JIRA_USER=\"$QA_USER\""
@@ -280,8 +253,7 @@ else
   echo "== CLIs & credentials — Tier 3 (human's job; only checked here) =="
 fi
 
-# gh — kept first because it is the one that can stall on a sudo password; a failure here must not
-# stop pandoc and cubrid-jira, which need no root at all.
+# gh first: it is the one that can stall on a sudo password, and it must not stop the other two.
 if command -v gh >/dev/null; then ok "gh"
 elif [ "$INSTALL_CLIS" -eq 1 ]; then
   install_gh; _rc=$?
@@ -292,9 +264,8 @@ elif [ "$INSTALL_CLIS" -eq 1 ]; then
   esac
 else todo "install gh — docs/setup.md §3"; fi
 
-# pandoc: check the CAPABILITY, not the presence. cubrid-jira renders issue text with
-# `pandoc -f jira` / `--to jira`. Without the writer a Jira write hard-fails; without the reader an
-# older cubrid-jira returns an EMPTY body instead of erroring. The RHEL 8 package is 2.0.6 — neither.
+# pandoc: check the CAPABILITY, not the presence — without the `jira` reader an older cubrid-jira
+# returns an EMPTY body instead of erroring. The RHEL 8 package (2.0.6) has neither reader nor writer.
 _pandoc_ver=$(pandoc_ver)
 if [ -n "$_pandoc_ver" ] && pandoc_can_jira; then ok "pandoc $_pandoc_ver (jira reader + writer)"
 elif [ "$INSTALL_CLIS" -eq 1 ]; then
@@ -310,12 +281,9 @@ else
   todo "pandoc $_pandoc_ver has no jira reader/writer — Jira writes hard-fail and issue bodies can read back EMPTY. Install >= 2.19 (no sudo needed) — docs/setup.md §3"
 fi
 
-# cubrid-jira: check the CAPABILITY, not the presence. The tool never bumps its version
-# (every build is `1.0.0`), so `command -v` and `--version` both pass on a build that is
-# missing what the skills call. `attachment --help` is the floor probe: no `attachment`
-# means an install older than 2026-07-29, which also has no authenticated reads and so
-# answers every CUBRIDQA read with HTTP 401. The commit id is printed rather than compared —
-# git shas carry no order offline, so the operator matches it against docs/setup.md §3.
+# cubrid-jira: check the CAPABILITY. Every build reports version `1.0.0`, so `--version` proves
+# nothing; no `attachment` subcommand means an install too old for authenticated reads (HTTP 401 on
+# every CUBRIDQA read). The commit id is printed, not compared — shas carry no order offline.
 cj_commit() {
   sed -n 's/.*"commit_id": *"\([0-9a-f]\{7,40\}\)".*/\1/p' \
     "$HOME"/.local/share/uv/tools/cubrid-jira/lib/python3*/site-packages/cubrid_jira-*.dist-info/direct_url.json \
@@ -333,14 +301,12 @@ else
   todo "cubrid-jira is older than 2026-07-29${_cj_commit:+ (uv install: $_cj_commit)}: no 'attachment' subcommand and no authenticated reads, so the skills fail with 'invalid choice' and HTTP 401 on CUBRIDQA. Run: uv tool upgrade cubrid-jira — docs/setup.md §3"
 fi
 
-# A tool in ~/.local/bin that the operator's shell cannot see is not installed as far as the next
-# session is concerned — report it rather than letting the next run re-install on top of itself.
+# A tool the operator's shell cannot see is not installed as far as the next session is concerned.
 if [ "$LOCAL_BIN_ON_PATH" -eq 0 ] && { [ -x "$HOME/.local/bin/pandoc" ] || [ -x "$HOME/.local/bin/cubrid-jira" ]; }; then
   todo "~/.local/bin is not on your PATH, so the tools installed there are invisible to a new shell — add: export PATH=\"\$HOME/.local/bin:\$PATH\" to ~/.bashrc"
 fi
-# PDF attachments: the mandatory "read every attachment" rule cannot be met without a text
-# extractor — the Read tool cannot render a PDF either. Checked, not installed: it needs root and
-# is outside the three CLIs this script installs, so the operator decides (CUBRIDQA-1488).
+# PDF attachments need a text extractor for the "read every attachment" rule. Checked, not installed:
+# it needs root (CUBRIDQA-1488).
 if command -v pdftotext >/dev/null; then ok "pdftotext (PDF attachments readable)"
 else todo "pdftotext missing — a PDF attachment will be recorded as unread instead of read: sudo dnf install -y poppler-utils (Debian/Ubuntu: sudo apt install poppler-utils)"; fi
 if [ -n "${CUBRID_JIRA_USER:-}" ] && [ -n "${CUBRID_JIRA_PASSWORD:-}" ]; then ok "jira credentials (env — standard)"

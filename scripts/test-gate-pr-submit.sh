@@ -5,10 +5,8 @@
 # It builds a throwaway $HOME with a synthetic manifest and PR body, so it never reads or writes
 # the real ~/.cubrid-agent.
 #
-# This gate is the last step of a ~1-hour pipeline, so a wrong check costs more than a missing one:
-# a false deny strands finished work. The passing cases below are that guardrail — every spelling of
-# the body flag a human or skill actually types (-F, --body-file=, quoted, ~, an unexpanded $HOME)
-# must survive, and every command the gate has no business touching must fall straight through.
+# A false deny strands an hour of finished work, so the passing cases are the guardrail: every
+# spelling of the body flag must survive, and unrelated commands must fall straight through.
 set -u
 
 GATE=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)/gate-pr-submit.sh

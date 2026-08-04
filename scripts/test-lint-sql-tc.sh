@@ -4,11 +4,9 @@
 # Dev-only, run by check-invariants.sh. Offline: a throwaway $HOME, a throwaway testcase tree, and a
 # manifest the hook patches. Nothing else on the machine is touched.
 #
-# It exists because the hook shipped with a header check that matched `/**` and the issue key on the SAME
-# line, while the corpus convention puts the key on the next one — 0 of the 47 corpus testcases with a
-# header block passed it, so `lint.header` was false for every correctly authored testcase and the submit
-# gate blocked all of them. Nothing tested the hook, so nothing said so. Each case below is a rule the
-# gate can refuse work over; the fixtures are shaped like real corpus files, not like the checks.
+# Each case is a rule the submit gate can refuse work over. The fixtures are shaped like real corpus
+# files, not like the checks — a header check once matched a shape the corpus never uses, and every
+# correctly authored testcase failed it.
 set -u
 
 HOOK=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)/lint-sql-tc.sh

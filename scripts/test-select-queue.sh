@@ -6,9 +6,8 @@
 # (cubrid-jira, git ls-remote, gh) are stubbed on PATH, and $HOME is a throwaway, so it never touches
 # the real ~/.cubrid-agent or JIRA.
 #
-# The case that justifies the harness: a lookup that FAILED must not read as a lookup that found
-# nothing. "No branch exists" is what makes two operators author the same TC, and with live network
-# calls that path is unreachable in a test — a stub is the only way to pin it.
+# A lookup that FAILED must not read as a lookup that found nothing: "no branch exists" is what makes
+# two operators author the same TC, and only a stub can pin that path.
 set -u
 
 SRC=$(cd "$(dirname "$(readlink -f "$0")")/../skills/qa/setup-cubrid-agent/bin" && pwd)/select-queue.sh

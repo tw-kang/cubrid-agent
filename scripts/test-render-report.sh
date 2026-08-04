@@ -5,8 +5,7 @@
 # the testcase corpus. Nothing else on the machine is touched.
 #
 # What it pins: the proof counts the TC's own files in both directory layouts, never a sibling TC's,
-# and says "커밋되지 않았다" whenever the `.sql` is not on the branch — including when its `.answer`
-# already is. Why the scope has to work that way is in render-report.sh's own comment.
+# and says "커밋되지 않았다" whenever the `.sql` is not on the branch — including when its `.answer` is.
 set -u
 
 BIN_DIR=$(cd "$(dirname "$(readlink -f "$0")")/../skills/qa/setup-cubrid-agent/bin" && pwd)

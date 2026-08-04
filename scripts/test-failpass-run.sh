@@ -5,10 +5,9 @@
 # are throwaways, `run_cubrid_install` is a script that rewrites a version file, `ctp.sh` prints CTP's
 # output shape, and `curl` answers reachability from a fixture list.
 #
-# This is the script whose failure costs the most: it swaps the engine under a machine, and every later
-# verify silently trusts whatever is installed. So the cases that matter are not the happy path but the
-# four ways it can strand a machine — an unreachable fixed build, an install that exits 0 without
-# installing, a failed restore, and a pre-fix result overwriting the record the submit gate reads.
+# It swaps the engine under a machine and every later verify trusts whatever is installed, so the cases
+# that matter are the four ways it can strand one: an unreachable fixed build, an install that exits 0
+# without installing, a failed restore, and a pre-fix result overwriting the submit gate's record.
 set -u
 
 BIN_DIR=$(cd "$(dirname "$(readlink -f "$0")")/../skills/qa/setup-cubrid-agent/bin" && pwd)

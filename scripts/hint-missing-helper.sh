@@ -2,11 +2,8 @@
 # Missing-helper hint — when a command invokes a ~/.cubrid-agent/bin helper that is not installed,
 # say which one and why. Event: PreToolUse / Bash.
 #
-# The helpers already answer "this installed copy is stale" when handed a flag they do not know, but
-# printing that needs the helper to run. A helper that a plugin update ADDED is simply absent, so the
-# only thing printed is bash's errno — same cause, no hint, and the reader goes looking for a bug in
-# the skill instead of re-running setup. This supplies the reason bash cannot give, and prescribes the
-# same fix those helpers do.
+# A helper that a plugin update ADDED is simply absent, so bash prints only its errno — same cause as
+# the helpers' own stale-copy message, but with no hint. This supplies the reason bash cannot give.
 set -u
 
 INPUT=$(cat)

@@ -2,15 +2,12 @@
 # Run the testcase once on the DEBUG build of the same version, then put the release build back.
 # Installed to ~/.cubrid-agent/bin/ by /setup-cubrid-agent.
 #
-# Why it exists: CI runs debug regression too, and a new TC that trips an engine assert or produces
-# debug-only output is found there and attributed to whoever wrote the TC. Worse, an assert firing is
-# often a real engine defect the TC just exposed — worth more when it is found while authoring than in
-# somebody's nightly. Nothing in the pipeline looked at a debug build before this; the only mention was
-# "release is CI mode, debug is for diagnosis".
+# CI runs debug regression too, so a TC that trips an engine assert is found there and attributed to
+# whoever wrote it.
 #
-# What it does NOT decide: whether an assert is an engine bug or a testcase misusing the engine (that
-# goes to the developer, with the marker), and whether debug-only output differences are acceptable. It
-# never promotes debug output into `.answer` — the answer is confirmed on release, which is CI's mode.
+# It does NOT decide whether an assert is an engine bug or a testcase misusing the engine, nor whether
+# debug-only output differences are acceptable. Debug output is never promoted into `.answer` — the
+# answer is confirmed on release, which is CI's mode.
 #
 # usage: debug-check.sh CBRD-XXXXX [--version <version|url>] [--tc-path PATH] [--timeout SECONDS]
 set -u
@@ -132,13 +129,9 @@ if [ "$RC" != 0 ] && [ "$RC" != 1 ]; then
   exit 3
 fi
 
-# An assert or a crash outranks the pass/fail comparison: a case can print exactly the expected rows and
-# still have tripped an assertion on the way. Two rules make the search sound:
-#   * only ENGINE-owned output is searched — this run's own CTP log, plus any server error log the run
-#     touched. NOT the captured stdout: verify-run.sh prints the first 20 lines of the answer diff there,
-#     so a testcase whose own output contains the word "assert" (a TC written for an assert bug is the
-#     obvious case) would be recorded as tripping one, and `assert` has no note to clear it.
-#   * `abort` is not a marker — "transaction aborted" is ordinary SQL output.
+# An assert outranks the pass/fail comparison: a case can print the expected rows and still have
+# tripped an assertion. Only ENGINE-owned output is searched, never captured stdout (which carries the
+# answer diff), and `abort` is not a marker — "transaction aborted" is ordinary SQL output.
 MARKER=$(engine_markers "$RUN_LOG" "$STAMP")
 
 if [ -n "$MARKER" ]; then

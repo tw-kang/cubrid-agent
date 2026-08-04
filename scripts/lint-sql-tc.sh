@@ -27,30 +27,18 @@ grep -qiE 'create[[:space:]]+table' "$FILE" && { grep -qiE 'drop[[:space:]]+tabl
 english=true
 grep -E '^[[:space:]]*--' "$FILE" | LC_ALL=C grep -q '[^[:print:][:blank:]]' && english=false
 
-# Header scope (CUBRIDQA-1481): the header says what the test verifies. Instructions aimed at a
-# later pipeline stage must not be frozen into a corpus file that outlives the run — CBRD-26799's
-# TC shipped "the Verify lane MUST check …" and "document the limit rather than claim
-# guaranteed fail->pass" in its header. Those belong in the report, the PR Remarks, or
-# verify.preconditions.
-# Two independent bounds, because a header serves both a reviewer and a later skill
-# (review-testcase judges from it; the next author greps the corpus through it):
-#
-#   header_scope — vocabulary. Measured on the corpus, it fires on 0 of 58 human-authored cbrd_*
-#     headers and on the two worst lines of the leak above, so it separates run-talk from
-#     test-description without flagging legitimate prose.
-#   header_size  — 20 lines, so both audiences can scan it. Measured 2026-08-03 over the 59 corpus
-#     cases that carry a header block: median 9, p75 16, p90 24, and 52 of 59 (88%) are within 20.
-#     The seven that are not are human-authored and not retroactively wrong — this hook only fires on
-#     a file being written.
+# The header says what the test verifies. Instructions aimed at a later pipeline stage must not be
+# frozen into a corpus file that outlives the run; they belong in the report, the PR Remarks or
+# verify.preconditions. Two bounds, because the header serves a reviewer and a later skill:
+#   header_scope — vocabulary; fires on 0 of 58 human-authored corpus headers.
+#   header_size  — 20 lines. Corpus, measured 2026-08-03: median 9, p75 16, p90 24, 52/59 within 20.
 header_scope=true
 awk '/^\/\*\*/{f=1} f{print} /\*\//{if(f)exit}' "$FILE" \
   | grep -qEi '(Verify|Review) lane|MUST check|manifest|fail->pass|fail→pass|subagent|Draft PR|the report' \
   && header_scope=false
 
-# `--` inside the /** */ header is not a style problem, it breaks the run: CTP parses the header line
-# by line and treats `--` as a SQL line comment, so the block stops being a block and the statements
-# after it are read as part of a comment. One corpus TC already carries this (_36_guava/cbrd_26522).
-# Hyphens are fine — write "wrong value, empty error" or " - " rather than " -- ".
+# `--` inside the /** */ header breaks the run: CTP reads the header line by line and treats `--` as
+# a SQL line comment, so the statements after it are swallowed. Write " - ", not " -- ".
 header_no_dashdash=true
 awk '/^\/\*\*/{f=1} f{print} /\*\//{if(f)exit}' "$FILE" | grep -q -- '--' && header_no_dashdash=false
 
@@ -58,11 +46,9 @@ header_size=true
 hlines=$(awk '/^\/\*\*/{f=1} f{c++} /\*\//{if(f){print c; exit}}' "$FILE")
 [ -n "$hlines" ] && [ "$hlines" -gt 20 ] && header_size=false
 
-# Advice, not a gate. Length has a long tail in the corpus, so there is no honest threshold to fail on
-# — but the top quartile is worth saying out loud, because the rule an author reads is a 20-line
-# ceiling, and writing to a ceiling lands well above the practice (this is how a 17-line header and
-# five comment lines got shipped while every gate stayed green). Thresholds are the corpus p75s
-# measured above; `--` comments: n=380, median 1, p75 4, and 189 of 380 have none at all.
+# Advice, not a gate: length has a long tail, so there is no honest threshold to fail on, but writing
+# to the 20-line ceiling lands well above practice. Thresholds are corpus p75s; `--` comments across
+# 380 cases: median 1, p75 4, and 189 have none.
 advice=""
 [ -n "$hlines" ] && [ "$hlines" -gt 16 ] \
   && advice="$advice header is $hlines lines against a corpus p75 of 16 (median 9) — the Coverage list is the usual cause, and the evaluate labels already name every case;"
@@ -85,9 +71,8 @@ mkdir -p "$MDIR"
 # neither the Planned Version the queue filters on nor fixVersions. The hook cannot see the type
 # from the file, so Select records it; an unrecorded type is reported as unverifiable, not a pass.
 #
-# Deliberately narrow: it fires only on the per-issue release dir (`sql/_NN_name/cbrd_XXXXX/cases/`),
-# the shape that was rejected. Adding a bug case to an existing feature-group dir (e.g.
-# `sql/_19_apricot/_03_index_skip_scan/cases/`) is legitimate and must not be flagged.
+# Narrow on purpose: only the per-issue release dir (`sql/_NN_name/cbrd_XXXXX/cases/`). A bug case
+# added to an existing feature-group dir is legitimate.
 case "$FILE" in
   */sql/_13_issues/*/cases/*)                 _tree=issues ;;
   */sql/_[0-9][0-9]_*/cbrd_[0-9]*/cases/*)    _tree=release_per_issue ;;

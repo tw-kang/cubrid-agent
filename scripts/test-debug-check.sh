@@ -5,11 +5,8 @@
 # $CUBRID and $CTP_HOME, an installer that rewrites a version file, a ctp.sh that prints CTP's output
 # shape, and a curl that answers from a fixture list.
 #
-# The case that shapes this script: a debug build reports the SAME version as its release twin, so the
-# post-install assertion that protects every other swap ("cubrid_rel now says the version I asked for")
-# passes even when nothing was installed. The build TYPE is the only thing that can be asserted here,
-# and a run that silently stayed on release would report "debug is clean" — a claim about a build that
-# was never under test.
+# A debug build reports the SAME version as its release twin, so the post-install version assertion
+# passes even when nothing was installed. The build TYPE is the only thing that can be asserted.
 set -u
 
 BIN_DIR=$(cd "$(dirname "$(readlink -f "$0")")/../skills/qa/setup-cubrid-agent/bin" && pwd)

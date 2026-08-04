@@ -95,9 +95,8 @@ run
   || note_fail "already on the tc branch: expected the clone itself, got rc=$RC out=\"$OUT\""
 
 # ── a retry after authoring in place: the run's own dirt is not a reason to move ─────────────────
-# §3 writes the .sql and §6 loops, so the second call always arrives with the clone dirty. Reading that
-# as "something to lose" sent it to `worktree add` on a branch the clone already holds, which fails
-# outright — the run would lose its own committed work to a hard error.
+# The second call always arrives with the clone dirty from the run's own work; reading that as
+# "something to lose" sends it to `worktree add` on a branch the clone already holds, which fails.
 fresh_clone
 run
 printf 'authored\n' > "$T/tc/sql/case.txt"        # exactly what Author leaves behind
@@ -106,7 +105,7 @@ run
   || note_fail "retry after authoring in place: expected the clone again, got rc=$RC out=\"$OUT\""
 
 # ── a retry after isolating, once the human has tidied up ────────────────────────────────────────
-# The branch lives in the worktree now. A clone that has since gone clean must not try to check it out.
+# The branch lives in the worktree now, so a clone that went clean must not try to check it out.
 fresh_clone
 printf 'mine\n' > "$T/tc/sql/wip.txt"
 run                                                # isolates
@@ -116,9 +115,8 @@ run
   || note_fail "retry after the clone went clean: expected the worktree that holds the branch, got rc=$RC out=\"$OUT\""
 
 # ── a second issue on a machine that authored a first one in place ───────────────────────────────
-# The clone is left on tc/cbrd-99999. That is this pipeline's own leftover, not a human's work, so the
-# next issue authors in place too — otherwise a dedicated QA machine grows one worktree per issue,
-# which is the cost the conditional design exists to avoid.
+# A tc/cbrd-* HEAD is this pipeline's own leftover, so the next issue authors in place too —
+# otherwise a dedicated QA machine grows one worktree per issue.
 fresh_clone
 run
 run CBRD-99998
@@ -135,8 +133,8 @@ run
   || note_fail "detached HEAD: expected isolation, got rc=$RC out=\"$OUT\""
 
 # ── the branch survives its checkout: worktree removed, commits intact ───────────────────────────
-# A branch with committed work but no checkout anywhere must be picked up, not recut from the base —
-# `-b` would fail outright, and recutting would strand the commits.
+# A branch with committed work but no checkout must be picked up, not recut: `-b` fails and
+# recutting strands the commits.
 fresh_clone
 printf 'mine\n' > "$T/tc/sql/wip.txt"
 run                                                    # isolates
@@ -184,10 +182,8 @@ esac
   || note_fail "stdout carries only the path: it spans multiple lines"
 
 # ── --pr N: a reviewer's checkout of someone else's branch ───────────────────────────────────────
-# Reviewing is not authoring, and the difference is whose work is at stake. review-testcase runs on
-# other people's PRs, so there is no case where the clone may be checked out: no branch, no in-place,
-# nothing pushed. What it shares with authoring is worktree policy — reuse before create, refuse a
-# directory git does not own — which is why it lives in the same script.
+# review-testcase runs on other people's PRs, so no case may check the clone out: no branch, no
+# in-place, nothing pushed. It shares only worktree policy with authoring.
 WT_PR="$HOME/.cubrid-agent/worktrees/pr-7"
 pr_head() {  # pr_head <content> -> a new commit on refs/pull/7/head in the origin
   g -C "$ORIGIN" checkout -q -B pr-src develop 2>/dev/null
@@ -205,21 +201,18 @@ fresh_clone; rm -rf "$WT_PR"
 runpr --pr 7
 [ "$RC" -eq 0 ] && [ "$OUT" = "$WT_PR" ] && T_PASS=$((T_PASS+1)) \
   || note_fail "--pr on a clean clone: expected $WT_PR, got rc=$RC out=\"$OUT\" err=$(cat "$T/err")"
-# A clean clone on develop is exactly where authoring works in place. Reviewing must not: the clone is
-# the human's, and the branch under review is not ours to check out.
+# A clean clone on develop is where authoring works in place; reviewing must not.
 [ "$(head_of "$T/tc")" = develop ] && T_PASS=$((T_PASS+1)) \
   || note_fail "--pr on a clean clone: the clone was checked out anyway (HEAD is $(head_of "$T/tc"))"
 [ -f "$WT_PR/sql/from-pr.txt" ] && T_PASS=$((T_PASS+1)) \
   || note_fail "--pr: the worktree does not hold the PR's content"
-# Detached on purpose: a local branch would be a second name for someone else's work, and it is what
-# makes the refresh below refuse to run (git will not fetch into a checked-out branch).
+# Detached on purpose: git will not fetch into a checked-out branch, which the refresh below needs.
 [ "$(head_of "$WT_PR")" = HEAD ] && T_PASS=$((T_PASS+1)) \
   || note_fail "--pr: the worktree is not detached (HEAD is $(head_of "$WT_PR"))"
 [ -z "$(git -C "$T/tc" for-each-ref --format='%(refname)' refs/heads/pr-7 2>/dev/null)" ] && T_PASS=$((T_PASS+1)) \
   || note_fail "--pr: it created a local branch for someone else's PR"
 
-# A re-run must land on the PR's CURRENT head — a review that verifies the revision before the author's
-# last push reports findings they already fixed.
+# A re-run must land on the PR's CURRENT head, or it reports findings the author already fixed.
 pr_head second
 runpr --pr 7
 [ "$RC" -eq 0 ] && [ "$OUT" = "$WT_PR" ] && T_PASS=$((T_PASS+1)) \
@@ -235,8 +228,8 @@ runpr --pr 7
 [ -f "$T/tc/sql/wip.txt" ] && T_PASS=$((T_PASS+1)) \
   || note_fail "--pr on a dirty clone: the uncommitted file is gone"
 
-# `checkout` carries edits and untracked files across, so a re-run over a modified worktree would
-# review content the author never pushed — and report on it as theirs.
+# `checkout` carries edits and untracked files across, so a re-run could review content the author
+# never pushed.
 printf 'not from the author\n' > "$WT_PR/sql/from-pr.txt"
 runpr --pr 7
 [ "$RC" -ne 0 ] && T_PASS=$((T_PASS+1)) \
@@ -267,8 +260,7 @@ grep -q 'does not know it as a worktree' "$T/err" && [ "$RC" -ne 0 ] && T_PASS=$
   || note_fail "--pr with a stale directory: it deleted content it does not own"
 rm -rf "$WT_PR"
 
-# A PR number that does not exist must fail loudly. Falling back to develop would review the base
-# branch and call it the PR.
+# Falling back to develop would review the base branch and call it the PR.
 fresh_clone
 runpr --pr 4242
 [ "$RC" -ne 0 ] && T_PASS=$((T_PASS+1)) \
@@ -280,8 +272,7 @@ runpr --pr 4242
 runpr --pr 7 CBRD-99999
 [ "$RC" -ne 0 ] && T_PASS=$((T_PASS+1)) \
   || note_fail "--pr plus an issue key: expected a refusal, got rc=$RC out=\"$OUT\""
-# Rejected before the value reaches a path: `--pr ../../x` would otherwise name a directory outside
-# the worktree root.
+# Rejected before the value reaches a path: `--pr ../../x` would escape the worktree root.
 runpr --pr not-a-number
 grep -q 'takes a PR number' "$T/err" && [ "$RC" -ne 0 ] && T_PASS=$((T_PASS+1)) \
   || note_fail "--pr with a non-numeric argument: expected our refusal, got rc=$RC err=$(cat "$T/err")"

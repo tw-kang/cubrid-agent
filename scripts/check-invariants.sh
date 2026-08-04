@@ -1,17 +1,8 @@
 #!/bin/bash
-# Repo invariants — the machine seam for the rules this repo keeps breaking silently.
+# Repo invariants — the machine seam for rules this repo has broken silently before.
 #
-# Dev-only: not a hook, not listed in hooks.json, never invoked by a skill. Run it by
-# hand or from CI (see .github/workflows/validate-plugin.yml).
-#
-# Deterministic and offline. Uses only git, jq, grep and sed — the tools setup.sh already
-# requires — so it needs no network, no credentials, and no Python. `claude plugin validate`
-# is the one optional step: it runs when the CLI is present and is skipped otherwise.
-#
-# Every check here exists because the invariant it guards was violated in a way that
-# produced no error: docs told operators to invoke skills the plugin never loaded
-# (CUBRIDQA-1472), a mandatory rule reached 4 of 12 skills (CUBRIDQA-1443), and grounding
-# read an empty issue body and carried on (CUBRIDQA-1478). Decision: CUBRIDQA-1459.
+# Dev-only: not a hook, never invoked by a skill. Run by hand or from CI.
+# Deterministic and offline (git, jq, grep, sed only). `claude plugin validate` runs when present.
 set -u
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "not a git repo" >&2; exit 1; }
@@ -21,15 +12,10 @@ group() { printf '\n== %s ==\n' "$1"; }
 pass()  { printf '  ok   %s\n' "$1"; }
 fail()  { printf '  FAIL %s\n' "$1"; FAILED=$((FAILED+1)); }
 
-# Skills live in two trees (ADR 0006): skills/qa/ is the shipped set — every directory there is
-# registered in plugin.json — and skills/in-progress/ is what is still being built. Rule checks
-# below glob `skills/*/` so they sweep BOTH: a skill has to be conformant before promotion, or
-# promotion becomes a fix-up round. Only checks about the shipped set itself name skills/qa/.
+# Rule checks glob `skills/*/` so they sweep both trees; only shipped-set checks name skills/qa/.
 
-# The skills that read a CBRD issue. Each must ground on the raw JSON read, never on
-# `cubrid-jira search`, whose markdown goes through pandoc: on a pandoc without the jira
-# reader it came back empty with a success exit (fixed upstream 2026-07-30 to fall back to
-# raw markup, but an installed CLI is only as new as its last upgrade).
+# Skills that read a CBRD issue. `cubrid-jira search` returns an empty body with a SUCCESS exit when
+# pandoc lacks the `jira` reader, so each must use the raw JSON read.
 ISSUE_READERS=$(printf '%s\n' skills/*/create-*/SKILL.md skills/*/verify-*/SKILL.md \
   skills/qa/author-testcase/SKILL.md skills/qa/gate-resolved/SKILL.md \
   skills/qa/review-testcase/SKILL.md)
@@ -60,13 +46,7 @@ _design_back=$(git ls-files 'docs/agents/*' | grep -E '/(DESIGN|CONTEXT)\.md$')
 if [ -z "$_design_back" ]; then pass "no DESIGN.md / CONTEXT.md under docs/agents/ (they live in Jira)"
 else fail "design docs back in repo:"; printf '         %s\n' $_design_back; fi
 
-# The repo carries the product, not the rollout. Stage numbering is progress bookkeeping: it dates
-# instantly, it advertised capabilities that did not exist (three skills shipped a Stage-3 roadmap),
-# and two hooks printed "[Stage2]" at a teammate who has no idea what stage 2 is. Jira (CUBRIDQA-1425)
-# owns the stage sequence and its history; CHANGELOG names the stage of the released version, and the
-# ADRs keep theirs because a decision without its context stops being reviewable.
-# This file is excluded because it has to spell out the pattern it forbids, and it quotes the
-# "[Stage2]" prefix the hooks used to print as the example of what went wrong.
+# Stage numbering belongs in Jira, not the product. CHANGELOG, the ADRs and this file are excluded.
 _staged=$(git ls-files | grep -v -E '^(CHANGELOG\.md|\.agents/adr/|scripts/check-invariants\.sh$)' \
   | while read -r f; do [ -f "$f" ] && grep -lE '[Ss]tage[ _-]?[0-9]|스테이지' "$f" 2>/dev/null; done)
 if [ -z "$_staged" ]; then
@@ -75,10 +55,7 @@ else
   fail "rollout-stage labels are back in the repo — move them to CUBRIDQA-1425:"; printf '         %s\n' $_staged
 fi
 
-# Whoever clones this repo develops it with an agent, and an agent reads AGENTS.md before anything
-# else — so the two method rules have to be IN that file, not only in .agents/. Losing either one
-# reproduces a measured cost: the code-first rule is why a TC took 62 minutes (CUBRIDQA-1487), and
-# the skill-chain rule is what keeps a change from landing without a spec or a review pass.
+# An agent reads AGENTS.md first, so the two method rules must be in that file, not only in .agents/.
 _m=""
 grep -q '개발 방식' AGENTS.md                      || _m="$_m the-section"
 grep -q '코드로 가능한 것은 최대한 코드로' AGENTS.md  || _m="$_m code-first-rule"
@@ -87,10 +64,7 @@ grep -q 'CUBRIDQA-1425' AGENTS.md                   || _m="$_m ticket-first-chec
 grep -q '^## DP6' .agents/design-principles.md      || _m="$_m DP6"
 grep -q '한 가지로만 읽히게' AGENTS.md               || _m="$_m unambiguous-once-short"
 grep -q '^## DP7' .agents/design-principles.md      || _m="$_m DP7"
-# The CUBRID-side delivery rules: a contributor cannot infer the PR body shape or that cubrid-jira
-# is dry-run by default, and getting either wrong is visible outside the team. CBRD-25910 is the
-# template is a file in this repo, not a copy in prose — AGENTS.md links it so the two cannot drift,
-# and the headings are asserted on the file itself. $FORK guards against a person's name coming back.
+# The PR template is a file, linked rather than copied; $FORK guards against a hardcoded person.
 grep -qF '.github/PULL_REQUEST_TEMPLATE.md' AGENTS.md || _m="$_m pr-template-link"
 grep -q '### Purpose' .github/PULL_REQUEST_TEMPLATE.md || _m="$_m pr-template-headings"
 grep -q '### Remarks' .github/PULL_REQUEST_TEMPLATE.md || _m="$_m pr-template-headings"
@@ -102,10 +76,7 @@ else
   fail "the development method is missing from where an agent would read it:$_m — a fresh contributor's agent would not see it"
 fi
 
-# AGENTS.md states the ticket rule in one line and points at .agents/issue-tracker.md for the rest.
-# That pointer was dangling: the tracker file documented every CLI command but not the rule itself,
-# so an agent that followed the link found nothing and kept opening tickets (31 in the 1425 tree).
-# A pointer whose target is silent is worse than no pointer — it reads as "already covered".
+# A pointer whose target is silent reads as "already covered", so the target must carry the rule.
 _t=""
 grep -q 'CUBRIDQA-1425' .agents/issue-tracker.md          || _t="$_t parent-key"
 grep -q '새로 만들지 않는다' .agents/issue-tracker.md      || _t="$_t default-is-no-new-ticket"
@@ -118,11 +89,7 @@ else
   fail "the ticket rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
 fi
 
-# DP7-2: one fact, one place. These two were written twice and the copies drifted inside this repo —
-# the language-policy list disagreed with itself (`.claude-plugin/plugin.json·marketplace.json` in
-# AGENTS.md vs `.claude-plugin/` in DP3, and each pointed at the other as canonical), and the label
-# procedure sat in both triage-labels.md and issue-tracker.md while the former also linked the latter.
-# CLAUDE.md is excluded: it is the symlink to AGENTS.md (asserted above), not a second copy.
+# DP7-2: one fact, one place. CLAUDE.md is excluded — it is the symlink to AGENTS.md.
 _dup=""
 _lang=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '\*\*영문(배포 대상)\*\*' 2>/dev/null)
 [ "$(printf '%s\n' "$_lang" | grep -c .)" = 1 ] || _dup="$_dup language-policy-list[$(echo $_lang)]"
@@ -149,8 +116,7 @@ for n in $_nums; do _i=$((_i+1)); [ "$n" = "$(printf '%04d' $_i)" ] || _gap="$_g
 # ---------------------------------------------------------------------------
 group "Agent-instruction entrypoint"
 
-# AGENTS.md is the canonical file shared by every CLI; CLAUDE.md is a symlink to it.
-# A copy instead of a symlink is how the two drift apart unnoticed.
+# CLAUDE.md must stay a symlink to AGENTS.md; a copy is how the two drift apart unnoticed.
 if [ -L CLAUDE.md ] && [ "$(readlink CLAUDE.md)" = "AGENTS.md" ]; then
   pass "CLAUDE.md is a symlink to AGENTS.md"
 else fail "CLAUDE.md must be a symlink to AGENTS.md (found: $(readlink CLAUDE.md 2>/dev/null || echo 'a regular file'))"; fi
@@ -161,9 +127,7 @@ group "Internal markdown links"
 _dead=0
 while IFS= read -r f; do
   _dir=$(dirname "$f")
-  # Every ](target) in the file — grep -o so several links on one line all count.
-  # Drop external schemes and pure anchors, strip any #fragment, resolve the rest
-  # relative to the linking file.
+  # Every ](target): drop external schemes and pure anchors, resolve the rest relative to the file.
   while IFS= read -r t; do
     [ -z "$t" ] && continue
     case "$t" in http://*|https://*|mailto:*|\#*) continue ;; esac
@@ -190,10 +154,8 @@ for s in $_declared; do
 done
 
 # Docs may only advertise `/cubrid-agent:<skill>` for skills the plugin actually loads.
-# 1472: README told operators to invoke the 16 component skills, which are never loaded.
 _declared_names=$(for s in $_declared; do basename "$s"; done)
-# The leading-character guard keeps a git refspec out of this: `CUBRID/cubrid-agent:develop` in the
-# PR template is head->base notation, not a slash command, and reading it as one invented a skill.
+# The leading-character guard keeps a git refspec (`owner/repo:branch`) from reading as a command.
 _advertised=$(git ls-files '*.md' | xargs grep -ohE '(^|[^A-Za-z0-9_/-])/cubrid-agent:[a-z0-9-]*' 2>/dev/null | sed -E 's|.*/cubrid-agent:||' | sort -u)
 for n in $_advertised; do
   case "$n" in ''|'<skill>'|'<스킬>') continue ;; esac
@@ -202,11 +164,7 @@ for n in $_advertised; do
     || fail "docs advertise /cubrid-agent:$n but plugin.json does not declare it — the command does not exist"
 done
 
-# The directory IS the answer to "does this ship?" (ADR 0006, CUBRIDQA-1492): skills/qa/ holds the
-# shipped set and nothing else, skills/in-progress/ holds what is still being built. Before the
-# split, all 22 skills sat in skills/qa/ and only the manifest knew which 6 loaded — which is how
-# docs came to advertise skills the plugin never loads (CUBRIDQA-1472). Promotion is one move plus
-# one manifest line; this check is what makes forgetting either half fail loudly.
+# Promotion is one move plus one manifest line; forgetting either half must fail loudly.
 _split=""
 for s in $_declared; do
   case "$s" in ./skills/qa/*|skills/qa/*) ;; *) _split="$_split declared-outside-qa($s)" ;; esac
@@ -226,11 +184,7 @@ fi
 # ---------------------------------------------------------------------------
 group "Rules that must hold in EVERY skill, not most of them"
 
-# CUBRIDQA-1478: ground on the pandoc-free read, never on `cubrid-jira search` — an old pandoc
-# without the `jira` reader hands back a degraded or empty body with a SUCCESS exit, so the skill
-# cannot tell a blank description from a real one. Two ways to satisfy it now: call ground-issue.sh
-# (which does the raw read itself) or keep the inline `jql … --output json`. The migrated skills use
-# the first, the not-yet-migrated ones the second — both are checked, neither is optional.
+# Ground on the pandoc-free read (ground-issue.sh or an inline `jql … json`).
 _bad=0
 for f in $ISSUE_READERS; do
   if grep -q 'ground-issue.sh' "$f"; then :
@@ -248,9 +202,8 @@ for f in skills/qa/gate-resolved/SKILL.md skills/qa/author-testcase/SKILL.md \
 done
 [ "$_bad" -eq 0 ] && pass "every orchestrator names its run directory"
 
-# CUBRIDQA-1481: every skill that documents a comment header for its artifact must also say what
-# the header is NOT for. create-cci / create-jdbc / create-unittest are absent on purpose — their
-# only "header" is a C/Java include, not an artifact comment block.
+# A skill documenting an artifact header must also say what the header is NOT for. create-cci /
+# create-jdbc / create-unittest are absent on purpose — their header is an include, not a comment.
 _bad=0
 for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell create-isolation; do
   # The rule follows the skill, not the tree: create-sql ships, the other five are in-progress.
@@ -263,10 +216,7 @@ for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell 
 done
 [ "$_bad" -eq 0 ] && pass "every header-documenting create-* skill bounds both header scope and size"
 
-# CUBRIDQA-1443: the attachment rule reached 4 of 12 skills and nobody noticed. Restating it per
-# skill is what let it drift, so a skill now satisfies this by delegating to ground-issue.sh —
-# which classifies by content and reports what it could not read — or, until it is migrated, by
-# carrying the hand-run rule. Accepting either keeps the guarantee while the migration is partial.
+# Satisfied by delegating to ground-issue.sh, or by the hand-run rule until a skill is migrated.
 _bad=0
 for f in skills/*/create-*/SKILL.md; do
   grep -q 'ground-issue.sh' "$f" || grep -q 'attachment <KEY>' "$f" \
@@ -274,13 +224,9 @@ for f in skills/*/create-*/SKILL.md; do
 done
 [ "$_bad" -eq 0 ] && pass "every create-* skill carries the attachment rule"
 
-# The grounding helper is invoked by absolute path (~/.cubrid-agent/bin/), so the only thing that
-# puts it there is setup.sh. Three ways this breaks silently, all checked: the helper is referenced
-# but absent from the source dir; it is present but setup.sh never installs it; or setup.sh installs
-# it under a name no skill calls. Any of them is a hard runtime failure in every skill that grounds.
-# The list is DERIVED from the directory, never written here: a hardcoded list makes the 7th helper
-# invisible to every check below — it would ship in bin/, be installed by nothing, and be called by a
-# skill whose absolute path does not exist. That is precisely the failure this block exists to catch.
+# Helpers are invoked by absolute path, so only setup.sh puts them there. Three silent breakages are
+# checked: referenced but absent, present but never installed, installed under a name nobody calls.
+# The list is DERIVED from the directory — a hardcoded one would make the next helper invisible here.
 # One definition of "this file is a library another helper sources", used by both checks below.
 _is_lib() { grep -q "\. \"\$SELF_DIR/$1\"" skills/qa/setup-cubrid-agent/bin/*.sh 2>/dev/null; }
 _bad=""; _refs=0; _nh=0
@@ -398,8 +344,7 @@ else
   fail "testcases-clone rule drifted:${_miss:+ different wording in$_miss} — a skill that resolves it its own way runs against a different clone than the helpers do"
 fi
 
-# The hook that covers the other half of that cause — the helper is absent, so no helper can print
-# anything — has to prescribe the same fix, or the two halves drift apart.
+# The hook covering the other half of that cause must prescribe the same fix, or the two drift.
 if grep -qF 'run /setup-cubrid-agent' scripts/hint-missing-helper.sh; then
   pass "the missing-helper hint prescribes the same fix as the helpers' stale hint"
 else
@@ -425,29 +370,16 @@ else
   fail "identity rule drifted:${_bad:- no skill resolves \$QA_USER, which cannot be right} — a copy that lost the credential half is how a password reaches a transcript"
 fi
 
-# ground-issue.sh writes a manifest for every issue it grounds, including each candidate a Select
-# sweep screened and dropped. Without gate-stop's "grounding alone is not a run" guard, those become
-# permanent stop-reminders about issues nobody is working on — the coupling is invisible from either
-# file alone, which is why it is asserted here.
+# ground-issue.sh writes a manifest for every candidate a Select sweep screened, so without
+# gate-stop's "grounding alone is not a run" guard they become permanent stop-reminders.
 if grep -q 'has("author") or has("verify") or has("review")' scripts/gate-stop.sh; then
   pass "gate-stop ignores grounding-only manifests"
 else
   fail "gate-stop lost its grounding-only guard — every issue ground-issue.sh touched would nag forever"
 fi
 
-# CUBRIDQA-1488 (DP5): a skill's judgment must not depend on agent memory. The host injects
-# CLAUDE.md and a memory dir whether we like it or not, so what is checkable is that no skill
-# *instructs* reading or writing them: knowledge a judgment needs belongs in the skill body,
-# references/, env.sh or the manifest, where a PR can review it.
-#
-# The first version of this check was too loose to matter — an adversarial pass showed 3 of 4
-# realistic mutations escaping, including the exact shape found in the wild
-# (`cat ~/.claude/projects/<dir>/memory/<file>.md`), because the pattern only knew
-# `~/.claude/CLAUDE.md|memory` and its `[^.]{0,40}` window broke on the dots in a path. It also
-# scanned only SKILL.md, while DP5 names references/ as a home too.
-#
-# So match memory ARTIFACTS and the one semantic shape that bit us (a cached verdict), not the bare
-# word: "frees broker shared memory" and an OOM quote must stay clean.
+# DP5: no skill may instruct reading or writing agent memory. Match memory ARTIFACTS and the
+# cached-verdict shape, not the bare word — "frees broker shared memory" must stay clean.
 _mem_scope=$(git ls-files 'skills/*/*/SKILL.md' 'skills/*/*/references/*.md' 'skills/*/*/evals/*.json')
 _mem=$(grep -lEi \
   -e '~/\.claude/|CLAUDE\.md|MEMORY\.md' \
@@ -462,10 +394,9 @@ else
   fail "these files reference agent memory or a cached verdict — the knowledge belongs in the skill body, references/, env.sh or the manifest (DP5, CUBRIDQA-1488): $(printf '%s' "$_mem" | tr '\n' ' ')"
 fi
 
-# CUBRIDQA-1486: the TC's directory is create-sql's call. The orchestrator hardcoded it once and
-# every TC went to the wrong tree, so two things must stay true: author-testcase defers instead of
-# pinning a path, and it records the two issue facts the placement check needs. Checking that the
-# fix is PRESENT (not that the old string is absent) is what catches a rewrite that drops it.
+# The TC's directory is create-sql's call: author-testcase must defer instead of pinning a path, and
+# must record the two issue facts the placement check needs. Checking the fix is PRESENT (not that
+# the old string is absent) is what catches a rewrite that drops it.
 _at=skills/qa/author-testcase/SKILL.md
 _miss=""
 grep -q "directory convention" "$_at" || _miss="$_miss deferral-to-create-sql"
@@ -486,10 +417,8 @@ else
   fail "lint.placement is $([ "$_w" -eq 1 ] && echo 'written but never read by the submit gate' || echo 'read by the submit gate but never written') — a placement violation would not block anything"
 fi
 
-# CUBRIDQA-1485: the three required CLIs are installed after one consent, so the flag the skill
-# tells the operator to pass must exist in the script it points at. Drift either way is silent —
-# a skill passing an unknown flag now aborts the run, and a script gaining the flag nobody invokes
-# is dead code.
+# The flag the skill tells the operator to pass must exist in the script it points at; drift either
+# way is silent.
 _setup_sh=skills/qa/setup-cubrid-agent/scripts/setup.sh
 _in_script=0; _in_skill=0
 grep -q -- '--install-clis)' "$_setup_sh" && _in_script=1
@@ -500,9 +429,8 @@ else
   fail "--install-clis is in $([ "$_in_script" -eq 1 ] && echo 'setup.sh but not the SKILL' || echo 'the SKILL but not setup.sh') — the setup skill would tell the operator to run a flag that does not exist, or ship a flag nobody invokes"
 fi
 
-# DP7 measures skill body size instead of capping it — size alone cannot separate a body that is
-# long because the domain is, from one that is long because nobody cut it. The number belongs in
-# front of whoever reviews the next change to it.
+# DP7 measures skill body size instead of capping it: size alone cannot separate a body that is long
+# because the domain is, from one nobody cut.
 _sizes=$(for f in $(git ls-files 'skills/*/*/SKILL.md'); do printf '%s %s\n' "$(wc -c < "$f")" "$f"; done | sort -rn)
 _total=$(printf '%s\n' "$_sizes" | awk '{s+=$1} END {printf "%d", s/1024}')
 _top=$(printf '%s\n' "$_sizes" | head -1 | awk '{printf "%s (%dKB)", $2, $1/1024}' | sed 's|skills/[a-z-]*/||;s|/SKILL.md||')
@@ -511,14 +439,9 @@ pass "skill bodies: $(printf '%s\n' "$_sizes" | wc -l | tr -d ' ') files, ${_tot
 # ---------------------------------------------------------------------------
 group "Skill frontmatter"
 
-# The Agent Skills spec caps `description` at 1024 characters — a hard limit, and the one
-# that binds us: the skills CLI channel installs into Codex, Cursor and Gemini, which follow
-# the spec rather than Claude Code (whose own listing merely truncates at 1536). Take the
-# stricter of the two, since one source ships to both.
-#
-# Count CHARACTERS, not bytes. The descriptions carry Korean trigger keywords on purpose
-# (language policy exception B), and `wc -c` inflates those threefold — enough to fail a
-# compliant skill, or to let a violating one through against a looser bound.
+# The Agent Skills spec caps `description` at 1024 characters, and the skills CLI channel (Codex,
+# Cursor, Gemini) enforces it while Claude Code only truncates. Take the stricter bound.
+# Count CHARACTERS, not bytes: the Korean trigger keywords inflate `wc -c` threefold.
 _utf8=$(locale -a 2>/dev/null | grep -ix -m1 -E 'C\.utf-?8|en_US\.utf-?8')
 [ -z "$_utf8" ] && _utf8=$(locale -a 2>/dev/null | grep -i -m1 -E 'utf-?8$')
 if [ -z "$_utf8" ]; then
@@ -541,8 +464,7 @@ fi
 # ---------------------------------------------------------------------------
 group "Hook wiring"
 
-# A hook command quotes the root — "${CLAUDE_PLUGIN_ROOT}"/scripts/x.sh — so drop the
-# quotes before matching, or the pattern silently finds nothing and the group looks clean.
+# A hook command quotes the root, so drop the quotes before matching or the group looks clean.
 _hooks=$(jq -r '.. | .command? // empty' hooks/hooks.json \
   | tr -d '"' | grep -o '\${CLAUDE_PLUGIN_ROOT}/[^[:space:]]*' | sort -u)
 if [ -z "$_hooks" ]; then
@@ -555,10 +477,8 @@ for h in $_hooks; do
   else pass "hook script present and executable: $_p"; fi
 done
 
-# The submit gate is the only check that can strand finished work — it denies the last step of a
-# ~1-hour pipeline — so it gets a behavioural test rather than a grep for a marker string. The test
-# pins both directions: every body-flag spelling a human actually types must pass, and each defect
-# (no --body-file, a hand-composed body, a leftover TODO, an unread case count) must deny.
+# The submit gate is the only check that can strand finished work, so it gets a behavioural test
+# pinning both directions rather than a grep for a marker string.
 if _t=$(bash scripts/test-gate-pr-submit.sh 2>&1); then pass "submit gate behaves: $_t"
 else fail "submit gate test failed — run scripts/test-gate-pr-submit.sh:"; printf '         %s\n' "$_t"; fi
 
@@ -575,43 +495,35 @@ else fail "TC lint test failed — run scripts/test-lint-sql-tc.sh:"; printf '  
 if _t=$(bash scripts/test-select-queue.sh 2>&1); then pass "select queue behaves: $_t"
 else fail "select queue test failed — run scripts/test-select-queue.sh:"; printf '         %s\n' "$_t"; fi
 
-# The build swap is the one helper that changes what the machine IS, and a half-finished swap leaves a
-# pre-fix engine installed while every later verify still reports green. Its test stubs the installer
-# and CTP so the four stranding paths — unreachable fixed build, an install that exits 0 without
-# installing, a failed restore, and a pre-fix result overwriting the record — are all reachable offline.
+# A half-finished build swap leaves a pre-fix engine installed while every later verify reports green.
+# The test stubs the installer and CTP so all four stranding paths are reachable offline.
 if _t=$(bash scripts/test-failpass-run.sh 2>&1); then pass "fail→pass swap behaves: $_t"
 else fail "fail→pass test failed — run scripts/test-failpass-run.sh:"; printf '         %s\n' "$_t"; fi
 
-# The debug swap shares that machinery and adds the one assertion the others do not need: a debug build
-# reports the SAME version as its release twin, so only the build TYPE can prove the install happened.
-# Without it a no-op install reports `clean` — a verdict about a build that was never under test.
+# A debug build reports the SAME version as its release twin, so only the build TYPE proves the
+# install happened; without it a no-op install reports `clean`.
 if _t=$(bash scripts/test-debug-check.sh 2>&1); then pass "debug check behaves: $_t"
 else fail "debug check test failed — run scripts/test-debug-check.sh:"; printf '         %s\n' "$_t"; fi
 
-# The report's commit proof is the one line a reader trusts instead of running git themselves, so it
-# gets a behavioural test rather than a grep: a proof that passes when the work is missing is worse than
-# no proof. Why its scope is what it is lives beside the code, in render-report.sh.
+# A commit proof that passes when the work is missing is worse than no proof.
 if _t=$(bash scripts/test-render-report.sh 2>&1); then pass "report commit proof behaves: $_t"
 else fail "render-report test failed — run scripts/test-render-report.sh:"; printf '         %s\n' "$_t"; fi
 
-# The PR body's case count feeds the submit gate, and authoring may have happened in a worktree the
-# variable no longer names — the renderer must read from the branch's real checkout.
+# Authoring may have happened in a worktree the variable no longer names, so the renderer must read
+# from the branch's real checkout.
 if _t=$(bash scripts/test-render-pr-body.sh 2>&1); then pass "PR body renderer behaves: $_t"
 else fail "render-pr-body test failed — run scripts/test-render-pr-body.sh:"; printf '         %s\n' "$_t"; fi
 
-# setup.sh provisions the machine every other skill then runs on, so a clone it puts in the wrong
-# place is wrong for the whole pipeline. Offline: the fixture stubs `git clone`.
+# A clone setup puts in the wrong place is wrong for the whole pipeline. The fixture stubs `git clone`.
 if _t=$(bash scripts/test-setup.sh 2>&1); then pass "setup honours the testcases override: $_t"
 else fail "setup test failed — run scripts/test-setup.sh:"; printf '         %s\n' "$_t"; fi
 
-# The missing-helper hint fires on a command that is already going to fail, so the property its test
-# pins first is that it never blocks — a deny there would cost the rest of a compound command.
+# The hint fires on a command that already fails, so the test pins first that it never blocks.
 if _t=$(bash scripts/test-hint-missing-helper.sh 2>&1); then pass "missing-helper hint behaves: $_t"
 else fail "missing-helper hint test failed — run scripts/test-hint-missing-helper.sh:"; printf '         %s\n' "$_t"; fi
 
-# The one helper that decides whether a human's working tree gets checked out. Both directions are
-# load-bearing: isolating when there is nothing to lose leaves a worktree per issue on CI, and not
-# isolating when there is loses someone's staged work to a branch they do not own.
+# Both directions are load-bearing: isolating with nothing to lose leaves a worktree per issue on CI,
+# and not isolating loses someone's staged work to a branch they do not own.
 if _t=$(bash scripts/test-prepare-tc-workspace.sh 2>&1); then pass "TC worktree decision behaves: $_t"
 else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-workspace.sh:"; printf '         %s\n' "$_t"; fi
 

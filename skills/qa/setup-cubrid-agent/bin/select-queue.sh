@@ -2,22 +2,13 @@
 # Build the author-testcase Select queue: the field screen and the idempotency screen in ONE command,
 # leaving only the body judgment to the model. Installed to ~/.cubrid-agent/bin/ by /setup-cubrid-agent.
 #
-# Why this is a script (DP6): Select is mechanical up to the point where a body has to be read, but the
-# prose spelled it as one JQL plus a `gh` lookup per candidate — 13 model turns in the measured run
-# (CUBRIDQA-1487), each paying a full model round-trip to learn one boolean. The screens are also the
-# kind of thing prose gets subtly wrong under pressure: the measured run judged 8 bodies to process 0,
-# and the branch check that would have removed 2 of them ran last instead of first.
-#
 # Three facts this encodes that a per-candidate loop cannot:
-#   * the whole idempotency screen is O(1) network calls, not O(N) — `git ls-remote --heads <url>
-#     'tc/cbrd-*'` returns every processed key at once (~0.4s), so the cost no longer grows with the
-#     queue.
-#   * upstream carries no `tc/cbrd-*` branches at all (every TC PR comes from a fork), so the upstream
-#     *branch* check can never fire and only the per-key PR lookup covers "someone else's fork".
-#     Checking branches alone silently duplicates another operator's work.
-#   * a lookup that FAILED is not a lookup that found nothing. A network error is reported as an
-#     incomplete check, never as "no branch exists" — the latter is what makes two people author the
-#     same TC.
+#   * the idempotency screen is O(1) network calls: `git ls-remote --heads <url> 'tc/cbrd-*'` returns
+#     every processed key at once.
+#   * upstream carries no `tc/cbrd-*` branches (every TC PR comes from a fork), so only the per-key
+#     PR lookup covers "someone else's fork".
+#   * a lookup that FAILED is not a lookup that found nothing — a network error is reported as an
+#     incomplete check, never as "no branch exists".
 #
 # usage: select-queue.sh [--max N] [--version VER] [--assignee USER] [--json]
 set -u
@@ -51,8 +42,7 @@ done
 
 # ── identity (ADR 0004: resolved per user, never hardcoded) ───────────────────────────────────────
 # The guard matters more than the resolution: a wrong-but-plausible $QA_USER returns 0 issues with a
-# success exit, which reads as "nothing to author" instead of "your credentials are unresolved". The
-# hostname case is the one that actually happened — ad-hoc ~/.netrc parsing yields `jira.cubrid.org`.
+# success exit, which reads as "nothing to author". Ad-hoc netrc parsing yields the hostname.
 QA_USER=${ASSIGNEE:-${CUBRID_JIRA_USER:-}}
 if [ -z "$QA_USER" ]; then
   printf 'select-queue: the JIRA username is unresolved (CUBRID_JIRA_USER is empty and ~/.cubrid-agent/env.sh did not set it).\n'   >&2
@@ -71,9 +61,8 @@ mkdir -p "$HOME/.cubrid-agent" || exit 1
 BUILT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # ── 1. field screen (one JQL) ─────────────────────────────────────────────────────────────────────
-# `jql`, never `search`: search renders through pandoc, and a pandoc without the `jira` reader returns
-# an empty body with a success exit. Not Required is excluded by the field clause; Duplicate and
-# Sub-task are excluded here rather than by reading bodies (they removed 3 of 8 in the measured queue).
+# `jql`, never `search`: search renders through pandoc, which returns an empty body with a success
+# exit when the `jira` reader is missing. Duplicate and Sub-task are excluded here, not by reading.
 JQL="project = CBRD AND cf[213834] = \"$QA_USER\" AND cf[210441] = $VERSION AND status = Resolved"
 JQL="$JQL AND cf[210565] in (\"Required\",\"Not Yet\") AND resolution != Duplicate AND issuetype != Sub-task"
 JQL="$JQL ORDER BY resolved ASC"

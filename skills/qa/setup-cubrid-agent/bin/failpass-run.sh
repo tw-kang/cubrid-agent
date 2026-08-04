@@ -3,19 +3,13 @@
 # (must PASS) — and always put the fixed build back, even when something in between dies.
 # Installed to ~/.cubrid-agent/bin/ by /setup-cubrid-agent.
 #
-# Why this is a script (DP6): the sequence is fully determined — install, run, install, run — and by
-# hand it cost 6 model turns and ~12 minutes, paid once per review round instead of once per TC
-# (CUBRIDQA-1487). The turns are not the dangerous part. Every step in the middle can fail, and a prose
-# sequence that dies after the first install leaves the machine on a PRE-FIX build with nothing
-# recording that fact — after which every later verify quietly runs against an engine that still has
-# the bug, and its green result means nothing. So here: the fixed build's URL is proven reachable
-# BEFORE the first install, the restore is an EXIT trap rather than a later step, and the installed
-# version is asserted after every install (run_cubrid_install can exit 0 having failed).
+# A sequence that dies after the first install leaves the machine on a PRE-FIX build with nothing
+# recording it, after which every later verify silently runs against an engine that still has the bug.
+# So: the fixed build's URL is proven reachable BEFORE the first install, the restore is an EXIT trap,
+# and the installed version is asserted after every install.
 #
-# It does NOT decide: whether the build you named is actually pre-fix (that is the fix commit against
-# the build's date — your call), nor whether a timing-sensitive repro deserves `best_effort`. It writes
-# `confirmed` only for FAIL-then-PASS; anything else is recorded as what it was, which the submit gate
-# treats as not satisfied.
+# It does NOT decide whether the build you named is really pre-fix, nor whether a timing-sensitive
+# repro deserves `best_effort`. `confirmed` is written only for FAIL-then-PASS.
 #
 # usage: failpass-run.sh CBRD-XXXXX --prefix-build <url|version> [--fixed-build <url|version>]
 #                                   [--tc-path PATH] [--timeout SECONDS]
@@ -33,10 +27,8 @@ while [ $# -gt 0 ]; do
     --fixed-build)  FIXED_IN="${2:?$USAGE}"; shift 2 ;;
     --tc-path)      TCPATH="${2:?$USAGE}"; shift 2 ;;
     --timeout)      TIMEOUT="${2:?$USAGE}"; shift 2 ;;
-    # One swap phase instead of two. Separately, the debug check installs the debug twin and restores
-    # release, then this installs the pre-fix build and restores release again — four installs and four
-    # CTP sessions for three questions. Ordered pre-fix → fix-debug → fix-release, the same three
-    # questions cost three installs and three runs, and the last install IS the restore.
+    # One swap phase instead of two: ordered pre-fix → fix-debug → fix-release, three questions cost
+    # three installs, and the last install IS the restore.
     --with-debug-check) WITH_DEBUG=1; shift ;;
     -h|--help)      printf '%s\n' "$USAGE"; exit 0 ;;
     -*)             reject_unknown "$USAGE" "$1" ;;
@@ -72,9 +64,7 @@ INSTALLER="$CTP_HOME/common/script/run_cubrid_install"
   printf 'failpass-run: %s not found — CTP provides the installer, so this cannot swap builds. Install CTP (/setup-cubrid-agent) first.\n' "${INSTALLER:-<no CTP_HOME>}" >&2
   record inconclusive "CTP installer not found; no build was swapped"; exit 3; }
 
-# The install/assert/restore machinery is shared with debug-check.sh — same dangerous shape, and
-# the two defects it used to carry were the kind that report something untrue. CUB, INSTALLER and
-# RUN_DIR above are its contract.
+# CUB, INSTALLER and RUN_DIR above are build-swap.sh's contract.
 # shellcheck source=build-swap.sh disable=SC1091
 . "$SELF_DIR/build-swap.sh" || { printf 'failpass-run: build-swap.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
 
@@ -115,10 +105,8 @@ done
   printf 'failpass-run: the pre-fix URL names %s, which is the build already installed — a fail→pass check against itself proves nothing.\n' "$PREFIX_VER" >&2
   record inconclusive "refused: --prefix-build names the installed build ($FIXED_VER)"; exit 1; }
 
-# NOT silenced. The first version sent the trap's output to /dev/null so the normal path would not print
-# the restore twice — but on the path where the trap is the ONLY caller (Ctrl-C during the pre-fix run)
-# that threw away the loudest message this script has, the one naming the stranded build and the command
-# to fix it. Duplicate output is already prevented by swap_restore's own flags.
+# NOT silenced: on the path where the trap is the only caller (Ctrl-C mid-run) this is the message
+# naming the stranded build. swap_restore's own flags already prevent duplicate output.
 trap 'swap_restore || true' EXIT
 trap 'printf "\n  interrupted — restoring the fixed build before exiting\n"; swap_restore || true; exit 130' INT TERM
 

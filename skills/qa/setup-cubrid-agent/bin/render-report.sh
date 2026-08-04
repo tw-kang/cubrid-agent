@@ -2,14 +2,8 @@
 # Render the factual half of an author-testcase run report from the manifest, leaving the narrative
 # for the human. Installed to ~/.cubrid-agent/bin/ by /setup-cubrid-agent.
 #
-# Why this is a script (DP6): the rehearsal's two report writes cost ~7.9k output tokens, and output
-# tokens are what turn time actually tracks (measured correlation +0.88 against turn duration). Most
-# of that text was facts the manifest already held — build, determinism, lint flags, paths — retyped
-# in prose. Retyping is also where numbers drift: a hand-counted case total already contradicted the
-# .sql once in a PR body (#3041, "8 cases" against 7).
-#
-# It also settles the one claim the skill warns about in capitals: "before you write that the TC is on
-# the branch, prove it path-scoped". A script can simply run that git command every time.
+# Everything here is a fact the manifest already holds; retyping it in prose is where numbers drift.
+# It also proves path-scoped that the TC is really on the branch, rather than asserting it.
 #
 # Usage: render-report.sh CBRD-XXXXX [--force]
 set -u
@@ -62,12 +56,10 @@ COMMITTED="미확인 (TC 경로 또는 브랜치 미기록)"
 # `-d "$TC/.git"` would be wrong: in a git worktree .git is a FILE, so the check would silently skip
 # exactly where a reviewer runs. Ask git instead.
 if [ -n "$TCPATH" ] && git -C "$TC" rev-parse --git-dir >/dev/null 2>&1; then
-  # Two questions, because they fail differently. Membership: a directory is the TC's own only in
-  # `_36_guava/cbrd_XXXXX/`, while every bug fix goes to `_13_issues/_YY_Nh/`, whose cases/ and answers/
-  # the whole half-year shares — so the directory bounds the search and the key-derived filename decides
-  # what belongs (that also picks up an issue's suffixed `cbrd_XXXXX_select.sql` files). Existence: the
-  # `.sql` is asked for by name, because an `.answer` committed beside an uncommitted `.sql` is exactly
-  # the work-that-is-not-there this proof exists to catch, and no filename count can see it.
+  # Two questions, because they fail differently. Membership: the directory bounds the search and the
+  # key-derived filename decides what belongs (a per-issue directory exists in only one layout).
+  # Existence: the `.sql` is asked for by name — an `.answer` committed beside an uncommitted `.sql`
+  # is exactly what this proof exists to catch, and no filename count can see it.
   _rel=$TCPATH; case "$_rel" in "$TC"/*) _rel=${_rel#"$TC"/} ;; esac   # a pathspec must be repo-relative
   _dir=$(dirname "$(dirname "$_rel")")   # <tree>/cases/cbrd_x.sql -> <tree>, the parent of cases/ and answers/
   _base=$(printf '%s' "$KEY" | tr '[:upper:]-' '[:lower:]_')   # CBRD-25913 -> cbrd_25913
@@ -86,11 +78,8 @@ fi
 
   printf '## Select\n\n'
   printf -- '- 이슈 타입: %s · QA Scenario: %s · Planned version: %s\n' "$(u '.select.issue_type')" "$(u '.select.qa_scenario')" "$(u '.select.planned_version')"
-  # Queue basis: the manifest's frozen copy first, else the shared queue file — but only if that file
-  # still lists THIS key, since select-queue.sh overwrites it on every build and a stale queue would
-  # otherwise be cited as this run's basis. The fallback exists because the manifest copy is written
-  # only for the head candidate, and the `checks_incomplete` line is the one a reader must not lose:
-  # it says the already-processed screen was partial.
+  # Queue basis: the manifest's frozen copy first, else the shared queue file — but only if it still
+  # lists THIS key, since select-queue.sh overwrites it on every build.
   QSRC="$MANIFEST"
   [ -n "$(m '.select.queue.summary')" ] || {
     _qf="$HOME/.cubrid-agent/select-queue.json"

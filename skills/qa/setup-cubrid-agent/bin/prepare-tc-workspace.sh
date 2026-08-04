@@ -1,21 +1,12 @@
 #!/bin/bash
-# Decide where a testcase may be authored, and print that path. Installed to ~/.cubrid-agent/bin/.
-#
-# Why this is a script (DP6): "never build on a human's checked-out branch" was prose in
-# author-testcase, and prose cannot see a working tree. On the machines that matter the default clone
-# IS a human's workspace — this one sits on `feature/meta/description` with changes staged — and an
-# agent running `git checkout -b` there drags that work onto a branch it does not own.
-#
-# What it does NOT do: copy anything. A worktree shares the object store and moves only the working
-# directory, so isolating costs a checkout, not a clone. That is what the pipeline had been doing by
-# hand before this existed.
+# Decide where a testcase may be authored (or a PR reviewed) and print that path.
 #
 # Usage: prepare-tc-workspace.sh CBRD-XXXXX     — author a testcase for an issue
 #        prepare-tc-workspace.sh --pr N         — check out PR N to review it
 #   stdout: the single path the caller must use as $CUBRID_TESTCASES from here on.
 #   stderr: what it decided and why.
 #
-# --pr never authors in place and creates no local branch: the branch under review is someone else's.
+# --pr never authors in place and creates no local branch: that branch is someone else's.
 set -u
 
 SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
@@ -36,6 +27,7 @@ if [ -n "$PR" ] && [ -n "$KEY" ]; then
   printf 'prepare-tc-workspace: --pr and an issue key ask for different trees (a PR checkout and an authoring branch) — call it twice if you need both.\n%s\n' "$USAGE" >&2
   exit 1
 fi
+# Numeric-only: the value is interpolated into a path.
 case "$PR" in *[!0-9]*) printf 'prepare-tc-workspace: --pr takes a PR number, got "%s"\n%s\n' "$PR" "$USAGE" >&2; exit 1 ;; esac
 [ -n "$KEY" ] || [ -n "$PR" ] || { printf 'prepare-tc-workspace: need an issue key or --pr N\n%s\n' "$USAGE" >&2; exit 1; }
 
@@ -57,8 +49,7 @@ known_worktree() {
 if [ -n "$PR" ]; then
   WT="$HOME/.cubrid-agent/worktrees/pr-$PR"
   REF="refs/pr/$PR"
-  # PR numbers are per repository: a fork's origin would hand back a different PR N, and the review
-  # would read as if it were the real one.
+  # PR numbers are per repository: a fork's origin would hand back a different pull request.
   _origin=$(git -C "$TC" remote get-url origin 2>/dev/null)
   case "$_origin" in
     *github.com*)
@@ -76,13 +67,12 @@ if [ -n "$PR" ]; then
   git -C "$TC" worktree prune 2>/dev/null
   if known_worktree "$WT"; then
     # `checkout` carries dirty and untracked files across, so a reused tree could hold content the PR
-    # does not — and L3 would report on it as if it were the author's.
+    # does not.
     _dirty=$(git -C "$WT" status --porcelain 2>/dev/null | head -1)
     [ -z "$_dirty" ] || {
       printf 'prepare-tc-workspace: %s holds changes that are not part of PR %s (%s). Remove the directory and re-run — reviewing it as-is would judge content the author never pushed.\n' \
         "$WT" "$PR" "$_dirty" >&2
       exit 1; }
-    # Move to the current head: reviewing a superseded revision reports findings already fixed.
     git -C "$WT" checkout -q --detach "$REF" || exit 1
     printf 'prepare-tc-workspace: %s already held PR %s — moved it to the current head.\n' "$WT" "$PR" >&2
   else
@@ -105,10 +95,8 @@ BASE=origin/develop
 git -C "$TC" rev-parse --verify -q "$BASE" >/dev/null 2>&1 \
   || { printf 'prepare-tc-workspace: %s has no %s — git -C %s fetch origin develop\n' "$TC" "$BASE" "$TC" >&2; exit 1; }
 
-# Ask git where the branch already is before deciding anything. A branch can only be checked out in one
-# place, so if it has one, that place IS the answer — and every other order gets this wrong: a retry
-# arrives with the run's own work uncommitted (§3 writes the .sql, §6 loops), and a clone that has since
-# gone clean would try to check out a branch a worktree already holds, which fails outright.
+# Ask git where the branch is before deciding anything: a branch lives in exactly one working tree, so
+# if it has one, that place IS the answer. Deciding from clone state instead breaks every retry.
 CHECKED_OUT=$(tc_root_for_branch "$TC" "$BRANCH")
 if [ -n "$CHECKED_OUT" ]; then
   printf 'prepare-tc-workspace: %s is already checked out at %s — continuing there.\n' "$BRANCH" "$CHECKED_OUT" >&2
@@ -117,19 +105,15 @@ if [ -n "$CHECKED_OUT" ]; then
   exit 0
 fi
 
-# Nowhere yet, so this is a first run for the issue. "Has something to lose" decides where it starts:
-# uncommitted work, or a HEAD that is someone's task rather than a base to cut from. A `tc/cbrd-*` HEAD
-# is this pipeline's own leftover, not a human's — treating it as foreign is what made a dedicated
-# machine collect a worktree per issue from the second issue onwards. A detached HEAD is NOT safe: a
-# rebase, a bisect and a CI checkout all look like that, and only one of them can afford a checkout.
+# Isolate only when the clone has something to lose. A `tc/cbrd-*` HEAD is this pipeline's own
+# leftover, not a human's; a detached HEAD is not safe (rebase, bisect and CI checkout all look alike).
 HEAD_BRANCH=$(git -C "$TC" rev-parse --abbrev-ref HEAD 2>/dev/null)
 DIRTY=$(git -C "$TC" status --porcelain 2>/dev/null | head -1)
 ISOLATE=1
 [ -z "$DIRTY" ] && case "$HEAD_BRANCH" in develop|master|main|tc/cbrd-*) ISOLATE=0 ;; esac
 
-# The branch may already exist with no checkout anywhere — its worktree was removed, the commits were
-# not. Both paths below must pick that branch up rather than recut it from the base: `-b` fails
-# outright on an existing branch, and recutting would strand the committed rounds.
+# The branch can exist with no checkout anywhere (its worktree was removed, the commits were not):
+# `-b` would fail outright, and recutting from the base would strand the committed rounds.
 BRANCH_EXISTS=0
 git -C "$TC" rev-parse --verify -q "$BRANCH" >/dev/null 2>&1 && BRANCH_EXISTS=1
 

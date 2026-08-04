@@ -1,25 +1,18 @@
 #!/bin/bash
 # Shared build-swap machinery. SOURCED by failpass-run.sh and debug-check.sh, never run on its own.
 #
-# Why it is shared (DP7): both callers do the same dangerous thing — install a different CUBRID under a
-# machine, run one testcase, put the original back — and the first version of that code carried two
-# defects that made it report something untrue (a version assertion that switched itself off, and a
-# restore whose failure message went to /dev/null). Fixing those twice, in two copies that drifted, is
-# how the second copy keeps the bug.
+# Both callers do the same dangerous thing: install a different CUBRID, run one testcase, put the
+# original back.
 #
 # Contract: the caller defines CUB (the CUBRID install dir), INSTALLER (CTP's run_cubrid_install) and
 # RUN_DIR (where install logs go) BEFORE sourcing this, and may define a `swap_record_failure <note>`
 # function — swap_restore calls it when the machine is left on the wrong build, so the manifest says so
 # even when nothing but an EXIT trap is still running.
 
-# A bare version is accepted as well as a URL, because that is what an issue comment names. The shape
-# needs the FULL version including the commit hash: the truncated form (11.5.0.2300 without -04192d6)
-# 404s.
-#
+# A bare version is accepted as well as a URL, because that is what an issue comment names. It needs
+# the FULL version including the commit hash — the truncated form 404s.
 # The public archive is the default: it keeps a build until develop is released, while the internal
-# store prunes — and the build a fail→pass check needs is an OLD one, exactly what gets pruned first.
-# Same path shape and the same artifact (identical Content-Length), ~2s slower on 275MB. Point
-# CUBRID_BUILD_BASE at the internal build server to use that instead.
+# store prunes, and a fail→pass check needs an OLD build. CUBRID_BUILD_BASE points elsewhere.
 # The contract, asserted rather than described: a caller that sources this before setting them would
 # otherwise fail later, inside an install, with a message about something else.
 : "${CUB:?build-swap.sh: the caller must set CUB (the CUBRID install dir) before sourcing}"
@@ -65,11 +58,8 @@ install_build() {  # install_build <url> <expected version or ""> <label> [expec
   local _before=$(installed_version) || _before=""
   printf '  install %s: %s\n' "$3" "$1"
   sh "$INSTALLER" "$1" > "$_log" 2>&1
-  # run_cubrid_install can return 0 having failed, so the binary is the authority, not the exit code.
-  # Version: exact when the URL names one, otherwise the weaker fact that still has to hold — it
-  # CHANGED. `[ -n "$2" ]` alone silently disabled the whole check whenever the URL carried no parsable
-  # version (a local installer path, a renamed file), and the run then continued on the build it was
-  # supposed to have replaced and reported a verdict about it.
+  # run_cubrid_install can return 0 having failed, so the binary is the authority. Version: exact when
+  # the URL names one, otherwise the weaker fact that still has to hold — it CHANGED.
   local _got=$(installed_version) || _got=""
   local _why=""
   if [ -n "$2" ]; then
@@ -131,11 +121,9 @@ swap_restore() {
 }
 
 # ── engine markers ────────────────────────────────────────────────────────────────────────────────
-# Shared because both the debug check and the debug half of a combined fail→pass run ask the same
-# question, and the two rules that make the answer sound must not drift: only ENGINE-owned output is
-# searched (never captured stdout, which carries the answer diff — a testcase whose own output contains
-# "assert" would otherwise be recorded as tripping one), and `abort` is not a marker because
-# "transaction aborted" is ordinary SQL output.
+# Only ENGINE-owned output is searched, never captured stdout: a testcase whose own output contains
+# "assert" would otherwise be recorded as tripping one. `abort` is not a marker — "transaction
+# aborted" is ordinary SQL output.
 engine_markers() {  # engine_markers <ctp log> [stamp file for server logs]
   local _m=""
   _m=$(grep -hiE 'assert|Segmentation fault|core dumped|SIGSEGV|SIGABRT' "$1" 2>/dev/null | head -1)
