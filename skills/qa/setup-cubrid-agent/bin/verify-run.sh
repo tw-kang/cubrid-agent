@@ -21,23 +21,27 @@
 #
 # Usage: verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH]
 #                                 [--timeout SECONDS] [--generate | --promote [--from PATH]]
+#                                 [--run-dir DIR]
 set -u
 
 SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
 # shellcheck source=common.sh disable=SC1091
 . "$SELF_DIR/common.sh" || { printf 'verify-run: common.sh is not next to me (%s) — re-run /setup-cubrid-agent.\n' "$SELF_DIR" >&2; exit 1; }
 
-USAGE='verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH] [--timeout SECONDS] [--generate|--promote [--from PATH]] [--no-manifest] [--log-label S]'
-KEY=""; RUNS=3; CATEGORY=sql; TCPATH=""; TIMEOUT=900; GENERATE=0; PROMOTE=0; FROM=""; NORECORD=0; LABEL=""
+USAGE='verify-run.sh CBRD-XXXXX [--runs N] [--category sql|sql_by_cci] [--tc-path PATH] [--timeout SECONDS] [--generate|--promote [--from PATH]] [--no-manifest] [--log-label S] [--run-dir DIR]'
+KEY=""; RUNS=3; CATEGORY=sql; TCPATH=""; TIMEOUT=900; GENERATE=0; PROMOTE=0; FROM=""; NORECORD=0; LABEL=""; RUN_DIR=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --runs)     RUNS=${2:-3}; shift 2 ;;
-    --category) CATEGORY=${2:-sql}; shift 2 ;;
-    --tc-path)  TCPATH=${2:-}; shift 2 ;;
-    --timeout)  TIMEOUT=${2:-900}; shift 2 ;;
+    --runs)     RUNS="${2:?$USAGE}"; shift 2 ;;
+    # review-testcase keeps its run under PR-NNNN: a PR's conf and log must not land in — and
+    # overwrite — the authoring run for the same issue.
+    --run-dir)  RUN_DIR="${2:?$USAGE}"; shift 2 ;;
+    --category) CATEGORY="${2:?$USAGE}"; shift 2 ;;
+    --tc-path)  TCPATH="${2:?$USAGE}"; shift 2 ;;
+    --timeout)  TIMEOUT="${2:?$USAGE}"; shift 2 ;;
     --generate) GENERATE=1; shift ;;
     --promote)  PROMOTE=1; shift ;;
-    --from)     FROM=${2:-}; shift 2 ;;
+    --from)     FROM="${2:?$USAGE}"; shift 2 ;;
     # For a run whose result must NOT become the record: failpass-run.sh runs this testcase on a
     # PRE-FIX build, where a Fail is the desired outcome. Recording it would delete verify.status and
     # overwrite determinism with the deliberate failure — the submit gate would then read the pre-fix
@@ -46,7 +50,7 @@ while [ $# -gt 0 ]; do
     # Without a label every run of the same category writes verify-<category>.log, so the pre-fix run,
     # the debug run and the release verification each overwrote the evidence of the one before — and a
     # caller that greps that log for engine markers would then read a different run's output.
-    --log-label)   LABEL=${2:-}; shift 2 ;;
+    --log-label)   LABEL="${2:?$USAGE}"; shift 2 ;;
     -h|--help)  printf '%s\n' "$USAGE"; exit 0 ;;
     -*)         reject_unknown "$USAGE" "$1" ;;
     *)          KEY=$(parse_issue_key "$1"); shift ;;
@@ -61,7 +65,10 @@ fi
 case "$RUNS" in ''|*[!0-9]*) printf 'verify-run: --runs must be a number\n' >&2; exit 1 ;; esac
 [ "$RUNS" -ge 1 ] || RUNS=1
 
-RUN_DIR="$HOME/.cubrid-agent/$KEY"
+# Absolute only: a relative one would create a directory under whatever cwd the caller happened to be
+# in, which D7 forbids for exactly the reason it is hard to find again.
+case "$RUN_DIR" in ""|/*) : ;; *) printf 'verify-run: --run-dir must be an absolute path, got "%s"\n' "$RUN_DIR" >&2; exit 1 ;; esac
+: "${RUN_DIR:=$HOME/.cubrid-agent/$KEY}"
 MANIFEST="$RUN_DIR/manifest.json"
 mkdir -p "$RUN_DIR"
 
