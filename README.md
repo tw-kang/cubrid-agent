@@ -37,7 +37,9 @@ Auto-update is off by default for third-party marketplaces, so an install stays 
 the commit it first fetched. `setup-cubrid-agent` turns it on and pulls once; after
 that an update lands a few minutes into a session. Measured twice: a commit pushed at
 17:14 installed nine minutes into the next session, one pushed at 18:08 installed two
-minutes in. An idle session never triggers the check. To pull one immediately:
+minutes in. The check runs **once per session**, so anything pushed after it stays
+unseen until the next one — an 18-minute session picked up one update and ignored two
+later pushes — and an idle session never triggers it at all. To pull one immediately:
 
 ```bash
 claude plugin marketplace update cubrid-agent
