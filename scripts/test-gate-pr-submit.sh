@@ -20,10 +20,8 @@ RUN="$T/.cubrid-agent/$KEY"
 mkdir -p "$RUN"
 GEN="$RUN/pr-body.md"
 
-# `gh` is stubbed for every case, not just the ones about it: the gate's re-author check calls
-# `gh pr list`, and with the real binary on PATH this suite would query GitHub 30 times and change
-# answer depending on what exists upstream. The fixture decides; STUB_GH_FAIL covers the failure path,
-# which must never turn into a deny.
+# `gh` is stubbed for every case: the re-author check calls `gh pr list`, and the real binary would
+# make this suite depend on what exists upstream. STUB_GH_FAIL covers the failure path.
 STUBBIN="$T/stub"; mkdir -p "$STUBBIN"; export PATH="$STUBBIN:$PATH"
 cat > "$STUBBIN/gh" <<'STUB'
 #!/bin/bash
@@ -121,8 +119,7 @@ good_body; sed -i '1d' "$GEN"
 run "no jira link"              deny "no jira link"          "$BASE --body-file $GEN"
 
 # --- base sanity: a synthetic clone, so no network and no dependence on this machine's checkout ---
-# CUBRID_TESTCASES is exported only for this block, so the cases above keep exercising the
-# "clone not found -> skip" path regardless of where these tests are appended.
+# CUBRID_TESTCASES is exported only for this block, so the cases above keep the "no clone -> skip" path.
 good_body
 TCD="$T/tc"
 git init -q "$TCD"
@@ -158,10 +155,8 @@ run "origin/develop not fetched" deny "origin/develop is not in" "$BASE --body-f
 $G update-ref refs/remotes/origin/develop "$BASESHA"
 
 # --- the same base sanity in the layout every bug fix uses --------------------------------------
-# Under _13_issues/_YY_Nh/ the cases/ and answers/ dirs belong to the whole half-year, so no path
-# contains /cbrd_99999/ and a directory-scoped filter counts the TC's OWN files as strays — a deny
-# whose stated recovery (fetch origin/develop) can never clear it. Every Correct Error goes here, so
-# that is the common case, not an edge one; the fixture above happens to use the release layout.
+# Under _13_issues/_YY_Nh/ the whole half-year shares cases/ and answers/, so a directory-scoped
+# filter counts the TC's OWN files as strays. Every Correct Error goes here — the common case.
 TCD2="$T/tc13"
 git init -q "$TCD2"
 G2="git -C $TCD2 -c user.email=t@t -c user.name=t"
@@ -187,11 +182,8 @@ export CUBRID_TESTCASES="$TCD"
 $G update-ref refs/remotes/origin/develop "$BASESHA"
 
 # --- the variable travels in the command, not in the hook's env -----------------------------------
-# author-testcase has the agent pass CUBRID_TESTCASES=<path> inline on every call, but a PreToolUse
-# hook runs in the harness process: an inline assignment reaches the command's child, never the hook.
-# The gate has to read it out of the command string itself, or a run on a separate clone is judged
-# against the default one — here that clone's branch changes a file the fixture clone never had, so
-# the deny below only fires if the embedded path was honoured.
+# An inline CUBRID_TESTCASES=<path> reaches the command's child, never a PreToolUse hook, so the gate
+# must read it out of the command string. The deny below fires only if the embedded path was honoured.
 echo stray > "$TCD2/unrelated.txt"; $G2 add -A >/dev/null; $G2 commit -qm stray
 _saved_tc=$CUBRID_TESTCASES; unset CUBRID_TESTCASES
 run "embedded CUBRID_TESTCASES is honoured" deny "not this TC's" \
@@ -210,9 +202,8 @@ $G2 reset -q --hard HEAD~1
 unset CUBRID_TESTCASES
 
 # --- re-authoring over an existing upstream PR: a decision, not an accident --------------------
-# A targeted call skips Select's already-processed screen on purpose, so the gate asks for the reason
-# rather than forbidding the re-author. The PR here is on someone ELSE's fork — the case a branch check
-# cannot see, and the one that ends in two PRs for one issue.
+# The gate asks for the reason rather than forbidding the re-author. This PR is on someone ELSE's
+# fork — the case a branch check cannot see.
 good_body
 PRFIX="$T/prs.json"
 echo '[{"number":3049,"state":"OPEN","author":{"login":"another-operator"}}]' > "$PRFIX"
@@ -238,9 +229,7 @@ m '.verify.debug = {checked:true, result:"differs"}'
 run "unexplained difference"     deny "never promote debug output"   "$BASE --body-file $GEN"
 m '.verify.debug = {checked:true, result:"differs", note:"debug-only warning line, absent in release"}'
 run "explained difference"       ok   ""                             "$BASE --body-file $GEN"
-# An assert clears only through a reviewer, and only with the note — the author cannot approve their own,
-# which is the same shape as review.failpass_approved. Without an escape at all, a TC that legitimately
-# meets a known engine assert could never be submitted.
+# An assert clears only through a reviewer and only with the note, like review.failpass_approved.
 m '.verify.debug = {checked:true, result:"assert", marker:"assertion failed at page_buffer.c"} | .review.debug_approved = true'
 run "assert, approved but unexplained" deny "review.debug_approved=true plus verify.debug.note" "$BASE --body-file $GEN"
 m '.verify.debug.note = "CBRD-27000: known assert on this path, developer accepted it as out of scope"'

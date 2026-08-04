@@ -174,8 +174,7 @@ grep -q "run_cubrid_install" "$OUTF" && T_PASS=$((T_PASS+1)) \
   || note_fail "restore fails: the recovery command is not printed"
 
 # ── two ways to record an assert that never happened ──────────────────────────────────────────────
-# Both were found by review, and both pass the rest of this suite, so they get their own cases: `assert`
-# is the one result with no note that can clear it, so a false one blocks the testcase permanently.
+# `assert` is the one result no note can clear, so a false one blocks the testcase permanently.
 
 # (1) A blocked run must not inherit a marker from an earlier run's log. The log lives at a fixed path,
 # so whatever ran before is still sitting in it when the debug run cannot start.
@@ -188,9 +187,8 @@ expect "blocked run" "restored to release" "$(inst)" "$VER/release"
 mv "$CTP_HOME/conf/sql.conf.away" "$CTP_HOME/conf/sql.conf"
 rm -f "$RUN/verify-sql.debug.log"
 
-# (2) The testcase's own output is not evidence about the engine. verify-run.sh prints the first 20 lines
-# of the answer diff to stdout, so a TC written for an assert bug — whose expected output contains the
-# word — used to be recorded as tripping one.
+# (2) The testcase's own output is not evidence about the engine: verify-run.sh prints the answer diff
+# to stdout, so a TC written for an assert bug used to be recorded as tripping one.
 reset_state debug
 printf 'assertion count after recovery: 3\n' > "$D/answers/cbrd_99999.answer"
 run "diff text is not an engine marker" 1 "verify.debug.result=differs"
@@ -198,8 +196,7 @@ expect "diff text" "result" "$(dbg result)" differs
 printf 'engine output for release\n' > "$D/answers/cbrd_99999.answer"
 
 # ── the case FILE is what gets run, not its directory ─────────────────────────────────────────────
-# Every bug-fix TC shares `_13_issues/<half>/cases/` with its siblings, so a directory argument runs
-# their cases too and folds their results into this verdict (measured: Total:2 instead of Total:1).
+# A directory argument runs the sibling cases too and folds them into this verdict.
 reset_state
 run "runs the case file" 0 "clean"
 grep -q 'cases/cbrd_99999.sql' "$STATE/ctp-stdin" && T_PASS=$((T_PASS+1)) \

@@ -180,9 +180,8 @@ reset_state "$FIX" "$PRE"
 run "bare version resolves to the build-server URL" 0 "confirmed" --prefix-build "$PRE"
 
 # ── a URL with no parsable version must not disable the install check ─────────────────────────────
-# The first version asserted the installed version only when the URL named one, so a version-less URL
-# skipped the check, ran the testcase on the FIXED build, saw it pass, and recorded `contradicted` —
-# "this TC has no regression value" — which is a false verdict rather than an error.
+# A version-less URL used to skip the check, run on the FIXED build and record `contradicted` —
+# a false verdict rather than an error.
 reset_state "$FIX" "$PRE"
 LOCAL_INSTALLER="$T/installer.sh"; : > "$LOCAL_INSTALLER"
 run "version-less URL is caught, not believed" 3 "nothing was installed" --prefix-build "$LOCAL_INSTALLER"
@@ -192,8 +191,7 @@ grep -qF 'contradicted' "$OUTF" && note_fail "version-less URL: reported contrad
   || T_PASS=$((T_PASS+1))
 
 # ── one swap phase: pre-fix → fix-debug → fix-release, three installs, three runs ─────────────────
-# Two separate phases cost four installs and four CTP sessions to answer three questions, and the extra
-# restore is pure waste: the last install of the combined order IS the restore.
+# Two separate phases cost four installs for three questions; combined, the last install IS the restore.
 reset_state "$FIX" "$PRE"
 if run "combined phase confirms fail→pass" 0 "status=confirmed" --prefix-build "$PRE" --with-debug-check; then
   expect "combined phase" "installs"            "$(installs)"        3
