@@ -41,8 +41,8 @@ ok "skills live under skills/qa/ — Claude Code: 'claude plugin install'; other
 echo "== Plugin auto-update — so an install stays current =="
 # Third-party marketplaces have auto-update OFF by default, and it cannot be declared marketplace-side.
 # plugin.json omits `version` on purpose, which makes the commit SHA the version.
-# The flag must reach BOTH files: settings.json is what a human edits, but the runtime reads the live
-# registry, and that registry is written when the marketplace is registered — already done by now.
+# Measured: settings.json alone is enough — Claude Code copies the flag into known_marketplaces.json
+# itself at the next session's update check. Both are written here so the two never disagree.
 enable_autoupdate() {  # <file> <jq selector for the marketplace object> -> already|set|absent|failed
   [ -f "$1" ] || { printf 'absent\n'; return; }
   jq -e "$2" "$1" >/dev/null 2>&1 || { printf 'absent\n'; return; }
