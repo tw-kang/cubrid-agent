@@ -111,6 +111,27 @@ grep -q . "$H3/cloned" 2>/dev/null \
   && note_fail "re-run provisions nothing new: it cloned $(tr '\n' ' ' < "$H3/cloned")" \
   || pass
 
+# ── plugin auto-update: the flag has to reach the live registry, not settings.json alone ─────────
+# A teammate who installs once and never updates keeps running the commit they first got — the whole
+# point of the flag. settings.json is read when the marketplace is registered, which is already done
+# by the time setup runs, so writing only there changes nothing the runtime reads.
+H4="$T/h4"; mkdir -p "$H4/.claude/plugins"
+printf '{"extraKnownMarketplaces":{"cubrid-agent":{"source":{"source":"github","repo":"tw-kang/cubrid-agent"}}}}\n' > "$H4/.claude/settings.json"
+printf '{"cubrid-agent":{"source":{"source":"github","repo":"tw-kang/cubrid-agent"},"installLocation":"%s/.claude/plugins/marketplaces/cubrid-agent"}}\n' "$H4" > "$H4/.claude/plugins/known_marketplaces.json"
+run_setup "$H4"
+[ "$(jq -r '.extraKnownMarketplaces["cubrid-agent"].autoUpdate' "$H4/.claude/settings.json" 2>/dev/null)" = true ] && pass \
+  || note_fail "auto-update: settings.json was not set"
+[ "$(jq -r '.["cubrid-agent"].autoUpdate' "$H4/.claude/plugins/known_marketplaces.json" 2>/dev/null)" = true ] && pass \
+  || note_fail "auto-update: known_marketplaces.json was not set — the runtime reads this one"
+# Neither file is ours to invent: no marketplace entry means this channel is not in use at all.
+H5="$T/h5"; mkdir -p "$H5/.claude"
+printf '{}\n' > "$H5/.claude/settings.json"
+run_setup "$H5"
+grep -q 'nothing to set' "$H5/out" 2>/dev/null && pass \
+  || note_fail "auto-update: with no marketplace entry it should say nothing to set (got: $(grep -i 'auto-update' "$H5/out" | head -1))"
+[ -f "$H5/.claude/plugins/known_marketplaces.json" ] \
+  && note_fail "auto-update: it created a registry file that Claude Code owns" || pass
+
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'setup: %d/%d\n' "$T_PASS" "$T_PASS"
   exit 0

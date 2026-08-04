@@ -51,24 +51,30 @@ echo "== Plugin auto-update — so an install stays current =="
 # installed copy (it only refreshes the catalog). The flag cannot be declared marketplace-side, so
 # enable it here, idempotently. Note that plugin.json deliberately omits `version` — that makes the
 # git commit SHA the version, so every commit is a new version for the updater to pick up.
-CC_SETTINGS="$HOME/.claude/settings.json"
-if [ -f "$CC_SETTINGS" ] && jq -e '.extraKnownMarketplaces["cubrid-agent"]' "$CC_SETTINGS" >/dev/null 2>&1; then
-  if [ "$(jq -r '.extraKnownMarketplaces["cubrid-agent"].autoUpdate // false' "$CC_SETTINGS")" = true ]; then
-    ok "plugin auto-update already enabled"
+# The flag has to reach BOTH files. settings.json is the one a human edits, but the runtime reads the
+# live registry, and that registry is written when the marketplace is REGISTERED — which has already
+# happened by the time setup runs. Measured on a fresh account: settings.json alone left a 15-minute
+# session pinned to the commit it first installed, while the marketplace that does update on this
+# machine (omc) carries the flag in known_marketplaces.json too.
+enable_autoupdate() {  # <file> <jq selector for the marketplace object> -> already|set|absent|failed
+  [ -f "$1" ] || { printf 'absent\n'; return; }
+  jq -e "$2" "$1" >/dev/null 2>&1 || { printf 'absent\n'; return; }
+  [ "$(jq -r "$2.autoUpdate // false" "$1")" = true ] && { printf 'already\n'; return; }
+  _tmp=$(mktemp)
+  if jq "$2.autoUpdate = true" "$1" > "$_tmp" 2>/dev/null && jq empty "$_tmp" 2>/dev/null; then
+    cp "$1" "$1.bak" && mv "$_tmp" "$1" && printf 'set\n'
   else
-    _tmp=$(mktemp)
-    if jq '.extraKnownMarketplaces["cubrid-agent"].autoUpdate = true' "$CC_SETTINGS" > "$_tmp" 2>/dev/null \
-       && jq empty "$_tmp" 2>/dev/null; then
-      cp "$CC_SETTINGS" "$CC_SETTINGS.bak" && mv "$_tmp" "$CC_SETTINGS"
-      ok "plugin auto-update enabled (an update lands on restart or /reload-plugins; backup: settings.json.bak)"
-    else
-      rm -f "$_tmp"
-      todo "could not enable plugin auto-update — turn it on with /plugin → Marketplaces → cubrid-agent → Enable auto-update"
-    fi
+    rm -f "$_tmp"; printf 'failed\n'
   fi
-else
-  ok "plugin auto-update: nothing to set (no user-scope cubrid-agent marketplace entry — npx skills channel, or project/local scope)"
-fi
+}
+_au_settings=$(enable_autoupdate "$HOME/.claude/settings.json" '.extraKnownMarketplaces["cubrid-agent"]')
+_au_registry=$(enable_autoupdate "$HOME/.claude/plugins/known_marketplaces.json" '.["cubrid-agent"]')
+case "$_au_settings/$_au_registry" in
+  *failed*)     todo "could not enable plugin auto-update (settings=$_au_settings registry=$_au_registry) — turn it on with /plugin → Marketplaces → cubrid-agent → Enable auto-update" ;;
+  absent/absent) ok "plugin auto-update: nothing to set (no user-scope cubrid-agent marketplace entry — npx skills channel, or project/local scope)" ;;
+  already/already) ok "plugin auto-update already enabled" ;;
+  *)            ok "plugin auto-update enabled (settings=$_au_settings registry=$_au_registry; applies from the next session; backups: *.bak)" ;;
+esac
 
 echo "== \$HOME standard assets — clone only when absent (existing clones untouched) =="
 clone_if_absent() { # <url> <dir> [extra git-clone args...]
