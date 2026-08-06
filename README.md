@@ -36,8 +36,9 @@ finish the credential steps, and get a per-skill readiness report.
 Auto-update is off by default for third-party marketplaces, so an install stays on
 what it first fetched. `setup-cubrid-agent` turns it on and pulls once; after that an
 update lands minutes into a session, unprompted, and what arrives is the newest
-**released version** (measured at nine minutes, two minutes, twenty-four seconds and
-two and a half minutes across four releases). Two limits are worth knowing. The check
+**released version** (four measured deliveries: nine minutes, two minutes and
+nineteen seconds, twenty-four seconds, two and a half minutes). Two limits are worth
+knowing. The check
 runs **once per session** — anything published later stays unseen until the next one,
 and an idle session never triggers it at all. It is also **rate-limited across
 sessions**: two sessions that checked four and nine minutes after a successful update
@@ -151,14 +152,22 @@ skills/in-progress/ 16 component skills, not shipped; promoted into skills/qa/
 hooks/hooks.json   quality-gate hook config
 scripts/           hook scripts, addressed via ${CLAUDE_PLUGIN_ROOT},
                    plus check-invariants.sh (dev-only, run by CI)
-docs/              design notes, ADRs, deployment (Korean, non-shipping)
+                   and release.sh (dev-only, cuts a release)
+docs/              runbooks and reference (Korean, non-shipping)
+.agents/           agent norms and the thin ADR set (Korean, non-shipping)
 ```
 
 ## Versioning
 
-`plugin.json` declares `version`, starting at 1.0.0 with the team rollout: a change
-reaches an installed copy through a bump, not through a commit. See the version note
-in `CHANGELOG.md`.
+`plugin.json` declares `version`, starting at 1.0.0 with the team rollout. Claude Code
+compares that declared version, so a change reaches an installed copy through a bump,
+not through a commit. What a digit means — what a major, a minor and a patch each
+promise you — is the version note in [`CHANGELOG.md`](./CHANGELOG.md).
+
+Every release adds one tag, `v` followed by the version (`v1.0.0`), and one GitHub
+Release. The Release notes are where you read what changed:
+[Releases](https://github.com/tw-kang/cubrid-agent/releases). Read them before you take
+an update, especially a major one.
 
 ## License
 

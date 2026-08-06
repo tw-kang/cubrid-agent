@@ -40,10 +40,10 @@ author-testcase ─Draft PR─► [review-testcase 심사 ─► 사람 approve�
 
 [ADR 0005](.agents/adr/0005-repo-is-product-design-lives-in-jira.md)에 따라 문서를 "배포되는가·누가 읽는가"로 나눈다.
 
-- **루트 플러그인 = 제품(배포되는 전부):** `.claude-plugin/` · `skills/qa/` · `hooks/` · `scripts/`. 저장소의 존재 이유. **`skills/qa/`는 `plugin.json` 등재분과 정확히 일치**하고, 아직 배포하지 않는 스킬은 `skills/in-progress/`에서 개발한다 — 완성되면 이동+등재로 승격한다([ADR 0006](.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)).
+- **루트 플러그인 = 제품(배포되는 전부):** `.claude-plugin/` · `skills/qa/` · `hooks/` · `scripts/`의 훅 스크립트. 저장소의 존재 이유. `scripts/`의 나머지는 개발 도구이고 배포면 밖이다. **`skills/qa/`는 `plugin.json` 등재분과 정확히 일치**하고, 아직 배포하지 않는 스킬은 `skills/in-progress/`에서 개발한다 — 완성되면 이동+등재로 승격한다([ADR 0006](.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)).
 - **`.agents/` = 에이전트용 규범(횡단) + thin ADR:**
   - 규범: `design-principles.md`(DP1 병렬 실행, **DP2 사용자 관점·블랙박스 테스트**, DP3 언어 정책), `issue-tracker.md`, `triage-labels.md`, `domain.md`.
-  - **thin ADR set** (`.agents/adr/`): "제품·저장소가 왜 이 모양인가"만 담는다 — ship-as-plugin, dual-channel 배포, setup-entrypoint 스킬, 개인 식별자 제거, 이 doc-strategy(repo=제품·설계=Jira), 배포분/개발 중 2트리. `.agents/adr/`로 옮기며 **0001–0005로 재번호**했고, 옛 전역 단일 시퀀스 규칙은 폐기됐다.
+  - **thin ADR set** (`.agents/adr/`): "제품·저장소가 왜 이 모양이고 어떻게 나가는가"만 담는다 — ship-as-plugin, dual-channel 배포, setup-entrypoint 스킬, 개인 식별자 제거, 이 doc-strategy(repo=제품·설계=Jira), 배포분/개발 중 2트리, 버저닝·릴리스, 개발 흐름(브랜치·PR·티켓). `.agents/adr/`로 옮기며 **0001–0005로 재번호**했고, 옛 전역 단일 시퀀스 규칙은 폐기됐다.
 - **`docs/` = 사람용 런북/참조:** 설치(setup), 배포 구조(deployment), 공식 dev-process. 외부 기여자는 제품 + 이 문서로 충분하다.
 - **루트 `CONTEXT.md`(이 파일):** 단일 용어집 + 파이프라인 지도. (구 `CONTEXT-MAP.md` + 에이전트별 `docs/agents/*/CONTEXT.md` ×5를 흡수·대체.)
 - **Jira(CUBRIDQA):** 에이전트·스킬 설계(DESIGN, 방법론 ADR, staging, hook-gates 설계). 역사는 git commit이 보존한다.
@@ -83,7 +83,9 @@ author-testcase ─Draft PR─► [review-testcase 심사 ─► 사람 approve�
 | **완성 정의(실제 쓰기)** | 스킬의 종료 산출물 = 초안이 아니라 **실제 Jira 전이·코멘트·필드 쓰기**. 사람이 호출하는 지금도 적용(설계는 Jira) |
 | **targeted / batch** | 사람이 이슈 키를 **나열**한 대상 지정 호출 = targeted(실제 쓰기), 스킬이 **JQL/큐 쿼리**로 만든 집합 호출 = batch(초안). 개수 무관 |
 | **롤아웃 단계** | 이 repo는 결과물만 담는다. 단계와 그 이력은 CUBRIDQA-1425가 관리하고, 지금 배포된 것이 어느 단계인지는 `CHANGELOG.md`만 적는다 |
-| **배포면(shipped surface)** | 사용자 세션 동작을 바꾸는 파일 집합. 여기가 바뀌면 버전 범프가 필수이고, 밖(docs·규범·테스트·in-progress)이 바뀌면 범프 없이 develop에 쌓인다. 경로 목록 정본은 버저닝 ADR |
+| **배포면(shipped surface)** | 사용자 세션 동작을 바꾸는 파일 집합. 여기를 바꾼 커밋은 자리를 선언하고, 다음 릴리스가 그만큼 버전을 올린다. 밖(docs·규범·테스트·in-progress)만 바뀌면 버전은 그대로다. 경로 목록 정본은 `scripts/release.sh`의 `SHIPPED_PATHS` |
+| **자리(digit)** | 버전 번호의 세 칸 `major`·`minor`·`patch` 중 하나. 배포면을 바꾼 사람이 변경 시점에 고른다 |
+| **작업 티켓** | 처리할 작업 한 건을 담는 GitHub Issue. 스펙(Jira sub-task)과 다른 트래커에 산다 |
 
 ### 제품·저장소 형태 결정 (ADR 0005 어휘)
 

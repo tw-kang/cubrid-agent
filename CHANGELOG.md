@@ -2,31 +2,10 @@
 
 All notable changes to cubrid-agent are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html) (see the version note below).
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html) (see the
+[Version note](#version-note) at the end of this file).
 
 ## [Unreleased]
-
-## [1.0.2] - 2026-08-06
-
-### Changed
-
-- **Corrected what "once per session" leaves out.** A version bump does reach an
-  installed copy unprompted — 1.0.1 landed two and a half minutes into a session — but
-  the check is also rate-limited across sessions: two sessions that checked four and
-  nine minutes after the previous update received nothing, while checks that did fire
-  were 22 and 30 minutes apart. A session opened soon after your last update therefore
-  delivers nothing no matter how long you keep it open. README and `docs/setup.md` now
-  say so, next to the two commands that pull immediately.
-
-## [1.0.1] - 2026-08-06
-
-### Changed
-
-- **Recorded what a release delivery actually costs.** `1.0.0` reached a clean install
-  twenty-four seconds into a session with no manual command, so README and
-  `docs/setup.md` now give three measurements instead of two and drop the hedge about
-  the pre-1.0.0 scheme. This release is also the measurement of a version *bump*
-  arriving, which `1.0.0` alone could not show.
 
 ## [1.0.0] - 2026-08-06
 
@@ -66,19 +45,28 @@ released version stands.
 ### Added
 
 - At least three skill-creator evals for each promoted skill.
+- **A measured account of how an update arrives, in README and `docs/setup.md`.**
+  Four timed deliveries landed between twenty-four seconds and nine minutes into a
+  session, with no manual command. The same note states the two limits that follow
+  from it. The check runs once per session, and it is rate-limited between sessions,
+  so a session opened soon after your last update delivers nothing however long you
+  keep it open. Both files put the two commands that pull immediately next to the note.
 
-### Version note
+## Version note
 
-This file is the canonical statement of the versioning policy; other docs link here.
+Claude Code compares the `version` that `plugin.json` declares. A change therefore
+reaches installed copies through a **bump**, not through a commit — push without a bump
+and every installed copy stays on what it already has.
 
-`plugin.json` declares `version` from 1.0.0 on. Claude Code compares the declared
-version, so **a change reaches installed copies through a bump, not through a
-commit** — push without a bump and the fleet stays on what it has. Every bump gets
-its own dated heading above, in the `## [x.y.z] - YYYY-MM-DD` form this file already
-follows.
+Each bump adds one dated section above, in the `## [x.y.z] - YYYY-MM-DD` form this file
+already uses. That section is also the release notes of the matching GitHub Release,
+word for word. Read it there before you install, or read it here after.
 
-What earns which digit is not settled — that is an open interview (CUBRIDQA-1491).
-**Until it is settled, do not bump.** Land changes under `[Unreleased]` and leave the
-fleet on 1.0.2. The releases above were cut before that decision: 1.0.1 to find out
-whether a bump reaches an installed copy at all, 1.0.2 to correct what that
-measurement showed the docs had wrong.
+Which digit moves tells you what the release asks of you:
+
+- **major** — you have to change something to keep using the plugin. The entry says what.
+- **minor** — a new capability. What you already use keeps working.
+- **patch** — the same thing, done more correctly.
+
+Entries under `[Unreleased]` are tagged with the digit they claim — `- (minor) …` — so
+the number of the next release is already decided when it is cut.

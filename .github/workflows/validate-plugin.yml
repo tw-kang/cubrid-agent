@@ -13,7 +13,12 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
+      # Full history and tags: `release.sh check` compares the shipped surface against the last
+      # release tag, and skips that check in a shallow clone. The default depth-1 checkout would
+      # therefore make the one check that enforces the declaration silently pass forever.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:

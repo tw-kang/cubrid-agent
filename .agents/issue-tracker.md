@@ -1,21 +1,23 @@
 # Issue tracker: CUBRID Jira (CUBRIDQA)
 
-cubrid-agent 자체 개발 작업의 이슈·PRD는 CUBRID Jira의 **`CUBRIDQA`** 프로젝트에 산다(이슈 키 `CUBRIDQA-XXXX`). 생성·조회·수정을 모두 `cubrid-jira` CLI(`~/.local/bin/cubrid-jira`)로 하고, Jira 웹 UI로도 한다(둘 다 유효한 경로).
+cubrid-agent 자체 개발의 스펙·PRD는 CUBRID Jira의 **`CUBRIDQA`** 프로젝트에 산다(이슈 키 `CUBRIDQA-XXXX`). **작업 티켓은 이 repo의 GitHub Issues에 산다.** Jira 쪽 생성·조회·수정은 모두 `cubrid-jira` CLI(`~/.local/bin/cubrid-jira`)로 하고, Jira 웹 UI로도 한다(둘 다 유효한 경로).
 
 > 이 트래커는 cubrid-agent **자체를 개발**하는 작업을 담는 곳이다. cubrid-agent의 에이전트들이 **대상으로 삼아 처리**하는 CBRD/CUBRIDQA 이슈(파이프라인 입력)와는 별개다.
 
-관점·내용은 **한글, 사용자 관점**(코드 구현 설명이 아니라 "무엇을 적용해 어떤 동작이 바뀌었다"). 커밋·PR도 `[CUBRIDQA-XXXX]`로 태깅한다.
+관점·내용은 **한글, 사용자 관점**(코드 구현 설명이 아니라 "무엇을 적용해 어떤 동작이 바뀌었다"). PR·커밋 제목의 태깅 규약은 [`AGENTS.md`](../AGENTS.md)의 "변경을 내보낼 때" 절에 있다.
 
 ## 티켓 구조 — 기본은 "새로 만들지 않는다"
 
-부모는 **[CUBRIDQA-1425](http://jira.cubrid.org/browse/CUBRIDQA-1425)**("cubrid-agent for qa dev process"). 이 repo의 개발 티켓은 전부 그 아래로 붙는다. 그 트리가 이미 **31건**이다(2026-07-31: sub-task 18 + 관련 Task 12 + 부모). 티켓이 늘어난 것 자체가 문제이므로 **새로 만드는 경우는 아래 둘뿐**이다.
+부모는 **[CUBRIDQA-1425](http://jira.cubrid.org/browse/CUBRIDQA-1425)**("cubrid-agent for qa dev process"). 이 repo의 Jira 티켓은 전부 그 아래로 붙는다. 그 트리가 이미 **31건**이다(2026-07-31: sub-task 18 + 관련 Task 12 + 부모). 티켓이 늘어난 것 자체가 문제이므로 **새로 만드는 경우는 아래 둘뿐**이고, 둘은 서로 다른 트래커에 산다.
 
-| 만드는 것 | 무엇 한 건당 | 어떻게 |
-|---|---|---|
-| **sub-task** | `/to-spec` 산출물 = **스펙 한 건**. 작업 단위가 아니다 | `create`에 `--parent`가 없다 → 아래 "curl REST 직결은 최후 수단" |
-| **Task** | `/to-tickets` 산출물 = **처리할 작업 한 건** | `create --type Task … --yes` 후 그 스펙 sub-task에 `link --type Relates`(Jira sub-task는 중첩이 안 된다) |
+| 만드는 것 | 어디에 | 무엇 한 건당 | 어떻게 |
+|---|---|---|---|
+| **스펙** | Jira sub-task | `/to-spec` 산출물 = **스펙 한 건**. 작업 단위가 아니다 | `create`에 `--parent`가 없다 → 아래 "curl REST 직결은 최후 수단" |
+| **작업 티켓** | GitHub Issue | `/to-tickets` 산출물 = **처리할 작업 한 건** | `gh issue create`. 본문에 그 스펙 sub-task의 Jira 키를 링크한다 |
 
-**그 밖의 모든 것은 기존 티켓에 붙인다.** 만들기 전에 트리를 먼저 읽는다:
+작업 티켓이 GitHub으로 간 근거는 [ADR 0008](adr/0008-branch-model-prs-and-work-tickets.md)에 있다.
+
+**Jira에 새로 남길 그 밖의 모든 것은 기존 티켓에 붙인다.** 만들기 전에 트리를 먼저 읽는다:
 
 ```bash
 cubrid-jira jql 'key = CUBRIDQA-1425 OR parent = CUBRIDQA-1425 OR issue in linkedIssues(CUBRIDQA-1425) ORDER BY key' \
@@ -26,7 +28,7 @@ cubrid-jira jql 'key = CUBRIDQA-1425 OR parent = CUBRIDQA-1425 OR issue in linke
 - 그 티켓이 **말하는 내용 자체가 달라졌으면** description을 고친다(`update --description-file` — replace, 아래 참조).
 - 어디에 붙일지 애매하면 만들지 말고 **CUBRIDQA-1491**(기여 규범·프로젝트 룰, 상시)에 코멘트한다.
 
-기존 sub-task 18건은 이 규칙보다 먼저 만들어져 작업 단위가 섞여 있다. **재분류하지 않는다** — 새로 만들 때만 이 규칙을 따른다.
+기존 sub-task 18건은 이 규칙보다 먼저 만들어져 작업 단위가 섞여 있다. **재분류하지 않는다** — 새로 만들 때만 이 규칙을 따른다. CUBRIDQA에 이미 있는 Task 12건도 같다 — GitHub으로 옮기지 않고, 새 작업 티켓만 GitHub에 만든다.
 
 ## 이슈에 무엇을 남기나 — 열고 30초에 알 수 있게
 
@@ -124,12 +126,14 @@ uv tool upgrade cubrid-jira                                                     
 
 ## 스킬이 "issue tracker에 publish" 하라고 할 때
 
-위 "티켓 구조"를 따른다 — 스펙이면 sub-task, 작업이면 Task, **그 밖이면 기존 티켓에 코멘트**다. 스킬이 "publish"라고 말한다고 해서 무조건 새 이슈가 되는 게 아니다.
+위 "티켓 구조"를 따른다 — 스펙이면 Jira sub-task, 작업이면 GitHub Issue, **그 밖이면 기존 Jira 티켓에 코멘트**다. 스킬이 "publish"라고 말한다고 해서 무조건 새 이슈가 되는 게 아니다.
 
 ## 스킬이 "관련 티켓을 fetch" 하라고 할 때
 
 `cubrid-jira search <KEY>`로 읽는다.
 
-## PR을 요청 표면으로 다루는가
+## GitHub을 요청 표면으로 다루는가
 
-**PRs as a request surface: no.** _(cubrid-agent의 이슈는 Jira에서만 다룬다. GitHub PR을 트리아지 큐에 넣고 싶으면 이 플래그를 `yes`로 바꾸고 여기 워크플로를 적는다.)_
+**PRs as a request surface: no.** _(GitHub PR은 트리아지 큐가 아니다. 넣고 싶으면 이 플래그를 `yes`로 바꾸고 여기 워크플로를 적는다.)_
+
+**GitHub Issues는 요청 표면이 아니라 작업 티켓 자리다.** `/to-tickets`가 스펙 sub-task에서 만든 작업만 산다. 밖에서 들어온 요청은 여기서 받지 않는다 — 그 자리는 Jira(CUBRIDQA)다.

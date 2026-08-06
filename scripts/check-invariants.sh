@@ -530,10 +530,14 @@ else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-work
 if _t=$(bash scripts/test-verify-run.sh 2>&1); then pass "verify-run writes where it is told: $_t"
 else fail "verify-run test failed — run scripts/test-verify-run.sh:"; printf '         %s\n' "$_t"; fi
 
-# From 1.0.0 a release reaches the fleet through the declared version, so a version that drifts from
-# the CHANGELOG ships under a number nobody can look up.
-if _t=$(bash scripts/test-plugin-version.sh 2>&1); then pass "released version is declared and dated: $_t"
-else fail "plugin version test failed — run scripts/test-plugin-version.sh:"; printf '         %s\n' "$_t"; fi
+# A release reaches an installed copy through the declared version, so a state that drifts from the
+# CHANGELOG ships under a number nobody can look up. release.sh owns that judgement; this runs it
+# against the working tree, and the test below runs it against states this repo is not in.
+if _t=$(bash scripts/release.sh check 2>&1); then pass "release state: $(printf '%s' "$_t" | tail -1)"
+else fail "not in a releasable state — run scripts/release.sh check:"; printf '         %s\n' "$_t"; fi
+
+if _t=$(bash scripts/test-release.sh 2>&1); then pass "release tooling behaves: $_t"
+else fail "release test failed — run scripts/test-release.sh:"; printf '         %s\n' "$_t"; fi
 
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"

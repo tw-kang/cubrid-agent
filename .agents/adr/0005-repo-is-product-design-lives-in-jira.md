@@ -33,6 +33,8 @@
 
 부모 `CUBRIDQA-1425`("cubrid-agent for qa dev process") 아래로 흡수한다. 하위/연관 티켓은 제목까지 재작성 가능.
 
+주의 — 아래 표의 ADR 번호는 **옛 전역 시퀀스**(`docs/adr/`, 이 재편에서 삭제됨)다. 지금 `.agents/adr/`에 있는 같은 번호와는 다른 문서다.
+
 | repo 설계 문서 | → 티켓 |
 |---|---|
 | `gate-resolved/{DESIGN,CONTEXT}.md`, ADR 0016 잔여 서사 | **1440** (resolve-gate) |
