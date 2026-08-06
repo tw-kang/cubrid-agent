@@ -34,10 +34,12 @@ finish the credential steps, and get a per-skill readiness report.
 ### Staying current
 
 Auto-update is off by default for third-party marketplaces, so an install stays on
-the commit it first fetched. `setup-cubrid-agent` turns it on and pulls once; after
-that an update lands a few minutes into a session. Measured twice: a commit pushed at
-17:14 installed nine minutes into the next session, one pushed at 18:08 installed two
-minutes in. The check runs **once per session**, so anything pushed after it stays
+what it first fetched. `setup-cubrid-agent` turns it on and pulls once; after that an
+update lands a few minutes into a session. Measured twice under the pre-1.0.0 scheme,
+where every commit was a version: one pushed at 17:14 installed nine minutes into the
+next session, one pushed at 18:08 installed two minutes in. That cadence belongs to the
+check, not to what it fetches — from 1.0.0 what arrives is the newest **released
+version**. The check runs **once per session**, so anything published after it stays
 unseen until the next one — an 18-minute session picked up one update and ignored two
 later pushes — and an idle session never triggers it at all. To pull one immediately:
 
@@ -152,9 +154,9 @@ docs/              design notes, ADRs, deployment (Korean, non-shipping)
 
 ## Versioning
 
-`plugin.json` omits `version` for now, so Claude Code resolves the plugin to its
-git commit SHA and every commit is a new version. Semantic versioning will be
-pinned behind an eval gate in a later stage. See `CHANGELOG.md`.
+`plugin.json` declares `version`, starting at 1.0.0 with the team rollout: a change
+reaches an installed copy through a bump, not through a commit. See the version note
+in `CHANGELOG.md`.
 
 ## License
 

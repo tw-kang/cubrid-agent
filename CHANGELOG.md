@@ -1,11 +1,12 @@
 # Changelog
 
 All notable changes to cubrid-agent are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning is deferred:
-until the first tagged release, the plugin resolves to its git commit SHA
-(see the version note below).
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html) (see the version note below).
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-08-06
 
 ### Rollout stage
 
@@ -46,6 +47,14 @@ released version stands.
 
 ### Version note
 
-`plugin.json` intentionally omits `version`, so Claude Code falls back to the git
-commit SHA and every commit is treated as a new version. Semantic versioning will
-be pinned behind an eval gate in a later stage.
+This file is the canonical statement of the versioning policy; other docs link here.
+
+`plugin.json` declares `version` from 1.0.0 on. Claude Code compares the declared
+version, so **a change reaches installed copies through a bump, not through a
+commit** — push without a bump and the fleet stays on what it has. Every bump gets
+its own dated heading above, in the `## [x.y.z] - YYYY-MM-DD` form this file already
+follows.
+
+What earns which digit is not settled yet — that is an open interview
+(CUBRIDQA-1491). Until it is, treat any change a teammate would receive as a patch
+bump.

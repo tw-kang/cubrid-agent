@@ -40,7 +40,6 @@ ok "skills live under skills/qa/ — Claude Code: 'claude plugin install'; other
 
 echo "== Plugin auto-update — so an install stays current =="
 # Third-party marketplaces have auto-update OFF by default, and it cannot be declared marketplace-side.
-# plugin.json omits `version` on purpose, which makes the commit SHA the version.
 CC_SETTINGS="$HOME/.claude/settings.json"
 if [ -f "$CC_SETTINGS" ] && jq -e '.extraKnownMarketplaces["cubrid-agent"]' "$CC_SETTINGS" >/dev/null 2>&1; then
   if [ "$(jq -r '.extraKnownMarketplaces["cubrid-agent"].autoUpdate // false' "$CC_SETTINGS")" = true ]; then

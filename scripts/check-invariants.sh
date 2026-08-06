@@ -530,12 +530,18 @@ else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-work
 if _t=$(bash scripts/test-verify-run.sh 2>&1); then pass "verify-run writes where it is told: $_t"
 else fail "verify-run test failed — run scripts/test-verify-run.sh:"; printf '         %s\n' "$_t"; fi
 
+# From 1.0.0 a release reaches the fleet through the declared version, so a version that drifts from
+# the CHANGELOG ships under a number nobody can look up.
+if _t=$(bash scripts/test-plugin-version.sh 2>&1); then pass "released version is declared and dated: $_t"
+else fail "plugin version test failed — run scripts/test-plugin-version.sh:"; printf '         %s\n' "$_t"; fi
+
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"
 
 if command -v claude >/dev/null 2>&1; then
-  if claude plugin validate . >/dev/null 2>&1; then pass "claude plugin validate . passed"
-  else fail "claude plugin validate . failed — run it directly to see why"; fi
+  # --strict warned about one thing only, the deliberate `version` omission; 1.0.0 retired it (ADR 0003).
+  if claude plugin validate . --strict >/dev/null 2>&1; then pass "claude plugin validate . --strict passed"
+  else fail "claude plugin validate . --strict failed — run it directly to see why"; fi
 else
   pass "skipped: claude CLI not on PATH"
 fi

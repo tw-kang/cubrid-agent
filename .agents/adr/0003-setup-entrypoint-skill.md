@@ -34,6 +34,7 @@
 
 - 구현: `skills/qa/setup-cubrid-agent/`(SKILL.md ≤200줄 + `scripts/setup.sh`) 신설, `plugin.json` skills[]에 등재, **루트 `setup.sh` 삭제**.
 - 문서: README 플러그인 절 + `docs/guides/stage2-setup.md` §1을 `install → /setup-cubrid-agent`로. repo 개발자 직접 실행은 `skills/qa/setup-cubrid-agent/scripts/setup.sh`. `./setup.sh`를 가리키던 CONTEXT-MAP·deployment·staging·author/review SKILL 참조를 재지정.
-- CI: `claude plugin validate .`를 CI 게이트로 배선(구조 검증=차단, `--strict`=정보성). `--strict`는 현재 의도적 `version` 생략(commit-SHA 정책)만 경고하므로 차단 기준으로 쓰지 않는다 — semver pin 단계에서 승격(CUBRIDQA-1442 seam).
+- CI: `claude plugin validate .`를 CI 게이트로 배선(구조 검증=차단, `--strict`=정보성). `--strict`는 의도적 `version` 생략만 경고하므로 차단 기준으로 쓰지 않는다 — semver pin 단계에서 승격(CUBRIDQA-1442 seam).
+  - **갱신 2026-08-06**: 그 단계가 왔다. `version`을 `1.0.0`으로 고정해 유일한 경고가 사라졌고, 워크플로와 `check-invariants.sh` 양쪽에서 `--strict`를 **차단**으로 올렸다(정보성 중복 스텝은 삭제). 이제 `version` 외의 새 경고도 CI를 막는다 — 승격이 뜻하는 바가 그것이다.
 - Jira: CUBRIDQA-1442 코멘트에 마켓플레이스 설치 채널 추가(설치 UX 동작 확인 후).
 - eval 없음: disable-model-invocation 스킬은 트리거 판정 대상이 아니다 — 품질은 plugin validate + 수동 기동 안내로 보장.

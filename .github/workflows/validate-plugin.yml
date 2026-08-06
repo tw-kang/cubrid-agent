@@ -1,7 +1,7 @@
 # Validate the manifests and frontmatter, then assert the repo invariants
 # `claude plugin validate` cannot see (doc-set shape, dead links, per-skill rules).
-# `--strict` is informational only: it fails solely on the deliberate `version`
-# omission, and becomes blocking once semver is pinned.
+# `--strict` is blocking from 1.0.0 on: the one warning it used to raise was the
+# deliberate `version` omission, and pinning semver retired it (ADR 0003).
 name: validate-plugin
 
 on:
@@ -23,11 +23,7 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Validate manifests (blocking)
-        run: claude plugin validate .
+        run: claude plugin validate . --strict
 
       - name: Repo invariants (blocking)
         run: bash scripts/check-invariants.sh
-
-      - name: Strict validate (informational)
-        run: claude plugin validate . --strict
-        continue-on-error: true
