@@ -6,6 +6,18 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-08-06
+
+### Changed
+
+- **Corrected what "once per session" leaves out.** A version bump does reach an
+  installed copy unprompted — 1.0.1 landed two and a half minutes into a session — but
+  the check is also rate-limited across sessions: two sessions that checked four and
+  nine minutes after the previous update received nothing, while checks that did fire
+  were 22 and 30 minutes apart. A session opened soon after your last update therefore
+  delivers nothing no matter how long you keep it open. README and `docs/setup.md` now
+  say so, next to the two commands that pull immediately.
+
 ## [1.0.1] - 2026-08-06
 
 ### Changed

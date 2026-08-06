@@ -35,11 +35,15 @@ finish the credential steps, and get a per-skill readiness report.
 
 Auto-update is off by default for third-party marketplaces, so an install stays on
 what it first fetched. `setup-cubrid-agent` turns it on and pulls once; after that an
-update lands minutes into a session, unprompted: measured at nine minutes, at two, and
-— for the 1.0.0 release itself — at twenty-four seconds. What arrives is the newest
-**released version**. The check runs **once per session**, so anything published after it stays
-unseen until the next one — an 18-minute session picked up one update and ignored two
-later pushes — and an idle session never triggers it at all. To pull one immediately:
+update lands minutes into a session, unprompted, and what arrives is the newest
+**released version** (measured at nine minutes, two minutes, twenty-four seconds and
+two and a half minutes across four releases). Two limits are worth knowing. The check
+runs **once per session** — anything published later stays unseen until the next one,
+and an idle session never triggers it at all. It is also **rate-limited across
+sessions**: two sessions that checked four and nine minutes after a successful update
+received nothing at all, while checks that did fire were 22 and 30 minutes apart. So a
+session started soon after your last update may deliver nothing, however long you keep
+it open. To pull one immediately:
 
 ```bash
 claude plugin marketplace update cubrid-agent
