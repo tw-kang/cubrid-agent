@@ -77,6 +77,8 @@ commit** — push without a bump and the fleet stays on what it has. Every bump 
 its own dated heading above, in the `## [x.y.z] - YYYY-MM-DD` form this file already
 follows.
 
-What earns which digit is not settled yet — that is an open interview
-(CUBRIDQA-1491). Until it is, treat any change a teammate would receive as a patch
-bump.
+What earns which digit is not settled — that is an open interview (CUBRIDQA-1491).
+**Until it is settled, do not bump.** Land changes under `[Unreleased]` and leave the
+fleet on 1.0.2. The releases above were cut before that decision: 1.0.1 to find out
+whether a bump reaches an installed copy at all, 1.0.2 to correct what that
+measurement showed the docs had wrong.
