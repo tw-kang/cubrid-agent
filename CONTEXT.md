@@ -83,6 +83,7 @@ author-testcase ─Draft PR─► [review-testcase 심사 ─► 사람 approve�
 | **완성 정의(실제 쓰기)** | 스킬의 종료 산출물 = 초안이 아니라 **실제 Jira 전이·코멘트·필드 쓰기**. 사람이 호출하는 지금도 적용(설계는 Jira) |
 | **targeted / batch** | 사람이 이슈 키를 **나열**한 대상 지정 호출 = targeted(실제 쓰기), 스킬이 **JQL/큐 쿼리**로 만든 집합 호출 = batch(초안). 개수 무관 |
 | **롤아웃 단계** | 이 repo는 결과물만 담는다. 단계와 그 이력은 CUBRIDQA-1425가 관리하고, 지금 배포된 것이 어느 단계인지는 `CHANGELOG.md`만 적는다 |
+| **배포면(shipped surface)** | 사용자 세션 동작을 바꾸는 파일 집합. 여기가 바뀌면 버전 범프가 필수이고, 밖(docs·규범·테스트·in-progress)이 바뀌면 범프 없이 develop에 쌓인다. 경로 목록 정본은 버저닝 ADR |
 
 ### 제품·저장소 형태 결정 (ADR 0005 어휘)
 
