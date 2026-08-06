@@ -6,6 +6,16 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-06
+
+### Changed
+
+- **Recorded what a release delivery actually costs.** `1.0.0` reached a clean install
+  twenty-four seconds into a session with no manual command, so README and
+  `docs/setup.md` now give three measurements instead of two and drop the hedge about
+  the pre-1.0.0 scheme. This release is also the measurement of a version *bump*
+  arriving, which `1.0.0` alone could not show.
+
 ## [1.0.0] - 2026-08-06
 
 ### Rollout stage
