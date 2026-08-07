@@ -7,6 +7,8 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-08-07
+
 ### Fixed
 
 - (patch) **The TC gate reminder now speaks only in a session that did testcase work.** It reads
