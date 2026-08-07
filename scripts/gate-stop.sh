@@ -13,10 +13,15 @@ stuck=""
 for m in "$DIR"/CBRD-*/manifest.json; do
   [ -f "$m" ] || continue
   [ "$(jq -r '.submitted // false' "$m" 2>/dev/null)" = true ] && continue
-  # Grounding alone is not an in-flight run: ground-issue.sh writes a manifest for every candidate a
-  # Select sweep screened, and those have no gate to close.
-  jq -e 'has("author") or has("verify") or has("review")' "$m" >/dev/null 2>&1 || continue
-  key=$(jq -r '.issue // "?"' "$m" 2>/dev/null)
+  # An in-flight run is one that authored something. Grounding alone is not: ground-issue.sh writes a
+  # manifest for every candidate a Select sweep screened, and those have no gate to close. A standalone
+  # verify is not either — verify-sql runs against an existing testcase (verify-run.sh takes --tc-path
+  # instead of reading .author.path), so its manifest carries `verify` and nothing that could ever
+  # close. Counting those fired this reminder on every stop for seven days.
+  jq -e 'has("author") or has("review")' "$m" >/dev/null 2>&1 || continue
+  # The run directory is named for the issue, so it names the manifest even when the file does not.
+  # Reporting "?" left the operator with no way to find which manifest was complaining.
+  key=$(jq -r '.issue // empty' "$m" 2>/dev/null); [ -n "$key" ] || key=$(basename "$(dirname "$m")")
   # Sanctioned "cannot verify" terminal state: verify.status=blocked_* + note + report. Those gates
   # can never close (scripts/manifest.blocked.example.json).
   vstatus=$(jq -r '.verify.status // ""' "$m" 2>/dev/null)

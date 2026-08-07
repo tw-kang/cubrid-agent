@@ -24,14 +24,14 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 - **배포면을 건드리는 PR은 사람의 머지 지시를 기다린다.** 그 밖의 PR은 에이전트가 스스로 머지한다.
 - **배포면을 바꾼 커밋은 같은 커밋에서 `CHANGELOG.md`의 `[Unreleased]` 절에 항목 하나를 넣는다.** 항목은 자리 태그로 시작한다 — `- (major)`·`- (minor)`·`- (patch)` 중 하나다. push 전에 `scripts/release.sh check`로 확인한다.
 - **릴리스는 `scripts/release.sh`가 낸다.** 범프·태그·GitHub Release를 손으로 만들지 마라. 모드는 셋이다 — `check`(상태 검사), `next`(다음 버전 계산), `run --trigger <1|2|3>`(릴리스 실행). 트리거가 충족되면 사람을 기다리지 말고 실행한다. 세 트리거가 무엇인지는 ADR 0007에 있다.
-- **릴리스는 브랜치 규칙과 PR 제목 규칙의 예외다.** 범프 커밋은 `develop`에 직접 push되고, 그 PR 제목은 `Release vX.Y.Z`다. 둘 다 `release.sh`가 한다.
+- **릴리스는 브랜치·PR 제목·커밋 제목 규칙의 예외다.** 범프 커밋은 `develop`에 직접 push된다. PR 제목은 `Release vX.Y.Z`이고 커밋 제목은 `Release vX.Y.Z (trigger N)`이다. 셋 다 `release.sh`가 한다.
 
 왜 이렇게 정했는지는 [ADR 0007](./.agents/adr/0007-versioning-and-releases.md)(버저닝·릴리스)와 [ADR 0008](./.agents/adr/0008-branch-model-prs-and-work-tickets.md)(브랜치·PR·티켓)에 있다. 자리를 셋 중 무엇으로 고르는지도 ADR 0007이 정한다.
 
 ### 형식 — PR · 커밋 · Jira
 
 - **PR 본문 형식**: [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md) — 이 repo로 PR을 올리면 자동으로 채워지고, 절별로 무엇을 쓰는지도 그 파일 안에 있다(`CUBRID/cubrid`의 같은 파일과 동일한 형식). 내용은 **한글·사용자 관점**이다 — "무엇을 적용해서 어떤 동작이 바뀌었다"이고 **코드 구현 설명이 아니다**.
-- **PR 제목**: 항상 **영어**, `[CUBRIDQA-XXXX]`로 시작(엔진 repo는 `[CBRD-XXXXX]`).
+- **PR 제목**: 항상 **영어**, `[CUBRIDQA-XXXX]`로 시작(엔진 repo는 `[CBRD-XXXXX]`). 예외는 릴리스 PR 하나다 — 위 흐름 절을 보라.
 - **엔진 repo 커밋**은 `[CBRD-XXXXX]`로 태깅한다.
 - **`CUBRID/cubrid-testcases`에는 PR 템플릿이 없다.** TC PR 본문은 사람이 짜지 않는다 — `author-testcase`의 Submit 절이 부르는 `render-pr-body.sh`가 manifest와 `.sql`에서 만든다.
 - **head→base**: `$FORK:<branch>` → `CUBRID/<repo>:develop`. `$FORK`는 `$CUBRID_GH_FORK` 또는 `gh api user --jq .login`으로 **런타임에 구한다 — 사람 이름을 박지 않는다**(`.agents/adr/0004-remove-personal-identity-hardcoding.md`).

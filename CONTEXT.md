@@ -40,7 +40,7 @@ author-testcase ─Draft PR─► [review-testcase 심사 ─► 사람 approve�
 
 [ADR 0005](.agents/adr/0005-repo-is-product-design-lives-in-jira.md)에 따라 문서를 "배포되는가·누가 읽는가"로 나눈다.
 
-- **루트 플러그인 = 제품(배포되는 전부):** `.claude-plugin/` · `skills/qa/` · `hooks/` · `scripts/`의 훅 스크립트. 저장소의 존재 이유. `scripts/`의 나머지는 개발 도구이고 배포면 밖이다. **`skills/qa/`는 `plugin.json` 등재분과 정확히 일치**하고, 아직 배포하지 않는 스킬은 `skills/in-progress/`에서 개발한다 — 완성되면 이동+등재로 승격한다([ADR 0006](.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)).
+- **루트 플러그인 = 제품(배포되는 전부):** `.claude-plugin/plugin.json` · `skills/qa/` · `hooks/` · `scripts/`의 훅 스크립트. 저장소의 존재 이유. `scripts/`의 나머지는 개발 도구이고 배포면 밖이다. **`skills/qa/`는 `plugin.json` 등재분과 정확히 일치**하고, 아직 배포하지 않는 스킬은 `skills/in-progress/`에서 개발한다 — 완성되면 이동+등재로 승격한다([ADR 0006](.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)).
 - **`.agents/` = 에이전트용 규범(횡단) + thin ADR:**
   - 규범: `design-principles.md`(DP1 병렬 실행, **DP2 사용자 관점·블랙박스 테스트**, DP3 언어 정책), `issue-tracker.md`, `triage-labels.md`, `domain.md`.
   - **thin ADR set** (`.agents/adr/`): "제품·저장소가 왜 이 모양이고 어떻게 나가는가"만 담는다 — ship-as-plugin, dual-channel 배포, setup-entrypoint 스킬, 개인 식별자 제거, 이 doc-strategy(repo=제품·설계=Jira), 배포분/개발 중 2트리, 버저닝·릴리스, 개발 흐름(브랜치·PR·티켓). `.agents/adr/`로 옮기며 **0001–0005로 재번호**했고, 옛 전역 단일 시퀀스 규칙은 폐기됐다.

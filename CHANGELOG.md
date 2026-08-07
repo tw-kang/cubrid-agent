@@ -7,6 +7,14 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- (patch) **Stopped the TC gate reminder from firing on a standalone verify run.** A manifest that
+  `verify-sql` wrote on its own carries no authoring gate that could ever close, but the Stop hook
+  counted it as an unfinished run. It repeated the reminder on every stop for seven days, and named
+  the run `?`, so nobody could find which one it meant. The reminder now counts only runs that
+  authored something, and it names a run by its directory when the manifest carries no issue key.
+
 ## [1.0.0] - 2026-08-06
 
 ### Rollout stage

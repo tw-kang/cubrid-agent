@@ -6,7 +6,8 @@
 # here can reach GitHub whether or not the script is correct.
 #
 # What it pins, in the three shapes a release can go wrong:
-#   check — each of the eight state checks fails on its own violation and only its own,
+#   check — each of the eight state checks fails on the violation it names (a fixture may trip a
+#           neighbour too, so every assertion names the FAIL number it expects),
 #   next  — the digit that wins is the highest one declared, applied to the current version,
 #   run   — a release refuses to start from a state it cannot finish, and when it does start it
 #           bumps, pushes, merges, tags and publishes in that order with those arguments.
@@ -30,8 +31,8 @@ pass() { T_PASS=$((T_PASS+1)); }
 flat() { printf '%s' "$1" | tr '\n' '|'; }
 
 # ── a repo in a releasable state at 1.0.0 ────────────────────────────────────────────────────────
-# Every case starts here and breaks exactly one thing, so a failing check names its own violation
-# rather than the first one the script happens to reach. The builders set $R rather than printing
+# Every case starts here and breaks as little as it can, so a failing check names the violation the
+# case is about rather than an unrelated one. The builders set $R rather than printing
 # it: a case that shares a directory with the case before it proves nothing about either.
 N=0
 R=
@@ -200,6 +201,32 @@ fixture; git -C "$R" tag v1.0.0
 mkdir -p "$R/skills/qa/newskill"; printf 'new\n' > "$R/skills/qa/newskill/SKILL.md"
 expect_check "$R" 1 "FAIL +7" "an untracked file under the shipped surface fails check 7"
 
+# Mid-release the declared version has no tag yet, so the anchor falls back to the newest tag the
+# clone holds. The bump itself changed plugin.json and emptied Unreleased, so check 7 must read the
+# new dated section as the declaration — otherwise every release fails its own check and reverts.
+fixture; set_version "$R" 1.1.0; set_changelog "$R" <<'MD'
+## [Unreleased]
+
+## [1.1.0] - 2026-08-06
+
+### Changed
+
+- (minor) **A new skill.** Text.
+
+## [1.0.0] - 2026-08-05
+
+### Changed
+
+- **Repackaged as a plugin.** Text.
+MD
+git -C "$R" add -A >/dev/null && git -C "$R" commit -qm "bump" >/dev/null
+git -C "$R" tag v1.0.0 HEAD~1
+expect_check "$R" 0 "ok +7 .*declared in the 1\\.1\\.0 section" "check 7 reads a newer dated section as the declaration"
+
+# With no release tag at all there is nothing to compare against, and that is not the operator's fault.
+fixture
+expect_check "$R" 0 "skip +7 no release tag" "check 7 skips when no release tag exists at all"
+
 # CI checks out shallow. The check that enforces the declaration must say it cannot judge, and it
 # must say so before it looks for a tag — a shallow clone has neither the history nor the tags.
 fixture; git -C "$R" tag v1.0.0
@@ -306,6 +333,33 @@ next_fixture 1.2.3 '- (major) **A.** t'; expect_next "$R" "2.0.0 major" 0 "a maj
 next_fixture 9.9.9 '- (patch) **A.** t'; expect_next "$R" "9.9.10 patch" 0 "the patch digit is a number, not a character"
 fixture; expect_next "$R" "" 1 "an empty Unreleased has nothing to release"
 
+# A number this repo declared once may still sit in someone's cache, so a later release must climb
+# past it. Here history declares 1.0.2 and the file says 1.0.0 — the patch bump would land on 1.0.1.
+next_fixture 1.0.2 '- (patch) **A.** t'
+git -C "$R" commit -qam "declare 1.0.2" >/dev/null
+set_version "$R" 1.0.0
+expect_next "$R" "1.0.3 patch" 0 "a bump climbs past a version already declared, keeping its digit"
+_out=$(cd "$R" && bash "$SRC" next 2>&1); printf '%s\n' "$_out" | grep -q 'skipping past 1\.0\.2' && pass \
+  || note_fail "the skip says which version it climbed past: $(flat "$_out")"
+
+# The skip must survive check 8, or the release it produced cannot pass its own state check.
+fixture; set_version "$R" 1.0.3; set_changelog "$R" <<'MD'
+## [Unreleased]
+
+## [1.0.3] - 2026-08-07
+
+### Fixed
+
+- (patch) **A correction.** Text.
+
+## [1.0.0] - 2026-08-06
+
+### Changed
+
+- **Text.** Text.
+MD
+expect_check "$R" 0 "ok +8" "check 8 reads a skip as the step its entries declared"
+
 # ── run: the world it talks to ───────────────────────────────────────────────────────────────────
 # `origin` is a real local bare repo, so the push is real and observable. `gh` is a stub: it records
 # every call and answers the four questions release.sh asks it.
@@ -365,6 +419,9 @@ run_release() {  # run_release <dir> [env assignments...] — sets $OUT and $RC 
 
 # happy path
 run_fixture
+# `mv` from a mktemp file would tighten these to 0600, and git records only the exec bit, so the
+# change would never show in a diff. Capture what they were before the release rewrites them.
+MODES_BEFORE=$(cd "$R" && stat -c '%n %a' CHANGELOG.md .claude-plugin/plugin.json package.json)
 run_release "$R"
 [ "$RC" -eq 0 ] && pass || note_fail "a release from a clean state succeeds: exit $RC — $(flat "$OUT")"
 
@@ -403,6 +460,10 @@ grep -q '^- (minor) \*\*A new skill\.\*\* It does a new thing\.$' "$R.gh.notes" 
   || note_fail "the release notes are the section body: got $(flat "$(cat "$R.gh.notes" 2>/dev/null)")"
 grep -q '^## \[1\.1\.0\]' "$R.gh.notes" 2>/dev/null \
   && note_fail "the release notes must not repeat the heading GitHub already shows" || pass
+
+MODES_AFTER=$(cd "$R" && stat -c '%n %a' CHANGELOG.md .claude-plugin/plugin.json package.json)
+[ "$MODES_BEFORE" = "$MODES_AFTER" ] && pass \
+  || note_fail "the release leaves the file modes it found: $(flat "$MODES_BEFORE") became $(flat "$MODES_AFTER")"
 
 # order matters: a tag that appears before the merge points at a commit main does not have
 _order=$(grep -nE '^(pr create|pr merge|release create)' "$R.gh.log" | cut -d: -f2 | cut -d' ' -f1-2 | tr '\n' ',')
@@ -461,6 +522,37 @@ grep -q '^release create' "$R.gh.log" \
   && note_fail "a blocked merge must not publish: release create was called anyway" || pass
 printf '%s\n' "$OUT" | grep -q 'https://github.com/testowner/testrepo/pull/7' && pass \
   || note_fail "a blocked merge reports the PR to finish by hand: $(flat "$OUT")"
+
+# ── run: a commit that fails leaves nothing rewritten and nothing staged ─────────────────────────
+# A repo-local pre-commit hook is the one way to make `git commit` fail on demand. Without the revert
+# the bumped files stay rewritten AND staged, and every later run refuses on "not clean" without
+# naming why.
+run_fixture
+printf '#!/bin/sh\nexit 1\n' > "$R/.git/hooks/pre-commit"; chmod +x "$R/.git/hooks/pre-commit"
+run_release "$R"
+[ "$RC" -ne 0 ] && pass || note_fail "a rejected commit fails the release: exit 0"
+printf '%s\n' "$OUT" | grep -q 'committing the bump failed' && pass \
+  || note_fail "a rejected commit says so: $(flat "$OUT")"
+git -C "$R" diff --quiet HEAD -- CHANGELOG.md .claude-plugin/plugin.json package.json && pass \
+  || note_fail "a rejected commit is reverted: the bumped files are still rewritten"
+[ -z "$(git -C "$R" diff --cached --name-only)" ] && pass \
+  || note_fail "a rejected commit leaves nothing staged: $(git -C "$R" diff --cached --name-only | tr '\n' ' ')"
+[ -s "$R.gh.log" ] && note_fail "a rejected commit must not reach gh" || pass
+
+# ── run: a publish that fails leaves main merged and the tag missing ──────────────────────────────
+# This is the worst state the script can reach, so it must name it rather than exit quietly.
+run_fixture
+run_release "$R" GH_RELEASE_FAILS=1 GH_MAIN_SHA=2222222222222222222222222222222222222222
+[ "$RC" -ne 0 ] && pass || note_fail "a failed publish fails the release: exit 0"
+printf '%s\n' "$OUT" | grep -q 'tag v1\.1\.0 by hand' && pass \
+  || note_fail "a failed publish says main carries the merge and the tag is owed: $(flat "$OUT")"
+grep -q '^release create v1\.1\.0 --target 2222222222222222222222222222222222222222' "$R.gh.log" \
+  && pass || note_fail "the tag targets the sha main reports, not a guess: $(flat "$(cat "$R.gh.log")")"
+
+# ── run: a tag that exists only on origin still stops the release ─────────────────────────────────
+run_fixture
+git -C "$R" tag v1.1.0 && git -C "$R" push -q origin v1.1.0 && git -C "$R" tag -d v1.1.0 >/dev/null
+refuses "$R" "v1\.1\.0" "a tag that exists only on origin stops the release"
 
 # ── usage ────────────────────────────────────────────────────────────────────────────────────────
 fixture; _out=$(cd "$R" && bash "$SRC" 2>&1); _rc=$?
