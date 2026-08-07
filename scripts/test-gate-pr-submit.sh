@@ -62,6 +62,8 @@ MD
 
 T_PASS=0; T_FAIL=0
 FAILURES=""
+note_fail() { T_FAIL=$((T_FAIL+1)); FAILURES="$FAILURES
+    $1"; }
 
 # run <name> <ok|deny> <expected reason fragment, or ""> <command>
 run() {
@@ -240,6 +242,21 @@ m 'del(.review.debug_approved) | .verify.debug = {checked:true, result:"clean"}'
 good_body
 jq '.review.verdict = "NEEDS-WORK"' "$RUN/manifest.json" > "$RUN/m.tmp" && mv "$RUN/m.tmp" "$RUN/manifest.json"
 run "review not passed"         deny "review not passed"     "$BASE --body-file $GEN"
+
+# ── the session mark ─────────────────────────────────────────────────────────────────────────────
+# A denied submission is exactly when the stop reminder is worth hearing, so this gate marks the
+# session too. A command aimed at any other repo must leave no mark.
+MARKS="$HOME/.cubrid-agent/sessions"
+rm -rf "$MARKS"
+printf '{"session_id":"sess-A","tool_input":{"command":%s}}' "$(printf '%s' "$BASE --body-file $GEN" | jq -Rs .)" \
+  | bash "$GATE" > /dev/null 2>&1
+[ -f "$MARKS/sess-A" ] && T_PASS=$((T_PASS+1)) || note_fail "a TC PR submission marks the session"
+
+rm -rf "$MARKS"
+printf '{"session_id":"sess-B","tool_input":{"command":%s}}' "$(printf '%s' "gh pr create --repo CUBRID/cubrid --head x:feat/y" | jq -Rs .)" \
+  | bash "$GATE" > /dev/null 2>&1
+[ -e "$MARKS/sess-B" ] && note_fail "a PR to another repo must not mark the session" \
+  || T_PASS=$((T_PASS+1))
 
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'gate-pr-submit: %d/%d\n' "$T_PASS" "$T_PASS"

@@ -8,6 +8,12 @@ INPUT=$(cat 2>/dev/null || true)
 [ "$(printf '%s' "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null)" = true ] && exit 0
 DIR="$HOME/.cubrid-agent"
 [ -d "$DIR" ] || exit 0
+# Speak only in a session that actually did TC work. This hook reads $HOME state rather than the
+# working directory, so without this it fires in every project on this machine — the sessions that
+# use this plugin and the ones that never touch a testcase alike. lint-sql-tc.sh and gate-pr-submit.sh
+# do the marking, at the point where each has already confirmed the work is a TC.
+SID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+[ -n "$SID" ] && [ -f "$DIR/sessions/$SID" ] || exit 0
 pending=""
 stuck=""
 for m in "$DIR"/CBRD-*/manifest.json; do

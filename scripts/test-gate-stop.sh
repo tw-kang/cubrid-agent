@@ -25,7 +25,7 @@ note_fail() { T_FAIL=$((T_FAIL+1)); FAILURES="$FAILURES
     $1"; }
 pass() { T_PASS=$((T_PASS+1)); }
 
-reset() { rm -rf "$H"; mkdir -p "$H"; }
+reset() { rm -rf "$H"; mkdir -p "$H"; mark_session; }
 mk() {  # mk <run-dir-name> <manifest json>
   mkdir -p "$H/.cubrid-agent/$1"
   printf '%s\n' "$2" > "$H/.cubrid-agent/$1/manifest.json"
@@ -33,9 +33,12 @@ mk() {  # mk <run-dir-name> <manifest json>
 report_for() { mkdir -p "$H/.cubrid-agent/reports/author-testcase"; : > "$H/.cubrid-agent/reports/author-testcase/$1.md"; }
 
 # The reminder rides on additionalContext; anything else on stdout is not a reminder.
-say() {  # say [hook-input json]
-  printf '%s' "${1:-{\}}" | HOME="$H" bash "$SRC" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
+SID=test-session-1
+say() {  # say [hook-input json]  — defaults to a session that did TC work here
+  printf '%s' "${1:-{\"session_id\":\"$SID\"\}}" | HOME="$H" bash "$SRC" 2>/dev/null \
+    | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
 }
+mark_session() { mkdir -p "$H/.cubrid-agent/sessions"; : > "$H/.cubrid-agent/sessions/${1:-$SID}"; }
 
 silent() {  # silent <label>
   local out; out=$(say)
@@ -75,8 +78,23 @@ silent "a blocked run with a note and a report is a terminal state"
 
 # A stop chain this hook started must not re-arm itself, or the reminder never ends.
 reset; mk CBRD-20005 "$AUTHORING"
-out=$(say '{"stop_hook_active":true}')
+out=$(say "{\"session_id\":\"$SID\",\"stop_hook_active\":true}")
 [ -z "$out" ] && pass || note_fail "it re-arms inside its own stop chain: $out"
+
+# The reminder reads $HOME, so an unmarked session is one that never touched a testcase here — a
+# different project on the same machine. It got this message on every turn for seven days.
+reset; rm -rf "$H/.cubrid-agent/sessions"; mk CBRD-20010 "$AUTHORING"
+silent "a session that did no TC work here"
+
+reset; mk CBRD-20011 "$AUTHORING"
+out=$(printf '%s' '{"session_id":"some-other-session"}' | HOME="$H" bash "$SRC" 2>/dev/null \
+  | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+[ -z "$out" ] && pass || note_fail "another session's mark does not speak for this one: $out"
+
+reset; mk CBRD-20012 "$AUTHORING"
+out=$(printf '%s' '{}' | HOME="$H" bash "$SRC" 2>/dev/null \
+  | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+[ -z "$out" ] && pass || note_fail "input without a session id stays silent: $out"
 
 # ── must report ───────────────────────────────────────────────────────────────────────────────────
 reset; mk CBRD-20006 '{"issue":"CBRD-20006","author":{"path":"x.sql"},"verify":{"determinism":{"all_pass":false}}}'

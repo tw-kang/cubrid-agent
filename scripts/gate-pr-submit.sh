@@ -10,6 +10,15 @@ COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/nul
 # Gate only TC PR creation against cubrid-testcases; leave every other command alone.
 printf '%s' "$COMMAND" | grep -qE 'gh[[:space:]]+pr[[:space:]]+create' || exit 0
 printf '%s' "$COMMAND" | grep -q 'cubrid-testcases' || exit 0
+# Mark this session as doing TC work. The stop reminder reads $HOME state, not the working
+# directory, so without a per-session mark it speaks in every project on this machine. The other
+# stamping site is scripts/lint-sql-tc.sh.
+_sid=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+if [ -n "$_sid" ]; then
+  mkdir -p "$HOME/.cubrid-agent/sessions" 2>/dev/null \
+    && : > "$HOME/.cubrid-agent/sessions/$_sid" 2>/dev/null
+  find "$HOME/.cubrid-agent/sessions" -type f -mtime +7 -delete 2>/dev/null
+fi
 
 deny() {
   jq -n --arg r "$1" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}' >&2

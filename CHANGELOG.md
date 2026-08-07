@@ -9,6 +9,16 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ### Fixed
 
+- (patch) **The TC gate reminder now speaks only in a session that did testcase work.** It reads
+  state under `~/.cubrid-agent/`, not the working directory, so it used to fire in every project on
+  the machine — including repositories that have nothing to do with CUBRID testcases. The two hooks
+  that already recognise testcase work — the convention lint on a TC `.sql` write, and the submit
+  gate on a TC pull request — now mark the session, and the reminder stays silent in sessions that
+  carry no such mark. A run abandoned in an earlier session is no longer raised in an unrelated one;
+  the run directory and its branch still hold the work.
+- (patch) **A submitted run is recorded as submitted.** `author-testcase` now sets `submitted` in the
+  run manifest once the pull request exists. Nothing wrote that field before, so the triage query in
+  the setup runbook and the stop reminder both read a finished run as still in flight.
 - (patch) **Stopped the TC gate reminder from firing on a standalone verify run.** A manifest that
   `verify-sql` wrote on its own carries no authoring gate that could ever close, but the Stop hook
   counted it as an unfinished run. It repeated the reminder on every stop for seven days, and named
