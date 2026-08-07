@@ -370,13 +370,10 @@ else
   fail "identity rule drifted:${_bad:- no skill resolves \$QA_USER, which cannot be right} — a copy that lost the credential half is how a password reaches a transcript"
 fi
 
-# ground-issue.sh writes a manifest for every candidate a Select sweep screened, so without
-# gate-stop's "grounding alone is not a run" guard they become permanent stop-reminders.
-if grep -q 'has("author") or has("verify") or has("review")' scripts/gate-stop.sh; then
-  pass "gate-stop ignores grounding-only manifests"
-else
-  fail "gate-stop lost its grounding-only guard — every issue ground-issue.sh touched would nag forever"
-fi
+# The guard that keeps ground-issue.sh's manifests from becoming permanent stop-reminders used to be
+# pinned here by grepping gate-stop.sh for one jq expression. That pinned the wording, not the
+# behaviour, and it blocked a correct narrowing of the same guard. scripts/test-gate-stop.sh pins the
+# behaviour instead, in both directions, and check-invariants runs it under "Hook wiring".
 
 # DP5: no skill may instruct reading or writing agent memory. Match memory ARTIFACTS and the
 # cached-verdict shape, not the bare word — "frees broker shared memory" must stay clean.
@@ -477,10 +474,28 @@ for h in $_hooks; do
   else pass "hook script present and executable: $_p"; fi
 done
 
+# release.sh decides what obliges a version bump from its SHIPPED_PATHS list. A hook script missing
+# from that list can change release after release without anyone declaring it, and check 7 would
+# report the surface as unchanged. The two lists are written by hand in different files, so pin them.
+_shipped=$(sed -n '/^SHIPPED_PATHS=(/,/^)/p' scripts/release.sh | sed '1d;$d' | tr -d ' 	')
+_unlisted=""
+for h in $_hooks; do
+  _p=${h#\$\{CLAUDE_PLUGIN_ROOT\}/}
+  printf '%s\n' "$_shipped" | grep -qxF "$_p" || _unlisted="$_unlisted $_p"
+done
+if [ -z "$_unlisted" ]; then pass "every hook script is listed in release.sh's SHIPPED_PATHS"
+else fail "hook scripts missing from SHIPPED_PATHS in scripts/release.sh:$_unlisted"; fi
+
 # The submit gate is the only check that can strand finished work, so it gets a behavioural test
 # pinning both directions rather than a grep for a marker string.
 if _t=$(bash scripts/test-gate-pr-submit.sh 2>&1); then pass "submit gate behaves: $_t"
 else fail "submit gate test failed — run scripts/test-gate-pr-submit.sh:"; printf '         %s\n' "$_t"; fi
+
+# The stop reminder is the other direction of the same risk: it fired on every stop for seven days
+# over a manifest that had no gate to close, and named it "?" so nobody could find it. A gate that
+# cries wolf is ignored, so both directions get pinned.
+if _t=$(bash scripts/test-gate-stop.sh 2>&1); then pass "stop reminder behaves: $_t"
+else fail "stop reminder test failed — run scripts/test-gate-stop.sh:"; printf '         %s\n' "$_t"; fi
 
 # Select's screens get the same treatment for the opposite reason: they run FIRST, and a screen that
 # wrongly reports "nothing found" when the lookup failed sends two operators at the same TC. Only a
@@ -538,6 +553,18 @@ else fail "not in a releasable state — run scripts/release.sh check:"; printf 
 
 if _t=$(bash scripts/test-release.sh 2>&1); then pass "release tooling behaves: $_t"
 else fail "release test failed — run scripts/test-release.sh:"; printf '         %s\n' "$_t"; fi
+
+# marketplace.json is read from the catalog clone, not from the versioned cache, so an edit there
+# reaches every install without a version bump. `claude plugin validate` checks its shape, not whether
+# it still points at this plugin — a renamed entry or a moved source would silently redirect installs.
+_mp_name=$(jq -r '.plugins[0].name // empty' .claude-plugin/marketplace.json 2>/dev/null)
+_mp_src=$(jq -r '.plugins[0].source // empty' .claude-plugin/marketplace.json 2>/dev/null)
+_pl_name=$(jq -r '.name // empty' .claude-plugin/plugin.json 2>/dev/null)
+if [ -n "$_pl_name" ] && [ "$_mp_name" = "$_pl_name" ] && [ "$_mp_src" = "./" ]; then
+  pass "marketplace.json advertises $_pl_name from this repo (source \"./\")"
+else
+  fail "marketplace.json offers \"$_mp_name\" from \"$_mp_src\" but plugin.json is \"$_pl_name\" — an install would resolve somewhere else"
+fi
 
 # ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"

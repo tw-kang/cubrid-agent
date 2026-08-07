@@ -1,6 +1,6 @@
 {
   "name": "cubrid-agent",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "private": true,
   "description": "CUBRID QA dev-process agents: gate Resolved issues, author and verify CTP SQL testcases, and first-review testcase PRs. Shipped as a Claude Code plugin and as agent skills.",
   "license": "Apache-2.0",

@@ -159,6 +159,25 @@ never_says "  ... and are not a violation"  "convention violations"
 lint "$BUG_DIR/cbrd_99999.sql"
 never_says "the p75 itself is not flagged"  "corpus p75 of 16"
 
+# ── the session mark ─────────────────────────────────────────────────────────────────────────────
+# gate-stop.sh reads $HOME state, so it needs to know whether THIS session touched a testcase. This
+# hook is where that is first known. Marking a session that only wrote unrelated files would put the
+# reminder back into every project on the machine.
+MARKS="$HOME/.cubrid-agent/sessions"
+rm -rf "$MARKS"
+seed_manifest
+printf '{"session_id":"sess-A","tool_input":{"file_path":"%s"}}' "$BUG_DIR/cbrd_99999.sql" > "$T/in"
+: > "$BUG_DIR/cbrd_99999.sql"
+bash "$HOOK" < "$T/in" > /dev/null 2>&1
+[ -f "$MARKS/sess-A" ] && T_PASS=$((T_PASS+1)) || note_fail "linting a TC .sql marks the session"
+
+rm -rf "$MARKS"
+printf '%s\n' "x" > "$T/notes.txt"
+printf '{"session_id":"sess-B","tool_input":{"file_path":"%s"}}' "$T/notes.txt" \
+  | bash "$HOOK" > /dev/null 2>&1
+[ -e "$MARKS/sess-B" ] && note_fail "a write outside the testcases tree must not mark the session" \
+  || T_PASS=$((T_PASS+1))
+
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'lint-sql-tc: %d/%d\n' "$T_PASS" "$T_PASS"
   exit 0

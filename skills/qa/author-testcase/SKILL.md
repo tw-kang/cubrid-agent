@@ -104,6 +104,7 @@ Two passes, split by what each actually needs. **R1 needs no execution output** 
 - `gh pr create --repo CUBRID/cubrid-testcases --base develop --head "$FORK:tc/cbrd-XXXXX"` — add `--draft` **only on a batch call** (a queue of N issues); a targeted call (a named CBRD key) opens the PR ready-for-review.
   - **Title**: English, `[CBRD-XXXXX]` header.
   - **Body**: **generate it, do not compose it** — `~/.cubrid-agent/bin/render-pr-body.sh CBRD-XXXXX` writes `$HOME/.cubrid-agent/CBRD-XXXXX/pr-body.md` with the Remarks evidence already filled from the manifest and the `.sql`. **You write only the two `TODO` sections (`### Purpose`, `### Implementation`) and whatever judgment belongs in Remarks** — Korean, user-perspective — and **never retype a number it produced**. Pass it with `--body-file`; the gate denies any other body.
+- **Once the PR exists, record it** — `M=$HOME/.cubrid-agent/CBRD-XXXXX/manifest.json; jq '.submitted=true' "$M" > "$M.new" && mv "$M.new" "$M"`. Nothing else writes that field. The triage query in `docs/setup.md` and the stop reminder both read it, and until it is set they read a submitted run as still in flight.
 - **Targeted call (a named CBRD key) = ready-for-review PR; batch call (a queue of N issues) = Draft PR.** A human still approves/merges. author-testcase does NOT fire the `Start Test` transition — gate-resolved owns it.
 
 ## 8. Report
