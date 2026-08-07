@@ -18,10 +18,11 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 
 ### 흐름 — 브랜치 · 티켓 · 머지 · 릴리스
 
-- **브랜치**: `main`은 릴리스, `develop`은 개발이다. 작업 브랜치는 `cubridqa-XXXX/<slug>`로 만들고, `develop`으로 squash PR을 낸다.
-- **티켓 계층**: 스펙은 Jira sub-task, 작업 티켓은 GitHub Issues다. PR을 머지하면 `gh issue close`로 그 이슈를 닫는다 — GitHub 자동 닫기는 default branch 머지에만 걸리므로 `develop` 머지로는 닫히지 않는다.
+- **브랜치**: `main`은 릴리스, `develop`은 개발이다.
+- **PR은 스펙이 있는 일에만 낸다.** Jira 스펙이 있으면 작업 브랜치 `cubridqa-XXXX/<slug>`에서 `develop`으로 squash PR을 내고 사람이 머지한다. **GitHub Issue만 있는 일은 PR 없이** `develop`에 직접 커밋한다.
+- **티켓 계층**: 스펙은 Jira sub-task, 작업 티켓은 GitHub Issues다. **일을 시작하기 전에 어느 티켓이 그것을 소유하는지 정한다.** 없으면 만들거나 묻는다 — 남의 티켓 번호를 빌리지 않는다. 일이 끝나면 `gh issue close`로 닫는다. GitHub 자동 닫기는 default branch 머지에만 걸리므로 `develop`으로는 닫히지 않는다.
 - **커밋 제목은 그 일을 소유한 티켓의 키로 시작한다.** 이 repo의 작업 티켓은 GitHub Issue이므로 보통 `[#NN]`이다. GitHub Issue가 없는 일(스펙 구현·규범 변경)은 Jira 키를 쓴다. 편의로 한 티켓에 몰지 마라 — 티켓 남발의 반대 실수이고 추적성은 똑같이 깨진다. 규범·프로젝트 룰 변경의 Jira 자리는 CUBRIDQA-1491(상시)이다.
-- **배포면을 건드리는 PR은 사람의 머지 지시를 기다린다.** 그 밖의 PR은 에이전트가 스스로 머지한다.
+- **배포면을 건드리는 PR은 사람의 머지 지시를 기다린다.** 그 밖의 PR은 에이전트가 스스로 머지한다. PR이 없는 경로에서는 릴리스 PR이 그 자리다 — 배포면은 사람이 머지하는 `develop`→`main`으로만 나간다.
 - **배포면을 바꾼 커밋은 같은 커밋에서 `CHANGELOG.md`의 `[Unreleased]` 절에 항목 하나를 넣는다.** 항목은 자리 태그로 시작한다 — `- (major)`·`- (minor)`·`- (patch)` 중 하나다. push 전에 `scripts/release.sh check`로 확인한다.
 - **릴리스는 `scripts/release.sh`가 낸다.** 범프·태그·GitHub Release를 손으로 만들지 마라. 모드는 셋이다 — `check`(상태 검사), `next`(다음 버전 계산), `run --trigger <1|2|3>`(릴리스 실행). 트리거가 충족되면 사람을 기다리지 말고 실행한다. 세 트리거가 무엇인지는 ADR 0007에 있다.
 - **릴리스는 브랜치·PR 제목·커밋 제목 규칙의 예외다.** 범프 커밋은 `develop`에 직접 push된다. PR 제목은 `Release vX.Y.Z`이고 커밋 제목은 `Release vX.Y.Z (trigger N)`이다. 셋 다 `release.sh`가 한다.
