@@ -7,6 +7,16 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- (minor) **The `author-testcase` lanes now hand their reports over as files.** Each lane — the
+  author, the static review and the answer review — writes its report to
+  `~/.cubrid-agent/CBRD-XXXXX/<lane>-<n>.md` and returns only a verdict and one line, and the
+  orchestrator passes the next lane that path instead of repeating the report back into the
+  conversation. Every round keeps its own file, so a run leaves its review history on disk for a
+  human to read. The orchestrator also no longer watches the filesystem to learn that a lane
+  finished — the lane's return is that signal.
+
 ## [1.0.3] - 2026-08-07
 
 ### Fixed
