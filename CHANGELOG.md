@@ -16,6 +16,15 @@ All notable changes to cubrid-agent are documented here. The format follows
   conversation. Every round keeps its own file, so a run leaves its review history on disk for a
   human to read. The orchestrator also no longer watches the filesystem to learn that a lane
   finished — the lane's return is that signal.
+- (minor) **The TC convention lint now judges the five shapes that break CTP's line splitter**, so a
+  testcase that would silently stop running is caught on the `.sql` write instead of by a reviewer
+  reading CTP's Java source. The five are a semicolon ending a header line, an odd number of
+  apostrophes in an `evaluate` label, a label that does not close with an apostrophe and a semicolon,
+  a prepared name never released, and a line-leading `@`, `$` or `--+` that CTP does not recognise as
+  a directive. Each says what CTP does with the line and what to write instead. The submit gate now
+  blocks on all five, recorded in the run manifest as `lint.header_no_semicolon`,
+  `lint.evaluate_quotes`, `lint.evaluate_terminator`, `lint.prepare_released` and `lint.directives`;
+  a manifest written before this release keeps passing, because an absent field is read as clean.
 
 ## [1.0.3] - 2026-08-07
 

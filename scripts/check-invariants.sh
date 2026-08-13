@@ -404,14 +404,27 @@ else
   fail "author-testcase lost:$_miss — without both, the TC path is decided by whoever guesses first and the placement check cannot run"
 fi
 
-# The placement flag is written by one script and read by another; a half-move silently disables it.
-_w=0; _r=0
-grep -q 'lint.placement=' scripts/lint-sql-tc.sh && _w=1
-grep -q 'd("placement")' scripts/gate-pr-submit.sh && _r=1
-if [ "$_w" -eq 1 ] && [ "$_r" -eq 1 ]; then
-  pass "lint writes lint.placement and the submit gate reads it"
+# A lint flag is written by one script and read by another; a half-move silently disables it. Every
+# field the hook records has to reach the gate's aggregate, so the enumeration lives here rather than a
+# named few — a rule added to the hook and forgotten in the gate blocks nothing and still reports green.
+# Both directions, because each half goes silent on its own: a flag the gate never reads blocks nothing,
+# and a flag nothing writes stays absent, which `d()` reads as clean — a check that cannot fail.
+_unread=""; _unwritten=""
+for _k in $(grep -oE '\.lint\.[a-z_]+=' scripts/lint-sql-tc.sh | sed 's/^\.lint\.//; s/=$//' | sort -u); do
+  grep -qE "(d\(\"$_k\"\)|\.lint\.$_k[,]|\.lint\.$_k\])" scripts/gate-pr-submit.sh || _unread="$_unread $_k"
+done
+for _k in $(grep -oE 'd\("[a-z_]+"\)|\.lint\.[a-z_]+[,\]]' scripts/gate-pr-submit.sh \
+              | sed 's/^d("//; s/")$//; s/^\.lint\.//; s/[,]$//' | sort -u); do
+  # answer_not_handwritten is the one flag the hook cannot judge: it is provenance the orchestrator
+  # records, since no reading of the file says whether a human typed the .answer.
+  [ "$_k" = answer_not_handwritten ] && continue
+  grep -q "\.lint\.$_k=" scripts/lint-sql-tc.sh || _unwritten="$_unwritten $_k"
+done
+if [ -z "$_unread" ] && [ -z "$_unwritten" ]; then
+  pass "every lint.* flag is written by the hook and read by the submit gate"
 else
-  fail "lint.placement is $([ "$_w" -eq 1 ] && echo 'written but never read by the submit gate' || echo 'read by the submit gate but never written') — a placement violation would not block anything"
+  [ -z "$_unread" ]    || fail "lint flag(s) written by the hook but never read by the submit gate:$_unread — a violation of those would not block anything"
+  [ -z "$_unwritten" ] || fail "lint flag(s) read by the submit gate but never written:$_unwritten — they stay absent, which the gate reads as clean, so the check cannot fail"
 fi
 
 # The flag the skill tells the operator to pass must exist in the script it points at; drift either

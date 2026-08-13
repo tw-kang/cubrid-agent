@@ -46,7 +46,7 @@ dbgn=$(jq -r '.verify.debug.note // ""' "$MANIFEST")
 # Test for the key: `// true` would also substitute for a recorded false, i.e. a check that cannot
 # fail. `placement` is written as null when the issue type is unknown, and null must block.
 _dflt='def d(k): if ((.lint // {})|has(k)) then .lint[k] else true end;'
-lint=$(jq -r "$_dflt"'[.lint.header,.lint.evaluate,.lint.cleanup,.lint.answer_not_handwritten,.lint.english_comments,d("header_scope"),d("header_size"),d("header_no_dashdash"),d("placement")]|all' "$MANIFEST" 2>/dev/null)
+lint=$(jq -r "$_dflt"'[.lint.header,.lint.evaluate,.lint.cleanup,.lint.answer_not_handwritten,.lint.english_comments,d("header_scope"),d("header_size"),d("header_no_dashdash"),d("header_no_semicolon"),d("evaluate_quotes"),d("evaluate_terminator"),d("prepare_released"),d("directives"),d("placement")]|all' "$MANIFEST" 2>/dev/null)
 
 p=""
 [ "$det" = true ] || p="$p\n- determinism not confirmed (verify.determinism.all_pass≠true)"
