@@ -53,7 +53,13 @@ expect_jq() {  # expect_jq <name> <jq filter> <wanted>
   note_fail "$1: \`$2\` is \"$_got\", expected \"$3\""
 }
 
-R1_TWO='{"lane":"review-r1","round":1,"verdict":"NEEDS-WORK","preconditions":[
+# Shaped like a real lane report, not like the checks: it carries the findings and verdict SKILL.md
+# declares, which this script does not read. A fixture holding only the fields under test cannot show
+# that an unread field is passed through rather than tripping something.
+R1_TWO='{"lane":"review-r1","round":1,"verdict":"NEEDS-WORK",
+  "findings":[{"severity":"blocking","what":"Case 9 does not exercise the fix",
+               "why":"execute_using_list -> signed_literal_ -> literal_; the answer record is byte-identical to case 8"}],
+  "preconditions":[
   {"id":"server-parallelism","cond":"parallelism >= 2, else the sort runs serial and never enters the fixed path"},
   {"id":"heap-page-threshold","cond":"t heap spans >= 2048 data pages"}]}'
 
@@ -149,6 +155,23 @@ expect_rc "R1 without cond is an error" 1
 run "$KEY" --from "$(report r1-no-id.json '{"lane":"review-r1","round":1,"preconditions":[{"cond":"x"}]}')"
 expect_rc "R1 without id is an error" 1
 
+# An entry that is not an object reaches the field checks as a jq type error, which exits non-zero
+# for the wrong stated reason. Asserting the diagnosis is what separates the two.
+run "$KEY" --from "$(report r1-scalars.json '{"lane":"review-r1","round":1,"preconditions":[1,2]}')"
+expect_rc "a precondition that is not an object is an error" 1
+expect_out "and is diagnosed as such" "object"
+
+# The id is what R2 closes against. Two entries sharing one cannot both be judged — and the merge
+# would file both, so R2 closing that id would close whichever the merge happened to reach.
+run "$KEY" --from "$(report r1-dup.json '{"lane":"review-r1","round":1,"preconditions":[
+  {"id":"same","cond":"first"},{"id":"same","cond":"second"}]}')"
+expect_rc "a repeated id within one report is an error" 1
+expect_out "the repeated id is named" "same"
+run "$KEY" --from "$(report r2-dup.json '{"lane":"review-r2","round":1,"preconditions":[
+  {"id":"server-parallelism","verified":true,"evidence":"a"},
+  {"id":"server-parallelism","verified":false,"evidence":"b"}]}')"
+expect_rc "R2 repeating an id is an error too" 1
+
 # The lane field decides which half of the contract applies, so an unknown one cannot be guessed.
 run "$KEY" --from "$(report author.json '{"lane":"author","round":1,"summary":"wrote the sql"}')"
 expect_rc "an author report is not a precondition source" 1
@@ -204,6 +227,23 @@ if [ -f "$RENDER" ]; then
   else note_fail "render-report does not mark the unverified precondition as open: $(grep -m1 'server-parallelism' "$_rep" 2>/dev/null)"; fi
 else
   note_fail "render-report.sh missing at $RENDER — the artefact assertion could not run"
+fi
+
+# The PR body is the other artefact, and the one a reviewer outside this repo reads. It states the
+# consequence in words rather than a checkbox, so it is asserted separately.
+PRBODY="$BIN_DIR/render-pr-body.sh"
+if [ -f "$PRBODY" ]; then
+  # Close one of the two, so the count and the named id are both distinguishable from "none closed".
+  run "$KEY" --from "$(report review-r2-pb.json "$R2_ONE")"
+  rm -f "$RUN/pr-body.md"
+  bash "$PRBODY" "$KEY" --force >/dev/null 2>&1
+  _pb="$RUN/pr-body.md"
+  if grep -q '1개 미검증' "$_pb" 2>/dev/null && grep -q 'heap-page-threshold' "$_pb" 2>/dev/null; then ok
+  else note_fail "render-pr-body does not report the unverified precondition: $(grep -m1 '전제' "$_pb" 2>/dev/null)"; fi
+  if grep -q '결론이 유보' "$_pb" 2>/dev/null; then ok
+  else note_fail "render-pr-body does not say the result is held back — recording the precondition then is bookkeeping with no consequence"; fi
+else
+  note_fail "render-pr-body.sh missing at $PRBODY — the PR-body assertion could not run"
 fi
 
 if [ "$T_FAIL" -eq 0 ]; then

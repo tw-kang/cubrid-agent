@@ -24,10 +24,10 @@ All notable changes to cubrid-agent are documented here. The format follows
   `~/.cubrid-agent/CBRD-XXXXX/<lane>-<n>.json` and returns only a verdict and one line, and the
   orchestrator passes the next lane that path instead of repeating the report back into the
   conversation. Every round keeps its own file, so a run leaves its review history on disk for a
-  human to read. The report is JSON with a fixed shape, so a lane that omits a required field or
-  invents a verdict outside `PASS`/`NEEDS-WORK` is caught instead of quietly blocking submission
-  later. The orchestrator also no longer watches the filesystem to learn that a lane finished — the
-  lane's return is that signal.
+  human to read. The report is JSON with a fixed shape, so the step that reads it can turn back a
+  report that dropped a required field instead of recording nothing and reading as a clean run. The
+  orchestrator also no longer watches the filesystem to learn that a lane finished — the lane's
+  return is that signal.
 
 - (minor) **The preconditions a run rests on are no longer retyped by hand.** The static review lane
   records each condition that decides whether the run proved anything in its own report, and
@@ -36,9 +36,11 @@ All notable changes to cubrid-agent are documented here. The format follows
   can do the other's half — the review that runs before execution cannot mark a condition verified,
   and the one after it cannot introduce a condition nobody raised. A report that dropped the field
   is refused rather than recorded as none, because an omission and "this run needs none" are
-  different answers and the second is written as an empty list. Whatever is still unverified is
-  named on every call and carried into the run report and the pull request body, where it says the
-  result is inconclusive.
+  different answers and the second is written as an empty list; so is a report that gives one id to
+  two conditions, since the id is what the second review closes against. Whatever is still
+  unverified is named on every call and carried into the run report and the pull request body, where
+  it says the result is inconclusive.
+
 - (minor) **The TC convention lint now judges the five shapes that break CTP's line splitter**, so a
   testcase that would silently stop running is caught on the `.sql` write instead of by a reviewer
   reading CTP's Java source. The five are a semicolon ending a header line, an odd number of

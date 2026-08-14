@@ -52,9 +52,15 @@ esac
 ROUND=$(jq -r '.round // "?"' "$FROM" 2>/dev/null)
 
 # The field being absent is the failure this exists to catch: a lane that dropped the block would
-# otherwise record nothing and read as a clean run.
-jq -e '(.preconditions | type) == "array"' "$FROM" >/dev/null 2>&1 \
-  || die "$FROM has no .preconditions array. Write [] if this run genuinely needs none — an omitted field is indistinguishable from a lane that forgot."
+# otherwise record nothing and read as a clean run. The entries are typed here too, because a scalar
+# one reaches the field checks below as a jq type error — a right refusal with the wrong reason.
+jq -e '(.preconditions | type) == "array" and ([.preconditions[] | type] | all(. == "object"))' "$FROM" >/dev/null 2>&1 \
+  || die "$FROM has no .preconditions array of objects. Write [] if this run genuinely needs none — an omitted field is indistinguishable from a lane that forgot."
+
+# The id is the identity R2 closes against, so two entries cannot share one: the merge would file
+# both, and closing that id would then close whichever of them it reached.
+_dup=$(jq -r '[.preconditions[].id] | group_by(.) | map(select(length > 1) | .[0]) | join(", ")' "$FROM")
+[ -z "$_dup" ] || die "the report uses one id for more than one precondition: $_dup. Give each its own id — R2 closes them by id, so a shared one cannot be judged."
 
 RUN_DIR="$HOME/.cubrid-agent/$KEY"
 MANIFEST="$RUN_DIR/manifest.json"
