@@ -582,6 +582,11 @@ else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-work
 if _t=$(bash scripts/test-verify-run.sh 2>&1); then pass "verify-run writes where it is told: $_t"
 else fail "verify-run test failed — run scripts/test-verify-run.sh:"; printf '         %s\n' "$_t"; fi
 
+# A precondition the orchestrator never records is one the renderers cannot report as open, so the
+# run reads conclusive when it is not. The two halves — R1 opens, R2 closes — have to stay split.
+if _t=$(bash scripts/test-record-preconditions.sh 2>&1); then pass "preconditions transfer behaves: $_t"
+else fail "record-preconditions test failed — run scripts/test-record-preconditions.sh:"; printf '         %s\n' "$_t"; fi
+
 # The prep call replaces eight look-ups, so it is trusted rather than re-checked — which makes a
 # capability it reports as present but is not the one failure nobody would catch until Verify.
 if _t=$(bash scripts/test-scout.sh 2>&1); then pass "prep scout behaves: $_t"

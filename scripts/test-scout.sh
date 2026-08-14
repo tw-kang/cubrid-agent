@@ -83,7 +83,14 @@ chmod +x "$CUBRID/bin/cubrid_rel" "$CTP_HOME/bin/ctp.sh"
 export CUBRID_JIRA_USER=qauser
 unset CUBRID_GH_FORK GH_TOKEN
 
-HELPERS='common.sh ground-issue.sh select-queue.sh prepare-tc-workspace.sh render-pr-body.sh verify-run.sh build-swap.sh failpass-run.sh debug-check.sh render-report.sh scout.sh'
+# Read the list from scout.sh rather than keeping a third copy. What this file tests is the
+# behaviour (present -> pass, absent -> MISSING), not the membership — check-invariants already pins
+# scout.sh against setup.sh. A copy here only drifts, and did: adding one helper failed every case
+# in this file at once, for a reason none of them was about.
+HELPERS=$(sed -n "s/^HELPERS='\(.*\)'\$/\1/p" "$SRC")
+[ -n "$HELPERS" ] || { echo "test-scout: could not read the HELPERS list out of $SRC" >&2; exit 1; }
+# shellcheck disable=SC2086
+NH=$(printf '%s\n' $HELPERS | grep -c .)
 install_helpers() { mkdir -p "$HOME/.cubrid-agent/bin"; for h in $HELPERS; do : > "$HOME/.cubrid-agent/bin/$h"; done; }
 install_helpers
 
@@ -116,7 +123,7 @@ CUBRID_TESTCASES="$T/not-a-clone" ARGS=CBRD-25913 run "no clone" 1 "is not a git
 # ── happy path: every section answers, in one call ───────────────────────────────────────────────
 reset_state
 manifest '{"issue":"CBRD-25913","select":{"issue_type":"Correct Error"}}'
-run "env line"        0 "helpers 11/11"
+run "env line"        0 "helpers $NH/$NH"
 run "build reported"  0 "11.4.0.1234-abcdef (release)"
 run "ctp reported"    0 "$T/ctp"
 run "identity"        0 "jira qauser · fork octo"
@@ -191,7 +198,7 @@ rm -f "$TCD"/sql/_13_issues/_24_1h/cases/cbrd_300*.sql
 
 # ── no key: create-sql is reachable without a CBRD number, and still needs the environment ───────
 reset_state
-ARGS="" run "keyless call still answers the env" 0 "helpers 11/11"
+ARGS="" run "keyless call still answers the env" 0 "helpers $NH/$NH"
 ARGS="" run "and searches by pattern"            0 "name CBRD-XXXXX to have its own TC looked for"
 ARGS="--grep PREPARE" run "pattern works without a key" 0 "--grep 'PREPARE' → 2 file(s)"
 ARGS="" run "the tree needs a key, and says so"  0 "no issue key given — the tree follows from the issue type"

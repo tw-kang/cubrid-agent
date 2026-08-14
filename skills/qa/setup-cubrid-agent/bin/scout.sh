@@ -59,7 +59,7 @@ miss() { MISS="$MISS  MISSING: $1"$'\n'; }
 # ── 1. environment ───────────────────────────────────────────────────────────────────────────────
 # The list is the one setup.sh installs (check-invariants pins the two together): a helper absent
 # here fails at its own stage with an errno and no cause.
-HELPERS='common.sh ground-issue.sh select-queue.sh prepare-tc-workspace.sh render-pr-body.sh verify-run.sh build-swap.sh failpass-run.sh debug-check.sh render-report.sh scout.sh'
+HELPERS='common.sh ground-issue.sh select-queue.sh prepare-tc-workspace.sh render-pr-body.sh verify-run.sh build-swap.sh failpass-run.sh debug-check.sh record-preconditions.sh render-report.sh scout.sh'
 NH=0; NOK=0; HMISS=""
 for h in $HELPERS; do
   NH=$((NH+1))

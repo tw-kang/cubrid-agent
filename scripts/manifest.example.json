@@ -37,12 +37,16 @@
     },
     "preconditions": [
       {
-        "what": "server parallelism >= 2 (default 4) on > 2 cores, else the sort runs serial and never enters the fixed path",
-        "verified": true
+        "id": "server-parallelism",
+        "cond": "server parallelism >= 2 (default 4) on > 2 cores, else the sort runs serial and never enters the fixed path",
+        "verified": true,
+        "evidence": "written by record-preconditions.sh, never by hand: R1 opens id+cond, R2 closes verified+evidence"
       },
       {
-        "what": "t's heap spans >= parallel_sort_page_threshold (2048) data pages",
-        "verified": true
+        "id": "heap-page-threshold",
+        "cond": "t's heap spans >= parallel_sort_page_threshold (2048) data pages",
+        "verified": true,
+        "evidence": "queryplan showed the parallel sort node on all 3 runs"
       }
     ],
     "cci": {
