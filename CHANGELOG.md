@@ -7,6 +7,50 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- (minor) **The preparation phase now answers itself in one call.** `author-testcase` and
+  `create-sql` open with `~/.cubrid-agent/bin/scout.sh CBRD-XXXXX`, which reports in a single answer
+  what used to be eight separate look-ups: which helpers, CTP, build and credentials this machine
+  has, which tree the testcase belongs in and which sibling documents that area's conventions,
+  whether the corpus already covers the repro (`--grep <pattern>`, because the same repro often sits
+  under another name), and how far the run has got. It only reads — no writes, no network — so the
+  orchestrator and the author lane can both call it at any point. When something is absent it names
+  it, says what its absence costs, and stops, so a missing build or an unauthenticated `gh` shows up
+  at the start of a run instead of at Verify or at the pull request.
+
+- (minor) **The `author-testcase` lanes now hand their reports over as files.** Each lane — the
+  author, the static review and the answer review — writes its report to
+  `~/.cubrid-agent/CBRD-XXXXX/<lane>-<n>.json` and returns only a verdict and one line, and the
+  orchestrator passes the next lane that path instead of repeating the report back into the
+  conversation. Every round keeps its own file, so a run leaves its review history on disk for a
+  human to read. The report is JSON with a fixed shape, so the step that reads it can turn back a
+  report that dropped a required field instead of recording nothing and reading as a clean run. The
+  orchestrator also no longer watches the filesystem to learn that a lane finished — the lane's
+  return is that signal.
+
+- (minor) **The preconditions a run rests on are no longer retyped by hand.** The static review lane
+  records each condition that decides whether the run proved anything in its own report, and
+  `~/.cubrid-agent/bin/record-preconditions.sh CBRD-XXXXX --from <report>` moves it into the run
+  manifest; the answer review closes each one with its evidence through the same call. Neither lane
+  can do the other's half — the review that runs before execution cannot mark a condition verified,
+  and the one after it cannot introduce a condition nobody raised. A report that dropped the field
+  is refused rather than recorded as none, because an omission and "this run needs none" are
+  different answers and the second is written as an empty list; so is a report that gives one id to
+  two conditions, since the id is what the second review closes against. Whatever is still
+  unverified is named on every call and carried into the run report and the pull request body, where
+  it says the result is inconclusive.
+
+- (minor) **The TC convention lint now judges the five shapes that break CTP's line splitter**, so a
+  testcase that would silently stop running is caught on the `.sql` write instead of by a reviewer
+  reading CTP's Java source. The five are a semicolon ending a header line, an odd number of
+  apostrophes in an `evaluate` label, a label that does not close with an apostrophe and a semicolon,
+  a prepared name never released, and a line-leading `@`, `$` or `--+` that CTP does not recognise as
+  a directive. Each says what CTP does with the line and what to write instead. The submit gate now
+  blocks on all five, recorded in the run manifest as `lint.header_no_semicolon`,
+  `lint.evaluate_quotes`, `lint.evaluate_terminator`, `lint.prepare_released` and `lint.directives`;
+  a manifest written before this release keeps passing, because an absent field is read as clean.
+
 ## [1.0.3] - 2026-08-07
 
 ### Fixed
