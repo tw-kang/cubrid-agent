@@ -250,6 +250,30 @@ else
   fail "grounding helper wiring broken:$_bad — the skills call an absolute path that nothing puts on disk"
 fi
 
+# The scout names the half-year dir a new case belongs in; the lint hook judges whether the file
+# landed there. Same fact, two files — and they cannot share code, because a hook ships through the
+# plugin while a helper is installed into ~/.cubrid-agent/bin (ADR 0003). If the two expressions ever
+# disagree, the pipeline sends the author to a directory its own gate then refuses.
+_hy_lint=$(sed -n 's/^[[:space:]]*_curhy=\(.*\)$/\1/p' scripts/lint-sql-tc.sh)
+_hy_scout=$(sed -n 's/^[[:space:]]*CURHY=\(.*\)$/\1/p' skills/qa/setup-cubrid-agent/bin/scout.sh)
+if [ -n "$_hy_lint" ] && [ "$_hy_lint" = "$_hy_scout" ]; then
+  pass "the scout and the lint hook compute the same half-year directory"
+else
+  fail "half-year expression drifted — lint: ${_hy_lint:-(not found)} / scout: ${_hy_scout:-(not found)}; the scout would name a directory the lint hook then rejects"
+fi
+
+# scout.sh reports which helpers are installed, so it carries its own copy of the list — the only
+# thing on the machine that can say "this one is absent". The two lists are written by hand in
+# different files and each drifts silently: a helper setup installs but scout does not know about is
+# never reported missing, and one only scout knows about is reported missing forever.
+_inst=$(sed -n 's/^for h in \(.*\); do$/\1/p' skills/qa/setup-cubrid-agent/scripts/setup.sh | tr ' ' '\n' | grep . | sort)
+_scout=$(sed -n "s/^HELPERS='\(.*\)'\$/\1/p" skills/qa/setup-cubrid-agent/bin/scout.sh | tr ' ' '\n' | grep . | sort)
+if [ -n "$_inst" ] && [ "$_inst" = "$_scout" ]; then
+  pass "scout.sh knows exactly the helper set setup.sh installs ($(printf '%s\n' "$_inst" | wc -l | tr -d ' ') names)"
+else
+  fail "the helper list drifted between setup.sh and scout.sh — only in setup:$(comm -23 <(printf '%s\n' "$_inst") <(printf '%s\n' "$_scout") | tr '\n' ' ') only in scout:$(comm -13 <(printf '%s\n' "$_inst") <(printf '%s\n' "$_scout") | tr '\n' ' ')"
+fi
+
 # This repo ships publicly as a plugin, so an internal address in it is both an information leak and a
 # dead end for anyone outside that network — the build-server URL was hardcoded in 9 places, including
 # the default a script actually downloaded from. The public archive serves the same artifact and keeps a
@@ -557,6 +581,11 @@ else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-work
 
 if _t=$(bash scripts/test-verify-run.sh 2>&1); then pass "verify-run writes where it is told: $_t"
 else fail "verify-run test failed — run scripts/test-verify-run.sh:"; printf '         %s\n' "$_t"; fi
+
+# The prep call replaces eight look-ups, so it is trusted rather than re-checked — which makes a
+# capability it reports as present but is not the one failure nobody would catch until Verify.
+if _t=$(bash scripts/test-scout.sh 2>&1); then pass "prep scout behaves: $_t"
+else fail "scout test failed — run scripts/test-scout.sh:"; printf '         %s\n' "$_t"; fi
 
 # A release reaches an installed copy through the declared version, so a state that drifts from the
 # CHANGELOG ships under a number nobody can look up. release.sh owns that judgement; this runs it

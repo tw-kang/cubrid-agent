@@ -9,6 +9,16 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ### Changed
 
+- (minor) **The preparation phase now answers itself in one call.** `author-testcase` and
+  `create-sql` open with `~/.cubrid-agent/bin/scout.sh CBRD-XXXXX`, which reports in a single answer
+  what used to be eight separate look-ups: which helpers, CTP, build and credentials this machine
+  has, which tree the testcase belongs in and which sibling documents that area's conventions,
+  whether the corpus already covers the repro (`--grep <pattern>`, because the same repro often sits
+  under another name), and how far the run has got. It only reads — no writes, no network — so the
+  orchestrator and the author lane can both call it at any point. When something is absent it names
+  it, says what its absence costs, and stops, so a missing build or an unauthenticated `gh` shows up
+  at the start of a run instead of at Verify or at the pull request.
+
 - (minor) **The `author-testcase` lanes now hand their reports over as files.** Each lane — the
   author, the static review and the answer review — writes its report to
   `~/.cubrid-agent/CBRD-XXXXX/<lane>-<n>.md` and returns only a verdict and one line, and the
