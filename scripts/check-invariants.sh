@@ -250,6 +250,30 @@ else
   fail "grounding helper wiring broken:$_bad — the skills call an absolute path that nothing puts on disk"
 fi
 
+# The scout names the half-year dir a new case belongs in; the lint hook judges whether the file
+# landed there. Same fact, two files — and they cannot share code, because a hook ships through the
+# plugin while a helper is installed into ~/.cubrid-agent/bin (ADR 0003). If the two expressions ever
+# disagree, the pipeline sends the author to a directory its own gate then refuses.
+_hy_lint=$(sed -n 's/^[[:space:]]*_curhy=\(.*\)$/\1/p' scripts/lint-sql-tc.sh)
+_hy_scout=$(sed -n 's/^[[:space:]]*CURHY=\(.*\)$/\1/p' skills/qa/setup-cubrid-agent/bin/scout.sh)
+if [ -n "$_hy_lint" ] && [ "$_hy_lint" = "$_hy_scout" ]; then
+  pass "the scout and the lint hook compute the same half-year directory"
+else
+  fail "half-year expression drifted — lint: ${_hy_lint:-(not found)} / scout: ${_hy_scout:-(not found)}; the scout would name a directory the lint hook then rejects"
+fi
+
+# scout.sh reports which helpers are installed, so it carries its own copy of the list — the only
+# thing on the machine that can say "this one is absent". The two lists are written by hand in
+# different files and each drifts silently: a helper setup installs but scout does not know about is
+# never reported missing, and one only scout knows about is reported missing forever.
+_inst=$(sed -n 's/^for h in \(.*\); do$/\1/p' skills/qa/setup-cubrid-agent/scripts/setup.sh | tr ' ' '\n' | grep . | sort)
+_scout=$(sed -n "s/^HELPERS='\(.*\)'\$/\1/p" skills/qa/setup-cubrid-agent/bin/scout.sh | tr ' ' '\n' | grep . | sort)
+if [ -n "$_inst" ] && [ "$_inst" = "$_scout" ]; then
+  pass "scout.sh knows exactly the helper set setup.sh installs ($(printf '%s\n' "$_inst" | wc -l | tr -d ' ') names)"
+else
+  fail "the helper list drifted between setup.sh and scout.sh — only in setup:$(comm -23 <(printf '%s\n' "$_inst") <(printf '%s\n' "$_scout") | tr '\n' ' ') only in scout:$(comm -13 <(printf '%s\n' "$_inst") <(printf '%s\n' "$_scout") | tr '\n' ' ')"
+fi
+
 # This repo ships publicly as a plugin, so an internal address in it is both an information leak and a
 # dead end for anyone outside that network — the build-server URL was hardcoded in 9 places, including
 # the default a script actually downloaded from. The public archive serves the same artifact and keeps a
@@ -404,14 +428,27 @@ else
   fail "author-testcase lost:$_miss — without both, the TC path is decided by whoever guesses first and the placement check cannot run"
 fi
 
-# The placement flag is written by one script and read by another; a half-move silently disables it.
-_w=0; _r=0
-grep -q 'lint.placement=' scripts/lint-sql-tc.sh && _w=1
-grep -q 'd("placement")' scripts/gate-pr-submit.sh && _r=1
-if [ "$_w" -eq 1 ] && [ "$_r" -eq 1 ]; then
-  pass "lint writes lint.placement and the submit gate reads it"
+# A lint flag is written by one script and read by another; a half-move silently disables it. Every
+# field the hook records has to reach the gate's aggregate, so the enumeration lives here rather than a
+# named few — a rule added to the hook and forgotten in the gate blocks nothing and still reports green.
+# Both directions, because each half goes silent on its own: a flag the gate never reads blocks nothing,
+# and a flag nothing writes stays absent, which `d()` reads as clean — a check that cannot fail.
+_unread=""; _unwritten=""
+for _k in $(grep -oE '\.lint\.[a-z_]+=' scripts/lint-sql-tc.sh | sed 's/^\.lint\.//; s/=$//' | sort -u); do
+  grep -qE "(d\(\"$_k\"\)|\.lint\.$_k[,]|\.lint\.$_k\])" scripts/gate-pr-submit.sh || _unread="$_unread $_k"
+done
+for _k in $(grep -oE 'd\("[a-z_]+"\)|\.lint\.[a-z_]+[,\]]' scripts/gate-pr-submit.sh \
+              | sed 's/^d("//; s/")$//; s/^\.lint\.//; s/[,]$//' | sort -u); do
+  # answer_not_handwritten is the one flag the hook cannot judge: it is provenance the orchestrator
+  # records, since no reading of the file says whether a human typed the .answer.
+  [ "$_k" = answer_not_handwritten ] && continue
+  grep -q "\.lint\.$_k=" scripts/lint-sql-tc.sh || _unwritten="$_unwritten $_k"
+done
+if [ -z "$_unread" ] && [ -z "$_unwritten" ]; then
+  pass "every lint.* flag is written by the hook and read by the submit gate"
 else
-  fail "lint.placement is $([ "$_w" -eq 1 ] && echo 'written but never read by the submit gate' || echo 'read by the submit gate but never written') — a placement violation would not block anything"
+  [ -z "$_unread" ]    || fail "lint flag(s) written by the hook but never read by the submit gate:$_unread — a violation of those would not block anything"
+  [ -z "$_unwritten" ] || fail "lint flag(s) read by the submit gate but never written:$_unwritten — they stay absent, which the gate reads as clean, so the check cannot fail"
 fi
 
 # The flag the skill tells the operator to pass must exist in the script it points at; drift either
@@ -544,6 +581,16 @@ else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-work
 
 if _t=$(bash scripts/test-verify-run.sh 2>&1); then pass "verify-run writes where it is told: $_t"
 else fail "verify-run test failed — run scripts/test-verify-run.sh:"; printf '         %s\n' "$_t"; fi
+
+# A precondition the orchestrator never records is one the renderers cannot report as open, so the
+# run reads conclusive when it is not. The two halves — R1 opens, R2 closes — have to stay split.
+if _t=$(bash scripts/test-record-preconditions.sh 2>&1); then pass "preconditions transfer behaves: $_t"
+else fail "record-preconditions test failed — run scripts/test-record-preconditions.sh:"; printf '         %s\n' "$_t"; fi
+
+# The prep call replaces eight look-ups, so it is trusted rather than re-checked — which makes a
+# capability it reports as present but is not the one failure nobody would catch until Verify.
+if _t=$(bash scripts/test-scout.sh 2>&1); then pass "prep scout behaves: $_t"
+else fail "scout test failed — run scripts/test-scout.sh:"; printf '         %s\n' "$_t"; fi
 
 # A release reaches an installed copy through the declared version, so a state that drifts from the
 # CHANGELOG ships under a number nobody can look up. release.sh owns that judgement; this runs it

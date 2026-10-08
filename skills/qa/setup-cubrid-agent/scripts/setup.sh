@@ -126,7 +126,7 @@ ok "$AGENT_DIR/{<KEY>/ (per-run dir + manifest.json; skills create it), reports/
 SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)  # readlink: the skill dir may be symlinked in
 HELPER_SRC="$SELF_DIR/../bin"   # scripts/setup.sh is the skill's implementation; bin/ is what it installs
 mkdir -p "$AGENT_DIR/bin"
-for h in common.sh ground-issue.sh select-queue.sh prepare-tc-workspace.sh render-pr-body.sh verify-run.sh build-swap.sh failpass-run.sh debug-check.sh render-report.sh; do
+for h in common.sh ground-issue.sh select-queue.sh prepare-tc-workspace.sh render-pr-body.sh verify-run.sh build-swap.sh failpass-run.sh debug-check.sh record-preconditions.sh render-report.sh scout.sh; do
   if [ -f "$HELPER_SRC/$h" ]; then
     install -m 755 "$HELPER_SRC/$h" "$AGENT_DIR/bin/$h" && ok "~/.cubrid-agent/bin/$h"
   else todo "$h not found in the skill's bin/ — the skills that call it by absolute path will report it missing"; fi
