@@ -2,7 +2,7 @@
 
 엔지니어링 스킬이 이 repo를 탐색할 때 도메인 문서를 어떻게 소비하는지.
 
-레이아웃: **다중 컨텍스트(multi-context)**. 이 repo는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이전트들의 모노레포다. 단, **에이전트별 상세 설계는 repo가 아니라 Jira(CUBRIDQA)에 산다** — repo=제품, 설계=Jira([ADR 0005](./adr/0005-repo-is-product-design-lives-in-jira.md); 모노레포 근거 ADR 0008 = CUBRIDQA-1425).
+레이아웃: **단일 컨텍스트(single-context)** — 용어집은 루트 `CONTEXT.md` 하나이고 `CONTEXT-MAP.md`는 없다. 이 repo는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이전트들의 모노레포다. 단, **에이전트별 상세 설계는 repo가 아니라 Jira(CUBRIDQA)에 산다** — repo=제품, 설계=Jira([ADR 0005](./adr/0005-repo-is-product-design-lives-in-jira.md); 모노레포 근거 ADR 0008 = CUBRIDQA-1425).
 
 ## 탐색 전에 읽을 것
 
