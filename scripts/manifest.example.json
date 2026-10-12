@@ -16,11 +16,12 @@
     "fix_pr": "https://github.com/CUBRID/cubrid/pull/5906",
     "fix_commits_found": 1
   },
-  "branch": "tc/cbrd-26799",
   "build": "11.5.0.2300-04192d6",
   "submitted": false,
   "author": {
-    "sql": "sql/_13_issues/_26_2h/cases/cbrd_26799.sql",
+    "path": "sql/_13_issues/_26_2h/cases/cbrd_26799.sql",
+    "branch": "tc/cbrd-26799",
+    "sql_writes": 2,
     "answer_generated": true
   },
   "verify": {

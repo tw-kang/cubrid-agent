@@ -614,6 +614,23 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+group "Run manifest schema"
+
+# The skill tells the agent to write the manifest after scripts/manifest.example.json. A key the
+# example spells differently from the helper that reads it stops the run at that helper (#17).
+# .author.login is gh's pull-request author, not a manifest key.
+_read=$(grep -ohE '\.author\.[a-z_]+' skills/qa/setup-cubrid-agent/bin/*.sh scripts/gate-*.sh scripts/lint-sql-tc.sh \
+  | grep -vx '\.author\.login' | sort -u)
+_missing=""
+for _k in $_read; do jq -e "$_k != null" scripts/manifest.example.json >/dev/null 2>&1 || _missing="$_missing $_k"; done
+if [ -z "$_missing" ]; then pass "manifest.example.json carries every author key a helper reads ($(echo $_read))"
+else fail "manifest.example.json lacks author keys that helpers read:$_missing"; fi
+_extra=$(jq -rn --slurpfile a scripts/manifest.example.json --slurpfile b scripts/manifest.blocked.example.json \
+  '($b[0].author|keys) - ($a[0].author|keys) | join(" ")')
+if [ -z "$_extra" ]; then pass "manifest.blocked.example.json uses only author keys the full example has"
+else fail "manifest.blocked.example.json has author keys the full example does not: $_extra"; fi
+
+# ---------------------------------------------------------------------------
 group "Plugin manifest validation (optional — needs the claude CLI)"
 
 if command -v claude >/dev/null 2>&1; then

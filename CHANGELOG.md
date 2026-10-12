@@ -51,6 +51,14 @@ All notable changes to cubrid-agent are documented here. The format follows
   `lint.evaluate_quotes`, `lint.evaluate_terminator`, `lint.prepare_released` and `lint.directives`;
   a manifest written before this release keeps passing, because an absent field is read as clean.
 
+### Fixed
+
+- (patch) **A run manifest written after the schema example now gets through Verify.** The example
+  that `author-testcase` points at recorded the testcase under `author.sql` and the branch at the top
+  level, while the helpers read `author.path` and `author.branch`. A manifest that followed the
+  example stopped `verify-run` with "manifest has no .author.path". The examples now use the keys the
+  helpers read, and the invariant check fails when a helper reads an `author` key the example lacks.
+
 ## [1.0.3] - 2026-08-07
 
 ### Fixed
