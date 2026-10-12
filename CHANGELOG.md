@@ -7,6 +7,8 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-12
+
 ### Changed
 
 - (minor) **The preparation phase now answers itself in one call.** `author-testcase` and
