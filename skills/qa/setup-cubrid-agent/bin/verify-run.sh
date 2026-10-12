@@ -56,8 +56,7 @@ MANIFEST="$RUN_DIR/manifest.json"
 mkdir -p "$RUN_DIR"
 
 # env.sh (sourced by common.sh) is what setup.sh resolved once for this machine (CUBRID, CTP_HOME, JAVA_HOME).
-CTP_HOME=${CTP_HOME:-}
-[ -n "$CTP_HOME" ] || { for d in "$HOME/CTP" "$HOME/cubrid-testtools/CTP"; do [ -x "$d/bin/ctp.sh" ] && CTP_HOME=$d && break; done; }
+CTP_HOME=$(ctp_home)
 
 HAVE_JQ=0; command -v jq >/dev/null 2>&1 && HAVE_JQ=1
 # Values go in through --arg, never interpolated: a quote in a path would break the jq program.

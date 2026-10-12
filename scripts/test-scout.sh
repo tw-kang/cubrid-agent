@@ -144,6 +144,11 @@ manifest '{"select":{"issue_type":"Correct Error"}}'
 CUBRID="$T/none" run "no build stops"    3 "MISSING: CUBRID build"
 CUBRID="$T/none" run "and says the cost" 3 'blocked_no_build'
 CTP_HOME="$T/none" run "no CTP stops"    3 "MISSING: CTP"
+# verify-run runs a set $CTP_HOME as set, so a CTP elsewhere must not make the scout report one.
+mkdir -p "$HOME/CTP/bin"; printf '#!/bin/bash\nexit 0\n' > "$HOME/CTP/bin/ctp.sh"; chmod +x "$HOME/CTP/bin/ctp.sh"
+CTP_HOME="$T/none" run "a bad \$CTP_HOME is not rescued by ~/CTP" 3 "MISSING: CTP"
+CTP_HOME="" run "an unset \$CTP_HOME falls back to ~/CTP" 0 "CTP $HOME/CTP"
+rm -rf "$HOME/CTP"
 rm -f "$HOME/.cubrid-agent/bin/render-report.sh" "$HOME/.cubrid-agent/bin/verify-run.sh"
 run "missing helpers named" 3 "MISSING: helper(s) verify-run.sh render-report.sh"
 install_helpers

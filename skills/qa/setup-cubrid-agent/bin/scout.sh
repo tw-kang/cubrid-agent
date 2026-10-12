@@ -67,14 +67,14 @@ for h in $HELPERS; do
 done
 [ -z "$HMISS" ] || miss "helper(s)$HMISS not in ~/.cubrid-agent/bin/ — the stage that calls one dies on an errno with no reason given. Run /setup-cubrid-agent to install them."
 
-# Same resolution order as verify-run.sh, so what the scout reports is what CTP will actually use.
-CTP=${CTP_HOME:-}
-if [ -z "$CTP" ] || [ ! -x "$CTP/bin/ctp.sh" ]; then
+CTP=$(ctp_home)
+_noctp='Select/Ground/Author still run; Verify cannot, and its terminal state is verify.status="blocked_no_ctp" + verify.note.'
+if [ -z "$CTP" ]; then
+  miss "CTP — \$CTP_HOME is not set and neither ~/CTP nor ~/cubrid-testtools/CTP has bin/ctp.sh. $_noctp"
+elif [ ! -x "$CTP/bin/ctp.sh" ]; then
+  miss "CTP — \$CTP_HOME is $CTP, which has no bin/ctp.sh, and verify-run uses \$CTP_HOME as set. $_noctp"
   CTP=""
-  for d in "$HOME/CTP" "$HOME/cubrid-testtools/CTP"; do [ -x "$d/bin/ctp.sh" ] && CTP=$d && break; done
 fi
-[ -n "$CTP" ] \
-  || miss "CTP — not at \$CTP_HOME, ~/CTP or ~/cubrid-testtools/CTP. Select/Ground/Author still run; Verify cannot, and its terminal state is verify.status=\"blocked_no_ctp\" + verify.note."
 
 CUB=${CUBRID:-$HOME/CUBRID}
 BUILD=""; BTYPE=""
