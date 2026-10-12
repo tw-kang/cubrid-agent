@@ -44,6 +44,12 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 �
 
 단 **서드파티 마켓플레이스는 자동 갱신이 기본 꺼져 있다.** 그래서 `/cubrid-agent:setup-cubrid-agent`가 `~/.claude/settings.json`의 `extraKnownMarketplaces["cubrid-agent"].autoUpdate` 를 **켜 준다**(멱등, 백업 `settings.json.bak`). 수동으로 켜려면 `/plugin` → Marketplaces → cubrid-agent → **Enable auto-update**.
 
+**마켓플레이스를 다시 등록하면 이 값이 사라진다.** 항목이 새로 써지기 때문이다. 그러니 `claude plugin marketplace add`를 다시 했으면 setup을 다시 돌려라. 안 그러면 카탈로그가 그 자리에 멈추고, **릴리스를 내도 그 설치본에는 영원히 안 간다.** 화면에는 아무 말도 안 나온다. 실제로 이 장비에서 4일간 그랬다(v1.0.3이 08-07에 나갔는데 08-10까지 1.0.0). 지금 값은 이렇게 본다:
+
+```bash
+jq -r '.extraKnownMarketplaces["cubrid-agent"].autoUpdate' ~/.claude/settings.json  # true 여야 한다
+```
+
 밟기 쉬운 함정 둘:
 
 | 하는 일 | 결과 |

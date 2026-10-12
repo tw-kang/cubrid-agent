@@ -34,7 +34,17 @@ finish the credential steps, and get a per-skill readiness report.
 ### Staying current
 
 Auto-update is off by default for third-party marketplaces, so an install stays on
-what it first fetched. `setup-cubrid-agent` turns it on and pulls once; after that an
+what it first fetched. `setup-cubrid-agent` turns it on and pulls once. **Adding the
+marketplace again writes that entry afresh and clears the flag**, so re-run
+`setup-cubrid-agent` after any `marketplace add` — otherwise the catalogue stops
+refreshing and no release reaches you again, with nothing on screen to say so. What it
+should read:
+
+```bash
+jq -r '.extraKnownMarketplaces["cubrid-agent"].autoUpdate' ~/.claude/settings.json  # true
+```
+
+With the flag on, an
 update lands minutes into a session, unprompted, and what arrives is the newest
 **released version** (four measured deliveries: nine minutes, two minutes and
 nineteen seconds, twenty-four seconds, two and a half minutes). Two limits are worth

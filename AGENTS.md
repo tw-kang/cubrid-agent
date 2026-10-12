@@ -10,7 +10,7 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 
 - **코드로 가능한 것은 최대한 코드로, LLM은 판단에 쓴다.** 기계적으로 결정되는 일(분류·추출·규칙 검사·카운팅·상태 기록)은 `scripts/`·`hooks/`가 하고, 스킬 산문은 판단만 담는다. 새 규칙을 스킬에 적기 전에 **"훅이나 스크립트가 이걸 판정할 수 있나"를 먼저 묻는다** — 할 수 있으면 코드로 옮기고 스킬엔 한 줄만 남긴다. 근거(TC 1건 62분의 원인)와 코드/LLM 경계표는 `.agents/design-principles.md` DP6.
 - **한 번만, 짧게, 한 가지로만 읽히게.** 두 갈래로 읽히는 규칙은 실제로 틀린 쪽으로 읽혔고(CUBRIDQA-1486, 반년 디렉토리), 복붙된 규칙은 다르게 낡았다(첨부 문단 12곳 중 PDF 주의가 3곳에만 닿음). 같은 사실은 한 곳에 두고 두 번째 자리엔 링크만 두며, 독자의 행동을 바꾸지 않는 문장은 지운다. 근거는 `.agents/design-principles.md` DP7. **스킬 본문을 줄일 때는 `scripts/rule-inventory.sh <ref> <SKILL.md>`로 규칙 손실 0을 확인한다** — bold·backtick·헤딩 인벤토리를 diff하므로, 근거를 걷어냈는지 규칙을 지웠는지가 눈이 아니라 목록으로 갈린다. 매 턴 로드되는 것은 `SKILL.md`뿐이니 세부는 `references/`로 옮기고 **본문에서 반드시 링크한다**(링크 없는 참조는 삭제와 같다 — invariant가 잡는다).
-- **변경은 스킬 체인으로 굴린다**: `/grill-with-docs` → `/to-spec` → `/to-tickets` → `/implement`(안에서 `/tdd`) → `/code-review`. 한 세션에 담기는 작은 변경은 `/to-spec`·`/to-tickets`를 건너뛰고 `/implement`로 바로 가도 되지만, **`/implement`는 항상 `/code-review`(Standards+Spec 2축)로 닫는다**. 여러 세션짜리면 `/to-tickets`까지를 **한 컨텍스트 안에서** 끝낸다(중간에 compact하면 spec과 티켓이 다른 사고 위에 얹힌다). 스펙 티켓은 CUBRIDQA이고 **기본은 새로 만들지 않는다** — 부모 `CUBRIDQA-1425` 트리를 먼저 읽고 관련 티켓에 코멘트/description으로 붙인다. 새로 만드는 것은 스펙 한 건(Jira sub-task)과 작업 한 건(GitHub Issue)뿐 — 조회 명령과 판정 기준은 `.agents/issue-tracker.md`. 이 스킬들은 이 repo가 아니라 개인 `~/.claude/skills`에 있다 — 없으면 `/setup-matt-pocock-skills`, 어떤 걸 쓸지 모르면 `/ask-matt`.
+- **변경은 스킬 체인으로 굴린다**: `/grill-with-docs` → `/to-spec` → `/to-tickets` → `/implement`(안에서 `/tdd`) → `/code-review`. 한 세션에 담기는 작은 변경은 `/to-spec`·`/to-tickets`를 건너뛰고 `/implement`로 바로 가도 되지만, **`/implement`는 항상 `/code-review`(Standards+Spec 2축)로 닫는다**. 여러 세션짜리면 `/to-tickets`까지를 **한 컨텍스트 안에서** 끝낸다(중간에 compact하면 spec과 티켓이 다른 사고 위에 얹힌다). 스펙 티켓은 CUBRIDQA이고 **기본은 새로 만들지 않는다** — 부모 `CUBRIDQA-1425` 트리를 먼저 읽고 관련 티켓에 코멘트/description으로 붙인다. 새로 만드는 것은 스펙 한 건(Jira sub-task)과 작업 한 건(GitHub Issue)뿐 — 조회 명령과 판정 기준은 `.agents/issue-tracker.md`. 이 스킬들은 이 repo가 아니라 `mattpocock-skills` 플러그인에서 온다 — 없으면 `claude plugin install mattpocock-skills@claude-plugins-official`, 어떤 걸 쓸지 모르면 `/ask-matt`.
 
 ## 변경을 내보낼 때 — 흐름과 형식
 
@@ -44,10 +44,13 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 배포 대상(외부·타 CLI·마켓플레이스로 나가는 것)은 **영문**, 배포 미대상(팀·개발자만 읽는 것)은 **한글**로 쓴다.
 
 - **영문(배포 대상)**: 스킬 `SKILL.md`(`name`·`description`·본문·`references/`·`evals/`), 플러그인 매니페스트(`.claude-plugin/plugin.json`·`marketplace.json`), `hooks/`·`scripts/`, 루트 `README.md`·`CHANGELOG.md`·`LICENSE`·`package.json`.
-- **한글(배포 미대상)**: `docs/`(런북·참조), `.agents/`(규범·thin ADR), 이 `AGENTS.md`·`CONTEXT.md`, Jira 티켓(CUBRIDQA) 본문.
+- **한글(배포 미대상)**: `docs/`(런북·참조), `.agents/`(규범·thin ADR), 이 `AGENTS.md`·`CONTEXT.md`, Jira 티켓(CUBRIDQA) 본문, 이 repo의 GitHub Issue 본문.
+- **제목의 분류 태그는 영문이다**: GitHub Issue 제목은 `[hook]`·`[delivery]`처럼 영문 태그로 시작하고 나머지는 한글이다. PR·커밋 제목의 태깅은 위 "형식" 절이 정한다.
 - **예외 (기능적 한글 유지)**: 스킬 `description`은 영문으로 쓰되 **한글 트리거 키워드는 유지**한다(팀이 한글로 스킬을 부르므로 트리거 정확도 확보). 예: `… Use when someone says "이 PR 리뷰해줘", "gate-resolved 돌려줘", …`. 같은 이유로 eval의 `prompt`(트리거 입력)와 스킬이 Jira/GitHub에 게시하는 산출물(반송 코멘트·리뷰 초안 등)·few-shot으로 인용한 리뷰어 코멘트 원문도 한글이다 — 감싸는 지시문만 영문. **실행 리포트도 같다**: `~/.cubrid-agent/reports/`에 쓰이는 본문은 팀이 읽는 것이라 한글이고(그래서 `render-report.sh`·`select-queue.sh`가 한글 문장을 만든다), 스크립트 자신의 주석과 에이전트에게 찍는 메시지는 영문이다. **이 목록이 정본이다**; 예외가 왜 존재하는지(영문화가 취향이 아니라 동작 변경이 되는 이유)는 `.agents/design-principles.md` DP3.
 
 ## Agent skills
+
+mattpocock 스킬은 설정 문서를 `docs/agents/`에서, ADR을 `docs/adr/`에서 찾는다. 이 repo에서는 둘 다 `.agents/`에 있다 — 같은 이름의 `.agents/<이름>.md`와 `.agents/adr/`를 읽고 쓴다. `docs/adr/`는 만들지 않는다(CUBRIDQA-1454가 지운 경로라 `check-invariants.sh`가 막는다).
 
 ### Issue tracker
 
@@ -59,4 +62,4 @@ cubrid-agent 자체 개발의 스펙은 CUBRID Jira의 `CUBRIDQA` 프로젝트�
 
 ### Domain docs
 
-다중 컨텍스트 — 루트 `CONTEXT.md`(단일 용어집; 에이전트별 CONTEXT는 Jira로 흡수). See `.agents/domain.md`.
+단일 컨텍스트 — 루트 `CONTEXT.md` 하나(에이전트별 CONTEXT는 Jira로 흡수). See `.agents/domain.md`.
