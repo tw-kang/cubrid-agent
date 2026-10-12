@@ -23,6 +23,14 @@ reject_unknown() {  # <usage> <arg> [option|argument]
   exit 1
 }
 
+# One answer for every helper, so the CTP the scout reports is the one verify-run runs. A set
+# $CTP_HOME is used as set even with no ctp.sh in it: the caller reports it missing instead of
+# quietly running a different CTP.
+ctp_home() {  # -> the CTP directory to use, or nothing
+  if [ -n "${CTP_HOME:-}" ]; then printf '%s' "$CTP_HOME"; return; fi
+  for d in "$HOME/CTP" "$HOME/cubrid-testtools/CTP"; do [ -x "$d/bin/ctp.sh" ] && { printf '%s' "$d"; return; }; done
+}
+
 # A branch is checked out in exactly one working tree, so that place is where its work lives — it
 # survives a forgotten $CUBRID_TESTCASES, which a path variable never does.
 tc_root_for_branch() {  # <clone> <branch> -> the working tree that holds it, or nothing
