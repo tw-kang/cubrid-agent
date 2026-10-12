@@ -100,6 +100,22 @@ run "$KEY" --from "$RUN/review-r1-1.json"
 expect_rc "R1 after R2 succeeds" 0
 expect_jq "a later R1 round does not reopen a verified precondition" '.verify.preconditions[0].verified' true
 
+# Each lane writes only its own half, whatever else its report carries.
+R1_CLAIMS='{"lane":"review-r1","round":2,"verdict":"NEEDS-WORK","preconditions":[
+  {"id":"heap-page-threshold","cond":"t heap spans >= 2048 data pages, counted after the load","verified":true,"evidence":"R1 believes it"}]}'
+run "$KEY" --from "$(report review-r1-2.json "$R1_CLAIMS")"
+expect_rc "R1 carrying verified is accepted" 0
+expect_jq "R1 still refreshes its cond" '.verify.preconditions[1].cond' 't heap spans >= 2048 data pages, counted after the load'
+expect_jq "R1 cannot close a precondition" '.verify.preconditions[1].verified' false
+expect_jq "R1 cannot write evidence" '.verify.preconditions[1] | has("evidence")' false
+
+R2_COND='{"lane":"review-r2","round":1,"verdict":"NEEDS-WORK","preconditions":[
+  {"id":"server-parallelism","cond":"rewritten by R2","verified":true,"evidence":"queryplan shows the parallel sort node on all 3 runs"}]}'
+run "$KEY" --from "$(report review-r2-cond.json "$R2_COND")"
+expect_rc "R2 carrying a cond is accepted" 0
+expect_jq "R2 cannot rewrite R1's cond" '.verify.preconditions[0].cond' \
+  'parallelism >= 2, else the sort runs serial and never enters the fixed path'
+
 # ── Everything closed: no warning ────────────────────────────────────────────────────────────────
 R2_BOTH='{"lane":"review-r2","round":2,"verdict":"PASS","preconditions":[
   {"id":"server-parallelism","verified":true,"evidence":"queryplan"},

@@ -82,20 +82,23 @@ else
   [ -z "$_unknown" ] || die "R2 closes a precondition R1 never raised: $_unknown. Either R1's report was not recorded, or the two lanes are judging different things."
 fi
 
-# Merge on id. R1 refreshes cond and may add; R2 only updates what is already there. Neither drops a
-# recorded precondition — removing one is a judgment, and dropping it would also drop the
-# "inconclusive" it forces on the result.
-_add=false; [ "$LANE" = review-r1 ] && _add=true
+# Merge on id. R1 refreshes cond and may add; R2 only sets verified and evidence on what is already
+# there. Each copies its own fields and nothing else, so a report that carries the other half changes
+# nothing the other lane owns. Neither drops a recorded precondition — removing one is a judgment,
+# and dropping it would also drop the "inconclusive" it forces on the result.
+_r1=false; [ "$LANE" = review-r1 ] && _r1=true
 tmp=$(mktemp) || die "cannot create a temporary file"
-if jq --slurpfile r "$FROM" --argjson add "$_add" '
+if jq --slurpfile r "$FROM" --argjson r1 "$_r1" '
      ($r[0].preconditions) as $new
      | (.verify.preconditions // []) as $old
      | ($old | map(.id)) as $ids
      | .verify.preconditions = (
          ($old | map(. as $o
                      | ($new | map(select(.id == $o.id)) | last) as $u
-                     | if $u == null then $o else $o + ($u | del(.id)) end))
-         + (if $add
+                     | if $u == null then $o
+                       elif $r1 then $o + {cond: $u.cond}
+                       else $o + {verified: $u.verified, evidence: $u.evidence} end))
+         + (if $r1
             then ($new | map(select(([.id] - $ids) != [])) | map({id: .id, cond: .cond, verified: false}))
             else [] end))' \
      "$MANIFEST" > "$tmp" 2>/dev/null; then
