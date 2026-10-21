@@ -1,6 +1,6 @@
 # Perspective catalog (review perspectives) — the canonical L2 reference
 
-**Basis: classification of 1,358 human line comments on PRs merged 2023-11-23 to 2026-07-15.**
+**Basis: classification of 1,358 human line comments on merged PRs.** [Data sources](#data-sources) gives the period.
 
 The single canonical source shared by review-testcase L2 and the author-testcase Review lane. Its purpose is not to be a "list of perspectives" but to specify **how each perspective is handled**: which layer catches it (L1 static lint / L2 LLM judgment / L3 execution), whether it overlaps with the greptile/codex bots, which reviewer lens is strongest, and what the few-shot anchor is.
 
@@ -56,7 +56,7 @@ The greptile/codex bots already catch **P1 (answer integrity), P2 (part of deter
 > "동률이라 run마다 plan이 바뀌는 flaky 상태... tie 안정화를 위해 ta 인덱스만 고정" — PR2871, shparkcubrid
 > "플랜 고정 및 안정성 확보 차원에서, 옵티마이저 변화에 영향받지 않도록 인덱스를 추가" — PR2466, shparkcubrid
 
-**P14 — Minimality**: Pare away hints, parameters, and duplicate cases that aren't needed to reproduce and verify the issue, down to a minimal reproduction. Irrelevant elements blur the verification and only add maintenance burden (a perspective that became clear once the mining was extended back to 2023-11-23).
+**P14 — Minimality**: Pare away hints, parameters, and duplicate cases that aren't needed to reproduce and verify the issue, down to a minimal reproduction. Irrelevant elements blur the verification and only add maintenance burden (a perspective that became clear in the extended mining).
 > "USE_MERGE 힌트를 사용했기 때문에 통계정보 갱신도 필요하지 않습니다" — PR1777, youngjinj
 > "힌트 사용 없이 한 번씩만 테스트 하는 것이 좋을 것 같습니다" — PR1791, youngjinj
 
@@ -78,13 +78,13 @@ Rather than iterating over perspectives one by one, L2 runs by the unit of a **r
 - The PR character decides the dominant lens, and **determinism-convention always applies regardless of character**.
 - Running the lenses **as independent sub-agents in parallel** raises recall through perspective diversity (perspective-diverse verify).
 - **The layer a philosophy lands in depends on its character**: coverage-expansion is a predictable pattern, so it is turned into rules/templates (create skill, P4) and used for **prevention at authoring time** too; answer-vs-spec is a case-by-case judgment that can't be reduced to rules → reproduced **only as an L2 judgment angle**. The former is author, the latter reviewer.
-- **The question sets and few-shots have been reinforced by the 1,358-comment classification (PRs merged 2023-11-23 to 2026-07-15).** Each lens's question set is derived from actual recurring comments.
+- **The question sets and few-shots have been reinforced by the 1,358-comment classification.** Each lens's question set is derived from actual recurring comments.
 - **Backtesting verified that the lenses reproduce the comments**: answer-vs-spec (P7·P12·P15) and coverage-expansion (P4) reproduce actual human comments, character routing is accurate, and false positives are effectively 0. The bot also adds valid comments humans missed (dead-assertion and physical-value-basis kinds).
 - **coverage-expansion should not merely point out "it's lacking" but propose the cases to add as runnable `evaluate`+SQL** (backtest PoC improvement 1): the bot reproduced the *category*, such as "no negative case", but was weak on the volume of proposing many concrete cases the way bagus-kim does → the lens prompt forces concrete SQL proposals.
 
 ## Few-shot anchors (real examples to feed into the L2 prompt)
 
-> The formal few-shot bank (44 entries per lens, curated from the mining of PRs merged 2023-11-23 to 2026-07-15): [few-shot-bank.md](./few-shot-bank.md). Each entry has the structure situation → comment (actual quote) → pattern (reusable rule) → source, and the source PR's own entry is excluded during backtesting. Below is a representative excerpt.
+> The formal few-shot bank (44 entries per lens, curated from the extended mining): [few-shot-bank.md](./few-shot-bank.md). Each entry has the structure situation → comment (actual quote) → pattern (reusable rule) → source, and the source PR's own entry is excluded during backtesting. Below is a representative excerpt.
 
 - **P4**: "prepare, execute 구문을 사용하는 케이스를 추가해 주세요 (Invalid, valid 케이스 추가)" — PR2431, kwonhoil / "scalar subquery in SELECT list - should not run in parallel; ... 추가 시나리오" — PR2497, bagus-kim
 - **P7**: "이전 답지가 올바른 처리로 보여집니다. 위 답지가 어떤 이유로 변경된 건가요?" — PR2464, kwonhoil / "조인순서가 변경된 이유는?" — PR2462, kwonhoil
@@ -106,8 +106,8 @@ The best way to reduce review round-trips is to not get it wrong in the first pl
 - **Language**: 90%+ of review comments are in Korean (English is some of junsklee/hyunikn plus the bots). → review-testcase's default comment draft = Korean.
 - **Reviewer skew**: ssihil (determinism, convention, cleanup), kwonhoil (answer rationale, cases), bagus-kim (case SQL proposals), shparkcubrid (plan stabilization), youngjinj (index path, duplication). → Splitting L2 into persona lenses leaves room to improve recall.
 - **Watch for distribution skew**: PR2738 (a NUMERIC draft) alone generated many of the P7 comments. Frequency is expressed as a grade that accounts for PR skew (most frequent / very high / high / medium / low).
-- **Lens distribution, PRs merged 2023-11-23 to 2026-07-15** (1,358 valid): coverage-expansion 247, answer-vs-spec 215, determinism-convention 149, plan-stability 83, unclassified 664. Most of the unclassified re-attribute to the existing lenses, and it was here that the new P14 (minimality) and P15 (invariant assertion) were discovered. Top reviewers in the raw comments (2,800 human, 2021-08 to 2026-07): kwonhoil, ssihil, hyunikn, swi0110, youngjinj.
+- **Lens distribution of the extended mining** (1,358 valid): coverage-expansion 247, answer-vs-spec 215, determinism-convention 149, plan-stability 83, unclassified 664. Most of the unclassified re-attribute to the existing lenses, and it was here that the new P14 (minimality) and P15 (invariant assertion) were discovered. Top reviewers in the raw collection: kwonhoil, ssihil, hyunikn, swi0110, youngjinj.
 
 ## Data sources
 
-`work/tc-review-mining/` (gitignored). **1 year (2025-07 to 2026-07)**: chunk_0..4.jsonl (600 human lines), greptile.jsonl (118, bot comparison), issue_human.jsonl (149). **PRs merged 2023-11-23 to 2026-07-15**: review_comments_5y_raw.json (2,958 lines / 2,800 human, created 2021-08 to 2026-07 — wider than the PR list), merged_prs_5y.json (stopped at the query's 1,000-PR cap, so it reaches back only to 2023-11-23), lens buckets (bucket_5y.py keeps only comments on PRs in merged_prs_5y.json and auto-tags them to 1,358 valid → per-lens sample refinement). The `_5y` in the file names is the planned five years, not the covered range. During backtesting (recall measurement), the same data is the ground truth.
+`work/tc-review-mining/` (gitignored). **1 year (2025-07 to 2026-07)**: chunk_0..4.jsonl (600 human lines), greptile.jsonl (118, bot comparison), issue_human.jsonl (149). **Raw collection (created 2021-08 to 2026-07)**: review_comments_5y_raw.json (2,958 lines / 2,800 human). **Extended mining (PRs merged 2023-11-23 to 2026-07-15)**: merged_prs_5y.json (1,000 PRs — the query's cap, so it reaches back only to 2023-11-23), lens buckets (bucket_5y.py keeps only the raw comments on those PRs and auto-tags them to 1,358 valid → per-lens sample refinement). The `_5y` in the file names is the planned five years, not the covered range. During backtesting (recall measurement), the same data is the ground truth.
