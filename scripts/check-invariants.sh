@@ -62,9 +62,9 @@ else fail "design docs back in repo:"; printf '         %s\n' $_design_back; fi
 _staged=$(git ls-files | grep -v -E '^(CHANGELOG\.md|\.agents/adr/|scripts/check-invariants\.sh$)' \
   | while read -r f; do [ -f "$f" ] && grep -lE '[Ss]tage[ _-]?[0-9]|스테이지' "$f" 2>/dev/null; done)
 if [ -z "$_staged" ]; then
-  pass "no stage bookkeeping outside CHANGELOG and the ADRs (rollout lives in CUBRIDQA-1425)"
+  pass "no stage bookkeeping outside CHANGELOG and the ADRs (progress lives in the local map)"
 else
-  fail "rollout-stage labels are back in the repo — move them to CUBRIDQA-1425:"; printf '         %s\n' $_staged
+  fail "rollout-stage labels are back in the repo — progress belongs in the local map (docs/agents/issue-tracker.md):"; printf '         %s\n' $_staged
 fi
 
 # An agent reads AGENTS.md first, so the two method rules must be in that file, not only in docs/agents/.
@@ -72,7 +72,11 @@ _m=""
 grep -q '개발 방식' AGENTS.md                      || _m="$_m the-section"
 grep -q '코드로 가능한 것은 최대한 코드로' AGENTS.md  || _m="$_m code-first-rule"
 grep -q '/code-review' AGENTS.md                    || _m="$_m skill-chain"
-grep -q 'CUBRIDQA-1425' AGENTS.md                   || _m="$_m ticket-first-check"
+grep -q '/implement-spec' AGENTS.md                 || _m="$_m skill-chain-runs-specs"
+grep -q '/retro' AGENTS.md                          || _m="$_m retro-conditions"
+grep -qF '`/pr`' AGENTS.md                          || _m="$_m pr-skill-inside-template"
+grep -q '이슈 키를 붙이지 않는다' AGENTS.md           || _m="$_m no-key-in-commits"
+grep -qF 'check-pr-push.sh' AGENTS.md               || _m="$_m machine-checked-flow"
 grep -q '^## DP6' docs/agents/design-principles.md  || _m="$_m DP6"
 grep -q '한 가지로만 읽히게' AGENTS.md               || _m="$_m unambiguous-once-short"
 grep -q '^## DP7' docs/agents/design-principles.md  || _m="$_m DP7"
@@ -90,16 +94,38 @@ fi
 
 # A pointer whose target is silent reads as "already covered", so the target must carry the rule.
 _t=""
-grep -q 'CUBRIDQA-1425' docs/agents/issue-tracker.md        || _t="$_t parent-key"
-grep -q '새로 만들지 않는다' docs/agents/issue-tracker.md    || _t="$_t default-is-no-new-ticket"
-grep -q 'to-spec' docs/agents/issue-tracker.md              || _t="$_t subtask-is-a-spec"
-grep -q 'to-tickets' docs/agents/issue-tracker.md           || _t="$_t task-is-a-work-item"
-grep -q 'linkedIssues' docs/agents/issue-tracker.md         || _t="$_t how-to-read-the-tree"
+grep -q 'Jira 헤드' docs/agents/issue-tracker.md                  || _t="$_t three-tiers"
+grep -q '^## Wayfinding operations' docs/agents/issue-tracker.md  || _t="$_t wayfinding-section"
+grep -qF 'claimed (' docs/agents/issue-tracker.md                 || _t="$_t claim-format"
+grep -q 'to-spec' docs/agents/issue-tracker.md                    || _t="$_t spec-dir"
+grep -q 'to-tickets' docs/agents/issue-tracker.md                 || _t="$_t ticket-dir"
+grep -q '머지 준비' docs/agents/issue-tracker.md                   || _t="$_t merge-ready-steps"
+grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
+grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 if [ -z "$_t" ]; then
-  pass "docs/agents/issue-tracker.md carries the ticket rule AGENTS.md points at (default: no new ticket)"
+  pass "docs/agents/issue-tracker.md carries the tracker and PR flow AGENTS.md points at"
 else
-  fail "the ticket rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
+  fail "the tracker rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
 fi
+
+# The plugin skills read these two files. A label table or an ADR prompt left there would make a skill
+# label a ticket or propose an ADR this repo no longer keeps.
+_t=""
+grep -q 'CUBRIDQA-1505' docs/agents/triage-labels.md   || _t="$_t intake-is-1505"
+! grep -q 'needs-triage' docs/agents/triage-labels.md  || _t="$_t label-table-still-there"
+grep -q 'ADR을 만들지 않는다' docs/agents/domain.md      || _t="$_t no-new-adr"
+if [ -z "$_t" ]; then pass "triage-labels.md names the intake ticket, domain.md says no ADRs"
+else fail "a plugin-read doc still steers to the v1 tracker:$_t"; fi
+
+# v1 tracker rules (1425 tree, GitHub-Issue work tickets, keys in commits) retired with the v2 tracker.
+# One left in a doc an agent reads sends work to a closed tree or a tracker nobody watches.
+_stale=$(git grep -l -E 'linkedIssues|gh issue|CUBRIDQA-1491|\[#NN\]|새로 만들지 않는다|작업 티켓' \
+  -- AGENTS.md GLOSSARY.md 'docs/agents/*.md' .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null)
+_stale="$_stale $(git grep -l 'CUBRIDQA-1425' -- AGENTS.md GLOSSARY.md docs/agents/issue-tracker.md \
+  docs/agents/triage-labels.md docs/agents/domain.md .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null)"
+sed -n '/^## Agent skills/,$p' AGENTS.md | grep -q '\.agents/' && _stale="$_stale AGENTS.md#agent-skills:.agents/"
+if [ -z "${_stale// /}" ]; then pass "no v1 tracker rule left in AGENTS.md, GLOSSARY.md, docs/agents/ or the PR template"
+else fail "v1 tracker rules are still written down — docs/agents/issue-tracker.md replaced them:"; printf '         %s\n' $_stale; fi
 
 # DP7-2: one fact, one place. CLAUDE.md is excluded — it is the symlink to AGENTS.md.
 _dup=""

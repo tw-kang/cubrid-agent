@@ -23,33 +23,40 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 
 - **코드로 가능한 것은 최대한 코드로, LLM은 판단에 쓴다.** 기계적으로 결정되는 일(분류·추출·규칙 검사·카운팅·상태 기록)은 `scripts/`·`hooks/`가 하고, 스킬 산문은 판단만 담는다. 새 규칙을 스킬에 적기 전에 **"훅이나 스크립트가 이걸 판정할 수 있나"를 먼저 묻는다** — 할 수 있으면 코드로 옮기고 스킬엔 한 줄만 남긴다. 근거(TC 1건 62분의 원인)와 코드/LLM 경계표는 `docs/agents/design-principles.md` DP6.
 - **한 번만, 짧게, 한 가지로만 읽히게.** 두 갈래로 읽히는 규칙은 실제로 틀린 쪽으로 읽혔고(CUBRIDQA-1486, 반년 디렉토리), 복붙된 규칙은 다르게 낡았다(첨부 문단 12곳 중 PDF 주의가 3곳에만 닿음). 같은 사실은 한 곳에 두고 두 번째 자리엔 링크만 두며, 독자의 행동을 바꾸지 않는 문장은 지운다. 근거는 `docs/agents/design-principles.md` DP7. **스킬 본문을 줄일 때는 `scripts/rule-inventory.sh <ref> <SKILL.md>`로 규칙 손실 0을 확인한다** — bold·backtick·헤딩 인벤토리를 diff하므로, 근거를 걷어냈는지 규칙을 지웠는지가 눈이 아니라 목록으로 갈린다. 매 턴 로드되는 것은 `SKILL.md`뿐이니 세부는 `references/`로 옮기고 **본문에서 반드시 링크한다**(링크 없는 참조는 삭제와 같다 — invariant가 잡는다).
-- **변경은 스킬 체인으로 굴린다**: `/grill-with-docs` → `/to-spec` → `/to-tickets` → `/implement`(안에서 `/tdd`) → `/code-review`. 한 세션에 담기는 작은 변경은 `/to-spec`·`/to-tickets`를 건너뛰고 `/implement`로 바로 가도 되지만, **`/implement`는 항상 `/code-review`(Standards+Spec 2축)로 닫는다**. 여러 세션짜리면 `/to-tickets`까지를 **한 컨텍스트 안에서** 끝낸다(중간에 compact하면 spec과 티켓이 다른 사고 위에 얹힌다). 스펙 티켓은 CUBRIDQA이고 **기본은 새로 만들지 않는다** — 부모 `CUBRIDQA-1425` 트리를 먼저 읽고 관련 티켓에 코멘트/description으로 붙인다. 새로 만드는 것은 스펙 한 건(Jira sub-task)과 작업 한 건(GitHub Issue)뿐 — 조회 명령과 판정 기준은 `docs/agents/issue-tracker.md`. 이 스킬들은 이 repo가 아니라 `mattpocock-skills` 플러그인에서 온다 — 없으면 `claude plugin install mattpocock-skills@claude-plugins-official`, 어떤 걸 쓸지 모르면 `/ask-matt`.
+- **변경은 스킬 체인으로 굴린다**: 지도(`/wayfinder`) → `/to-spec` → `/to-tickets` → `/implement-spec`(작은 일은 `/implement`) → `/code-review`.
+  - 지도는 결정만 담는다. 실행은 스펙과 그 티켓으로 한다.
+  - **`/implement`는 항상 `/code-review`(Standards+Spec 2축)로 닫는다.** 안에서 `/tdd`를 쓴다.
+  - 여러 세션짜리면 `/to-tickets`까지를 **한 컨텍스트 안에서** 끝낸다(중간에 compact하면 spec과 티켓이 다른 사고 위에 얹힌다).
+  - 티켓의 자리, 배정, claim, 결과 기록, PR 흐름은 `docs/agents/issue-tracker.md`에 있다.
+  - **`/retro`는 세 경우에만 세션을 닫기 전에 부른다**: 같은 작업을 다시 했을 때, 보고와 실물이 어긋났을 때, 사용자가 정정했을 때.
+  - 이 스킬들은 이 repo가 아니라 `mattpocock-skills` 플러그인에서 온다 — 없으면 `claude plugin install mattpocock-skills@claude-plugins-official`, 어떤 걸 쓸지 모르면 `/ask-matt`.
 
 ## 변경을 내보낼 때 — 흐름과 형식
 
 흐름은 이 repo가 정했다. 형식은 CUBRID 사내 규칙이라 취향이 아니다.
 
-### 흐름 — 브랜치 · 티켓 · 머지 · 릴리스
+### 흐름 — 브랜치 · PR · 머지 · 릴리스
 
 - **브랜치**: `main`은 릴리스, `develop`은 개발이다.
-- **PR은 스펙이 있는 일에만 낸다.** Jira 스펙이 있으면 작업 브랜치 `cubridqa-XXXX/<slug>`에서 `develop`으로 squash PR을 내고 사람이 머지한다. **GitHub Issue만 있는 일은 PR 없이** `develop`에 직접 커밋한다.
-- **티켓 계층**: 스펙은 Jira sub-task, 작업 티켓은 GitHub Issues다. **일을 시작하기 전에 어느 티켓이 그것을 소유하는지 정한다.** 없으면 만들거나 묻는다 — 남의 티켓 번호를 빌리지 않는다. 일이 끝나면 `gh issue close`로 닫는다. GitHub 자동 닫기는 default branch 머지에만 걸리므로 `develop`으로는 닫히지 않는다.
-- **커밋 제목은 그 일을 소유한 티켓의 키로 시작한다.** 이 repo의 작업 티켓은 GitHub Issue이므로 보통 `[#NN]`이다. GitHub Issue가 없는 일(스펙 구현·규범 변경)은 Jira 키를 쓴다. 편의로 한 티켓에 몰지 마라 — 티켓 남발의 반대 실수이고 추적성은 똑같이 깨진다. 규범·프로젝트 룰 변경의 Jira 자리는 CUBRIDQA-1491(상시)이다.
-- **배포면을 건드리는 PR은 사람의 머지 지시를 기다린다.** 그 밖의 PR은 에이전트가 스스로 머지한다. PR이 없는 경로에서는 릴리스 PR이 그 자리다 — 배포면은 사람이 머지하는 `develop`→`main`으로만 나간다.
+- **PR은 배포면을 바꿀 때만 낸다.** 배포면은 `scripts/release.sh`의 `SHIPPED_PATHS`다. 그 밖의 변경(문서, 개발 도구)은 `develop`에 직접 커밋한다. tc repo에는 언제나 PR로 낸다.
+- **PR 하나 = Jira sub-task 하나.** Draft로 열고, 헤더는 헤드 키다. 사람의 "머지 준비" 지시를 기다린다. 머지 준비, 머지 뒤, Reopen의 순서는 `docs/agents/issue-tracker.md`의 "PR 흐름" 절에 있다.
+- **커밋 제목에 이슈 키를 붙이지 않는다.** 키는 PR 제목에만 붙는다.
+- **배포면은 사람이 머지하는 릴리스 PR(`develop`→`main`)로만 사용자에게 나간다.**
 - **배포면을 바꾼 커밋은 같은 커밋에서 `CHANGELOG.md`의 `[Unreleased]` 절에 항목 하나를 넣는다.** 항목은 자리 태그로 시작한다 — `- (major)`·`- (minor)`·`- (patch)` 중 하나다. push 전에 `scripts/release.sh check`로 확인한다.
 - **릴리스는 `scripts/release.sh`가 낸다.** 범프·태그·GitHub Release를 손으로 만들지 마라. 모드는 셋이다 — `check`(상태 검사), `next`(다음 버전 계산), `run --trigger <1|2|3>`(릴리스 실행). 트리거가 충족되면 사람을 기다리지 말고 실행한다. 세 트리거가 무엇인지는 ADR 0007에 있다.
-- **브랜치 이름과 PR 헤더는 `validate`가 검사한다** — `scripts/check-pr-push.sh`. 헤드 키 목록은 `.github/head-keys.txt`다.
-- **릴리스는 브랜치·PR 제목·커밋 제목 규칙의 예외다.** 범프 커밋은 `develop`에 직접 push된다. PR 제목은 `Release vX.Y.Z`이고 커밋 제목은 `Release vX.Y.Z (trigger N)`이다. 셋 다 `release.sh`가 한다.
+- **브랜치 이름(`cubridqa-<헤드 키 번호>-<내용>`), PR 헤더, 배포면 직접 커밋은 `validate`가 검사한다** — `scripts/check-pr-push.sh`. 헤드 키 목록은 `.github/head-keys.txt`다.
+- **릴리스는 PR 규칙, 브랜치 규칙, PR 헤더 규칙의 예외다.** 범프 커밋은 배포면을 바꾸지만 `develop`에 직접 push된다. PR 제목은 `Release vX.Y.Z`이고 커밋 제목은 `Release vX.Y.Z (trigger N)`이다. 셋 다 `release.sh`가 한다.
 
 왜 이렇게 정했는지는 [ADR 0007](./.agents/adr/0007-versioning-and-releases.md)(버저닝·릴리스)와 [ADR 0008](./.agents/adr/0008-branch-model-prs-and-work-tickets.md)(브랜치·PR·티켓)에 있다. 자리를 셋 중 무엇으로 고르는지도 ADR 0007이 정한다.
 
 ### 형식 — PR · 커밋 · Jira
 
 - **PR 본문 형식**: [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md) — 이 repo로 PR을 올리면 자동으로 채워지고, 절별로 무엇을 쓰는지도 그 파일 안에 있다(`CUBRID/cubrid`의 같은 파일과 동일한 형식). 내용은 **한글·사용자 관점**이다 — "무엇을 적용해서 어떤 동작이 바뀌었다"이고 **코드 구현 설명이 아니다**.
+- **`/pr`은 이 템플릿 안에서만 쓴다.** `/pr`의 전후 증거는 Implementation에, 되돌릴 수 있는지 판단(Door, Blast Radius)은 Remarks에 넣는다. 절은 템플릿의 셋(Purpose, Implementation, Remarks)뿐이다.
 - **PR 제목**: 항상 **영어**, `[CUBRIDQA-XXXX]`로 시작(엔진 repo는 `[CBRD-XXXXX]`). 예외는 릴리스 PR 하나다 — 위 흐름 절을 보라.
 - **엔진 repo 커밋**은 `[CBRD-XXXXX]`로 태깅한다.
 - **`CUBRID/cubrid-testcases`에는 PR 템플릿이 없다.** TC PR 본문은 사람이 짜지 않는다 — `author-testcase`의 Submit 절이 부르는 `render-pr-body.sh`가 manifest와 `.sql`에서 만든다.
-- **head→base**: `$FORK:<branch>` → `CUBRID/<repo>:develop`. `$FORK`는 `$CUBRID_GH_FORK` 또는 `gh api user --jq .login`으로 **런타임에 구한다 — 사람 이름을 박지 않는다**(`.agents/adr/0004-remove-personal-identity-hardcoding.md`).
+- **head→base**: 이 repo는 같은 repo의 브랜치 → `develop`이다. CUBRID repo는 `$FORK:<branch>` → `CUBRID/<repo>:develop`이다. `$FORK`는 `$CUBRID_GH_FORK` 또는 `gh api user --jq .login`으로 **런타임에 구한다 — 사람 이름을 박지 않는다**(`.agents/adr/0004-remove-personal-identity-hardcoding.md`).
 - **Jira 쓰기**는 `cubrid-jira`로 하고 **`--yes`가 없으면 dry-run**이다. `--description-file`은 기존 description을 **replace**한다(history엔 남는다). 쓰기 전에 dry-run 출력과 로컬 파일을 대조하라 — CLI가 한글과 인라인 마크업 사이에 공백을 넣는다.
 - **CBRD 이슈 description은 권고이지 강제가 아니다.** 공식 템플릿은 존재하지 않는다(10년치 CBRD에 정의한 티켓 0건). 관례만 있다 — 버그는 `Repro`·`Expected Result`·`Actual Result`·`Test Build`, 그 외는 `Description`·`Implementation`·`Specification Changes`·`Acceptance Criteria`·`Definition of Done`. 채택률이 41~76%라 강제하면 CBRD 자신보다 엄격해진다. CBRD가 실제로 요구하는 것은 절 구조가 아니라 **description만 읽고 무엇이 바뀌었는지 이해되는 자립성**이다(`docs/dev-process.md` p17). 참고: 일부 이슈의 `{anchor:...}` 절은 템플릿이 아니라 **AI 도구가 남긴 흔적**이니 따라 쓰지 마라.
 
@@ -58,22 +65,19 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 배포 대상(외부·타 CLI·마켓플레이스로 나가는 것)은 **영문**, 배포 미대상(팀·개발자만 읽는 것)은 **한글**로 쓴다.
 
 - **영문(배포 대상)**: 스킬 `SKILL.md`(`name`·`description`·본문·`references/`·`evals/`), 플러그인 매니페스트(`.claude-plugin/plugin.json`·`marketplace.json`), `hooks/`·`scripts/`, 루트 `README.md`·`CHANGELOG.md`·`LICENSE`·`package.json`.
-- **한글(배포 미대상)**: `docs/`(런북·참조, `docs/agents/` 규범), `.agents/adr/`(thin ADR), 이 `AGENTS.md`·`GLOSSARY.md`, Jira 티켓(CUBRIDQA) 본문, 이 repo의 GitHub Issue 본문.
-- **제목의 분류 태그는 영문이다**: GitHub Issue 제목은 `[hook]`·`[delivery]`처럼 영문 태그로 시작하고 나머지는 한글이다. PR·커밋 제목의 태깅은 위 "형식" 절이 정한다.
+- **한글(배포 미대상)**: `docs/`(런북·참조, `docs/agents/` 규범), `.agents/adr/`(thin ADR), 이 `AGENTS.md`·`GLOSSARY.md`, 로컬 트래커(`.scratch/`)의 지도·스펙·티켓, Jira 티켓(CUBRIDQA) 본문.
 - **예외 (기능적 한글 유지)**: 스킬 `description`은 영문으로 쓰되 **한글 트리거 키워드는 유지**한다(팀이 한글로 스킬을 부르므로 트리거 정확도 확보). 예: `… Use when someone says "이 PR 리뷰해줘", "gate-resolved 돌려줘", …`. 같은 이유로 eval의 `prompt`(트리거 입력)와 스킬이 Jira/GitHub에 게시하는 산출물(반송 코멘트·리뷰 초안 등)·few-shot으로 인용한 리뷰어 코멘트 원문도 한글이다 — 감싸는 지시문만 영문. **실행 리포트도 같다**: `~/.cubrid-agent/reports/`에 쓰이는 본문은 팀이 읽는 것이라 한글이고(그래서 `render-report.sh`·`select-queue.sh`가 한글 문장을 만든다), 스크립트 자신의 주석과 에이전트에게 찍는 메시지는 영문이다. **이 목록이 정본이다**; 예외가 왜 존재하는지(영문화가 취향이 아니라 동작 변경이 되는 이유)는 `docs/agents/design-principles.md` DP3.
 
 ## Agent skills
 
-mattpocock 스킬은 설정 문서를 `docs/agents/`에서, ADR을 `docs/adr/`에서 찾는다. 설정 문서는 그 자리에 있다. ADR은 `.agents/adr/`에 있다 — `docs/adr/`는 만들지 않는다(CUBRIDQA-1454가 지운 경로라 `check-invariants.sh`가 막는다).
-
 ### Issue tracker
 
-cubrid-agent 자체 개발의 스펙은 CUBRID Jira의 `CUBRIDQA` 프로젝트에서 `cubrid-jira` CLI(및 Jira 웹 UI)로 추적한다. 작업 티켓은 이 repo의 GitHub Issues로 추적한다. See `docs/agents/issue-tracker.md`.
+Jira 헤드(목표) → Jira sub-task(PR) → 로컬 markdown 티켓(`.scratch/`)의 세 단계다. GitHub Issues는 쓰지 않는다. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-다섯 개 정규 역할을 라벨명 그대로 쓴다(기본값 유지). Jira 라벨은 전체 교체 시맨틱이라 적용 시 주의. See `docs/agents/triage-labels.md`.
+트리아지 라벨은 쓰지 않는다. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-단일 컨텍스트 — 용어집은 루트 `GLOSSARY.md` 하나(에이전트별 CONTEXT는 Jira로 흡수). See `docs/agents/domain.md`.
+단일 컨텍스트 — 용어집은 루트 `GLOSSARY.md` 하나다. ADR은 만들지 않는다. See `docs/agents/domain.md`.
