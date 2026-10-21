@@ -113,6 +113,7 @@ grep -q '머지 준비' docs/agents/issue-tracker.md                   || _t="$_
 grep -q '"머지"를 지시하면' docs/agents/issue-tracker.md            || _t="$_t merge-is-its-own-instruction"
 grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
 grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
+grep -q '지도에 영향을 주는 사실' docs/agents/issue-tracker.md      || _t="$_t report-three-items"
 if [ -z "$_t" ]; then
   pass "docs/agents/issue-tracker.md carries the tracker and PR flow AGENTS.md points at"
 else

@@ -42,11 +42,14 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 - **Resolve**:
   1. 티켓 끝에 `## Answer`를 적는다.
   2. `Status: resolved`로 바꾼다.
-  3. 리더에게 SendMessage로 알린다. 티켓 경로와 한 줄 요지를 보낸다.
+  3. 리더에게 SendMessage로 알린다. 보고에는 아래 세 항목이 반드시 있다. 길이 제한은 없다.
+     - **실물**: 그 일에 해당하는 머지 SHA, PR 번호나 링크, 결과 파일 경로
+     - **닫은 티켓**: 티켓 경로
+     - **지도에 영향을 주는 사실**: 순서표, 막힘 관계, 다음 티켓에 영향을 주는 것. 없으면 "없음"이라고 적는다.
   - **`map.md`는 고치지 않는다.** Decisions so far와 순서표는 리더가 실물(커밋, PR, 파일)과 대조한 뒤 고친다. wayfinder 기본 절차의 "지도에 context pointer 추가"를 이 알림이 대신한다.
 - **Research 결과**: `.scratch/v2/research/<name>.md`에 쓴다. 브랜치를 만들거나 push하지 않는다. 이 repo는 공개이고 tc repo 일부는 비공개이기 때문이다.
 - **새로 드러난 결정**: `.scratch/v2/issues/`에 다음 번호로 `Status: open` 티켓을 만든다. 그다음 리더에게 알린다. 순서표에 올리는 일은 리더가 한다.
-- **스펙을 맡은 작업 세션**: `/implement-spec`으로 `.scratch/v2-<묶음>/spec.md`를 처리할 때도 위 Claim·Resolve·알림 규칙을 스펙 단위로 따른다. 티켓이 리더에게 값을 넘기라고 하면 그때도 알린다.
+- **스펙을 맡은 작업 세션**: `/implement-spec`으로 `.scratch/v2-<묶음>/spec.md`를 처리할 때도 위 Claim·Resolve·알림 규칙을 스펙 단위로 따른다. 보고는 Resolve 3의 세 항목으로 한다. 티켓이 리더에게 값을 넘기라고 하면 그때도 알린다.
 - **`/retro` 제안**: 맡은 티켓의 `## Comments`에 적는다. 티켓으로 만들지는 리더가 판단한다.
 
 ## PR 흐름
