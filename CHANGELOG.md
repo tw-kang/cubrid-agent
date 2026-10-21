@@ -18,7 +18,7 @@ All notable changes to cubrid-agent are documented here. The format follows
   distribution and the few-shots came from five years of mining (2021-07 to 2026-07). They
   cover only PRs merged 2023-11-23 to 2026-07-15, because the PR list stopped at its 1,000-PR cap.
   Only the raw comment collection and the top-reviewer list reach back to 2021-08. The few-shot
-  bank had also given its size as 44 since it was written; both files now say 43. The other
+  bank had also given its size as 44 since it was written; it now says 43. The other
   numbers are unchanged.
 
 ## [1.1.0] - 2026-10-12
