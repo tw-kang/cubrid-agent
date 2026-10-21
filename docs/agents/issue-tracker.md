@@ -51,7 +51,9 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 
 ## PR 흐름
 
-**PR 헤더**는 PR 제목 맨 앞의 `[CUBRIDQA-<n>]`이다. 브랜치 이름, PR 헤더, Ready PR의 헤드 키는 `validate`가 검사한다(`scripts/check-pr-push.sh`). 이 절은 기계가 판정하지 못하는 순서만 적는다.
+**PR 헤더**는 PR 제목 맨 앞의 `[CUBRIDQA-<n>]`이다. **브랜치 이름**은 `cubridqa-<헤드 키 번호>-<내용>`이다. 브랜치 이름, PR 헤더, Ready PR의 헤드 키는 `validate`가 검사한다(`scripts/check-pr-push.sh`). 이 절은 기계가 판정하지 못하는 순서만 적는다.
+
+이 흐름과 브랜치 이름은 릴리스 PR을 뺀 모든 PR에 적용한다. 스펙 밖에서 배포면을 바꾸는 PR도 같다. 어떤 PR도 아래 2의 "머지 준비" 지시 전에는 머지하지 않는다.
 
 1. **열 때**: Draft PR로 연다. PR 헤더는 헤드 키다. `/implement-spec`이 끝나도 Draft로 둔다. Ready는 2의 "머지 준비" 안에서만 바꾼다.
 2. **사람이 "머지 준비"를 지시하면** 아래를 순서대로 한다.

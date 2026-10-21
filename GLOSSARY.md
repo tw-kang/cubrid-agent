@@ -35,7 +35,7 @@ CBRD 이슈 워크플로의 상태 전이를 맡는 에이전트들이 함께 �
 | **롤아웃 단계** | 이 repo는 결과물만 담는다. 단계와 진행은 로컬 지도가 관리하고, 지금 배포된 것이 어느 단계인지는 `CHANGELOG.md`만 적는다 |
 | **배포면(shipped surface)** | 사용자 세션 동작을 바꾸는 파일 집합. 여기를 바꾼 커밋은 자리를 선언하고, 다음 릴리스가 그만큼 버전을 올린다. 밖(docs·규범·테스트·in-progress)만 바뀌면 버전은 그대로다 |
 | **자리(digit)** | 버전 번호의 세 칸 `major`·`minor`·`patch` 중 하나. 배포면을 바꾼 사람이 변경 시점에 고른다 |
-| **헤드 키** | 목표 하나를 담는 Jira 이슈(Jira 헤드)의 키. Draft PR이 다는 자리표시자 PR 헤더다 |
+| **헤드 키** | 목표 하나를 담는 Jira 이슈(Jira 헤드)의 키. PR 헤더의 자리표시자로도 쓴다. 언제 달고 언제 바꾸는지는 [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md)의 PR 흐름에 있다 |
 | **로컬 티켓** | 결정 하나 또는 작업 하나를 담는 `.scratch/` 아래 markdown 파일. Jira sub-task와 다른 단계다 |
 
 ## 제품·저장소 형태 (CUBRIDQA-1454 어휘)

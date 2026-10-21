@@ -13,7 +13,7 @@
 - **루트 `GLOSSARY.md`** — 공유 용어집.
 - **`docs/pipeline.md`** — 파이프라인 지도 + 에이전트 로스터. 로스터가 링크하는 CUBRIDQA 티켓에 에이전트 상세 설계가 있다. `cubrid-jira`로 읽는다.
 
-이 파일들이 없으면 **조용히 진행**한다. 부재를 지적하거나 미리 만들자고 제안하지 말 것. `/domain-modeling` 스킬(`/grill-with-docs`·`/improve-codebase-architecture` 경유)이 용어가 실제로 확정될 때 `GLOSSARY.md`를 lazy하게 고친다.
+`/domain-modeling` 스킬(`/grill-with-docs`·`/improve-codebase-architecture` 경유)이 용어가 실제로 확정될 때 `GLOSSARY.md`를 lazy하게 고친다.
 
 ## 파일 구조
 

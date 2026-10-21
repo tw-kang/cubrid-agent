@@ -37,10 +37,10 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 ### 흐름 — 브랜치 · PR · 머지 · 릴리스
 
 - **브랜치**: `main`은 릴리스, `develop`은 개발이다.
-- **이 repo에서 PR을 내는 경우는 둘이다.** 그 밖의 변경(문서, 개발 도구)은 `develop`에 직접 커밋한다. tc repo에는 언제나 PR로 낸다.
-  - 스펙은 언제나 PR로 낸다. 순서는 `docs/agents/issue-tracker.md`의 "PR 흐름" 절을 따른다.
-  - 스펙 밖의 변경은 배포면이나 `.claude-plugin/marketplace.json`을 바꿀 때만 PR로 낸다. 이 경로 목록은 `scripts/check-pr-push.sh`가 정한다.
-- **커밋 제목에 이슈 키를 붙이지 않는다.** 키는 PR 제목에만 붙는다.
+- **이 repo에서 PR을 내는 경우는 둘이다.** 둘 다 `docs/agents/issue-tracker.md`의 "PR 흐름" 절을 따른다. 그 밖의 변경(문서, 개발 도구)은 `develop`에 직접 커밋한다. tc repo에는 언제나 PR로 낸다.
+  - 스펙은 언제나 PR로 낸다.
+  - 스펙 밖의 변경은 배포면이나 `.claude-plugin/marketplace.json`을 바꿀 때만 PR로 낸다. 이 경로 목록은 `scripts/check-pr-push.sh`가 정한다. PR 없이 이 경로를 바꾼 커밋이 `develop`에 push되면 `validate`가 실패한다.
+- **이 repo에서는 커밋 제목에 이슈 키를 붙이지 않는다.** 키는 PR 헤더에만 붙는다. 머지되는 PR의 헤더는 그 PR의 sub-task 키다([세 단계](./docs/agents/issue-tracker.md#세-단계)). 커밋은 그 PR 안에서 진행을 나누는 단위일 뿐이다. 커밋마다 짝이 되는 sub-task가 따로 있는 구조라면 커밋에도 키를 붙인다. 이 repo는 그 구조가 아니다.
 - **배포면은 릴리스 PR(`develop`→`main`)로만 사용자에게 나간다.**
 - **배포면을 바꾼 커밋은 같은 커밋에서 `CHANGELOG.md`의 `[Unreleased]` 절에 항목 하나를 넣는다.** 항목은 자리 태그로 시작한다 — `- (major)`·`- (minor)`·`- (patch)` 중 하나다. push 전에 `scripts/release.sh check`로 확인한다.
   - 자리의 뜻은 `CHANGELOG.md`의 Version note가 정본이다. 경계는 manifest 호환이다.
@@ -52,7 +52,6 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
   - 트리거 2: 기능이 완결되면 그 자리에서 릴리스한다.
   - 트리거 3: 그 밖에는 쌓는다. 단 `[Unreleased]`에 7일 넘게 두지 않는다.
 - **릴리스는 PR 규칙, 브랜치 규칙, PR 헤더 규칙의 예외다.** 범프 커밋은 배포면을 바꾸지만 `develop`에 직접 push된다. PR 제목은 `Release vX.Y.Z`이고 커밋 제목은 `Release vX.Y.Z (trigger N)`이다. 셋 다 `release.sh`가 한다.
-- **브랜치 이름(`cubridqa-<헤드 키 번호>-<내용>`), PR 헤더, 배포면 직접 커밋은 `validate`가 검사한다** — `scripts/check-pr-push.sh`.
 - **`develop`으로 들어가는 PR은 squash로만 머지한다.** GitHub 설정이 강제한다. `develop`의 linear history가 머지 커밋을 막고, repo 설정이 rebase 머지를 끈다.
 - **GitHub 설정의 현재 값은 아래와 같다.** 설정을 바꾸면 `gh api repos/tw-kang/cubrid-agent/branches/<브랜치>/protection`으로 다시 읽어 이 값과 대조한다.
   - `main`: PR 필수(승인 0건), required check `validate`, force push 금지, 삭제 금지, 관리자 우회 허용.
@@ -86,7 +85,7 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 
 ### Issue tracker
 
-Jira 헤드(목표) → Jira sub-task(PR) → 로컬 markdown 티켓(`.scratch/`)의 세 단계다. GitHub Issues는 쓰지 않는다. See `docs/agents/issue-tracker.md`.
+See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

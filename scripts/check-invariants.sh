@@ -146,10 +146,12 @@ _lbl=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '현재 라�
 [ "$(printf '%s\n' "$_lbl" | grep -c .)" = 1 ] || _dup="$_dup label-procedure[$(echo $_lbl)]"
 _hk=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -l 'head-keys\.txt' 2>/dev/null)
 [ "$_hk" = docs/agents/issue-tracker.md ] || _dup="$_dup head-keys-location[$(echo $_hk)]"
+_bf=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -l 'cubridqa-<헤드 키 번호>' 2>/dev/null)
+[ "$_bf" = docs/agents/issue-tracker.md ] || _dup="$_dup branch-name-format[$(echo $_bf)]"
 _ps=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -h 'PR 하나' 2>/dev/null | grep -c 'sub-task')
 [ "$_ps" = 1 ] || _dup="$_dup one-PR-per-sub-task[$_ps lines]"
 if [ -z "$_dup" ]; then
-  pass "the language-policy list, the label procedure, the head-keys location and one PR per sub-task each live in one place (DP7-2)"
+  pass "the language-policy list, the label procedure, the head-keys location, the branch-name format and one PR per sub-task each live in one place (DP7-2)"
 else
   fail "a rule is written in two places and will drift:$_dup — keep one, link from the other"
 fi
