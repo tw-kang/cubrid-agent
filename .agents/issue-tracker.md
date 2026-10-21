@@ -1,5 +1,7 @@
 # Issue tracker: CUBRID Jira (CUBRIDQA)
 
+> **v2 작업은 로컬 지도로 관리한다.** 지도와 그 티켓의 규약은 맨 아래 [Wayfinding operations — v2 지도 (로컬)](#wayfinding-operations--v2-지도-로컬) 절에 있다. 그 위의 내용은 v1 규칙이다. 관리 구조 재배치(`.scratch/v2-structure/`)가 끝나면 이 문서 전체를 그 절 기준으로 다시 쓴다.
+
 cubrid-agent 자체 개발의 스펙·PRD는 CUBRID Jira의 **`CUBRIDQA`** 프로젝트에 산다(이슈 키 `CUBRIDQA-XXXX`). **작업 티켓은 이 repo의 GitHub Issues에 산다.** Jira 쪽 생성·조회·수정은 모두 `cubrid-jira` CLI(`~/.local/bin/cubrid-jira`)로 하고, Jira 웹 UI로도 한다(둘 다 유효한 경로).
 
 > 이 트래커는 cubrid-agent **자체를 개발**하는 작업을 담는 곳이다. cubrid-agent의 에이전트들이 **대상으로 삼아 처리**하는 CBRD/CUBRIDQA 이슈(파이프라인 입력)와는 별개다.
@@ -137,3 +139,21 @@ uv tool upgrade cubrid-jira                                                     
 **PRs as a request surface: no.** _(GitHub PR은 트리아지 큐가 아니다. 넣고 싶으면 이 플래그를 `yes`로 바꾸고 여기 워크플로를 적는다.)_
 
 **GitHub Issues는 요청 표면이 아니라 작업 티켓 자리다.** `/to-tickets`가 스펙 sub-task에서 만든 작업만 산다. 밖에서 들어온 요청은 여기서 받지 않는다 — 그 자리는 Jira(CUBRIDQA)다.
+
+## Wayfinding operations — v2 지도 (로컬)
+
+`/wayfinder`가 이 절을 읽는다. v2의 지도와 티켓은 Jira나 GitHub이 아니라 이 repo의 gitignore된 로컬 파일이다. 결정의 근거는 `.scratch/v2/issues/01-structure-charting.md`에 있다.
+
+- **지도**: `.scratch/v2/map.md`. `/wayfinder 02`처럼 번호만 받으면 이 지도의 티켓 `02`다.
+- **티켓**: `.scratch/v2/issues/NN-<slug>.md`. 머리 줄은 `Type:`(`research` / `prototype` / `grilling` / `task`), `Status:`, `Blocked by:`다. 그 티켓에만 해당하는 지시는 티켓 본문에 있다.
+- **Frontier**: `Status: open`이고 `Blocked by`의 티켓이 모두 `resolved`인 티켓이다. 순서는 지도의 순서표가 정한다.
+- **배정**: 리더 세션(`leader`)이 지도의 순서표에서 세션을 배정한다. 배정받지 않은 티켓은 claim하지 않는다.
+- **Claim**: 일을 시작하기 전에 `Status:` 줄을 `claimed (<세션 이름>, <YYYY-MM-DD HH:MM>)`로 바꾸고 저장한다.
+- **Resolve**:
+  1. 티켓 끝에 `## Answer`를 적는다.
+  2. `Status: resolved`로 바꾼다.
+  3. `leader`에게 SendMessage로 알린다. 티켓 경로와 한 줄 요지를 보낸다.
+  - **`map.md`는 고치지 않는다.** Decisions so far와 순서표는 leader가 실물과 대조한 뒤 고친다. wayfinder 기본 절차의 "지도에 context pointer 추가"를 이 알림이 대신한다.
+- **Research 결과**: `.scratch/v2/research/<name>.md`에 쓴다. 브랜치를 만들거나 push하지 않는다. 이 repo는 공개이고 tc repo 일부는 비공개이기 때문이다.
+- **새로 드러난 결정**: `.scratch/v2/issues/`에 다음 번호로 `Status: open` 티켓을 만든다. 그다음 leader에게 알린다. 순서표에 올리는 일은 leader가 한다.
+- **스펙 실행 세션**: `/implement-spec`으로 `.scratch/v2-<묶음>/spec.md`를 맡은 세션도 위 Claim·Resolve·알림 규칙을 스펙 단위로 따른다. 티켓이 leader에게 값을 넘기라고 하면 그때도 알린다.
