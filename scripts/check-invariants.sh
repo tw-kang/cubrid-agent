@@ -601,6 +601,11 @@ else fail "not in a releasable state — run scripts/release.sh check:"; printf 
 if _t=$(bash scripts/test-release.sh 2>&1); then pass "release tooling behaves: $_t"
 else fail "release test failed — run scripts/test-release.sh:"; printf '         %s\n' "$_t"; fi
 
+# A placeholder head key once merged as a PR's only key (cubridci#127). CI runs check-pr-push.sh only
+# on live PRs and pushes, so a rule that stopped firing would show as green, not as an error.
+if _t=$(bash scripts/test-check-pr-push.sh 2>&1); then pass "PR and push rules behave: $_t"
+else fail "PR/push rules test failed — run scripts/test-check-pr-push.sh:"; printf '         %s\n' "$_t"; fi
+
 # marketplace.json is read from the catalog clone, not from the versioned cache, so an edit there
 # reaches every install without a version bump. `claude plugin validate` checks its shape, not whether
 # it still points at this plugin — a renamed entry or a moved source would silently redirect installs.

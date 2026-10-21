@@ -1,5 +1,6 @@
 # Validate the manifests and frontmatter, then assert the repo invariants
-# `claude plugin validate` cannot see (doc-set shape, dead links, per-skill rules).
+# `claude plugin validate` cannot see (doc-set shape, dead links, per-skill rules), and the
+# branch, PR-header and direct-commit rules (scripts/check-pr-push.sh).
 # `--strict` is blocking from 1.0.0 on: the one warning it used to raise was the
 # deliberate `version` omission, and pinning semver retired it (ADR 0003).
 name: validate-plugin
@@ -7,7 +8,10 @@ name: validate-plugin
 on:
   push:
     branches: [develop, main]
+  # edited and ready_for_review re-run the PR rules when the header is swapped or the PR leaves Draft;
+  # without them the required check keeps the verdict from the last push.
   pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review, converted_to_draft]
 
 jobs:
   validate:
@@ -32,3 +36,20 @@ jobs:
 
       - name: Repo invariants (blocking)
         run: bash scripts/check-invariants.sh
+
+      # The title is anyone's text, so it reaches the script through env, never through ${{ }} in run.
+      - name: PR rules (blocking)
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+        run: bash scripts/check-pr-push.sh pr "$HEAD_REF" "$BASE_REF" "$PR_TITLE" "$PR_DRAFT"
+
+      - name: Push rules (after the fact, the push has landed)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+        run: bash scripts/check-pr-push.sh push "$BEFORE" "$AFTER"

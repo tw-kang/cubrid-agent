@@ -1,0 +1,2 @@
+# Jira head keys, one per line. Read by scripts/check-pr-push.sh.
+CUBRIDQA-1663
