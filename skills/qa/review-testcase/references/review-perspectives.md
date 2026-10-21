@@ -84,7 +84,7 @@ Rather than iterating over perspectives one by one, L2 runs by the unit of a **r
 
 ## Few-shot anchors (real examples to feed into the L2 prompt)
 
-> The formal few-shot bank (44 entries per lens, curated from the extended mining): [few-shot-bank.md](./few-shot-bank.md). Each entry has the structure situation → comment (actual quote) → pattern (reusable rule) → source, and the source PR's own entry is excluded during backtesting. Below is a representative excerpt.
+> The formal few-shot bank (43 entries in total, curated from the extended mining): [few-shot-bank.md](./few-shot-bank.md). Each entry has the structure situation → comment (actual quote) → pattern (reusable rule) → source, and the source PR's own entry is excluded during backtesting. Below is a representative excerpt.
 
 - **P4**: "prepare, execute 구문을 사용하는 케이스를 추가해 주세요 (Invalid, valid 케이스 추가)" — PR2431, kwonhoil / "scalar subquery in SELECT list - should not run in parallel; ... 추가 시나리오" — PR2497, bagus-kim
 - **P7**: "이전 답지가 올바른 처리로 보여집니다. 위 답지가 어떤 이유로 변경된 건가요?" — PR2464, kwonhoil / "조인순서가 변경된 이유는?" — PR2462, kwonhoil

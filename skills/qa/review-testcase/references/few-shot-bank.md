@@ -290,4 +290,4 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ---
 
 ## Sources and scale
-Selected from `work/tc-review-mining/lens_*.txt` (extended mining, gitignored). **44 entries** total (coverage-expansion 12 · answer-vs-spec 12 · determinism-convention 9 · plan-stability 11). Since this is the same data as the backtest answer key, follow the "Backtest isolation" rule above. When the mining is re-extracted, this bank is also subject to update.
+Selected from `work/tc-review-mining/lens_*.txt` (extended mining, gitignored). **43 entries** total (coverage-expansion 12 · answer-vs-spec 12 · determinism-convention 9 · plan-stability 10). Since this is the same data as the backtest answer key, follow the "Backtest isolation" rule above. When the mining is re-extracted, this bank is also subject to update.
