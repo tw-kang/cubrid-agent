@@ -10,7 +10,7 @@
 - `docs/`는 **런타임에 컨텍스트로 자동 로드되지 않는다** — `hooks.json`은 셸 스크립트 3개만 걸고, 어떤 훅·스크립트도 문서를 context에 넣지 않는다. 항상 로드되는 문서는 `AGENTS.md`(27줄) + `plugin.json` 등재 스킬 6종의 description뿐. **ADR·DESIGN·CONTEXT는 누가 열 때만 토큰을 쓴다.**
 - 즉 ADR을 압축해도 런타임 토큰은 0 감소. 진짜 질문은 "압축"이 아니라 **"설계 문서가 repo에 살 이유가 있나"** 였다.
 
-답: 대부분은 없다. repo의 존재 이유는 배포되는 **결과물(플러그인)**이다. 설계 rationale은 개발 과정의 산물이고, 이 프로젝트는 이미 `grill-with-docs → to-spec → to-tickets → implement` 워크플로로 개발되므로 설계는 **CUBRIDQA 티켓**에 기록되는 게 정합이다. 언어 정책([DP3](../design-principles.md))의 *배포=영문 제품 / 미배포=한글 Jira* 분리와도 맞물린다.
+답: 대부분은 없다. repo의 존재 이유는 배포되는 **결과물(플러그인)**이다. 설계 rationale은 개발 과정의 산물이고, 이 프로젝트는 이미 `grill-with-docs → to-spec → to-tickets → implement` 워크플로로 개발되므로 설계는 **CUBRIDQA 티켓**에 기록되는 게 정합이다. 언어 정책([DP3](../../docs/agents/design-principles.md))의 *배포=영문 제품 / 미배포=한글 Jira* 분리와도 맞물린다.
 
 ## 결정
 

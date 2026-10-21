@@ -23,19 +23,31 @@ ISSUE_READERS=$(printf '%s\n' skills/*/create-*/SKILL.md skills/*/verify-*/SKILL
 # ---------------------------------------------------------------------------
 group "Non-product doc set (CUBRIDQA-1454: repo keeps the product, design lives in Jira)"
 
-# .agents/ is the normative set: four norm docs plus numbered ADRs. Nothing else.
+# .agents/ keeps only the numbered ADRs. A norm doc there is a second copy the plugin skills never read.
 _agents_unexpected=$(git ls-files '.agents/*' \
-  | grep -v -E '^\.agents/(domain|design-principles|issue-tracker|triage-labels)\.md$' \
   | grep -v -E '^\.agents/adr/[0-9]{4}-[a-z0-9-]+\.md$')
-if [ -z "$_agents_unexpected" ]; then pass ".agents/ holds only the norm docs + numbered ADRs"
+if [ -z "$_agents_unexpected" ]; then pass ".agents/ holds only numbered ADRs"
 else fail ".agents/ has unexpected files:"; printf '         %s\n' $_agents_unexpected; fi
 
-# docs/ keeps runbooks, the reference shelf, and PoC evidence reports — not design docs.
+# The plugin skills look for the glossary at the root and the agent docs under docs/agents/. Kept
+# elsewhere, an adapter paragraph broke on each plugin update, and domain-modeling creates a missing
+# GLOSSARY.md lazily — a second glossary beside ours.
+_m=""
+[ -n "$(git ls-files GLOSSARY.md)" ] || _m="$_m GLOSSARY.md-missing"
+[ -z "$(git ls-files CONTEXT.md)" ]  || _m="$_m CONTEXT.md-still-tracked"
+for d in issue-tracker triage-labels domain design-principles; do
+  [ -n "$(git ls-files "docs/agents/$d.md")" ] || _m="$_m docs/agents/$d.md-missing"
+done
+if [ -z "$_m" ]; then pass "GLOSSARY.md at the root, the four agent docs in docs/agents/, no CONTEXT.md"
+else fail "docs are not where the plugin skills look:$_m — a skill would create its own copy"; fi
+
+# docs/ keeps runbooks, the pipeline map, the agent docs, the reference shelf and PoC evidence reports.
 _docs_unexpected=$(git ls-files 'docs/*' \
-  | grep -v -E '^docs/(deployment|dev-process|setup)\.md$' \
+  | grep -v -E '^docs/(deployment|dev-process|pipeline|setup)\.md$' \
+  | grep -v -E '^docs/agents/(issue-tracker|triage-labels|domain|design-principles)\.md$' \
   | grep -v -E '^docs/reference/' \
   | grep -v -E '^docs/agents/[a-z-]+/reports/')
-if [ -z "$_docs_unexpected" ]; then pass "docs/ holds only runbooks, reference and PoC reports"
+if [ -z "$_docs_unexpected" ]; then pass "docs/ holds only runbooks, the pipeline map, agent docs, reference and PoC reports"
 else fail "docs/ has unexpected files:"; printf '         %s\n' $_docs_unexpected; fi
 
 # Paths 1454 removed. Their return means design crept back into the repo.
@@ -55,15 +67,15 @@ else
   fail "rollout-stage labels are back in the repo — move them to CUBRIDQA-1425:"; printf '         %s\n' $_staged
 fi
 
-# An agent reads AGENTS.md first, so the two method rules must be in that file, not only in .agents/.
+# An agent reads AGENTS.md first, so the two method rules must be in that file, not only in docs/agents/.
 _m=""
 grep -q '개발 방식' AGENTS.md                      || _m="$_m the-section"
 grep -q '코드로 가능한 것은 최대한 코드로' AGENTS.md  || _m="$_m code-first-rule"
 grep -q '/code-review' AGENTS.md                    || _m="$_m skill-chain"
 grep -q 'CUBRIDQA-1425' AGENTS.md                   || _m="$_m ticket-first-check"
-grep -q '^## DP6' .agents/design-principles.md      || _m="$_m DP6"
+grep -q '^## DP6' docs/agents/design-principles.md  || _m="$_m DP6"
 grep -q '한 가지로만 읽히게' AGENTS.md               || _m="$_m unambiguous-once-short"
-grep -q '^## DP7' .agents/design-principles.md      || _m="$_m DP7"
+grep -q '^## DP7' docs/agents/design-principles.md  || _m="$_m DP7"
 # The PR template is a file, linked rather than copied; $FORK guards against a hardcoded person.
 grep -qF '.github/PULL_REQUEST_TEMPLATE.md' AGENTS.md || _m="$_m pr-template-link"
 grep -q '### Purpose' .github/PULL_REQUEST_TEMPLATE.md || _m="$_m pr-template-headings"
