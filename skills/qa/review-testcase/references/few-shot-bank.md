@@ -1,6 +1,6 @@
 # review-testcase L2 few-shot bank
 
-A **collection of real human review examples** injected into the L2 domain-review subagent prompt. From 5 years of mining (2021-07 to 2026-07, `work/tc-review-mining/`), cases with a clearly reusable pattern were selected and structured per lens. The canonical perspective catalog is [review-perspectives.md](./review-perspectives.md).
+A **collection of real human review examples** injected into the L2 domain-review subagent prompt. From the mining of PRs merged 2023-11-23 to 2026-07-15 (`work/tc-review-mining/`), cases with a clearly reusable pattern were selected and structured per lens. The canonical perspective catalog is [review-perspectives.md](./review-perspectives.md).
 
 ## Usage
 - review-testcase L2 injects, as few-shot examples, entries from the lens section matching the PR's nature: **new-testcase → coverage-expansion**, **change-testcase → answer-vs-spec**, **shared → determinism-convention · plan-stability** (plan TCs).
@@ -290,4 +290,4 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ---
 
 ## Sources and scale
-Selected from `work/tc-review-mining/lens_*.txt` (5-year mining, gitignored). **44 entries** total (coverage-expansion 12 · answer-vs-spec 12 · determinism-convention 9 · plan-stability 11). Since this is the same data as the backtest answer key, follow the "Backtest isolation" rule above. When the mining is re-extracted, this bank is also subject to update.
+Selected from `work/tc-review-mining/lens_*.txt` (mining of PRs merged 2023-11-23 to 2026-07-15, gitignored). **44 entries** total (coverage-expansion 12 · answer-vs-spec 12 · determinism-convention 9 · plan-stability 11). Since this is the same data as the backtest answer key, follow the "Backtest isolation" rule above. When the mining is re-extracted, this bank is also subject to update.
