@@ -16,6 +16,7 @@ fail() { printf '  FAIL %s\n' "$1"; FAILED=$((FAILED+1)); }
 usage() { sed -n 's/^# *\(check-pr-push\.sh [a-z]\)/\1/p' "$0" >&2; exit 2; }
 
 HEAD_KEYS_FILE=.github/head-keys.txt
+RELEASE_V='v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
 
 # A malformed line would silently drop a key, and a Ready PR carrying it would then pass.
 read_head_keys() {
@@ -29,7 +30,7 @@ read_head_keys() {
 check_pr() {
   local branch=$1 base=$2 title=$3 draft=$4 num= key=
   case "$draft" in true|false) ;; *) echo "check-pr-push: draft must be true or false, got: $draft" >&2; exit 2 ;; esac
-  if [ "$branch" = develop ] && [ "$base" = main ] && [[ $title =~ ^Release\ v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  if [ "$branch" = develop ] && [ "$base" = main ] && [[ $title =~ ^Release\ ${RELEASE_V}$ ]]; then
     ok "release PR ($title, develop -> main): exempt from the branch and header rules"
     return
   fi
@@ -54,8 +55,15 @@ check_pr() {
   fi
 }
 
+# The rest of a bumped file is anyone's text, like the subject: a release moves .version and nothing else.
+version_only() {  # <commit> <json-path>
+  [ "$(git show "$1^:$2" 2>/dev/null | jq 'del(.version)' 2>/dev/null)" \
+    = "$(git show "$1:$2" 2>/dev/null | jq 'del(.version)' 2>/dev/null)" ]
+}
+
 check_push() {
-  local before=$1 after=$2 commits c files subject release_set shipped=()
+  local before=$1 after=$2 commits c files subject release_set manifest package shipped=()
+  command -v jq >/dev/null 2>&1 || { echo "check-pr-push: jq is required" >&2; exit 2; }
   mapfile -t shipped < <(sed -n '/^SHIPPED_PATHS=(/,/^)/p' scripts/release.sh | sed '1d;$d' | tr -d ' \t')
   [ ${#shipped[@]} -gt 0 ] || { echo "check-pr-push: no SHIPPED_PATHS in scripts/release.sh" >&2; exit 2; }
   # marketplace.json needs a PR like plugin.json, but its change obliges no version bump, so it is
@@ -64,6 +72,8 @@ check_push() {
   release_set=$(sed -n -E 's/^(MANIFEST|PACKAGE|CHANGELOG)=//p' scripts/release.sh | sort)
   [ "$(printf '%s\n' "$release_set" | grep -c .)" -eq 3 ] \
     || { echo "check-pr-push: no MANIFEST, PACKAGE and CHANGELOG in scripts/release.sh" >&2; exit 2; }
+  manifest=$(sed -n 's/^MANIFEST=//p' scripts/release.sh)
+  package=$(sed -n 's/^PACKAGE=//p' scripts/release.sh)
 
   # A first push has no before, and walking all of its history would judge commits that reached the
   # repo long ago through other branches.
@@ -78,11 +88,13 @@ check_push() {
     files=$(git diff-tree -r --root --name-only --no-commit-id -m --first-parent "$c" -- "${shipped[@]}")
     [ -n "$files" ] || continue
     subject=$(git log -1 --format=%s "$c")
-    if [[ $subject =~ ^Release\ v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\ \(trigger\ [123]\)$ ]]; then
-      if [ "$(git diff-tree -r --root --name-only --no-commit-id "$c" | sort)" = "$release_set" ]; then
-        ok "${c:0:7} release commit: $subject"
-      else
+    if [[ $subject =~ ^Release\ ${RELEASE_V}\ \(trigger\ [123]\)$ ]]; then
+      if [ "$(git diff-tree -r --root --name-only --no-commit-id "$c" | sort)" != "$release_set" ]; then
         fail "${c:0:7} is titled as a release but does not touch exactly what release.sh commits ($(echo $release_set)): $subject"
+      elif ! version_only "$c" "$manifest" || ! version_only "$c" "$package"; then
+        fail "${c:0:7} is titled as a release but changes more than .version in $manifest or $package: $subject"
+      else
+        ok "${c:0:7} release commit: $subject"
       fi
     # GitHub commits a squash merge itself; a direct commit that only borrows the "(#NN)" suffix does not.
     elif [ "$(git log -1 --format=%p "$c" | wc -w)" -eq 1 ] && [ "$(git log -1 --format=%ce "$c")" = noreply@github.com ] \

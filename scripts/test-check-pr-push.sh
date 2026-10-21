@@ -25,7 +25,6 @@ N=0
 R=
 fixture() {
   N=$((N+1)); local d="$T/r$N"
-  case "$d" in "$T"/*) ;; *) echo "test-check-pr-push: refusing to build a fixture outside $T" >&2; exit 1 ;; esac
   mkdir -p "$d/.github" "$d/.claude-plugin" "$d/scripts" "$d/skills/qa/demo" "$d/docs"
   printf '# head keys\nCUBRIDQA-1663\n' > "$d/.github/head-keys.txt"
   printf '{"version":"1.1.0"}\n' > "$d/.claude-plugin/plugin.json"
@@ -59,6 +58,8 @@ expect "$R" 0 "ok +release PR" "the release PR is exempt from every PR rule" \
 fixture
 expect "$R" 1 "FAIL +branch" "a release-titled PR from a feature branch is not exempt" \
   -- pr feat/x develop "Release v1.2.0" false
+expect "$R" 1 "FAIL +branch" "a release PR whose version is not semver (v01.2.0) is not exempt" \
+  -- pr develop main "Release v01.2.0" false
 
 fixture
 expect "$R" 0 "ok +branch" "a branch named after a head key passes" \
@@ -101,6 +102,7 @@ expect "$R" 2 "CUBRDQA-1664" "a malformed head-keys line is refused rather than 
 
 tip() { git -C "$R" rev-parse HEAD; }
 edit() { printf 'x\n' >> "$R/$1"; }
+setjson() { jq "$2" "$R/$1" > "$T/json" && mv "$T/json" "$R/$1"; }
 squash() { GIT_COMMITTER_NAME=GitHub GIT_COMMITTER_EMAIL=noreply@github.com git -C "$R" commit -qam "$1"; }
 
 fixture; B=$(tip); edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "Edit a shipped skill directly"
@@ -122,10 +124,22 @@ fixture; B=$(tip); edit .claude-plugin/marketplace.json; git -C "$R" commit -qam
 expect "$R" 1 "FAIL +[0-9a-f]+ .*Edit the marketplace directly" "a direct commit to marketplace.json fails" \
   -- push "$B" "$(tip)"
 
-fixture; B=$(tip); edit .claude-plugin/plugin.json; edit package.json; edit CHANGELOG.md
-git -C "$R" commit -qam "Release v1.2.0 (trigger 2)"
-expect "$R" 0 "ok +[0-9a-f]+ release commit" "a release commit touching exactly the bumped files passes" \
+fixture; B=$(tip); setjson .claude-plugin/plugin.json '.version = "1.2.0"'; setjson package.json '.version = "1.2.0"'
+edit CHANGELOG.md; git -C "$R" commit -qam "Release v1.2.0 (trigger 2)"
+expect "$R" 0 "ok +[0-9a-f]+ release commit" "a release commit that only bumps the version passes" \
   -- push "$B" "$(tip)"
+
+# The rest of a bumped file is anyone's text too: a release moves .version and nothing else.
+fixture; B=$(tip); setjson .claude-plugin/plugin.json '.version = "1.2.0" | .skills = ["./skills/qa/demo"]'
+setjson package.json '.version = "1.2.0"'; edit CHANGELOG.md; git -C "$R" commit -qam "Release v1.2.0 (trigger 2)"
+expect "$R" 1 "FAIL +[0-9a-f]+ .*Release v1\.2\.0" "a release commit that also registers a skill in plugin.json fails" \
+  -- push "$B" "$(tip)"
+
+# The release commit release.sh really made. Absent only in a shallow clone, and CI clones in full.
+REPO=$(git -C "$(dirname "$SRC")" rev-parse --show-toplevel)
+if git -C "$REPO" cat-file -e 'b14cd18^{commit}' 2>/dev/null; then
+  expect "$REPO" 0 "ok +b14cd18 release commit" "the real release commit b14cd18 passes" -- push b14cd18^ b14cd18
+fi
 
 # The subject is anyone's text: a hand-made commit titled like a release is not exempt.
 fixture; B=$(tip); edit .claude-plugin/plugin.json; edit package.json; edit CHANGELOG.md; edit skills/qa/demo/SKILL.md
