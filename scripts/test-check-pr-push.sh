@@ -105,22 +105,37 @@ edit() { printf 'x\n' >> "$R/$1"; }
 setjson() { jq "$2" "$R/$1" > "$T/json" && mv "$T/json" "$R/$1"; }
 squash() { GIT_COMMITTER_NAME=GitHub GIT_COMMITTER_EMAIL=noreply@github.com git -C "$R" commit -qam "$1"; }
 
-fixture; B=$(tip); edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "Edit a shipped skill directly"
+# Shipped-surface cases carry the head key, so only the shipped rule can fail them.
+fixture; B=$(tip); edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "[CUBRIDQA-1663] Edit a shipped skill directly"
 expect "$R" 1 "FAIL +[0-9a-f]+ .*Edit a shipped skill directly" "a direct commit to the shipped surface fails" \
   -- push "$B" "$(tip)"
 
+fixture; B=$(tip); edit docs/notes.md; git -C "$R" commit -qam "[CUBRIDQA-1663] Edit a dev-only doc directly"
+expect "$R" 0 "ok +[0-9a-f]+ direct commit headed by head key CUBRIDQA-1663" \
+  "a direct commit off the shipped surface headed by the head key passes" -- push "$B" "$(tip)"
+
 fixture; B=$(tip); edit docs/notes.md; git -C "$R" commit -qam "Edit a dev-only doc directly"
-expect "$R" 0 "ok" "a direct commit off the shipped surface passes" -- push "$B" "$(tip)"
+expect "$R" 1 "FAIL +[0-9a-f]+ .*Edit a dev-only doc directly" "a direct commit without a key fails" \
+  -- push "$B" "$(tip)"
+
+fixture; B=$(tip); edit docs/notes.md; git -C "$R" commit -qam "[CUBRIDQA-9999] Edit a dev-only doc directly"
+expect "$R" 1 "FAIL +[0-9a-f]+ .*CUBRIDQA-9999" "a direct commit headed by a key that is not a head key fails" \
+  -- push "$B" "$(tip)"
+
+# A squash commit carries its PR's sub-task key, which is never a head key.
+fixture; B=$(tip); edit docs/notes.md; squash "[CUBRIDQA-1700] Edit a dev-only doc (#21)"
+expect "$R" 0 "ok +[0-9a-f]+ squash-merged PR" "a squash merge off the shipped surface passes with its sub-task key" \
+  -- push "$B" "$(tip)"
 
 fixture; B=$(tip); edit skills/qa/demo/SKILL.md; squash "[CUBRIDQA-1700] Edit a shipped skill (#21)"
 expect "$R" 0 "ok +[0-9a-f]+ squash-merged PR" "a GitHub squash merge to the shipped surface passes" \
   -- push "$B" "$(tip)"
 
-fixture; B=$(tip); edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "Edit a shipped skill (#21)"
+fixture; B=$(tip); edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "[CUBRIDQA-1663] Edit a shipped skill (#21)"
 expect "$R" 1 "FAIL +[0-9a-f]+ .*Edit a shipped skill \(#21\)" "a PR suffix GitHub did not commit is not a squash merge" \
   -- push "$B" "$(tip)"
 
-fixture; B=$(tip); edit .claude-plugin/marketplace.json; git -C "$R" commit -qam "Edit the marketplace directly"
+fixture; B=$(tip); edit .claude-plugin/marketplace.json; git -C "$R" commit -qam "[CUBRIDQA-1663] Edit the marketplace directly"
 expect "$R" 1 "FAIL +[0-9a-f]+ .*Edit the marketplace directly" "a direct commit to marketplace.json fails" \
   -- push "$B" "$(tip)"
 
@@ -153,15 +168,15 @@ expect "$R" 1 "FAIL +[0-9a-f]+ .*Release v1\.2\.0" "a release-titled commit miss
 # One bad commit in a range of good ones still fails, and is the one named.
 fixture; B=$(tip)
 edit skills/qa/demo/SKILL.md; squash "[CUBRIDQA-1700] First (#21)"
-edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "Sneak a skill edit in"
-edit docs/notes.md; git -C "$R" commit -qam "Edit notes"
+edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "[CUBRIDQA-1663] Sneak a skill edit in"
+edit docs/notes.md; git -C "$R" commit -qam "[CUBRIDQA-1663] Edit notes"
 expect "$R" 1 "FAIL +[0-9a-f]+ .*Sneak a skill edit in" "a direct shipped commit inside a range fails" \
   -- push "$B" "$(tip)"
 
 # Linear history forbids merges on develop, but if one lands, what it brings in counts.
 fixture; B=$(tip)
-git -C "$R" checkout -qb side; edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "Edit on a side branch"
-git -C "$R" checkout -q develop; git -C "$R" merge -q --no-ff -m "Merge side" side
+git -C "$R" checkout -qb side; edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "[CUBRIDQA-1663] Edit on a side branch"
+git -C "$R" checkout -q develop; git -C "$R" merge -q --no-ff -m "[CUBRIDQA-1663] Merge side" side
 expect "$R" 1 "FAIL +[0-9a-f]+ .*Merge side" "a merge commit bringing in a shipped change fails" \
   -- push "$B" "$(tip)"
 
@@ -170,7 +185,7 @@ ZERO=0000000000000000000000000000000000000000
 fixture; edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "Direct shipped edit"
 edit docs/notes.md; squash "[CUBRIDQA-1700] Docs (#22)"
 expect "$R" 0 "ok" "a first push checks the tip only" -- push "$ZERO" "$(tip)"
-fixture; edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "Direct shipped edit"
+fixture; edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "[CUBRIDQA-1663] Direct shipped edit"
 expect "$R" 1 "FAIL +[0-9a-f]+ .*Direct shipped edit" "a first push whose tip is a direct shipped commit fails" \
   -- push "$ZERO" "$(tip)"
 

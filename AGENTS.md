@@ -40,7 +40,9 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 - **이 repo에서 PR을 내는 경우는 둘이다.** 둘 다 `docs/agents/issue-tracker.md`의 "PR 흐름" 절을 따른다. 그 밖의 변경(문서, 개발 도구)은 `develop`에 직접 커밋한다. tc repo에는 언제나 PR로 낸다.
   - 스펙은 언제나 PR로 낸다.
   - 스펙 밖의 변경은 배포면이나 `.claude-plugin/marketplace.json`을 바꿀 때만 PR로 낸다. 이 경로 목록은 `scripts/check-pr-push.sh`가 정한다. PR 없이 이 경로를 바꾼 커밋이 `develop`에 push되면 `validate`가 실패한다.
-- **이 repo에서는 커밋 제목에 이슈 키를 붙이지 않는다.** 키는 PR 헤더에만 붙는다. 머지되는 PR의 헤더는 그 PR의 sub-task 키다([세 단계](./docs/agents/issue-tracker.md#세-단계)). 커밋은 그 PR 안에서 진행을 나누는 단위일 뿐이다. 커밋마다 짝이 되는 sub-task가 따로 있는 구조라면 커밋에도 키를 붙인다. 이 repo는 그 구조가 아니다.
+- **커밋 제목의 Jira 키는 커밋이 `develop`에 들어가는 길에 따라 다르다.**
+  - **PR 안의 커밋에는 키를 붙이지 않는다.** squash 머지가 PR 헤더의 키를 `develop`에 남는 커밋에 붙이기 때문이다.
+  - **직접 커밋은 제목을 그 커밋이 속한 일의 헤드 키로 시작한다.** 예: `[CUBRIDQA-1663] Fix a typo`. 헤드 키 목록의 자리는 [세 단계](./docs/agents/issue-tracker.md#세-단계)에 있다. `validate`가 `develop` push에서 이 규칙을 검사한다(`scripts/check-pr-push.sh`).
 - **배포면은 릴리스 PR(`develop`→`main`)로만 사용자에게 나간다.**
 - **배포면을 바꾼 커밋은 같은 커밋에서 `CHANGELOG.md`의 `[Unreleased]` 절에 항목 하나를 넣는다.** 항목은 자리 태그로 시작한다 — `- (major)`·`- (minor)`·`- (patch)` 중 하나다. push 전에 `scripts/release.sh check`로 확인한다.
   - 자리의 뜻은 `CHANGELOG.md`의 Version note가 정본이다. 경계는 manifest 호환이다.
@@ -51,7 +53,7 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
   - 트리거 1: 팀원이 기다리는 결함 수정은 바로 릴리스한다.
   - 트리거 2: 기능이 완결되면 그 자리에서 릴리스한다.
   - 트리거 3: 그 밖에는 쌓는다. 단 `[Unreleased]`에 7일 넘게 두지 않는다.
-- **릴리스는 PR 규칙, 브랜치 규칙, PR 헤더 규칙의 예외다.** 범프 커밋은 배포면을 바꾸지만 `develop`에 직접 push된다. PR 제목은 `Release vX.Y.Z`이고 커밋 제목은 `Release vX.Y.Z (trigger N)`이다. 셋 다 `release.sh`가 한다.
+- **릴리스는 PR 규칙, 브랜치 규칙, PR 헤더 규칙, 직접 커밋의 키 규칙의 예외다.** 범프 커밋은 배포면을 바꾸지만 `develop`에 직접 push된다. PR 제목은 `Release vX.Y.Z`이고 커밋 제목은 `Release vX.Y.Z (trigger N)`이다. 셋 다 `release.sh`가 한다.
 - **`develop`으로 들어가는 PR은 squash로만 머지한다.** GitHub 설정이 강제한다. `develop`의 linear history가 머지 커밋을 막고, repo 설정이 rebase 머지를 끈다.
 - **GitHub 설정의 현재 값은 아래와 같다.** 설정을 바꾸면 `gh api repos/tw-kang/cubrid-agent/branches/<브랜치>/protection`으로 다시 읽어 이 값과 대조한다.
   - `main`: PR 필수(승인 0건), required check `validate`, force push 금지, 삭제 금지, 관리자 우회 허용.

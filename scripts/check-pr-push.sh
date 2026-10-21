@@ -62,8 +62,9 @@ version_only() {  # <commit> <json-path>
 }
 
 check_push() {
-  local before=$1 after=$2 commits c files subject release_set manifest package shipped=()
+  local before=$1 after=$2 commits c files subject key release_set manifest package shipped=()
   command -v jq >/dev/null 2>&1 || { echo "check-pr-push: jq is required" >&2; exit 2; }
+  read_head_keys
   mapfile -t shipped < <(sed -n '/^SHIPPED_PATHS=(/,/^)/p' scripts/release.sh | sed '1d;$d' | tr -d ' \t')
   [ ${#shipped[@]} -gt 0 ] || { echo "check-pr-push: no SHIPPED_PATHS in scripts/release.sh" >&2; exit 2; }
   # marketplace.json needs a PR like plugin.json, but its change obliges no version bump, so it is
@@ -86,7 +87,6 @@ check_push() {
 
   for c in $commits; do
     files=$(git diff-tree -r --root --name-only --no-commit-id -m --first-parent "$c" -- "${shipped[@]}")
-    [ -n "$files" ] || continue
     subject=$(git log -1 --format=%s "$c")
     if [[ $subject =~ ^Release\ ${RELEASE_V}\ \(trigger\ [123]\)$ ]]; then
       if [ "$(git diff-tree -r --root --name-only --no-commit-id "$c" | sort)" != "$release_set" ]; then
@@ -101,7 +101,14 @@ check_push() {
          && [[ $subject =~ \ \(#[0-9]+\)$ ]]; then
       ok "${c:0:7} squash-merged PR: $subject"
     else
-      fail "${c:0:7} changed the shipped surface without a PR: $subject ($(echo $files))"
+      key=
+      [[ $subject =~ ^\[(CUBRIDQA-[1-9][0-9]*)\]\ [^[:space:]] ]] && key=${BASH_REMATCH[1]}
+      if [ -z "$key" ] || ! printf '%s\n' "$HEAD_KEYS" | grep -qx "$key"; then
+        fail "${c:0:7} is a direct commit not headed by [<head key>] (head keys: $(echo $HEAD_KEYS)): $subject"
+      elif [ -z "$files" ]; then
+        ok "${c:0:7} direct commit headed by head key $key: $subject"
+      fi
+      [ -z "$files" ] || fail "${c:0:7} changed the shipped surface without a PR: $subject ($(echo $files))"
     fi
   done
 }
