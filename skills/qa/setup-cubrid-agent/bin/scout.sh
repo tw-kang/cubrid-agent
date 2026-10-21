@@ -86,7 +86,7 @@ fi
 [ -n "$BUILD" ] \
   || miss "CUBRID build — cubrid_rel reports no version under $CUB. Authoring still runs; the answer cannot be generated, and its terminal state is verify.status=\"blocked_no_build\" + verify.note. /setup-cubrid-agent --build <url> installs one."
 
-# Identity is read, never resolved over the network (ADR 0004: read it, never hardcode a person).
+# Identity is read, never resolved over the network (read it, never hardcode a person).
 QA_USER=${CUBRID_JIRA_USER:-}
 case "$QA_USER" in
   '')    miss "JIRA username — CUBRID_JIRA_USER is empty and ~/.cubrid-agent/env.sh did not set it. An empty value yields a 0-issue queue instead of an error. Run /setup-cubrid-agent once, or export it; do not guess it and do not parse ~/.netrc." ;;

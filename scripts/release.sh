@@ -63,7 +63,7 @@ highest_digit() {   # the digit a section earns: the largest one any of its entr
 
 # Every version this repo has ever declared, lowest first. A number that was declared once may sit in
 # someone's cache, and a release at or below it is not seen as an update there. 1.0.1 and 1.0.2 went
-# out before the rule existed and 1.0.0 is the rewrite (ADR 0007), so this is not hypothetical.
+# out before the rule existed and 1.0.0 is the rewrite, so this is not hypothetical.
 declared_versions() {
   git log -p --format= -- "$MANIFEST" 2>/dev/null \
     | sed -n 's/^+[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([0-9][^"]*\)".*/\1/p' | sort -V -u

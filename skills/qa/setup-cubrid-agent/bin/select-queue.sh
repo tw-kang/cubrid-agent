@@ -40,7 +40,7 @@ done
 
 # env.sh and $TC come from common.sh, sourced at the top.
 
-# ── identity (ADR 0004: resolved per user, never hardcoded) ───────────────────────────────────────
+# ── identity (resolved per user, never hardcoded) ─────────────────────────────────────────────────
 # The guard matters more than the resolution: a wrong-but-plausible $QA_USER returns 0 issues with a
 # success exit, which reads as "nothing to author". Ad-hoc ~/.netrc parsing returns the hostname
 # rather than the login, which is exactly how that happens.

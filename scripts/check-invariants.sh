@@ -23,47 +23,73 @@ ISSUE_READERS=$(printf '%s\n' skills/*/create-*/SKILL.md skills/*/verify-*/SKILL
 # ---------------------------------------------------------------------------
 group "Non-product doc set (CUBRIDQA-1454: repo keeps the product, design lives in Jira)"
 
-# .agents/ is the normative set: four norm docs plus numbered ADRs. Nothing else.
-_agents_unexpected=$(git ls-files '.agents/*' \
-  | grep -v -E '^\.agents/(domain|design-principles|issue-tracker|triage-labels)\.md$' \
-  | grep -v -E '^\.agents/adr/[0-9]{4}-[a-z0-9-]+\.md$')
-if [ -z "$_agents_unexpected" ]; then pass ".agents/ holds only the norm docs + numbered ADRs"
-else fail ".agents/ has unexpected files:"; printf '         %s\n' $_agents_unexpected; fi
+# No ADRs: a decision's reason lives in Jira, the rule it set in a check or docs/agents/. An ADR kept
+# beside them is a third copy that drifts, and the plugin's domain-modeling skill writes docs/adr/ by
+# default.
+_adr_dirs=$(git ls-files | grep -E '^\.agents/|(^|/)adr/')
+if [ -z "$_adr_dirs" ]; then pass "no .agents/ and no ADR directory (reasons live in Jira, rules in checks and docs/agents/)"
+else fail "an ADR directory or .agents/ is back in git — put the reason in Jira and the rule in a check or docs/agents/:"; printf '         %s\n' $_adr_dirs; fi
 
-# docs/ keeps runbooks, the reference shelf, and PoC evidence reports — not design docs.
+# The retired ADRs were cited as backtick paths and "ADR 0004" in prose, shipped skills and runtime
+# output included, which the dead-link check below cannot see. CHANGELOG is history and keeps them.
+_adr_refs=$(git grep -l -E '\.agents/adr|ADR[ -]?[0-9]{4}' -- . ':!CHANGELOG.md' ':!scripts/check-invariants.sh' 2>/dev/null)
+if [ -z "$_adr_refs" ]; then pass "nothing points at a retired ADR"
+else fail "these files still point at an ADR that no longer exists — name the check, doc or Jira key instead:"; printf '         %s\n' $_adr_refs; fi
+
+# The plugin skills look for the glossary at the root and the agent docs under docs/agents/. Kept
+# elsewhere, an adapter paragraph broke on each plugin update, and domain-modeling creates a missing
+# GLOSSARY.md lazily — a second glossary beside ours.
+AGENT_DOCS="issue-tracker triage-labels domain design-principles"
+_m=""
+[ -n "$(git ls-files GLOSSARY.md)" ] || _m="$_m GLOSSARY.md-missing"
+[ -z "$(git ls-files CONTEXT.md)" ]  || _m="$_m CONTEXT.md-still-tracked"
+for d in $AGENT_DOCS; do
+  [ -n "$(git ls-files "docs/agents/$d.md")" ] || _m="$_m docs/agents/$d.md-missing"
+done
+if [ -z "$_m" ]; then pass "GLOSSARY.md at the root, the four agent docs in docs/agents/, no CONTEXT.md"
+else fail "docs are not where the plugin skills look:$_m — a skill would create its own copy"; fi
+
+# docs/ keeps runbooks, the pipeline map, the agent docs, the reference shelf and PoC evidence reports.
+# The reference shelf is one file of URLs: 143KB of vendored vendor docs once sat there going stale.
 _docs_unexpected=$(git ls-files 'docs/*' \
-  | grep -v -E '^docs/(deployment|dev-process|setup)\.md$' \
-  | grep -v -E '^docs/reference/' \
+  | grep -v -E '^docs/(deployment|dev-process|pipeline|setup)\.md$' \
+  | grep -v -E "^docs/agents/(${AGENT_DOCS// /|})\.md$" \
+  | grep -v -E '^docs/reference/README\.md$' \
   | grep -v -E '^docs/agents/[a-z-]+/reports/')
-if [ -z "$_docs_unexpected" ]; then pass "docs/ holds only runbooks, reference and PoC reports"
+if [ -z "$_docs_unexpected" ]; then pass "docs/ holds only runbooks, the pipeline map, agent docs, reference and PoC reports"
 else fail "docs/ has unexpected files:"; printf '         %s\n' $_docs_unexpected; fi
 
 # Paths 1454 removed. Their return means design crept back into the repo.
-for p in docs/adr docs/CONTEXT-MAP.md docs/staging.md docs/guides; do
+for p in docs/CONTEXT-MAP.md docs/staging.md docs/guides; do
   if [ -n "$(git ls-files "$p" "$p/*" 2>/dev/null)" ]; then fail "removed by 1454, back in git: $p"; fi
 done
 _design_back=$(git ls-files 'docs/agents/*' | grep -E '/(DESIGN|CONTEXT)\.md$')
 if [ -z "$_design_back" ]; then pass "no DESIGN.md / CONTEXT.md under docs/agents/ (they live in Jira)"
 else fail "design docs back in repo:"; printf '         %s\n' $_design_back; fi
 
-# Stage numbering belongs in Jira, not the product. CHANGELOG, the ADRs and this file are excluded.
-_staged=$(git ls-files | grep -v -E '^(CHANGELOG\.md|\.agents/adr/|scripts/check-invariants\.sh$)' \
+# Stage numbering belongs in Jira, not the product. CHANGELOG and this file are excluded.
+_staged=$(git ls-files | grep -v -E '^(CHANGELOG\.md|scripts/check-invariants\.sh$)' \
   | while read -r f; do [ -f "$f" ] && grep -lE '[Ss]tage[ _-]?[0-9]|스테이지' "$f" 2>/dev/null; done)
 if [ -z "$_staged" ]; then
-  pass "no stage bookkeeping outside CHANGELOG and the ADRs (rollout lives in CUBRIDQA-1425)"
+  pass "no stage bookkeeping outside CHANGELOG (progress lives in the local map)"
 else
-  fail "rollout-stage labels are back in the repo — move them to CUBRIDQA-1425:"; printf '         %s\n' $_staged
+  fail "rollout-stage labels are back in the repo — progress belongs in the local map (docs/agents/issue-tracker.md):"; printf '         %s\n' $_staged
 fi
 
-# An agent reads AGENTS.md first, so the two method rules must be in that file, not only in .agents/.
+# An agent reads AGENTS.md first, so the two method rules must be in that file, not only in docs/agents/.
 _m=""
 grep -q '개발 방식' AGENTS.md                      || _m="$_m the-section"
 grep -q '코드로 가능한 것은 최대한 코드로' AGENTS.md  || _m="$_m code-first-rule"
 grep -q '/code-review' AGENTS.md                    || _m="$_m skill-chain"
-grep -q 'CUBRIDQA-1425' AGENTS.md                   || _m="$_m ticket-first-check"
-grep -q '^## DP6' .agents/design-principles.md      || _m="$_m DP6"
+grep -q '/implement-spec' AGENTS.md                 || _m="$_m skill-chain-runs-specs"
+grep -q '/retro' AGENTS.md                          || _m="$_m retro-conditions"
+grep -qF '`/pr`' AGENTS.md                          || _m="$_m pr-skill-inside-template"
+grep -q 'PR 안의 커밋.*키를 붙이지 않는다' AGENTS.md  || _m="$_m no-key-in-pr-commits"
+grep -q '직접 커밋.*헤드 키로 시작한다' AGENTS.md     || _m="$_m head-key-on-direct-commits"
+grep -qF 'check-pr-push.sh' AGENTS.md               || _m="$_m machine-checked-flow"
+grep -q '^## DP6' docs/agents/design-principles.md  || _m="$_m DP6"
 grep -q '한 가지로만 읽히게' AGENTS.md               || _m="$_m unambiguous-once-short"
-grep -q '^## DP7' .agents/design-principles.md      || _m="$_m DP7"
+grep -q '^## DP7' docs/agents/design-principles.md  || _m="$_m DP7"
 # The PR template is a file, linked rather than copied; $FORK guards against a hardcoded person.
 grep -qF '.github/PULL_REQUEST_TEMPLATE.md' AGENTS.md || _m="$_m pr-template-link"
 grep -q '### Purpose' .github/PULL_REQUEST_TEMPLATE.md || _m="$_m pr-template-headings"
@@ -78,16 +104,40 @@ fi
 
 # A pointer whose target is silent reads as "already covered", so the target must carry the rule.
 _t=""
-grep -q 'CUBRIDQA-1425' .agents/issue-tracker.md          || _t="$_t parent-key"
-grep -q '새로 만들지 않는다' .agents/issue-tracker.md      || _t="$_t default-is-no-new-ticket"
-grep -q 'to-spec' .agents/issue-tracker.md                || _t="$_t subtask-is-a-spec"
-grep -q 'to-tickets' .agents/issue-tracker.md             || _t="$_t task-is-a-work-item"
-grep -q 'linkedIssues' .agents/issue-tracker.md           || _t="$_t how-to-read-the-tree"
+grep -q 'Jira 헤드' docs/agents/issue-tracker.md                  || _t="$_t three-tiers"
+grep -q '^## Wayfinding operations' docs/agents/issue-tracker.md  || _t="$_t wayfinding-section"
+grep -qF 'claimed (' docs/agents/issue-tracker.md                 || _t="$_t claim-format"
+grep -q 'to-spec' docs/agents/issue-tracker.md                    || _t="$_t spec-dir"
+grep -q 'to-tickets' docs/agents/issue-tracker.md                 || _t="$_t ticket-dir"
+grep -q '머지 준비' docs/agents/issue-tracker.md                   || _t="$_t merge-ready-steps"
+grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
+grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 if [ -z "$_t" ]; then
-  pass ".agents/issue-tracker.md carries the ticket rule AGENTS.md points at (default: no new ticket)"
+  pass "docs/agents/issue-tracker.md carries the tracker and PR flow AGENTS.md points at"
 else
-  fail "the ticket rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
+  fail "the tracker rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
 fi
+
+# The plugin skills read these two files. A label table or an ADR prompt left there would make a skill
+# label a ticket or propose an ADR this repo no longer keeps.
+_t=""
+grep -q 'CUBRIDQA-1505' docs/agents/triage-labels.md   || _t="$_t intake-is-1505"
+! grep -q 'needs-triage' docs/agents/triage-labels.md  || _t="$_t label-table-still-there"
+grep -q 'ADR을 만들지 않는다' docs/agents/domain.md      || _t="$_t no-new-adr"
+if [ -z "$_t" ]; then pass "triage-labels.md names the intake ticket, domain.md says no ADRs"
+else fail "a plugin-read doc still steers to the v1 tracker:$_t"; fi
+
+# v1 tracker rules (1425 tree, GitHub-Issue work tickets, keys in commits) retired with the v2 tracker.
+# One left in a doc an agent reads sends work to a closed tree or a tracker nobody watches.
+_stale=$(git grep -l -E 'linkedIssues|gh issue|CUBRIDQA-1491|\[#NN\]|새로 만들지 않는다|작업 티켓' \
+  -- AGENTS.md GLOSSARY.md 'docs/*.md' .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null)
+_stale="$_stale $(git grep -l 'CUBRIDQA-1425' -- AGENTS.md GLOSSARY.md docs/agents/issue-tracker.md \
+  docs/agents/triage-labels.md docs/agents/domain.md .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null)"
+# The runbooks may cite 1425 as where a reason lives, but not as where the rollout is tracked now.
+_stale="$_stale $(git grep -l -E '롤아웃.*CUBRIDQA-1425|CUBRIDQA-1425.*롤아웃' -- 'docs/*.md' 2>/dev/null)"
+sed -n '/^## Agent skills/,$p' AGENTS.md | grep -q '\.agents/' && _stale="$_stale AGENTS.md#agent-skills:.agents/"
+if [ -z "${_stale// /}" ]; then pass "no v1 tracker rule left in AGENTS.md, GLOSSARY.md, docs/ or the PR template"
+else fail "v1 tracker rules are still written down — docs/agents/issue-tracker.md replaced them:"; printf '         %s\n' $_stale; fi
 
 # DP7-2: one fact, one place. CLAUDE.md is excluded — it is the symlink to AGENTS.md.
 _dup=""
@@ -95,23 +145,17 @@ _lang=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '\*\*영문
 [ "$(printf '%s\n' "$_lang" | grep -c .)" = 1 ] || _dup="$_dup language-policy-list[$(echo $_lang)]"
 _lbl=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '현재 라벨을 읽' 2>/dev/null)
 [ "$(printf '%s\n' "$_lbl" | grep -c .)" = 1 ] || _dup="$_dup label-procedure[$(echo $_lbl)]"
+_hk=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -l 'head-keys\.txt' 2>/dev/null)
+[ "$_hk" = docs/agents/issue-tracker.md ] || _dup="$_dup head-keys-location[$(echo $_hk)]"
+_bf=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -l 'cubridqa-<헤드 키 번호>' 2>/dev/null)
+[ "$_bf" = docs/agents/issue-tracker.md ] || _dup="$_dup branch-name-format[$(echo $_bf)]"
+_ps=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -h 'PR 하나' 2>/dev/null | grep -c 'sub-task')
+[ "$_ps" = 1 ] || _dup="$_dup one-PR-per-sub-task[$_ps lines]"
 if [ -z "$_dup" ]; then
-  pass "the language-policy list and the label procedure each live in exactly one file (DP7-2)"
+  pass "the language-policy list, the label procedure, the head-keys location, the branch-name format and one PR per sub-task each live in one place (DP7-2)"
 else
   fail "a rule is written in two places and will drift:$_dup — keep one, link from the other"
 fi
-
-# ---------------------------------------------------------------------------
-group "ADR numbering"
-
-_nums=$(git ls-files '.agents/adr/*.md' | sed -E 's|.*/([0-9]{4})-.*|\1|' | sort)
-_dupes=$(printf '%s\n' "$_nums" | uniq -d)
-[ -z "$_dupes" ] && pass "ADR numbers unique" || fail "duplicate ADR numbers: $(echo $_dupes)"
-
-_i=0; _gap=""
-for n in $_nums; do _i=$((_i+1)); [ "$n" = "$(printf '%04d' $_i)" ] || _gap="$_gap $n"; done
-[ -z "$_gap" ] && pass "ADR numbers contiguous from 0001 ($_i ADRs)" \
-               || fail "ADR numbering has a gap or does not start at 0001 — at:$_gap"
 
 # ---------------------------------------------------------------------------
 group "Agent-instruction entrypoint"
@@ -180,6 +224,24 @@ if [ -z "$_split" ]; then
 else
   fail "the shipped/in-progress split is broken:$_split — promote by moving into skills/qa/ AND adding the plugin.json line, in one commit"
 fi
+
+# Both install channels were verified against one layout, skills/<tree>/<name>/SKILL.md: plugin.json
+# lists that path, and the skills CLI discovers it on GitHub. A skill moved to the root or nested deeper
+# leaves the layout either channel was ever shown to find.
+_misplaced=$(git ls-files | grep -E '(^|/)SKILL\.md$' | grep -vE '^skills/[^/]+/[^/]+/SKILL\.md$')
+if [ -z "$_misplaced" ]; then pass "every SKILL.md sits at skills/<tree>/<name>/SKILL.md, the layout both install channels find"
+else fail "SKILL.md outside skills/<tree>/<name>/ — the plugin and the skills CLI may not find it:"; printf '         %s\n' $_misplaced; fi
+
+# The install entrypoint is a skill, not a command: a command rides the plugin channel only, a skill
+# rides both. It changes machine state, so the model must not start it on its own. Its setup.sh is the
+# one copy — npx copies only the skill's own directory, so a root wrapper would be a second entrypoint.
+_m=""
+sed -n '/^---$/,/^---$/p' skills/qa/setup-cubrid-agent/SKILL.md | grep -qx 'disable-model-invocation: true' \
+                                     || _m="$_m model-may-invoke-setup"
+[ -z "$(git ls-files setup.sh)" ]      || _m="$_m root-setup.sh"
+[ -z "$(git ls-files 'commands/*')" ]  || _m="$_m commands/"
+if [ -z "$_m" ]; then pass "setup-cubrid-agent is the only install entrypoint, and only a human starts it"
+else fail "the install entrypoint drifted:$_m — a command or a root setup.sh never reaches the skills-CLI channel, and a model-invocable setup changes a machine unasked"; fi
 
 # ---------------------------------------------------------------------------
 group "Rules that must hold in EVERY skill, not most of them"
@@ -252,7 +314,7 @@ fi
 
 # The scout names the half-year dir a new case belongs in; the lint hook judges whether the file
 # landed there. Same fact, two files — and they cannot share code, because a hook ships through the
-# plugin while a helper is installed into ~/.cubrid-agent/bin (ADR 0003). If the two expressions ever
+# plugin while a helper is installed into ~/.cubrid-agent/bin. If the two expressions ever
 # disagree, the pipeline sends the author to a directory its own gate then refuses.
 _hy_lint=$(sed -n 's/^[[:space:]]*_curhy=\(.*\)$/\1/p' scripts/lint-sql-tc.sh)
 _hy_scout=$(sed -n 's/^[[:space:]]*CURHY=\(.*\)$/\1/p' skills/qa/setup-cubrid-agent/bin/scout.sh)
@@ -331,7 +393,8 @@ fi
 
 # The stale-copy hint is byte-identical in every helper on purpose (one sentence, one wording), and it
 # is the sort of copy that rots: the next helper is written by copying an older one. Same directory and
-# same install unit, so unlike the cross-skill duplication forced by ADR 0003 this one is checkable.
+# same install unit, so unlike the cross-skill duplication the npx channel forces (DP7-2's exception in
+# docs/agents/design-principles.md) this one is checkable.
 _hint='this installed copy is stale'
 _miss=""; _n=0
 for _f in skills/qa/setup-cubrid-agent/bin/*.sh; do
@@ -352,8 +415,8 @@ fi
 # One resolution rule for the testcases clone, in one wording. Two wordings coexisted for a month: the
 # part skills kept a June sentence (discover the checkout from the cwd, else ask the user) while the
 # orchestrators and every helper moved to the $HOME standard, and nothing said so because each copy read
-# fine on its own. The duplication is sanctioned — ADR 0003's channel constraint means a part skill
-# cannot link to a shared file — the drift is not.
+# fine on its own. The duplication is sanctioned — `npx skills add` copies one skill directory, so a
+# part skill cannot link to a shared file (DP7-2's exception) — the drift is not.
 _rule='`$CUBRID_TESTCASES` if set, else `~/cubrid-testcases`'
 _miss=""; _n=0
 for _s in $(grep -lF 'CUBRID_TESTCASES' skills/qa/*/SKILL.md); do
@@ -376,23 +439,29 @@ else
 fi
 
 # The identity rule is duplicated on purpose — `npx skills add` copies one skill's own directory, so a
-# skill that resolves $QA_USER cannot link to a shared file (ADR 0003's channel constraint). What is
+# skill that resolves $QA_USER cannot link to a shared file (DP7-2's exception). What is
 # checkable is that no copy drifts into losing a part: the two copies already differ in wording, and
 # the part most likely to be dropped as boilerplate is the credential-safety half. Atoms, not byte
 # equality — each skill states the rule in its own context, and equality would fight that.
 _bad=""; _nid=0
 for _f in $(grep -l 'QA_USER' skills/*/*/SKILL.md 2>/dev/null); do
   _nid=$((_nid+1))
-  grep -qF 'ADR 0004' "$_f"    || _bad="$_bad $(basename "$(dirname "$_f")"):no-ADR-0004"
+  grep -qiF 'never hardcode' "$_f" || _bad="$_bad $(basename "$(dirname "$_f")"):may-hardcode-a-person"
   grep -qF 'never parse' "$_f" || _bad="$_bad $(basename "$(dirname "$_f")"):may-parse-netrc"
   grep -qF 'netrc' "$_f"       || _bad="$_bad $(basename "$(dirname "$_f")"):no-netrc-rule"
   grep -qF 'hostname' "$_f"    || _bad="$_bad $(basename "$(dirname "$_f")"):no-hostname-guard"
 done
 if [ -z "$_bad" ] && [ "$_nid" -gt 0 ]; then
-  pass "all $_nid skills that resolve \$QA_USER carry the whole identity rule (ADR 0004 + never-parse-netrc + hostname guard)"
+  pass "all $_nid skills that resolve \$QA_USER carry the whole identity rule (never-hardcode + never-parse-netrc + hostname guard)"
 else
   fail "identity rule drifted:${_bad:- no skill resolves \$QA_USER, which cannot be right} — a copy that lost the credential half is how a password reaches a transcript"
 fi
+
+# JQL currentUser() resolves to anonymous on jira.cubrid.org and returns no rows, not an error: the
+# same login got 230 rows by name and 0 by currentUser(). A queue built on it reads "nothing to do".
+_cu=$(git grep -l 'currentUser()' -- skills scripts hooks ':!scripts/check-invariants.sh' 2>/dev/null)
+if [ -z "$_cu" ]; then pass "no JQL uses currentUser() (it is silently anonymous on this Jira)"
+else fail "currentUser() returns 0 rows on jira.cubrid.org without an error — use \$QA_USER:"; printf '         %s\n' $_cu; fi
 
 # The guard that keeps ground-issue.sh's manifests from becoming permanent stop-reminders used to be
 # pinned here by grepping gate-stop.sh for one jq expression. That pinned the wording, not the
@@ -601,6 +670,17 @@ else fail "not in a releasable state — run scripts/release.sh check:"; printf 
 if _t=$(bash scripts/test-release.sh 2>&1); then pass "release tooling behaves: $_t"
 else fail "release test failed — run scripts/test-release.sh:"; printf '         %s\n' "$_t"; fi
 
+# release.sh check 7 skips in a shallow clone and says so in a log nobody reads, so a depth-1 CI
+# checkout would let an undeclared shipped change through on every push.
+if grep -qE '^[[:space:]]*fetch-depth:[[:space:]]*0[[:space:]]*$' .github/workflows/validate-plugin.yml; then
+  pass "CI checks out full history, so release check 7 runs there"
+else fail "validate-plugin.yml lost fetch-depth: 0 — release check 7 would skip on every CI run"; fi
+
+# A placeholder head key once merged as a PR's only key (cubridci#127). CI runs check-pr-push.sh only
+# on live PRs and pushes, so a rule that stopped firing would show as green, not as an error.
+if _t=$(bash scripts/test-check-pr-push.sh 2>&1); then pass "PR and push rules behave: $_t"
+else fail "PR/push rules test failed — run scripts/test-check-pr-push.sh:"; printf '         %s\n' "$_t"; fi
+
 # marketplace.json is read from the catalog clone, not from the versioned cache, so an edit there
 # reaches every install without a version bump. `claude plugin validate` checks its shape, not whether
 # it still points at this plugin — a renamed entry or a moved source would silently redirect installs.
@@ -634,7 +714,7 @@ else fail "manifest.blocked.example.json has author keys the full example does n
 group "Plugin manifest validation (optional — needs the claude CLI)"
 
 if command -v claude >/dev/null 2>&1; then
-  # --strict warned about one thing only, the deliberate `version` omission; 1.0.0 retired it (ADR 0003).
+  # --strict warned about one thing only, the deliberate `version` omission; 1.0.0 retired it.
   if claude plugin validate . --strict >/dev/null 2>&1; then pass "claude plugin validate . --strict passed"
   else fail "claude plugin validate . --strict failed — run it directly to see why"; fi
 else
