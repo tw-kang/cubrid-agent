@@ -38,6 +38,7 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 - **배포면을 건드리는 PR은 사람의 머지 지시를 기다린다.** 그 밖의 PR은 에이전트가 스스로 머지한다. PR이 없는 경로에서는 릴리스 PR이 그 자리다 — 배포면은 사람이 머지하는 `develop`→`main`으로만 나간다.
 - **배포면을 바꾼 커밋은 같은 커밋에서 `CHANGELOG.md`의 `[Unreleased]` 절에 항목 하나를 넣는다.** 항목은 자리 태그로 시작한다 — `- (major)`·`- (minor)`·`- (patch)` 중 하나다. push 전에 `scripts/release.sh check`로 확인한다.
 - **릴리스는 `scripts/release.sh`가 낸다.** 범프·태그·GitHub Release를 손으로 만들지 마라. 모드는 셋이다 — `check`(상태 검사), `next`(다음 버전 계산), `run --trigger <1|2|3>`(릴리스 실행). 트리거가 충족되면 사람을 기다리지 말고 실행한다. 세 트리거가 무엇인지는 ADR 0007에 있다.
+- **브랜치 이름과 PR 헤더는 `validate`가 검사한다** — `scripts/check-pr-push.sh`. 헤드 키 목록은 `.github/head-keys.txt`다.
 - **릴리스는 브랜치·PR 제목·커밋 제목 규칙의 예외다.** 범프 커밋은 `develop`에 직접 push된다. PR 제목은 `Release vX.Y.Z`이고 커밋 제목은 `Release vX.Y.Z (trigger N)`이다. 셋 다 `release.sh`가 한다.
 
 왜 이렇게 정했는지는 [ADR 0007](./.agents/adr/0007-versioning-and-releases.md)(버저닝·릴리스)와 [ADR 0008](./.agents/adr/0008-branch-model-prs-and-work-tickets.md)(브랜치·PR·티켓)에 있다. 자리를 셋 중 무엇으로 고르는지도 ADR 0007이 정한다.
