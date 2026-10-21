@@ -13,7 +13,7 @@ ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 FAILED=0
 ok()   { printf '  ok   %s\n' "$1"; }
 fail() { printf '  FAIL %s\n' "$1"; FAILED=$((FAILED+1)); }
-usage() { sed -n '4,5p' "$0" | sed 's/^# *//' >&2; exit 2; }
+usage() { sed -n 's/^# *\(check-pr-push\.sh [a-z]\)/\1/p' "$0" >&2; exit 2; }
 
 HEAD_KEYS_FILE=.github/head-keys.txt
 
@@ -55,9 +55,15 @@ check_pr() {
 }
 
 check_push() {
-  local before=$1 after=$2 commits c files subject shipped=()
+  local before=$1 after=$2 commits c files subject release_set shipped=()
   mapfile -t shipped < <(sed -n '/^SHIPPED_PATHS=(/,/^)/p' scripts/release.sh | sed '1d;$d' | tr -d ' \t')
   [ ${#shipped[@]} -gt 0 ] || { echo "check-pr-push: no SHIPPED_PATHS in scripts/release.sh" >&2; exit 2; }
+  # marketplace.json needs a PR like plugin.json, but its change obliges no version bump, so it is
+  # not in SHIPPED_PATHS.
+  shipped+=(.claude-plugin/marketplace.json)
+  release_set=$(sed -n -E 's/^(MANIFEST|PACKAGE|CHANGELOG)=//p' scripts/release.sh | sort)
+  [ "$(printf '%s\n' "$release_set" | grep -c .)" -eq 3 ] \
+    || { echo "check-pr-push: no MANIFEST, PACKAGE and CHANGELOG in scripts/release.sh" >&2; exit 2; }
 
   # A first push has no before, and walking all of its history would judge commits that reached the
   # repo long ago through other branches.
@@ -73,7 +79,11 @@ check_push() {
     [ -n "$files" ] || continue
     subject=$(git log -1 --format=%s "$c")
     if [[ $subject =~ ^Release\ v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\ \(trigger\ [123]\)$ ]]; then
-      ok "${c:0:7} release commit: $subject"
+      if [ "$(git diff-tree -r --root --name-only --no-commit-id "$c" | sort)" = "$release_set" ]; then
+        ok "${c:0:7} release commit: $subject"
+      else
+        fail "${c:0:7} is titled as a release but does not touch exactly what release.sh commits ($(echo $release_set)): $subject"
+      fi
     # GitHub commits a squash merge itself; a direct commit that only borrows the "(#NN)" suffix does not.
     elif [ "$(git log -1 --format=%p "$c" | wc -w)" -eq 1 ] && [ "$(git log -1 --format=%ce "$c")" = noreply@github.com ] \
          && [[ $subject =~ \ \(#[0-9]+\)$ ]]; then

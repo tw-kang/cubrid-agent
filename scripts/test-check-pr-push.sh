@@ -29,6 +29,9 @@ fixture() {
   mkdir -p "$d/.github" "$d/.claude-plugin" "$d/scripts" "$d/skills/qa/demo" "$d/docs"
   printf '# head keys\nCUBRIDQA-1663\n' > "$d/.github/head-keys.txt"
   printf '{"version":"1.1.0"}\n' > "$d/.claude-plugin/plugin.json"
+  printf '{"version":"1.1.0"}\n' > "$d/package.json"
+  printf '{"plugins":[]}\n' > "$d/.claude-plugin/marketplace.json"
+  printf '# Changelog\n' > "$d/CHANGELOG.md"
   cp "$RELEASE" "$d/scripts/release.sh"
   printf 'shipped\n' > "$d/skills/qa/demo/SKILL.md"
   printf 'not shipped\n' > "$d/docs/notes.md"
@@ -47,7 +50,6 @@ expect() {  # expect <dir> <expected-exit> <pattern|""> <label> -- <args...>
   pass
 }
 
-# ── the release PR is release.sh's own, and none of the PR rules apply to it ─────────────────────
 fixture
 expect "$R" 0 "ok +release PR" "the release PR is exempt from every PR rule" \
   -- pr develop main "Release v1.2.0" false
@@ -58,7 +60,6 @@ fixture
 expect "$R" 1 "FAIL +branch" "a release-titled PR from a feature branch is not exempt" \
   -- pr feat/x develop "Release v1.2.0" false
 
-# ── branch: cubridqa-<head key number>-<content> ─────────────────────────────────────────────────
 fixture
 expect "$R" 0 "ok +branch" "a branch named after a head key passes" \
   -- pr cubridqa-1663-v2-structure develop "[CUBRIDQA-1663] Restructure" true
@@ -71,7 +72,6 @@ expect "$R" 1 "FAIL +branch" "a number that is not a head key fails" \
 expect "$R" 1 "FAIL +branch" "a head-key prefix of a longer number fails" \
   -- pr cubridqa-16630-x develop "[CUBRIDQA-1663] Restructure" true
 
-# ── title: starts with [CUBRIDQA-<n>] ────────────────────────────────────────────────────────────
 fixture
 expect "$R" 0 "ok +title" "a title headed by a CUBRIDQA key passes" \
   -- pr cubridqa-1663-v2-structure develop "[CUBRIDQA-1700] Check branch names in CI" true
@@ -81,7 +81,7 @@ for bad in "Check branch names in CI" "CUBRIDQA-1700 Check branch names" "[cubri
     -- pr cubridqa-1663-v2-structure develop "$bad" true
 done
 
-# ── a head key is a placeholder: Draft may carry it, Ready may not (cubridci#127) ────────────────
+# A head key is a placeholder: Draft may carry it, Ready may not (cubridci#127).
 fixture
 expect "$R" 0 "ok +Draft PR may carry head key CUBRIDQA-1663" "a Draft PR headed by the head key passes" \
   -- pr cubridqa-1663-v2-structure develop "[CUBRIDQA-1663] Restructure" true
@@ -90,15 +90,15 @@ expect "$R" 1 "FAIL +Ready PR is still headed by head key CUBRIDQA-1663" "a Read
 expect "$R" 0 "ok +title is headed by \[CUBRIDQA-1700\]" "a Ready PR headed by its sub-task key passes" \
   -- pr cubridqa-1663-v2-structure develop "[CUBRIDQA-1700] Restructure" false
 
-# ── bad input stops with 2, never with a verdict ─────────────────────────────────────────────────
 fixture
 expect "$R" 2 "draft" "a draft flag other than true/false is refused" \
   -- pr cubridqa-1663-v2-structure develop "[CUBRIDQA-1663] Restructure" yes
+expect "$R" 2 "^check-pr-push\.sh pr <head-branch>" "an unknown mode prints the pr usage" -- merge
+expect "$R" 2 "^check-pr-push\.sh push <before-sha>" "an unknown mode prints the push usage" -- merge
 fixture; printf 'CUBRIDQA-1663\nCUBRDQA-1664\n' > "$R/.github/head-keys.txt"
 expect "$R" 2 "CUBRDQA-1664" "a malformed head-keys line is refused rather than skipped" \
   -- pr cubridqa-1663-v2-structure develop "[CUBRIDQA-1663] Restructure" true
 
-# ── push: a shipped change reaches develop only through a squash-merged PR or a release ──────────
 tip() { git -C "$R" rev-parse HEAD; }
 edit() { printf 'x\n' >> "$R/$1"; }
 squash() { GIT_COMMITTER_NAME=GitHub GIT_COMMITTER_EMAIL=noreply@github.com git -C "$R" commit -qam "$1"; }
@@ -118,8 +118,22 @@ fixture; B=$(tip); edit skills/qa/demo/SKILL.md; git -C "$R" commit -qam "Edit a
 expect "$R" 1 "FAIL +[0-9a-f]+ .*Edit a shipped skill \(#21\)" "a PR suffix GitHub did not commit is not a squash merge" \
   -- push "$B" "$(tip)"
 
+fixture; B=$(tip); edit .claude-plugin/marketplace.json; git -C "$R" commit -qam "Edit the marketplace directly"
+expect "$R" 1 "FAIL +[0-9a-f]+ .*Edit the marketplace directly" "a direct commit to marketplace.json fails" \
+  -- push "$B" "$(tip)"
+
+fixture; B=$(tip); edit .claude-plugin/plugin.json; edit package.json; edit CHANGELOG.md
+git -C "$R" commit -qam "Release v1.2.0 (trigger 2)"
+expect "$R" 0 "ok +[0-9a-f]+ release commit" "a release commit touching exactly the bumped files passes" \
+  -- push "$B" "$(tip)"
+
+# The subject is anyone's text: a hand-made commit titled like a release is not exempt.
+fixture; B=$(tip); edit .claude-plugin/plugin.json; edit package.json; edit CHANGELOG.md; edit skills/qa/demo/SKILL.md
+git -C "$R" commit -qam "Release v1.2.0 (trigger 2)"
+expect "$R" 1 "FAIL +[0-9a-f]+ .*Release v1\.2\.0" "a release-titled commit that also edits a skill fails" \
+  -- push "$B" "$(tip)"
 fixture; B=$(tip); edit .claude-plugin/plugin.json; git -C "$R" commit -qam "Release v1.2.0 (trigger 2)"
-expect "$R" 0 "ok +[0-9a-f]+ release commit" "a release commit to the shipped surface passes" \
+expect "$R" 1 "FAIL +[0-9a-f]+ .*Release v1\.2\.0" "a release-titled commit missing a bumped file fails" \
   -- push "$B" "$(tip)"
 
 # One bad commit in a range of good ones still fails, and is the one named.
