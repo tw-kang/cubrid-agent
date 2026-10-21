@@ -165,7 +165,6 @@ scripts/           hook scripts, addressed via ${CLAUDE_PLUGIN_ROOT},
                    and release.sh (dev-only, cuts a release)
 docs/              runbooks, reference and the pipeline map (Korean, non-shipping)
 docs/agents/       agent norms (Korean, non-shipping)
-.agents/adr/       the thin ADR set (Korean, non-shipping)
 GLOSSARY.md        shared glossary (Korean, non-shipping)
 ```
 

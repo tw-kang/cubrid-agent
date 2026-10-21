@@ -9,7 +9,7 @@ effort: medium
 
 # setup-cubrid-agent — one-time install → usable
 
-Bring a freshly installed cubrid-agent to the "install + one setup → usable" bar. `setup.sh` handles the machine state (Tier 2) non-interactively and idempotently; this skill drives it, then completes the parts the script deliberately leaves to a human (Tier 3 — sudo installs and credentials), and reports which skills are actually runnable. Asset model and tiers: `docs/deployment.md`; decision: `.agents/adr/0003-setup-entrypoint-skill.md`.
+Bring a freshly installed cubrid-agent to the "install + one setup → usable" bar. `setup.sh` handles the machine state (Tier 2) non-interactively and idempotently; this skill drives it, then completes the parts the script deliberately leaves to a human (Tier 3 — sudo installs and credentials), and reports which skills are actually runnable. Asset model and tiers: `docs/deployment.md`.
 
 **Manual entrypoint** (`disable-model-invocation: true`): it changes machine state (clones, sudo installs), so it runs only when the operator invokes `/setup-cubrid-agent`, never on its own.
 
@@ -30,7 +30,7 @@ Bring a freshly installed cubrid-agent to the "install + one setup → usable" b
 - **`cubrid-jira`** — `uv tool install` into `~/.local`, no sudo; `uv` is installed the same way when absent.
 - Not installed either way: **credentials** (yours alone) and a **CUBRID build** (issue-dependent, `--build`).
 
-Run the `scripts/setup.sh` that ships next to this SKILL.md — it is the **canonical and only** copy (there is no repo-root wrapper; ADR-0003). Resolve it in this order:
+Run the `scripts/setup.sh` that ships next to this SKILL.md — it is the **canonical and only** copy (there is no repo-root wrapper). Resolve it in this order:
 
 1. `${CLAUDE_PLUGIN_ROOT}/skills/qa/setup-cubrid-agent/scripts/setup.sh` when `CLAUDE_PLUGIN_ROOT` is set (plugin channel);
 2. otherwise the `scripts/setup.sh` in this skill's own directory (npx channel, or a repo checkout at `skills/qa/setup-cubrid-agent/scripts/setup.sh`).

@@ -7,6 +7,12 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+- (patch) **The shipped skills no longer point at decision records that are gone.**
+  `setup-cubrid-agent`, `author-testcase` and `gate-resolved` cited `.agents/adr/…` files and ADR
+  numbers, `setup.sh` printed one in its output, and the `gate-resolved` evals cited one deleted
+  long before. The repository no longer keeps ADRs, so those pointers led nowhere. The rules they
+  pointed at are unchanged and still written in each skill.
+
 ## [1.1.0] - 2026-10-12
 
 ### Changed

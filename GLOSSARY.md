@@ -38,9 +38,8 @@ CBRD 이슈 워크플로의 상태 전이를 맡는 에이전트들이 함께 �
 | **헤드 키** | 목표 하나를 담는 Jira 이슈(Jira 헤드)의 키. Draft PR이 다는 자리표시자 헤더다. 목록은 `.github/head-keys.txt` |
 | **로컬 티켓** | 결정 하나 또는 작업 하나를 담는 `.scratch/` 아래 markdown 파일. Jira sub-task(PR 하나)와 다른 단계다 |
 
-## 제품·저장소 형태 결정 (ADR 0005 어휘)
+## 제품·저장소 형태 (CUBRIDQA-1454 어휘)
 
 | 용어 | 뜻 |
 |---|---|
-| **product-shape ADR** | repo에 남기는 thin ADR. "제품·저장소가 왜 이 모양인가"(ship-as-plugin·dual-channel·setup-entrypoint·doc-strategy)만 담고, 에이전트·스킬 설계는 담지 않는다(그건 Jira) |
 | **design-to-Jira backfill** | 에이전트·스킬 설계 문서(DESIGN·설계 ADR·상세 CONTEXT 등)를 대응 CUBRIDQA 티켓 본문으로 옮기고 repo에서 삭제하는 것. "내용손실없이"는 백필 + git 이력이 보장 |

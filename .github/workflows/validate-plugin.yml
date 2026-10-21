@@ -2,7 +2,7 @@
 # `claude plugin validate` cannot see (doc-set shape, dead links, per-skill rules), and the
 # branch, PR-header and direct-commit rules (scripts/check-pr-push.sh).
 # `--strict` is blocking from 1.0.0 on: the one warning it used to raise was the
-# deliberate `version` omission, and pinning semver retired it (ADR 0003).
+# deliberate `version` omission, and pinning semver retired it.
 name: validate-plugin
 
 on:

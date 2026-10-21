@@ -2,18 +2,17 @@
 
 엔지니어링 스킬이 이 repo를 탐색할 때 도메인 문서를 어떻게 소비하는지.
 
-레이아웃: **단일 컨텍스트(single-context)** — 용어집은 루트 `GLOSSARY.md` 하나이고 `GLOSSARY-MAP.md`는 없다. 이 repo는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이전트들의 모노레포다. 단, **에이전트별 상세 설계는 repo가 아니라 Jira(CUBRIDQA)에 산다** — repo=제품, 설계=Jira([ADR 0005](../../.agents/adr/0005-repo-is-product-design-lives-in-jira.md)).
+레이아웃: **단일 컨텍스트(single-context)** — 용어집은 루트 `GLOSSARY.md` 하나이고 `GLOSSARY-MAP.md`는 없다. 이 repo는 CBRD 이슈 워크플로의 각 상태 전이를 맡는 에이전트들의 모노레포다. 단, **에이전트별 상세 설계는 repo가 아니라 Jira(CUBRIDQA)에 산다** — repo=제품, 설계=Jira(CUBRIDQA-1454).
 
 ## ADR을 만들지 않는다
 
-**ADR을 만들지 않는다. 결정의 이유는 Jira에 둔다.** `/domain-modeling`이나 `/grill-with-docs`가 ADR을 쓰려 하면, 대신 지도에 결정 티켓을 올린다([`issue-tracker.md`](./issue-tracker.md)의 "새로 드러난 결정"). `docs/adr/`는 `check-invariants.sh`가 막는다.
+**ADR을 만들지 않는다. 결정의 이유는 Jira에 둔다.** `/domain-modeling`이나 `/grill-with-docs`가 ADR을 쓰려 하면, 대신 지도에 결정 티켓을 올린다([`issue-tracker.md`](./issue-tracker.md)의 "새로 드러난 결정"). `.agents/`와 ADR 디렉토리(`docs/adr/` 등)는 `check-invariants.sh`가 막는다. 결정이 남긴 규칙은 기계가 판정할 수 있으면 check에, 아니면 이 디렉토리(`docs/agents/`)나 `AGENTS.md`에 둔다.
 
 ## 탐색 전에 읽을 것
 
 - **루트 `GLOSSARY.md`** — 공유 용어집.
 - **`docs/pipeline.md`** — 파이프라인 지도 + 에이전트 로스터(각자의 설계 티켓 링크).
 - **에이전트 상세 설계** — 대응 CUBRIDQA 티켓(gate-resolved→1440, author-testcase→1429, review-testcase→1441, test-runner→1444). `cubrid-jira`로 읽는다.
-- **`.agents/adr/`** — 제품·저장소 형태 결정(thin ADR `0001`–`0005`). 작업 영역에 닿는 것을 읽는다.
 - **`docs/agents/`** 규범 — `design-principles.md`·`issue-tracker.md`·`triage-labels.md`·이 문서.
 - **`docs/`** — 사람용 런북(`setup`·`deployment`·`dev-process`).
 
@@ -24,17 +23,15 @@
 ```
 /
 ├── GLOSSARY.md                ← 단일 용어집
-├── .agents/
-│   └── adr/                   ← 제품·저장소 형태 결정 (thin, 0001–0006)
 ├── docs/                      ← 사람용 런북 (setup·deployment·dev-process) + 파이프라인 지도 (pipeline)
 │   └── agents/                ← design-principles.md  issue-tracker.md  triage-labels.md  domain.md
-├── skills/in-progress/        ← 배포 안 하는 스킬 — 여기서 개발, 완성되면 qa로 승격 (ADR 0006)
+├── skills/in-progress/        ← 배포 안 하는 스킬 — 여기서 개발, 완성되면 qa로 승격
 └── .claude-plugin/ · skills/qa/ · hooks/ · scripts/   ← 제품(배포되는 전부)
 
 # 에이전트 상세 설계(DESIGN·방법론 ADR)는 repo가 아니라 Jira(CUBRIDQA) 티켓에 산다.
 ```
 
-> 일반적인 Matt Pocock 레이아웃은 컨텍스트를 `src/<context>/`에 두지만, 이 repo는 에이전트 설계를 **Jira로 옮겼다**(ADR 0005). repo에는 제품 + 용어집(`GLOSSARY.md`) + 오리엔테이션(`docs/pipeline.md`) + 규범(`docs/agents/`) + 런북(`docs/`)만 남는다.
+> 일반적인 Matt Pocock 레이아웃은 컨텍스트를 `src/<context>/`에 두지만, 이 repo는 에이전트 설계를 **Jira로 옮겼다**(CUBRIDQA-1454). repo에는 제품 + 용어집(`GLOSSARY.md`) + 오리엔테이션(`docs/pipeline.md`) + 규범(`docs/agents/`) + 런북(`docs/`)만 남는다.
 
 ## 용어(glossary)의 어휘를 쓴다
 
@@ -44,6 +41,6 @@
 
 ## 결정 충돌은 드러낸다
 
-출력이 기록된 결정(Jira, 지도의 결정 티켓, 남아 있는 ADR)과 모순되면 조용히 덮지 말고 명시적으로 드러낸다:
+출력이 기록된 결정(Jira, 지도의 결정 티켓)과 모순되면 조용히 덮지 말고 명시적으로 드러낸다:
 
-> _ADR-0005(repo=제품·설계=Jira)와 모순 — 그래도 다시 열어볼 가치가 있는 이유는…_
+> _CUBRIDQA-1454(repo=제품·설계=Jira)와 모순 — 그래도 다시 열어볼 가치가 있는 이유는…_
