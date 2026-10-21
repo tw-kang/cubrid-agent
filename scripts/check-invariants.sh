@@ -114,6 +114,10 @@ grep -q '"머지"를 지시하면' docs/agents/issue-tracker.md            || _t
 grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
 grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 grep -q '지도에 영향을 주는 사실' docs/agents/issue-tracker.md      || _t="$_t report-three-items"
+_retro=$(sed -n '/^- \*\*`\/retro` 제안\*\*/,/^$/p' docs/agents/issue-tracker.md)
+for _w in 결과 재발 높음 중간 낮음; do
+  printf '%s\n' "$_retro" | grep -q "\*\*$_w\*\*" || _t="$_t retro-severity:$_w"
+done
 if [ -z "$_t" ]; then
   pass "docs/agents/issue-tracker.md carries the tracker and PR flow AGENTS.md points at"
 else
