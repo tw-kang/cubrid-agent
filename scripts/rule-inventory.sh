@@ -7,6 +7,8 @@
 #
 # usage: rule-inventory.sh <git-ref> <path/to/SKILL.md>
 set -u
+# en_US.UTF-8 collates many Hangul tokens equal, so `uniq -c` folded distinct rules into one.
+export LC_ALL=C
 
 [ $# -eq 2 ] || { printf 'usage: rule-inventory.sh <git-ref> <path/to/SKILL.md>\n' >&2; exit 1; }
 # Repo-relative paths: `git show <ref>:<path>` only accepts that form, and mixing the two bases once

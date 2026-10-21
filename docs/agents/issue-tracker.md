@@ -24,7 +24,9 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 - **스펙**: 한 구간의 결정이 끝나면 리더가 `/to-spec`으로 `.scratch/v2-<묶음>/spec.md`를 만든다. 이어서 `/to-tickets`로 같은 디렉토리에 `issues/NN-<slug>.md`를 만든다.
 - 스펙 하나는 통합 브랜치 하나, Draft PR 하나로 간다. 작업 세션이 `/implement-spec`으로 처리한다.
 - 티켓 하나에 파일 하나다. 번호는 `01`부터 매긴다.
-- `Status:` 줄은 처음 값(`open` 또는 `ready-for-agent`) → `claimed (...)` → `resolved`로 바뀐다.
+- `Status:` 줄의 형식은 둘이다. 지도 티켓은 평문 `Status: open`이다. `/to-tickets`가 만든 스펙 티켓은 굵은 글씨 `**Status:** ready-for-agent`다.
+  - claim과 resolve는 그 줄의 형식을 그대로 두고 값만 바꾼다. 값은 아래 Wayfinding operations 절의 Claim·Resolve 항목을 따른다.
+  - 스펙 티켓을 resolve할 때는 완료 조건의 `- [ ]`도 `- [x]`로 바꾼다.
 - 대화와 제안은 파일 끝의 `## Comments` 아래에 덧붙인다.
 - 스킬이 "issue tracker에 publish"하라고 하면 위 자리에 파일을 쓴다. Jira에는 올리지 않는다.
 - 스킬이 "관련 티켓을 fetch"하라고 하면 받은 경로나 번호의 파일을 읽는다. Jira 키를 받으면 아래 [`search`](#핵심-규약-cubrid-jira-cli) 항목의 에이전트용 읽기 명령을 쓴다.

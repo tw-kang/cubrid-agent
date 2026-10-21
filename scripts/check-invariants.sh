@@ -114,6 +114,7 @@ grep -q '"머지"를 지시하면' docs/agents/issue-tracker.md            || _t
 grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
 grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 grep -q '지도에 영향을 주는 사실' docs/agents/issue-tracker.md      || _t="$_t report-three-items"
+grep -qF '`**Status:** ready-for-agent`' docs/agents/issue-tracker.md || _t="$_t spec-ticket-status-form"
 _retro=$(sed -n '/^- \*\*`\/retro` 제안\*\*/,/^$/p' docs/agents/issue-tracker.md)
 for _w in 결과 재발 높음 중간 낮음; do
   printf '%s\n' "$_retro" | grep -q "\*\*$_w\*\*" || _t="$_t retro-severity:$_w"
@@ -648,6 +649,10 @@ else fail "setup test failed — run scripts/test-setup.sh:"; printf '         %
 # The hint fires on a command that already fails, so the test pins first that it never blocks.
 if _t=$(bash scripts/test-hint-missing-helper.sh 2>&1); then pass "missing-helper hint behaves: $_t"
 else fail "missing-helper hint test failed — run scripts/test-hint-missing-helper.sh:"; printf '         %s\n' "$_t"; fi
+
+# The "no rule lost" check once read a renamed Hangul rule as 0 lost; the test pins it under en_US.UTF-8.
+if _t=$(bash scripts/test-rule-inventory.sh 2>&1); then pass "rule inventory tells Hangul rules apart: $_t"
+else fail "rule-inventory test failed — run scripts/test-rule-inventory.sh:"; printf '         %s\n' "$_t"; fi
 
 # Both directions are load-bearing: isolating with nothing to lose leaves a worktree per issue on CI,
 # and not isolating loses someone's staged work to a branch they do not own.
