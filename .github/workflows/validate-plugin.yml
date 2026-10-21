@@ -8,8 +8,10 @@ name: validate-plugin
 on:
   push:
     branches: [develop, main]
-  # edited and ready_for_review re-run the PR rules when the header is swapped or the PR leaves Draft;
-  # without them the required check keeps the verdict from the last push.
+  # The head-key rule reads both the title and the Draft flag. edited re-runs the PR rules when the
+  # header is swapped, ready_for_review and converted_to_draft when the PR leaves or re-enters Draft
+  # (the way out of a Ready PR still headed by the head key); without them the required check keeps
+  # the verdict from the last push.
   pull_request:
     types: [opened, synchronize, reopened, edited, ready_for_review, converted_to_draft]
 
