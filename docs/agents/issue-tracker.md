@@ -6,7 +6,7 @@ cubrid-agent 자체 개발의 스펙·PRD는 CUBRID Jira의 **`CUBRIDQA`** 프�
 
 > 이 트래커는 cubrid-agent **자체를 개발**하는 작업을 담는 곳이다. cubrid-agent의 에이전트들이 **대상으로 삼아 처리**하는 CBRD/CUBRIDQA 이슈(파이프라인 입력)와는 별개다.
 
-관점·내용은 **한글, 사용자 관점**(코드 구현 설명이 아니라 "무엇을 적용해 어떤 동작이 바뀌었다"). PR·커밋 제목의 태깅 규약은 [`AGENTS.md`](../AGENTS.md)의 "변경을 내보낼 때" 절에 있다.
+관점·내용은 **한글, 사용자 관점**(코드 구현 설명이 아니라 "무엇을 적용해 어떤 동작이 바뀌었다"). PR·커밋 제목의 태깅 규약은 [`AGENTS.md`](../../AGENTS.md)의 "변경을 내보낼 때" 절에 있다.
 
 ## 티켓 구조 — 기본은 "새로 만들지 않는다"
 
@@ -17,7 +17,7 @@ cubrid-agent 자체 개발의 스펙·PRD는 CUBRID Jira의 **`CUBRIDQA`** 프�
 | **스펙** | Jira sub-task | `/to-spec` 산출물 = **스펙 한 건**. 작업 단위가 아니다 | `create`에 `--parent`가 없다 → 아래 "curl REST 직결은 최후 수단" |
 | **작업 티켓** | GitHub Issue | `/to-tickets` 산출물 = **처리할 작업 한 건** | `gh issue create`. 본문에 그 스펙 sub-task의 Jira 키를 링크한다 |
 
-작업 티켓이 GitHub으로 간 근거는 [ADR 0008](adr/0008-branch-model-prs-and-work-tickets.md)에 있다.
+작업 티켓이 GitHub으로 간 근거는 [ADR 0008](../../.agents/adr/0008-branch-model-prs-and-work-tickets.md)에 있다.
 
 **Jira에 새로 남길 그 밖의 모든 것은 기존 티켓에 붙인다.** 만들기 전에 트리를 먼저 읽는다:
 

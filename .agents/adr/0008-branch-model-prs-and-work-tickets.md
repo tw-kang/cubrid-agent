@@ -10,7 +10,7 @@
 
 브랜치가 `develop` 하나였고, 커밋을 거기에 직접 쌓았다. 그래서 이력이 비대하고, 지금 릴리스로 나가 있는 상태를 가리키는 이름이 없다.
 
-티켓도 한 곳에 몰렸다. CUBRIDQA Jira는 2계층이다. 스펙이 이미 sub-task이면 그 아래에 작업 티켓을 달 수 없다. 그래서 작업 기록이 전부 코멘트로 쌓였다. 부모 트리는 31건이 됐다([`.agents/issue-tracker.md`](../issue-tracker.md)).
+티켓도 한 곳에 몰렸다. CUBRIDQA Jira는 2계층이다. 스펙이 이미 sub-task이면 그 아래에 작업 티켓을 달 수 없다. 그래서 작업 기록이 전부 코멘트로 쌓였다. 부모 트리는 31건이 됐다([`docs/agents/issue-tracker.md`](../../docs/agents/issue-tracker.md)).
 
 ## 결정
 
@@ -62,5 +62,5 @@ linear history 요구가 `develop`의 머지 커밋을 막는다. rebase 머지�
 - GitHub 설정 변경 4건(default branch, rebase 머지 끄기, `develop` 보호, `main` 보호)이 생긴다. 오프라인 테스트가 불가능하므로 각 변경 직후 `gh api` readback으로 값을 확인한다.
 - 기존 설치자는 아무것도 하지 않는다. `develop` 추적이 유지되므로 자동 갱신이 계속된다.
 - 새 작업은 GitHub Issue 하나로 시작한다. Jira에 새로 생기는 것은 스펙 sub-task뿐이다.
-- 운영 규약(브랜치명·제목 형식·머지 지시)은 [`AGENTS.md`](../../AGENTS.md)가, 두 트래커의 경계는 [`.agents/issue-tracker.md`](../issue-tracker.md)가 적는다. 에이전트는 그 둘을 읽는다.
+- 운영 규약(브랜치명·제목 형식·머지 지시)은 [`AGENTS.md`](../../AGENTS.md)가, 두 트래커의 경계는 [`docs/agents/issue-tracker.md`](../../docs/agents/issue-tracker.md)가 적는다. 에이전트는 그 둘을 읽는다.
 - 티켓: CUBRIDQA-1508.

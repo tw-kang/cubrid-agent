@@ -90,13 +90,13 @@ fi
 
 # A pointer whose target is silent reads as "already covered", so the target must carry the rule.
 _t=""
-grep -q 'CUBRIDQA-1425' .agents/issue-tracker.md          || _t="$_t parent-key"
-grep -q '새로 만들지 않는다' .agents/issue-tracker.md      || _t="$_t default-is-no-new-ticket"
-grep -q 'to-spec' .agents/issue-tracker.md                || _t="$_t subtask-is-a-spec"
-grep -q 'to-tickets' .agents/issue-tracker.md             || _t="$_t task-is-a-work-item"
-grep -q 'linkedIssues' .agents/issue-tracker.md           || _t="$_t how-to-read-the-tree"
+grep -q 'CUBRIDQA-1425' docs/agents/issue-tracker.md        || _t="$_t parent-key"
+grep -q '새로 만들지 않는다' docs/agents/issue-tracker.md    || _t="$_t default-is-no-new-ticket"
+grep -q 'to-spec' docs/agents/issue-tracker.md              || _t="$_t subtask-is-a-spec"
+grep -q 'to-tickets' docs/agents/issue-tracker.md           || _t="$_t task-is-a-work-item"
+grep -q 'linkedIssues' docs/agents/issue-tracker.md         || _t="$_t how-to-read-the-tree"
 if [ -z "$_t" ]; then
-  pass ".agents/issue-tracker.md carries the ticket rule AGENTS.md points at (default: no new ticket)"
+  pass "docs/agents/issue-tracker.md carries the ticket rule AGENTS.md points at (default: no new ticket)"
 else
   fail "the ticket rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
 fi
