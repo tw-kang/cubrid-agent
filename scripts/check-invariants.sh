@@ -39,14 +39,17 @@ else fail "these files still point at an ADR that no longer exists — name the 
 # The plugin skills look for the glossary at the root and the agent docs under docs/agents/. Kept
 # elsewhere, an adapter paragraph broke on each plugin update, and domain-modeling creates a missing
 # GLOSSARY.md lazily — a second glossary beside ours.
-AGENT_DOCS="issue-tracker triage-labels domain design-principles"
+AGENT_DOCS="issue-tracker triage-labels domain"
 _m=""
 [ -n "$(git ls-files GLOSSARY.md)" ] || _m="$_m GLOSSARY.md-missing"
 [ -z "$(git ls-files CONTEXT.md)" ]  || _m="$_m CONTEXT.md-still-tracked"
+# /code-review reads CODING_STANDARDS.md whenever it exists, so the review rules live there and nowhere else.
+[ -n "$(git ls-files CODING_STANDARDS.md)" ] || _m="$_m CODING_STANDARDS.md-missing"
+[ -z "$(git ls-files docs/agents/design-principles.md)" ] || _m="$_m design-principles.md-still-tracked"
 for d in $AGENT_DOCS; do
   [ -n "$(git ls-files "docs/agents/$d.md")" ] || _m="$_m docs/agents/$d.md-missing"
 done
-if [ -z "$_m" ]; then pass "GLOSSARY.md at the root, the four agent docs in docs/agents/, no CONTEXT.md"
+if [ -z "$_m" ]; then pass "GLOSSARY.md and CODING_STANDARDS.md at the root, the three agent docs in docs/agents/, no CONTEXT.md"
 else fail "docs are not where the plugin skills look:$_m — a skill would create its own copy"; fi
 
 # docs/ keeps runbooks, the pipeline map, the agent docs, the reference shelf and PoC evidence reports.
@@ -87,9 +90,12 @@ grep -qF '`/pr`' AGENTS.md                          || _m="$_m pr-skill-inside-t
 grep -q 'PR 안의 커밋.*키를 붙이지 않는다' AGENTS.md  || _m="$_m no-key-in-pr-commits"
 grep -q '직접 커밋.*헤드 키로 시작한다' AGENTS.md     || _m="$_m head-key-on-direct-commits"
 grep -qF 'check-pr-push.sh' AGENTS.md               || _m="$_m machine-checked-flow"
-grep -q '^## DP6' docs/agents/design-principles.md  || _m="$_m DP6"
+grep -q '^## DP6' CODING_STANDARDS.md                || _m="$_m DP6"
 grep -q '한 가지로만 읽히게' AGENTS.md               || _m="$_m unambiguous-once-short"
-grep -q '^## DP7' docs/agents/design-principles.md  || _m="$_m DP7"
+grep -q '^## DP7' CODING_STANDARDS.md                || _m="$_m DP7"
+grep -q 'ASD-STE100' CODING_STANDARDS.md             || _m="$_m korean-prose-rules"
+grep -qF 'LC_ALL=C' CODING_STANDARDS.md              || _m="$_m sort-under-C-locale"
+grep -q '^## .*주석' CODING_STANDARDS.md             || _m="$_m comments-rule"
 # The PR template is a file, linked rather than copied; $FORK guards against a hardcoded person.
 grep -qF '.github/PULL_REQUEST_TEMPLATE.md' AGENTS.md || _m="$_m pr-template-link"
 grep -q '### Purpose' .github/PULL_REQUEST_TEMPLATE.md || _m="$_m pr-template-headings"
@@ -401,7 +407,7 @@ fi
 # The stale-copy hint is byte-identical in every helper on purpose (one sentence, one wording), and it
 # is the sort of copy that rots: the next helper is written by copying an older one. Same directory and
 # same install unit, so unlike the cross-skill duplication the npx channel forces (DP7-2's exception in
-# docs/agents/design-principles.md) this one is checkable.
+# CODING_STANDARDS.md) this one is checkable.
 _hint='this installed copy is stale'
 _miss=""; _n=0
 for _f in skills/qa/setup-cubrid-agent/bin/*.sh; do

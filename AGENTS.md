@@ -9,7 +9,8 @@ CBRD 이슈 워크플로의 상태 전이를 맡는 에이전트들의 모노레
 문서를 "배포되는가·누가 읽는가"로 나눈다.
 
 - **루트 플러그인 = 제품(배포되는 전부):** `.claude-plugin/plugin.json` · `skills/qa/` · `hooks/` · `scripts/`의 훅 스크립트. 저장소의 존재 이유. `scripts/`의 나머지는 개발 도구이고 배포면 밖이다. 배포면 경로 목록의 정본은 `scripts/release.sh`의 `SHIPPED_PATHS`다. **스킬은 전부 이 repo에 있다** — 외부 skills repo도 심링크 설치도 없다. **`skills/qa/`는 `plugin.json` 등재분과 정확히 일치**하고, 아직 배포하지 않는 스킬은 `skills/in-progress/`에서 개발한다 — 완성되면 이동+등재로 승격한다.
-- **`docs/agents/` = 에이전트용 규범(횡단):** `design-principles.md`(DP1 병렬 실행, **DP2 사용자 관점·블랙박스 테스트**, DP3 언어 정책), `issue-tracker.md`, `triage-labels.md`, `domain.md`.
+- **`docs/agents/` = 에이전트용 규범(횡단):** `issue-tracker.md`, `triage-labels.md`, `domain.md`.
+- **루트 `CODING_STANDARDS.md` = 작성 규칙과 설계 원칙:** DP1 병렬 실행, **DP2 사용자 관점·블랙박스 테스트**, DP3 언어 정책 등. `/code-review`가 리뷰 기준으로 읽는다.
 - **`docs/` = 사람용 런북/참조:** 설치(setup), 배포 구조(deployment), 공식 dev-process, 파이프라인 지도·에이전트 로스터(pipeline). 외부 기여자는 제품 + 이 파일 + `GLOSSARY.md` + `docs/pipeline.md`로 충분하다.
 - **루트 `GLOSSARY.md`:** 단일 용어집.
 - **Jira(CUBRIDQA):** 에이전트·스킬 설계(DESIGN, 방법론 ADR, staging, hook-gates 설계)와 결정의 이유. 역사는 git commit이 보존한다. 그래서 repo에서 뺀 문서는 지운다 — 아카이브 디렉토리에 두지 않는다.
@@ -20,8 +21,8 @@ CBRD 이슈 워크플로의 상태 전이를 맡는 에이전트들의 모노레
 
 clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그래서 방식을 여기 적는다 — 이 파일이 어떤 CLI 도구에서든 가장 먼저 읽히는 정본이기 때문이다.
 
-- **코드로 가능한 것은 최대한 코드로, LLM은 판단에 쓴다.** 기계적으로 결정되는 일(분류·추출·규칙 검사·카운팅·상태 기록)은 `scripts/`·`hooks/`가 하고, 스킬 산문은 판단만 담는다. 새 규칙을 스킬에 적기 전에 **"훅이나 스크립트가 이걸 판정할 수 있나"를 먼저 묻는다** — 할 수 있으면 코드로 옮기고 스킬엔 한 줄만 남긴다. 근거(TC 1건 62분의 원인)와 코드/LLM 경계표는 `docs/agents/design-principles.md` DP6.
-- **한 번만, 짧게, 한 가지로만 읽히게.** 두 갈래로 읽히는 규칙은 실제로 틀린 쪽으로 읽혔고(CUBRIDQA-1486, 반년 디렉토리), 복붙된 규칙은 다르게 낡았다(첨부 문단 12곳 중 PDF 주의가 3곳에만 닿음). 같은 사실은 한 곳에 두고 두 번째 자리엔 링크만 두며, 독자의 행동을 바꾸지 않는 문장은 지운다. 근거는 `docs/agents/design-principles.md` DP7. **스킬 본문을 줄일 때는 `scripts/rule-inventory.sh <ref> <SKILL.md>`로 규칙 손실 0을 확인한다** — bold·backtick·헤딩 인벤토리를 diff하므로, 근거를 걷어냈는지 규칙을 지웠는지가 눈이 아니라 목록으로 갈린다. 매 턴 로드되는 것은 `SKILL.md`뿐이니 세부는 `references/`로 옮기고 **본문에서 반드시 링크한다**(링크 없는 참조는 삭제와 같다 — invariant가 잡는다).
+- **코드로 가능한 것은 최대한 코드로, LLM은 판단에 쓴다.** 기계적으로 결정되는 일(분류·추출·규칙 검사·카운팅·상태 기록)은 `scripts/`·`hooks/`가 하고, 스킬 산문은 판단만 담는다. 새 규칙을 스킬에 적기 전에 **"훅이나 스크립트가 이걸 판정할 수 있나"를 먼저 묻는다** — 할 수 있으면 코드로 옮기고 스킬엔 한 줄만 남긴다. 근거(TC 1건 62분의 원인)와 코드/LLM 경계표는 `CODING_STANDARDS.md` DP6.
+- **한 번만, 짧게, 한 가지로만 읽히게.** 두 갈래로 읽히는 규칙은 실제로 틀린 쪽으로 읽혔고(CUBRIDQA-1486, 반년 디렉토리), 복붙된 규칙은 다르게 낡았다(첨부 문단 12곳 중 PDF 주의가 3곳에만 닿음). 같은 사실은 한 곳에 두고 두 번째 자리엔 링크만 두며, 독자의 행동을 바꾸지 않는 문장은 지운다. 근거는 `CODING_STANDARDS.md` DP7. **스킬 본문을 줄일 때는 `scripts/rule-inventory.sh <ref> <SKILL.md>`로 규칙 손실 0을 확인한다** — bold·backtick·헤딩 인벤토리를 diff하므로, 근거를 걷어냈는지 규칙을 지웠는지가 눈이 아니라 목록으로 갈린다. 매 턴 로드되는 것은 `SKILL.md`뿐이니 세부는 `references/`로 옮기고 **본문에서 반드시 링크한다**(링크 없는 참조는 삭제와 같다 — invariant가 잡는다).
 - **변경은 스킬 체인으로 굴린다**: 지도(`/wayfinder`) → `/to-spec` → `/to-tickets` → `/implement-spec`(작은 일은 `/implement`) → `/code-review`.
   - 지도는 결정만 담는다. 실행은 스펙과 그 티켓으로 한다.
   - **`/implement`는 항상 `/code-review`(Standards+Spec 2축)로 닫는다.** 안에서 `/tdd`를 쓴다.
@@ -79,9 +80,9 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 배포 대상(외부·타 CLI·마켓플레이스로 나가는 것)은 **영문**, 배포 미대상(팀·개발자만 읽는 것)은 **한글**로 쓴다.
 
 - **영문(배포 대상)**: 스킬 `SKILL.md`(`name`·`description`·본문·`references/`·`evals/`), 플러그인 매니페스트(`.claude-plugin/plugin.json`·`marketplace.json`), `hooks/`·`scripts/`, 루트 `README.md`·`CHANGELOG.md`·`LICENSE`·`package.json`.
-- **한글(배포 미대상)**: `docs/`(런북·참조, `docs/agents/` 규범), 이 `AGENTS.md`·`GLOSSARY.md`, 로컬 트래커(`.scratch/`)의 지도·스펙·티켓, Jira 티켓(CUBRIDQA) 본문.
+- **한글(배포 미대상)**: `docs/`(런북·참조, `docs/agents/` 규범), 이 `AGENTS.md`·`GLOSSARY.md`·`CODING_STANDARDS.md`, 로컬 트래커(`.scratch/`)의 지도·스펙·티켓, Jira 티켓(CUBRIDQA) 본문.
 - **예외 (기능적 영문 유지)**: 한글 문서 안에서도 플러그인 스킬이 글자 그대로 찾는 줄은 영문으로 둔다. `docs/agents/issue-tracker.md`의 `**PRs as a request surface: no.**`는 `/triage`가 읽는 플래그다. 같은 파일의 `## Wayfinding operations` 헤딩은 `/wayfinder`가 이름으로 찾는 절이다. 이 파일 `## Agent skills` 아래의 소제목 셋은 플러그인 스킬이 문서를 찾는 포인터다.
-- **예외 (기능적 한글 유지)**: 스킬 `description`은 영문으로 쓰되 **한글 트리거 키워드는 유지**한다(팀이 한글로 스킬을 부르므로 트리거 정확도 확보). 예: `… Use when someone says "이 PR 리뷰해줘", "gate-resolved 돌려줘", …`. 같은 이유로 eval의 `prompt`(트리거 입력)와 스킬이 Jira/GitHub에 게시하는 산출물(반송 코멘트·리뷰 초안 등)·few-shot으로 인용한 리뷰어 코멘트 원문도 한글이다 — 감싸는 지시문만 영문. **실행 리포트도 같다**: `~/.cubrid-agent/reports/`에 쓰이는 본문은 팀이 읽는 것이라 한글이고(그래서 `render-report.sh`·`select-queue.sh`가 한글 문장을 만든다), 스크립트 자신의 주석과 에이전트에게 찍는 메시지는 영문이다. **이 목록이 정본이다**; 예외가 왜 존재하는지(영문화가 취향이 아니라 동작 변경이 되는 이유)는 `docs/agents/design-principles.md` DP3.
+- **예외 (기능적 한글 유지)**: 스킬 `description`은 영문으로 쓰되 **한글 트리거 키워드는 유지**한다(팀이 한글로 스킬을 부르므로 트리거 정확도 확보). 예: `… Use when someone says "이 PR 리뷰해줘", "gate-resolved 돌려줘", …`. 같은 이유로 eval의 `prompt`(트리거 입력)와 스킬이 Jira/GitHub에 게시하는 산출물(반송 코멘트·리뷰 초안 등)·few-shot으로 인용한 리뷰어 코멘트 원문도 한글이다 — 감싸는 지시문만 영문. **실행 리포트도 같다**: `~/.cubrid-agent/reports/`에 쓰이는 본문은 팀이 읽는 것이라 한글이고(그래서 `render-report.sh`·`select-queue.sh`가 한글 문장을 만든다), 스크립트 자신의 주석과 에이전트에게 찍는 메시지는 영문이다. **이 목록이 정본이다**; 예외가 왜 존재하는지(영문화가 취향이 아니라 동작 변경이 되는 이유)는 `CODING_STANDARDS.md` DP3.
 
 ## Agent skills
 
