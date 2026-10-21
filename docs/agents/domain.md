@@ -11,27 +11,13 @@
 ## 탐색 전에 읽을 것
 
 - **루트 `GLOSSARY.md`** — 공유 용어집.
-- **`docs/pipeline.md`** — 파이프라인 지도 + 에이전트 로스터(각자의 설계 티켓 링크).
-- **에이전트 상세 설계** — 대응 CUBRIDQA 티켓(gate-resolved→1440, author-testcase→1429, review-testcase→1441, test-runner→1444). `cubrid-jira`로 읽는다.
-- **`docs/agents/`** 규범 — `design-principles.md`·`issue-tracker.md`·`triage-labels.md`·이 문서.
-- **`docs/`** — 사람용 런북(`setup`·`deployment`·`dev-process`).
+- **`docs/pipeline.md`** — 파이프라인 지도 + 에이전트 로스터. 로스터가 링크하는 CUBRIDQA 티켓에 에이전트 상세 설계가 있다. `cubrid-jira`로 읽는다.
 
 이 파일들이 없으면 **조용히 진행**한다. 부재를 지적하거나 미리 만들자고 제안하지 말 것. `/domain-modeling` 스킬(`/grill-with-docs`·`/improve-codebase-architecture` 경유)이 용어가 실제로 확정될 때 `GLOSSARY.md`를 lazy하게 고친다.
 
-## 파일 구조 (이 repo의 실제 레이아웃)
+## 파일 구조
 
-```
-/
-├── GLOSSARY.md                ← 단일 용어집
-├── docs/                      ← 사람용 런북 (setup·deployment·dev-process) + 파이프라인 지도 (pipeline)
-│   └── agents/                ← design-principles.md  issue-tracker.md  triage-labels.md  domain.md
-├── skills/in-progress/        ← 배포 안 하는 스킬 — 여기서 개발, 완성되면 qa로 승격
-└── .claude-plugin/ · skills/qa/ · hooks/ · scripts/   ← 제품(배포되는 전부)
-
-# 에이전트 상세 설계(DESIGN·방법론 ADR)는 repo가 아니라 Jira(CUBRIDQA) 티켓에 산다.
-```
-
-> 일반적인 Matt Pocock 레이아웃은 컨텍스트를 `src/<context>/`에 두지만, 이 repo는 에이전트 설계를 **Jira로 옮겼다**(CUBRIDQA-1454). repo에는 제품 + 용어집(`GLOSSARY.md`) + 오리엔테이션(`docs/pipeline.md`) + 규범(`docs/agents/`) + 런북(`docs/`)만 남는다.
+레이아웃의 정본은 [`AGENTS.md`](../../AGENTS.md)의 "저장소 배치" 절이다. `src/<context>/`는 없다.
 
 ## 용어(glossary)의 어휘를 쓴다
 

@@ -2,6 +2,8 @@
 
 cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커는 cubrid-agent의 에이전트가 처리 대상으로 삼는 CBRD/CUBRIDQA 이슈(파이프라인 입력)와 별개다.
 
+이 문서에서 **리더**는 지도와 배정을 맡는 세션이다. SendMessage로 부르는 이름은 `leader`다. **작업 세션**은 리더가 배정한 결정 티켓이나 스펙을 처리하는 세션이다.
+
 ## 세 단계
 
 | 단계 | 자리 | 하나가 담는 것 | 만드는 쪽 |
@@ -20,7 +22,7 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 - `.scratch/`는 gitignore 대상이다. 다른 repo의 세션은 이 repo의 `.scratch/`를 절대 경로로 읽는다.
 - 지도와 그 결정 티켓은 아래 [Wayfinding operations](#wayfinding-operations--v2-지도-로컬) 절을 따른다.
 - **스펙**: 한 구간의 결정이 끝나면 리더가 `/to-spec`으로 `.scratch/v2-<묶음>/spec.md`를 만든다. 이어서 `/to-tickets`로 같은 디렉토리에 `issues/NN-<slug>.md`를 만든다.
-- 스펙 하나 = 통합 브랜치 하나 = Draft PR 하나 = sub-task 하나다. 작업 세션이 `/implement-spec`으로 처리한다.
+- 스펙 하나는 통합 브랜치 하나, Draft PR 하나로 간다. 작업 세션이 `/implement-spec`으로 처리한다.
 - 티켓 하나에 파일 하나다. 번호는 `01`부터 매긴다.
 - `Status:` 줄은 처음 값(`open` 또는 `ready-for-agent`) → `claimed (...)` → `resolved`로 바뀐다.
 - 대화와 제안은 파일 끝의 `## Comments` 아래에 덧붙인다.
@@ -34,28 +36,28 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 - **지도**: `.scratch/v2/map.md`. `/wayfinder 02`처럼 번호만 받으면 이 지도의 티켓 `02`다. 지도는 결정 티켓만 담는다(wayfinder 기본값 "plan, don't do"). 실행은 스펙으로 한다.
 - **티켓**: `.scratch/v2/issues/NN-<slug>.md`. 머리 줄은 `Type:`(`research` / `prototype` / `grilling` / `task`), `Status:`, `Blocked by:`다. 그 티켓에만 해당하는 지시는 티켓 본문에 있다. grilling 티켓은 `grilling`과 `domain-modeling`을, research 티켓은 `research`를 부른다.
 - **Frontier**: `Status: open`이고 `Blocked by`의 티켓이 모두 `resolved`인 티켓이다. 순서는 지도의 순서표가 정한다.
-- **리더**: 리더 세션(`leader`)은 구현과 티켓 처리를 하지 않는다. 리더가 직접 쓰는 것은 `.scratch/` 아래의 지도, 티켓, 스펙뿐이다. repo가 추적하는 파일의 변경은 급해도 티켓으로 만들어, 그 파일을 맡은 스펙 세션에 넘긴다.
-- **배정**: 리더 세션(`leader`)이 지도의 순서표에서 세션을 배정한다. 배정받지 않은 티켓은 claim하지 않는다.
+- **리더**: 리더는 구현과 티켓 처리를 하지 않는다. 리더가 직접 쓰는 것은 `.scratch/` 아래의 지도, 티켓, 스펙뿐이다. repo가 추적하는 파일의 변경은 급해도 티켓으로 만들어, 그 파일을 맡은 작업 세션에 넘긴다.
+- **배정**: 리더가 지도의 순서표에서 세션을 배정한다. 배정받지 않은 티켓은 claim하지 않는다.
 - **Claim**: 일을 시작하기 전에 `Status:` 줄을 `claimed (<세션 이름>, <YYYY-MM-DD HH:MM>)`로 바꾸고 저장한다. 세션 이름은 맡은 티켓 번호를 따른다(예: `v2-03`).
 - **Resolve**:
   1. 티켓 끝에 `## Answer`를 적는다.
   2. `Status: resolved`로 바꾼다.
-  3. `leader`에게 SendMessage로 알린다. 티켓 경로와 한 줄 요지를 보낸다.
-  - **`map.md`는 고치지 않는다.** Decisions so far와 순서표는 leader가 실물(커밋, PR, 파일)과 대조한 뒤 고친다. wayfinder 기본 절차의 "지도에 context pointer 추가"를 이 알림이 대신한다.
+  3. 리더에게 SendMessage로 알린다. 티켓 경로와 한 줄 요지를 보낸다.
+  - **`map.md`는 고치지 않는다.** Decisions so far와 순서표는 리더가 실물(커밋, PR, 파일)과 대조한 뒤 고친다. wayfinder 기본 절차의 "지도에 context pointer 추가"를 이 알림이 대신한다.
 - **Research 결과**: `.scratch/v2/research/<name>.md`에 쓴다. 브랜치를 만들거나 push하지 않는다. 이 repo는 공개이고 tc repo 일부는 비공개이기 때문이다.
-- **새로 드러난 결정**: `.scratch/v2/issues/`에 다음 번호로 `Status: open` 티켓을 만든다. 그다음 leader에게 알린다. 순서표에 올리는 일은 leader가 한다.
-- **스펙 실행 세션**: `/implement-spec`으로 `.scratch/v2-<묶음>/spec.md`를 맡은 세션도 위 Claim·Resolve·알림 규칙을 스펙 단위로 따른다. 티켓이 leader에게 값을 넘기라고 하면 그때도 알린다.
-- **`/retro` 제안**: 맡은 티켓의 `## Comments`에 적는다. 티켓으로 만들지는 leader가 판단한다.
+- **새로 드러난 결정**: `.scratch/v2/issues/`에 다음 번호로 `Status: open` 티켓을 만든다. 그다음 리더에게 알린다. 순서표에 올리는 일은 리더가 한다.
+- **스펙을 맡은 작업 세션**: `/implement-spec`으로 `.scratch/v2-<묶음>/spec.md`를 처리할 때도 위 Claim·Resolve·알림 규칙을 스펙 단위로 따른다. 티켓이 리더에게 값을 넘기라고 하면 그때도 알린다.
+- **`/retro` 제안**: 맡은 티켓의 `## Comments`에 적는다. 티켓으로 만들지는 리더가 판단한다.
 
-## PR 흐름 — PR 하나 = sub-task 하나
+## PR 흐름
 
-브랜치 이름, PR 제목 헤더, Ready PR의 헤드 키는 `validate`가 검사한다(`scripts/check-pr-push.sh`). 이 절은 기계가 판정하지 못하는 순서만 적는다.
+**PR 헤더**는 PR 제목 맨 앞의 `[CUBRIDQA-<n>]`이다. 브랜치 이름, PR 헤더, Ready PR의 헤드 키는 `validate`가 검사한다(`scripts/check-pr-push.sh`). 이 절은 기계가 판정하지 못하는 순서만 적는다.
 
-1. **열 때**: Draft PR로 연다. 제목 헤더는 헤드 키다. `/implement-spec`이 끝나도 Draft로 둔다. Ready는 2의 "머지 준비" 안에서만 바꾼다.
+1. **열 때**: Draft PR로 연다. PR 헤더는 헤드 키다. `/implement-spec`이 끝나도 Draft로 둔다. Ready는 2의 "머지 준비" 안에서만 바꾼다.
 2. **사람이 "머지 준비"를 지시하면** 아래를 순서대로 한다.
    1. sub-task를 만든다. `create`에는 `--parent`가 없으므로 Task로 만든 뒤 헤드 아래로 옮긴다. description은 PR 본문처럼 한글, 사용자 관점으로 쓴다.
       ```bash
-      cubrid-jira create --project CUBRIDQA --type Task --summary "<PR 제목에서 헤더를 뺀 것>" --description-file <파일> --yes
+      cubrid-jira create --project CUBRIDQA --type Task --summary "<PR 제목에서 PR 헤더를 뺀 것>" --description-file <파일> --yes
       cubrid-jira convert-to-subtask <새 키> --to <헤드 키> --yes
       ```
    2. 담당자를 바로잡는다. 새 sub-task의 담당자는 기본값으로 다른 사람이 된다. 계정은 `$CUBRID_JIRA_USER`에서 읽는다(비어 있으면 `source ~/.cubrid-agent/env.sh`). 사람 이름을 박지 않는다.
@@ -63,11 +65,11 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
       cubrid-jira assign <새 키> --to "$CUBRID_JIRA_USER" --yes
       cubrid-jira jql 'key = <새 키>' --fields parent,assignee,status --output json   # 부모와 담당자를 확인한다
       ```
-   3. PR 제목의 헤더를 sub-task 키로 바꾼다. PR 본문 첫 줄의 Jira 링크도 같은 키로 바꾼다.
+   3. PR 헤더를 sub-task 키로 바꾼다. PR 본문 첫 줄의 Jira 링크도 같은 키로 바꾼다.
    4. PR을 Ready로 바꾼다. `validate`가 통과하는지 본다.
    5. squash 머지한다.
 3. **머지 뒤**: sub-task를 Closed/Fixed로 바꾼다(`transition <키> --to "Close Issue" --yes`). readback으로 resolution이 `Fixed`인지 본다.
-4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 헤더로 연다. 머지 뒤 3처럼 다시 닫는다. 다시 닫는 전이가 `resolution`을 요구하면 아래 `update` 항목의 Closed 이슈 주의를 따른다.
+4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. 주의 — 다시 닫는 전이가 `resolution`을 요구하면 아래 `update` 항목의 Closed 이슈 주의를 따른다. 머지 뒤 3처럼 다시 닫는다.
 
 ## Jira에 무엇을 남기나 — 열고 30초에 알 수 있게
 

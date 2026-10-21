@@ -1,6 +1,6 @@
 # 셋업 — 팀원이 자기 머신에서 3종 스킬을 돌리기까지
 
-팀원이 **자기 로컬에서** 1순위 3종 스킬(`gate-resolved` · `author-testcase` · `review-testcase`)을 기동하기 위한 실행 가이드. 구조 정본(자산 3계층·확정 결정)은 [deployment.md](./deployment.md). 롤아웃 단계는 이 repo가 관리하지 않는다 — 정본은 CUBRIDQA-1425.
+팀원이 **자기 로컬에서** 1순위 3종 스킬(`gate-resolved` · `author-testcase` · `review-testcase`)을 기동하기 위한 실행 가이드. 구조 정본(자산 3계층·확정 결정)은 [deployment.md](./deployment.md). 롤아웃 단계를 어디서 관리하는지는 [`GLOSSARY.md`](../GLOSSARY.md)의 "롤아웃 단계"에 있다.
 
 > **"배포"가 아니라 "공유"**. 한 사람의 로컬 흐름을 팀이 각자 재현하도록 패키징한 것. 검증은 로컬 CTP, **Jira 쓰기는 호출 의도로 게이팅**한다 — 사람이 키를 나열한 targeted 호출은 전이·코멘트·필드를 실제로 쓰고, JQL/큐로 만든 batch 호출은 초안 유지(오탐 가드가 걸리면 targeted여도 초안+@질의로 강등). 머지/승인은 여전히 사람이 한다. 무인 자동 호출·k8s·pod·자동 스케줄·무인 batch 쓰기는 이 repo 밖이다 — CUBRIDQA-1440·1425.
 

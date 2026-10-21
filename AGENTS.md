@@ -37,22 +37,28 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 ### 흐름 — 브랜치 · PR · 머지 · 릴리스
 
 - **브랜치**: `main`은 릴리스, `develop`은 개발이다.
-- **PR은 배포면을 바꿀 때만 낸다.** 배포면은 `scripts/release.sh`의 `SHIPPED_PATHS`다. 그 밖의 변경(문서, 개발 도구)은 `develop`에 직접 커밋한다. tc repo에는 언제나 PR로 낸다.
-- **PR 하나 = Jira sub-task 하나.** Draft로 열고, 헤더는 헤드 키다. 사람의 "머지 준비" 지시를 기다린다. 머지 준비, 머지 뒤, Reopen의 순서는 `docs/agents/issue-tracker.md`의 "PR 흐름" 절에 있다.
+- **이 repo에서 PR을 내는 경우는 둘이다.** 그 밖의 변경(문서, 개발 도구)은 `develop`에 직접 커밋한다. tc repo에는 언제나 PR로 낸다.
+  - 스펙은 언제나 PR로 낸다. 순서는 `docs/agents/issue-tracker.md`의 "PR 흐름" 절을 따른다.
+  - 스펙 밖의 변경은 배포면이나 `.claude-plugin/marketplace.json`을 바꿀 때만 PR로 낸다. 이 경로 목록은 `scripts/check-pr-push.sh`가 정한다.
 - **커밋 제목에 이슈 키를 붙이지 않는다.** 키는 PR 제목에만 붙는다.
 - **배포면은 릴리스 PR(`develop`→`main`)로만 사용자에게 나간다.**
 - **배포면을 바꾼 커밋은 같은 커밋에서 `CHANGELOG.md`의 `[Unreleased]` 절에 항목 하나를 넣는다.** 항목은 자리 태그로 시작한다 — `- (major)`·`- (minor)`·`- (patch)` 중 하나다. push 전에 `scripts/release.sh check`로 확인한다.
   - 자리의 뜻은 `CHANGELOG.md`의 Version note가 정본이다. 경계는 manifest 호환이다.
   - 게이트를 더 세게 걸었다 → minor. manifest에 필드를 더했다 → minor. 옛 run 디렉토리를 더 못 읽는다 → major.
   - major에 유예 기간을 두지 않는다. 대신 그 항목에 팀원이 무엇을 바꿔야 하는지 적는다.
+- **경고 — 범프는 반드시 `develop`에 먼저 올라간다.** 기존 설치본의 마켓플레이스 clone은 `develop`만 받은 shallow clone이다. `main`에만 올라간 범프는 그들에게 도착하지 않고, 오류도 나지 않는다.
 - **릴리스는 `scripts/release.sh`가 낸다.** 범프·태그·GitHub Release를 손으로 만들지 마라. 모드는 셋이다 — `check`(상태 검사), `next`(다음 버전 계산), `run --trigger <1|2|3>`(릴리스 실행). 트리거가 충족되면 사람을 기다리지 말고 실행한다.
   - 트리거 1: 팀원이 기다리는 결함 수정은 바로 릴리스한다.
   - 트리거 2: 기능이 완결되면 그 자리에서 릴리스한다.
   - 트리거 3: 그 밖에는 쌓는다. 단 `[Unreleased]`에 7일 넘게 두지 않는다.
-- **브랜치 이름(`cubridqa-<헤드 키 번호>-<내용>`), PR 헤더, 배포면 직접 커밋은 `validate`가 검사한다** — `scripts/check-pr-push.sh`. 헤드 키 목록은 `.github/head-keys.txt`다.
-- **`develop`에는 squash 머지만 들어간다 — GitHub 설정(linear history, rebase 머지 끔)이 강제한다.** `develop`의 관리자 우회는 릴리스 범프의 직접 push 때문에 둔다. 설정을 바꾸면 `gh api`로 다시 읽어 값을 확인한다.
-- **경고 — 범프는 반드시 `develop`에 먼저 올라간다.** 기존 설치본의 마켓플레이스 clone은 `develop`만 받은 shallow clone이다. `main`에만 올라간 범프는 그들에게 도착하지 않고, 오류도 나지 않는다.
 - **릴리스는 PR 규칙, 브랜치 규칙, PR 헤더 규칙의 예외다.** 범프 커밋은 배포면을 바꾸지만 `develop`에 직접 push된다. PR 제목은 `Release vX.Y.Z`이고 커밋 제목은 `Release vX.Y.Z (trigger N)`이다. 셋 다 `release.sh`가 한다.
+- **브랜치 이름(`cubridqa-<헤드 키 번호>-<내용>`), PR 헤더, 배포면 직접 커밋은 `validate`가 검사한다** — `scripts/check-pr-push.sh`.
+- **`develop`으로 들어가는 PR은 squash로만 머지한다.** GitHub 설정이 강제한다. `develop`의 linear history가 머지 커밋을 막고, repo 설정이 rebase 머지를 끈다.
+- **GitHub 설정의 현재 값은 아래와 같다.** 설정을 바꾸면 `gh api repos/tw-kang/cubrid-agent/branches/<브랜치>/protection`으로 다시 읽어 이 값과 대조한다.
+  - `main`: PR 필수(승인 0건), required check `validate`, force push 금지, 삭제 금지, 관리자 우회 허용.
+  - `develop`: required check `validate`, linear history 필수, force push 금지, 삭제 금지, 관리자 우회 허용. 관리자 우회는 릴리스 범프를 `develop`에 직접 push하려고 둔다.
+  - repo: squash 머지 켬, 머지 커밋 켬, rebase 머지 끔.
+- **사람의 "머지 준비" 지시는 GitHub 설정이 아니라 절차 규칙이다.** 유지보수자는 1인이고, GitHub은 본인 PR의 본인 승인을 허용하지 않는다. 그래서 승인 필수 설정과 CODEOWNERS를 걸지 않는다. 걸면 모든 PR이 막힌다.
 
 버저닝·릴리스를 왜 이렇게 정했는지는 CUBRIDQA-1508에 있다.
 
@@ -73,6 +79,7 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 
 - **영문(배포 대상)**: 스킬 `SKILL.md`(`name`·`description`·본문·`references/`·`evals/`), 플러그인 매니페스트(`.claude-plugin/plugin.json`·`marketplace.json`), `hooks/`·`scripts/`, 루트 `README.md`·`CHANGELOG.md`·`LICENSE`·`package.json`.
 - **한글(배포 미대상)**: `docs/`(런북·참조, `docs/agents/` 규범), 이 `AGENTS.md`·`GLOSSARY.md`, 로컬 트래커(`.scratch/`)의 지도·스펙·티켓, Jira 티켓(CUBRIDQA) 본문.
+- **예외 (기능적 영문 유지)**: 한글 문서 안에서도 플러그인 스킬이 글자 그대로 찾는 줄은 영문으로 둔다. `docs/agents/issue-tracker.md`의 `**PRs as a request surface: no.**`는 `/triage`가 읽는 플래그다. 같은 파일의 `## Wayfinding operations` 헤딩은 `/wayfinder`가 이름으로 찾는 절이다. 이 파일 `## Agent skills` 아래의 소제목 셋은 플러그인 스킬이 문서를 찾는 포인터다.
 - **예외 (기능적 한글 유지)**: 스킬 `description`은 영문으로 쓰되 **한글 트리거 키워드는 유지**한다(팀이 한글로 스킬을 부르므로 트리거 정확도 확보). 예: `… Use when someone says "이 PR 리뷰해줘", "gate-resolved 돌려줘", …`. 같은 이유로 eval의 `prompt`(트리거 입력)와 스킬이 Jira/GitHub에 게시하는 산출물(반송 코멘트·리뷰 초안 등)·few-shot으로 인용한 리뷰어 코멘트 원문도 한글이다 — 감싸는 지시문만 영문. **실행 리포트도 같다**: `~/.cubrid-agent/reports/`에 쓰이는 본문은 팀이 읽는 것이라 한글이고(그래서 `render-report.sh`·`select-queue.sh`가 한글 문장을 만든다), 스크립트 자신의 주석과 에이전트에게 찍는 메시지는 영문이다. **이 목록이 정본이다**; 예외가 왜 존재하는지(영문화가 취향이 아니라 동작 변경이 되는 이유)는 `docs/agents/design-principles.md` DP3.
 
 ## Agent skills

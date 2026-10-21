@@ -25,7 +25,7 @@ group "Non-product doc set (CUBRIDQA-1454: repo keeps the product, design lives 
 
 # No ADRs: a decision's reason lives in Jira, the rule it set in a check or docs/agents/. An ADR kept
 # beside them is a third copy that drifts, and the plugin's domain-modeling skill writes docs/adr/ by
-# default. .agents/ held the norm docs the plugin skills never read, then only the ADRs.
+# default.
 _adr_dirs=$(git ls-files | grep -E '^\.agents/|(^|/)adr/')
 if [ -z "$_adr_dirs" ]; then pass "no .agents/ and no ADR directory (reasons live in Jira, rules in checks and docs/agents/)"
 else fail "an ADR directory or .agents/ is back in git — put the reason in Jira and the rule in a check or docs/agents/:"; printf '         %s\n' $_adr_dirs; fi
@@ -39,10 +39,11 @@ else fail "these files still point at an ADR that no longer exists — name the 
 # The plugin skills look for the glossary at the root and the agent docs under docs/agents/. Kept
 # elsewhere, an adapter paragraph broke on each plugin update, and domain-modeling creates a missing
 # GLOSSARY.md lazily — a second glossary beside ours.
+AGENT_DOCS="issue-tracker triage-labels domain design-principles"
 _m=""
 [ -n "$(git ls-files GLOSSARY.md)" ] || _m="$_m GLOSSARY.md-missing"
 [ -z "$(git ls-files CONTEXT.md)" ]  || _m="$_m CONTEXT.md-still-tracked"
-for d in issue-tracker triage-labels domain design-principles; do
+for d in $AGENT_DOCS; do
   [ -n "$(git ls-files "docs/agents/$d.md")" ] || _m="$_m docs/agents/$d.md-missing"
 done
 if [ -z "$_m" ]; then pass "GLOSSARY.md at the root, the four agent docs in docs/agents/, no CONTEXT.md"
@@ -52,7 +53,7 @@ else fail "docs are not where the plugin skills look:$_m — a skill would creat
 # The reference shelf is one file of URLs: 143KB of vendored vendor docs once sat there going stale.
 _docs_unexpected=$(git ls-files 'docs/*' \
   | grep -v -E '^docs/(deployment|dev-process|pipeline|setup)\.md$' \
-  | grep -v -E '^docs/agents/(issue-tracker|triage-labels|domain|design-principles)\.md$' \
+  | grep -v -E "^docs/agents/(${AGENT_DOCS// /|})\.md$" \
   | grep -v -E '^docs/reference/README\.md$' \
   | grep -v -E '^docs/agents/[a-z-]+/reports/')
 if [ -z "$_docs_unexpected" ]; then pass "docs/ holds only runbooks, the pipeline map, agent docs, reference and PoC reports"
@@ -128,11 +129,13 @@ else fail "a plugin-read doc still steers to the v1 tracker:$_t"; fi
 # v1 tracker rules (1425 tree, GitHub-Issue work tickets, keys in commits) retired with the v2 tracker.
 # One left in a doc an agent reads sends work to a closed tree or a tracker nobody watches.
 _stale=$(git grep -l -E 'linkedIssues|gh issue|CUBRIDQA-1491|\[#NN\]|새로 만들지 않는다|작업 티켓' \
-  -- AGENTS.md GLOSSARY.md 'docs/agents/*.md' .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null)
+  -- AGENTS.md GLOSSARY.md 'docs/*.md' .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null)
 _stale="$_stale $(git grep -l 'CUBRIDQA-1425' -- AGENTS.md GLOSSARY.md docs/agents/issue-tracker.md \
   docs/agents/triage-labels.md docs/agents/domain.md .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null)"
+# The runbooks may cite 1425 as where a reason lives, but not as where the rollout is tracked now.
+_stale="$_stale $(git grep -l -E '롤아웃.*CUBRIDQA-1425|CUBRIDQA-1425.*롤아웃' -- 'docs/*.md' 2>/dev/null)"
 sed -n '/^## Agent skills/,$p' AGENTS.md | grep -q '\.agents/' && _stale="$_stale AGENTS.md#agent-skills:.agents/"
-if [ -z "${_stale// /}" ]; then pass "no v1 tracker rule left in AGENTS.md, GLOSSARY.md, docs/agents/ or the PR template"
+if [ -z "${_stale// /}" ]; then pass "no v1 tracker rule left in AGENTS.md, GLOSSARY.md, docs/ or the PR template"
 else fail "v1 tracker rules are still written down — docs/agents/issue-tracker.md replaced them:"; printf '         %s\n' $_stale; fi
 
 # DP7-2: one fact, one place. CLAUDE.md is excluded — it is the symlink to AGENTS.md.
@@ -141,8 +144,12 @@ _lang=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '\*\*영문
 [ "$(printf '%s\n' "$_lang" | grep -c .)" = 1 ] || _dup="$_dup language-policy-list[$(echo $_lang)]"
 _lbl=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '현재 라벨을 읽' 2>/dev/null)
 [ "$(printf '%s\n' "$_lbl" | grep -c .)" = 1 ] || _dup="$_dup label-procedure[$(echo $_lbl)]"
+_hk=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -l 'head-keys\.txt' 2>/dev/null)
+[ "$_hk" = docs/agents/issue-tracker.md ] || _dup="$_dup head-keys-location[$(echo $_hk)]"
+_ps=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -h 'PR 하나' 2>/dev/null | grep -c 'sub-task')
+[ "$_ps" = 1 ] || _dup="$_dup one-PR-per-sub-task[$_ps lines]"
 if [ -z "$_dup" ]; then
-  pass "the language-policy list and the label procedure each live in exactly one file (DP7-2)"
+  pass "the language-policy list, the label procedure, the head-keys location and one PR per sub-task each live in one place (DP7-2)"
 else
   fail "a rule is written in two places and will drift:$_dup — keep one, link from the other"
 fi
