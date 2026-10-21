@@ -110,6 +110,7 @@ grep -qF 'claimed (' docs/agents/issue-tracker.md                 || _t="$_t cla
 grep -q 'to-spec' docs/agents/issue-tracker.md                    || _t="$_t spec-dir"
 grep -q 'to-tickets' docs/agents/issue-tracker.md                 || _t="$_t ticket-dir"
 grep -q '머지 준비' docs/agents/issue-tracker.md                   || _t="$_t merge-ready-steps"
+grep -q '"머지"를 지시하면' docs/agents/issue-tracker.md            || _t="$_t merge-is-its-own-instruction"
 grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
 grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 if [ -z "$_t" ]; then

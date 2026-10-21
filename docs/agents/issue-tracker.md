@@ -53,7 +53,7 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 
 **PR 헤더**는 PR 제목 맨 앞의 `[CUBRIDQA-<n>]`이다. **브랜치 이름**은 `cubridqa-<헤드 키 번호>-<내용>`이다. 브랜치 이름, PR 헤더, Ready PR의 헤드 키는 `validate`가 검사한다(`scripts/check-pr-push.sh`). 이 절은 기계가 판정하지 못하는 순서만 적는다.
 
-이 흐름과 브랜치 이름은 릴리스 PR을 뺀 모든 PR에 적용한다. 스펙 밖에서 배포면을 바꾸는 PR도 같다. 어떤 PR도 아래 2의 "머지 준비" 지시 전에는 머지하지 않는다.
+이 흐름과 브랜치 이름은 릴리스 PR을 뺀 모든 PR에 적용한다. 스펙 밖에서 배포면을 바꾸는 PR도 같다. 어떤 PR도 아래 3의 "머지" 지시 전에는 머지하지 않는다. "머지 준비" 지시는 머지 지시가 아니다.
 
 1. **열 때**: Draft PR로 연다. PR 헤더는 헤드 키다. `/implement-spec`이 끝나도 Draft로 둔다. Ready는 2의 "머지 준비" 안에서만 바꾼다.
 2. **사람이 "머지 준비"를 지시하면** 아래를 순서대로 한다.
@@ -69,9 +69,11 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
       ```
    3. PR 헤더를 sub-task 키로 바꾼다. PR 본문 첫 줄의 Jira 링크도 같은 키로 바꾼다.
    4. PR을 Ready로 바꾼다. `validate`가 통과하는지 본다.
-   5. squash 머지한다.
-3. **머지 뒤**: sub-task를 Closed/Fixed로 바꾼다(`transition <키> --to "Close Issue" --yes`). readback으로 resolution이 `Fixed`인지 본다.
-4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. 주의 — 다시 닫는 전이가 `resolution`을 요구하면 아래 `update` 항목의 Closed 이슈 주의를 따른다. 머지 뒤 3처럼 다시 닫는다.
+   5. 여기서 멈춘다. 사람에게 Ready PR과 sub-task 키를 알린다. 머지하지 않는다.
+3. **사람이 "머지"를 지시하면**:
+   1. squash 머지한다.
+   2. sub-task를 Closed/Fixed로 바꾼다(`transition <키> --to "Close Issue" --yes`). readback으로 resolution이 `Fixed`인지 본다.
+4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. 주의 — 다시 닫는 전이가 `resolution`을 요구하면 아래 `update` 항목의 Closed 이슈 주의를 따른다. 머지 지시가 오면 3처럼 머지하고 다시 닫는다.
 
 ## Jira에 무엇을 남기나 — 열고 30초에 알 수 있게
 
