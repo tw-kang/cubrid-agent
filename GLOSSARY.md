@@ -37,6 +37,7 @@ CBRD 이슈 워크플로의 상태 전이를 맡는 에이전트들이 함께 �
 | **자리(digit)** | 버전 번호의 세 칸 `major`·`minor`·`patch` 중 하나. 배포면을 바꾼 사람이 변경 시점에 고른다 |
 | **헤드 키** | 목표 하나를 담는 Jira 이슈(Jira 헤드)의 키. PR 헤더의 자리표시자로도 쓴다. 언제 달고 언제 바꾸는지는 [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md)의 PR 흐름에 있다 |
 | **로컬 티켓** | 결정 하나 또는 작업 하나를 담는 `.scratch/` 아래 markdown 파일. Jira sub-task와 다른 단계다 |
+| **재현 파일** | research 결과 `<name>.md` 옆의 `<name>.repro.md`. 결과의 `[ID]` 태그마다 그 수치를 다시 내는 `sh`·`expected` 블록을 담는다. `scripts/research-recheck.py`가 읽는다 |
 
 ## 제품·저장소 형태 (CUBRIDQA-1454 어휘)
 

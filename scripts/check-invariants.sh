@@ -86,6 +86,8 @@ grep -q '코드로 가능한 것은 최대한 코드로' AGENTS.md  || _m="$_m c
 grep -q '/code-review' AGENTS.md                    || _m="$_m skill-chain"
 grep -q '/implement-spec' AGENTS.md                 || _m="$_m skill-chain-runs-specs"
 grep -q '/retro' AGENTS.md                          || _m="$_m retro-conditions"
+# The retro skill is disable-model-invocation; a doc telling the agent to call it was followed by skipping it.
+grep -q 'retro` 실행을 요청' AGENTS.md              || _m="$_m retro-asked-of-the-user"
 grep -qF '`/pr`' AGENTS.md                          || _m="$_m pr-skill-inside-template"
 grep -q 'PR 안의 커밋.*키를 붙이지 않는다' AGENTS.md  || _m="$_m no-key-in-pr-commits"
 grep -q '직접 커밋.*헤드 키로 시작한다' AGENTS.md     || _m="$_m head-key-on-direct-commits"
@@ -121,6 +123,10 @@ grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t sub
 grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 grep -q '지도에 영향을 주는 사실' docs/agents/issue-tracker.md      || _t="$_t report-three-items"
 grep -qF '`**Status:** ready-for-agent`' docs/agents/issue-tracker.md || _t="$_t spec-ticket-status-form"
+grep -qF 'research-recheck.py <결과 파일>' docs/agents/issue-tracker.md || _t="$_t research-recheck-before-resolve"
+grep -q '티켓 파일을 만들지 않는다' docs/agents/issue-tracker.md    || _t="$_t only-the-leader-makes-tickets"
+grep -qF ' · 이전:' docs/agents/issue-tracker.md                   || _t="$_t reopen-status-chain"
+grep -q '후속 커밋을 PR에 더할 때' docs/agents/issue-tracker.md     || _t="$_t follow-up-commit-reread"
 _retro=$(sed -n '/^- \*\*`\/retro` 제안\*\*/,/^$/p' docs/agents/issue-tracker.md)
 for _w in 결과 재발 높음 중간 낮음; do
   printf '%s\n' "$_retro" | grep -q "\*\*$_w\*\*" || _t="$_t retro-severity:$_w"
@@ -659,6 +665,11 @@ else fail "missing-helper hint test failed — run scripts/test-hint-missing-hel
 # The "no rule lost" check once read a renamed Hangul rule as 0 lost; the test pins it under en_US.UTF-8.
 if _t=$(bash scripts/test-rule-inventory.sh 2>&1); then pass "rule inventory tells Hangul rules apart: $_t"
 else fail "rule-inventory test failed — run scripts/test-rule-inventory.sh:"; printf '         %s\n' "$_t"; fi
+
+# A research number is only as good as the checker that re-ran it: two of five hand-written ones
+# passed while wrong (v2-02). The shared one is pinned on every failure class it must refuse.
+if _t=$(bash scripts/test-research-recheck.sh 2>&1); then pass "research recheck refuses what it must: $_t"
+else fail "research-recheck test failed — run scripts/test-research-recheck.sh:"; printf '         %s\n' "$_t"; fi
 
 # Both directions are load-bearing: isolating with nothing to lose leaves a worktree per issue on CI,
 # and not isolating loses someone's staged work to a branch they do not own.

@@ -28,7 +28,7 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
   - **`/implement`는 항상 `/code-review`(Standards+Spec 2축)로 닫는다.** 안에서 `/tdd`를 쓴다.
   - 여러 세션짜리면 `/to-tickets`까지를 **한 컨텍스트 안에서** 끝낸다(중간에 compact하면 spec과 티켓이 다른 사고 위에 얹힌다).
   - 티켓의 자리, 배정, claim, 결과 기록, PR 흐름은 `docs/agents/issue-tracker.md`에 있다.
-  - **`/retro`는 세 경우에만 세션을 닫기 전에 부른다**: 같은 작업을 다시 했을 때, 보고와 실물이 어긋났을 때, 사용자가 정정했을 때.
+  - **`/retro`는 에이전트가 부르지 못한다**(플러그인이 `disable-model-invocation`으로 막는다). retro가 필요한 경우는 셋이다: 같은 작업을 다시 했을 때, 보고와 실물이 어긋났을 때, 사용자가 정정했을 때. 그 경우에는 세션을 닫기 전에 사용자에게 `/mattpocock-skills:retro` 실행을 요청한다.
   - 이 스킬들은 이 repo가 아니라 `mattpocock-skills` 플러그인에서 온다 — 없으면 `claude plugin install mattpocock-skills@claude-plugins-official`, 어떤 걸 쓸지 모르면 `/ask-matt`.
 
 ## 변경을 내보낼 때 — 흐름과 형식
