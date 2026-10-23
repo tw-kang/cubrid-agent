@@ -18,8 +18,8 @@ Layout: the result file `<name>.md` cites its numbers as `[ID]` tags; the blocks
     exact stdout
     ```
 
-`[ENV]` runs first and alone: the variables it defines and the directory it ends in are the
-environment of every other block. Without it, blocks run in the repro file's directory.
+`[ENV]` runs first wherever it sits, and alone: the variables it defines and the directory it ends
+in are the environment of every other block. Without it, blocks run in the repro file's directory.
 
 Exit 1 when any of these holds; 2 on a usage error:
   - a block has no expected, an empty expected, or output that differs from it
@@ -61,9 +61,10 @@ MOVING_REF_RE = re.compile(r'origin/|\bHEAD\b')
 
 def scan_tags(result):
     """-> (cited IDs, unparsed tags). Tags live in prose: a `[A-Z]` inside a code span or fence is a
-    regex, and `[CBRD-1234]` is an issue key quoted from a commit subject, not a citation."""
+    regex, `[Text](url)` is a link, and `[CBRD-1234]` is an issue key quoted from a commit subject."""
     prose = re.sub(r'```.*?```', '', result, flags=re.S)
     prose = re.sub(r'`[^`\n]*`', '', prose)
+    prose = re.sub(r'\[[^\]\n]*\]\([^)\n]*\)', '', prose)
     cited, unparsed = set(), []
     for tag in TAG_RE.findall(prose):
         if ID_RE.match(tag):
@@ -111,7 +112,7 @@ def main(argv):
         return 2
     repro = open(repro_path, encoding='utf-8').read()
     result = open(result_path, encoding='utf-8').read()
-    blocks = parse_blocks(repro)
+    blocks = sorted(parse_blocks(repro), key=lambda b: b[0] != 'ENV')
     cwd = os.path.dirname(os.path.abspath(repro_path))
 
     defined = {bid for bid, _, _ in blocks}

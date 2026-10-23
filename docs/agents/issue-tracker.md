@@ -13,7 +13,7 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 | **로컬 티켓** | `.scratch/` 아래 markdown 파일 | 결정 하나 또는 작업 하나 | 리더(지도), `/to-tickets`(스펙) |
 
 - 모든 repo에 같게 적용한다. tc repo의 PR도 같은 헤드와 sub-task를 쓴다.
-- **GitHub Issues는 쓰지 않는다.** tc repo는 Issues가 꺼져 있다. 이 repo는 공개라서 비공개 tc repo의 내용을 적을 수 없다. 예외는 룰북(TC 작성 규칙 문서) 하나다. 룰북에는 비공개 repo의 케이스 경로를 적는다. PR 번호와 리뷰 원문은 적지 않는다. 정본은 `.scratch/v2/issues/04-rulebook-shape.md`의 D2·D10이다.
+- **GitHub Issues는 쓰지 않는다.** tc repo는 Issues가 꺼져 있다. 이 repo는 공개라서 비공개 tc repo의 내용을 적을 수 없다. 예외는 룰북(TC 작성 규칙 문서)에 적는 비공개 repo의 케이스 경로 하나다. 정본은 `.scratch/v2/issues/04-rulebook-shape.md`의 D2·D10이다.
 - **Jira에는 결정의 기록만 남긴다.** 진행 이력 코멘트를 쌓지 않는다. 진행은 로컬 지도와 스펙이 관리한다.
 - **PRs as a request surface: no.** 밖에서 온 요청의 자리는 [`triage-labels.md`](./triage-labels.md)에 있다.
 
@@ -37,7 +37,7 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 
 - **지도**: `.scratch/v2/map.md`. `/wayfinder 02`처럼 번호만 받으면 이 지도의 티켓 `02`다. 지도는 결정 티켓만 담는다(wayfinder 기본값 "plan, don't do"). 실행은 스펙으로 한다.
 - **티켓**: `.scratch/v2/issues/NN-<slug>.md`. 머리 줄은 `Type:`(`research` / `prototype` / `grilling` / `task`), `Status:`, `Blocked by:`다. 그 티켓에만 해당하는 지시는 티켓 본문에 있다. grilling 티켓은 `grilling`과 `domain-modeling`을, research 티켓은 `research`를 부른다.
-  - grilling에서 이름·배치·관례를 정하는 질문은 추천하기 전에 `research`로 표준과 널리 쓰이는 예를 조사한다. 04에서 조사 없이 추천해 라운드가 2~3개 더 들었다.
+  - grilling에서 이름·배치·관례를 정하는 질문은 추천하기 전에 `research`로 표준과 널리 쓰이는 예를 조사한다. 04에서 조사 없이 추천해 라운드가 2~3개 더 들었다. 자리·사본·흐름을 정하는 질문은 선택지보다 먼저 목록(산출물, 사본, 읽는 쪽, 쓰는 쪽)을 보인다. 05에서 목록 없이 물어 같은 질문을 세 번 했다.
 - **Frontier**: `Status: open`이고 `Blocked by`의 티켓이 모두 `resolved`인 티켓이다. 순서는 지도의 순서표가 정한다.
 - **리더**: 리더는 구현과 티켓 처리를 하지 않는다. 리더가 직접 쓰는 것은 `.scratch/` 아래의 지도, 티켓, 스펙뿐이다. repo가 추적하는 파일의 변경은 급해도 티켓으로 만들어, 그 파일을 맡은 작업 세션에 넘긴다.
 - **배정**: 리더가 지도의 순서표에서 세션을 배정한다. 배정받지 않은 티켓은 claim하지 않는다.

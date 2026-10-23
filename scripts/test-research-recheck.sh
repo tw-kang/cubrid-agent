@@ -85,6 +85,9 @@ expect 0 '^\[A\] PASS' "a Jira key in prose is not a tag" -- "$D/r.md"
 fixture $'[A] 정규식 `[A-Z]`와\n```\n[N 1]\n```\n안의 것은 태그가 아니다.' "$(blk A "printf '3\n'" '3')"
 expect 0 '^\[A\] PASS' "brackets inside code spans and fences are not tags" -- "$D/r.md"
 
+fixture '[A] 규칙은 [AGENTS.md](../AGENTS.md)와 [Rulebook shape](../issues/04.md)에 있다.' "$(blk A "printf '3\n'" '3')"
+expect 0 '^\[A\] PASS' "a markdown link label is not a tag" -- "$D/r.md"
+
 # A counter file makes the first run print 1 and the second 2: without --twice the block passes.
 COUNTER='n=$(( $(cat cnt 2>/dev/null || echo 0) + 1 )); echo $n > cnt; echo $n'
 fixture '[A]' "$(blk A "$COUNTER" '1')"
@@ -97,6 +100,9 @@ expect 0 '^\[A\] PASS' "a block sees ENV's variables and runs where ENV ended" -
 
 fixture '[A]' "$(blk A 'ls r.repro.md' 'r.repro.md')"
 expect 0 '^\[A\] PASS' "without ENV a block runs in the repro file's directory" -- "$D/r.md"
+
+fixture '[A]' "$(blk A 'echo "$X"' '7'; blk ENV 'X=7')"
+expect 0 '^\[A\] PASS' "ENV runs first even when it is not the first block" -- "$D/r.md"
 
 fixture '[A]' "$(blk ENV 'false'; blk A 'echo 1' '1')"
 expect 1 '^\[ENV\] FAIL' "an ENV that fails stops the run as a failure" -- "$D/r.md"
