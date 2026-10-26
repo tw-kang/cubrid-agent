@@ -44,3 +44,21 @@ CBRD 이슈 워크플로의 상태 전이를 맡는 에이전트들이 함께 �
 | 용어 | 뜻 |
 |---|---|
 | **design-to-Jira backfill** | 에이전트·스킬 설계 문서(DESIGN·설계 ADR·상세 CONTEXT 등)를 대응 CUBRIDQA 티켓 본문으로 옮기고 repo에서 삭제하는 것. "내용손실없이"는 백필 + git 이력이 보장 |
+
+## 룰북 (CUBRIDQA-1663 어휘)
+
+tc repo 개발자가 읽는 영문 용어 표는 정본의 루트 `AGENTS.md`에 있다. 같은 용어는 두 표에서 같은 뜻이다. 한쪽을 고치면 다른 쪽도 고친다.
+
+| 용어 | 뜻 |
+|---|---|
+| **룰북(rulebook)** | tc repo에서 TC를 어떻게 쓰는지 알려 주는 파일 묶음이다. 루트 `AGENTS.md`, `<카테고리>/AGENTS.md`, `<카테고리>/rules/`의 두 파일이다 |
+| **정본(canonical copy)** | 룰북의 원본이다. `cubrid-agent`의 `rulebook/<tc repo 이름>/`에 tc repo와 같은 경로로 둔다. QA는 정본만 고친다 |
+| **배포본(deployed copy)** | tc repo에 들어간 정본의 사본이다. 개발자와 개발자의 에이전트가 읽는다 |
+| **test perspectives(테스트 관점)** | 룰북의 B 갈래다. TC가 무엇을 확인하나를 담는다. 파일은 `<카테고리>/rules/test-perspectives.md`다 |
+| **writing rules(작성 규칙)** | 룰북의 C 갈래다. TC 파일을 어떻게 쓰나를 담는다. 파일은 `<카테고리>/rules/writing-rules.md`다 |
+| **OK/NOK 판정(verdict)** | TC가 `write_ok`나 `write_nok`를 한 번 부르는 것이다. 위 **판정형 vs 생성형**의 판정(에이전트가 내는 권고)과 다른 뜻이다 |
+| **답지(answer file)** | TC가 실행 결과를 비교하는 기대 출력 파일이다(`.answer`) |
+| **격리(quarantine)** | 원인을 못 찾은 흔들리는 TC를 `_25_unstable` 아래 같은 상대 경로로 옮기는 것이다 |
+| **제외(exclusion)** | TC를 excluded list에 더하는 것이다 |
+| **대기 상한(wait limit)** | `wait_until`에 주는 timeout이다 |
+| **담당자 확인 목록(owner checklist)** | tc repo 룰북 PR 본문에서 카테고리 담당자가 확인할 항목의 목록이다. 설문과 다르게 정한 것과 확인이 필요한 것을 담는다 |
