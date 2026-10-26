@@ -719,6 +719,11 @@ else fail "validate-plugin.yml lost fetch-depth: 0 — release check 7 would ski
 if _t=$(bash scripts/test-check-pr-push.sh 2>&1); then pass "PR and push rules behave: $_t"
 else fail "PR/push rules test failed — run scripts/test-check-pr-push.sh:"; printf '         %s\n' "$_t"; fi
 
+# A deploy that branches from a stale base, drops a symlink or overwrites someone's uncommitted work
+# lands in a tc repo PR that the category owner reviews for content, not for these.
+if _t=$(bash scripts/test-deploy-rulebook.sh 2>&1); then pass "rulebook deploy behaves: $_t"
+else fail "deploy-rulebook test failed — run scripts/test-deploy-rulebook.sh:"; printf '         %s\n' "$_t"; fi
+
 # marketplace.json is read from the catalog clone, not from the versioned cache, so an edit there
 # reaches every install without a version bump. `claude plugin validate` checks its shape, not whether
 # it still points at this plugin — a renamed entry or a moved source would silently redirect installs.
