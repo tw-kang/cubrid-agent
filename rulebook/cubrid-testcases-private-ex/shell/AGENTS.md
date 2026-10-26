@@ -31,7 +31,7 @@ Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releas
 
 **Commit only the files the TC needs, and run `git status` before you open the PR.** Run outputs stay out: `.result`, `*.log`, `*.err`, DB volumes, core files, `lob/` directories. *Answer files* and the helper files the TC uses (`.java`, `.c`, compressed data) go in. Example: `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
 
-**Cut a data or archive file that goes in down to what the TC reads, or build the data inside the script instead.** Example: trim a `.tar.gz` to the files the TC reads, and create a large set of DB objects with a loop in the script instead of committing them.
+**Shrink a large data or archive file before you commit it, or build the data inside the script.** Example: trim a `.tar.gz` to the files the TC reads, and create a large set of DB objects with a loop in the script instead of committing them.
 
 **Change only the files, values, and TCs that the issue needs, and undo the edits you made for a local check before the PR.** Example: a loop count cut from 1000 to 10 for a quick local run goes back to 1000.
 
