@@ -6,12 +6,12 @@
 
 Two environments run the TCs under `shell/`. The rule that a TC fits both is in [writing rules](rules/writing-rules.md#new-tc).
 
-- *CI pod*: runs as root, keeps the TCs and databases on tmpfs, and gives 8 CPUs, a 64 MB `/dev/shm`, and a case timeout of 1200 seconds.
-- *VM daily*: runs on shared machines that several users work on.
+- *CI pod*: runs as root, keeps the TCs and databases on tmpfs, and gives 8 CPUs, a 64 MB `/dev/shm`, and a TC timeout of 1200 seconds.
+- *VM daily*: runs as a normal user on shared machines that several users work on.
 
 Both skip the TCs in the *excluded list*. Only the CI pod skips `_25_unstable/`, so a TC in *quarantine* still runs in VM daily, and a TC under *exclusion* runs nowhere. How to quarantine or exclude a TC is in [writing rules](rules/writing-rules.md#changing-an-existing-tc).
 
-CTP judges a TC only by its `.result` file: the TC fails when the file has a NOK line or is empty. CTP does not read the exit code of the TC. The form of an abort path is in [writing rules](rules/writing-rules.md#new-tc).
+CTP judges a TC only by its `.result` file: the TC fails when the file has a NOK line or is empty. CTP does not read the exit code of the TC. The form of an *abort path* is in [writing rules](rules/writing-rules.md#new-tc).
 
 Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releases, CUBRID ships CUBRID-For-WSL instead of a Windows build. What this means for a new TC is in [writing rules](rules/writing-rules.md#new-tc).
 
@@ -23,11 +23,11 @@ Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releas
 
 **Run the TC on a release build and on a debug build.** A debug build changes the output with asserts and extra logs; a release build runs faster and exposes races. Example: the PR says `release: OK 2/2, debug: OK 2/2`.
 
-**For a bug fix, run the TC on a develop build without the engine fix and on a build with it, and write both results in the TC PR.** A TC that passes without the fix does not take the bug path. For a new feature, the build without the fix has no feature to test, so check only the build with it. Example: the PR says `NOK on develop 1a2b3c4 without the fix, OK with the engine PR`.
+**For a bug fix, run the TC on a develop build without the engine fix and on a build with it, and write both results in the TC PR.** A TC that passes without the fix does not take the *bug path*. For a new feature, the build without the fix has no feature to test, so the TC runs only on the build with it. Example: the PR says `NOK on develop 1a2b3c4 without the fix, OK with the engine PR`.
 
 ## The PR
 
-**Title the PR `[CBRD-XXXXX] Add shell TC for …` for a new TC or `[CBRD-XXXXX] Revised, …` for a change, and put the Jira link on the first line of the body.** For a branch other than develop, end the title with the branch. Without an engine issue, use the `CUBRIDQA-XXXX` key of the QA work. Example: `[CBRD-XXXXX] Add shell TC for backupdb on a full volume (11.4)`.
+**Title the PR `[CBRD-XXXXX] Add shell TC for …` for a new TC or `[CBRD-XXXXX] Revised, …` for a change, and put the Jira link on the first line of the body.** A PR for a branch other than develop ends its title with the branch, and a PR without an engine issue uses the `CUBRIDQA-XXXX` key of the QA work. Example: `[CBRD-XXXXX] Add shell TC for backupdb on a full volume (11.4)`.
 
 **Commit only the files the TC needs, and run `git status` before you open the PR.** Run outputs stay out: `.result`, `*.log`, `*.err`, DB volumes, core files, `lob/` directories. *Answer files* and the helper files the TC uses (`.java`, `.c`, compressed data) go in. Example: `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
 
