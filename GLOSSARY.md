@@ -65,3 +65,4 @@ tc repo 개발자가 읽는 영문 용어 표는 정본의 루트 `AGENTS.md`에
 | **CI 파드(CI pod)** | 엔진 repo(`CUBRID/cubrid`)의 CI가 TC를 돌리는 pod다 |
 | **VM 정기 회귀(VM daily)** | 공용 VM에서 도는 정기 회귀다 |
 | **제외 목록(excluded list)** | 어떤 회귀도 돌리지 않는 TC 경로를 적은 파일이다. `shell/config/daily_regression_test_excluded_list_linux.conf`다 |
+| **버그 경로(bug path)** | 이슈의 버그가 지나가는 엔진 코드 경로다. 이 경로에 닿지 않는 TC는 수정 전 빌드에서도 통과한다 |

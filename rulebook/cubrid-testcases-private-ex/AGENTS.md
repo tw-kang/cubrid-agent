@@ -24,3 +24,4 @@ The rules for the TCs under `shell/` are in [shell/AGENTS.md](shell/AGENTS.md) a
 | CI pod | CI 파드 | The pod in which the CI of the engine repo (`CUBRID/cubrid`) runs the TCs. |
 | VM daily | VM 정기 회귀 | The daily regression on shared VMs. |
 | excluded list | 제외 목록 | The file of the TC paths that no regression runs: `shell/config/daily_regression_test_excluded_list_linux.conf`. |
+| bug path | 버그 경로 | The engine code path that the bug of the issue runs through. A TC that never reaches it passes on a build without the fix. |
