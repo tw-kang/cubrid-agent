@@ -671,6 +671,16 @@ else fail "rule-inventory test failed — run scripts/test-rule-inventory.sh:"; 
 if _t=$(bash scripts/test-research-recheck.sh 2>&1); then pass "research recheck refuses what it must: $_t"
 else fail "research-recheck test failed — run scripts/test-research-recheck.sh:"; printf '         %s\n' "$_t"; fi
 
+# The tc repos run no check on the rulebook their developers' agents read, so the canonical copy is
+# linted here, before a deploy can copy a broken shape into them.
+if _t=$(bash scripts/test-lint-rulebook.sh 2>&1); then pass "rulebook lint behaves: $_t"
+else fail "rulebook lint test failed — run scripts/test-lint-rulebook.sh:"; printf '         %s\n' "$_t"; fi
+for _rb in rulebook/*/; do
+  [ -d "$_rb" ] || continue
+  if _t=$(bash scripts/lint-rulebook.sh "$_rb" 2>&1); then pass "${_rb%/} passes lint-rulebook.sh"
+  else fail "${_rb%/} breaks the rulebook shape — run scripts/lint-rulebook.sh ${_rb%/}:"; printf '         %s\n' "$_t"; fi
+done
+
 # Both directions are load-bearing: isolating with nothing to lose leaves a worktree per issue on CI,
 # and not isolating loses someone's staged work to a branch they do not own.
 if _t=$(bash scripts/test-prepare-tc-workspace.sh 2>&1); then pass "TC worktree decision behaves: $_t"
