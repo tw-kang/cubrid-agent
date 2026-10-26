@@ -21,3 +21,6 @@ The rules for the TCs under `shell/` are in [shell/AGENTS.md](shell/AGENTS.md) a
 | exclusion | 제외 | Adding a TC to the excluded list. |
 | wait limit | 대기 상한 | The timeout given to `wait_until`. |
 | owner checklist | 담당자 확인 목록 | The list in a rulebook PR body of the points that the category owner confirms. |
+| CI pod | CI 파드 | The pod in which the CI of the engine repo (`CUBRID/cubrid`) runs the TCs. |
+| VM daily | VM 정기 회귀 | The daily regression on shared VMs. |
+| excluded list | 제외 목록 | The file of the TC paths that no regression runs: `shell/config/daily_regression_test_excluded_list_linux.conf`. |

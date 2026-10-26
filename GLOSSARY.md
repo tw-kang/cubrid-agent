@@ -62,3 +62,6 @@ tc repo 개발자가 읽는 영문 용어 표는 정본의 루트 `AGENTS.md`에
 | **제외(exclusion)** | TC를 excluded list에 더하는 것이다 |
 | **대기 상한(wait limit)** | `wait_until`에 주는 timeout이다 |
 | **담당자 확인 목록(owner checklist)** | tc repo 룰북 PR 본문에서 카테고리 담당자가 확인할 항목의 목록이다. 설문과 다르게 정한 것과 확인이 필요한 것을 담는다 |
+| **CI 파드(CI pod)** | 엔진 repo(`CUBRID/cubrid`)의 CI가 TC를 돌리는 pod다 |
+| **VM 정기 회귀(VM daily)** | 공용 VM에서 도는 정기 회귀다 |
+| **제외 목록(excluded list)** | 어떤 회귀도 돌리지 않는 TC 경로를 적은 파일이다. `shell/config/daily_regression_test_excluded_list_linux.conf`다 |
