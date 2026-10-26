@@ -25,3 +25,5 @@ The rules for the TCs under `shell/` are in [shell/AGENTS.md](shell/AGENTS.md) a
 | VM daily | VM 정기 회귀 | The daily regression on shared VMs. |
 | excluded list | 제외 목록 | The file of the TC paths that no regression runs: `shell/config/daily_regression_test_excluded_list_linux.conf`. |
 | bug path | 버그 경로 | The engine code path that the bug of the issue runs through. A TC that never reaches it passes on a build without the fix. |
+| abort path | 중단 경로 | A path of a TC script that stops the TC after a failed step. Its form is in `shell/rules/writing-rules.md`. |
+| description block | 설명 블록 | The block on line 2 of a TC script, right after `#!/bin/bash`, that names the issue key and says what the TC checks. |
