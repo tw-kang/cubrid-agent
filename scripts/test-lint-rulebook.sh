@@ -2,8 +2,9 @@
 # Behavioural test for lint-rulebook.sh — the shape check `validate` runs on every rulebook canonical copy.
 #
 # Dev-only, run by check-invariants.sh. Offline: every case lints a throwaway tree. Only the CLI seam is
-# observed: exit code and stdout. The fixture's categories are sql and medium, not shell, because S2
-# runs the same lint: a check that only fits shell fails here.
+# observed: exit code and stdout. The fixture's categories are sql and medium, not shell, because the
+# rulebooks of other categories and tc repos go through the same lint: a check that only fits shell
+# fails here.
 set -u
 
 LINT=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)/lint-rulebook.sh
@@ -126,6 +127,10 @@ expect 0 "" "asterisks inside a code span are not a term"
 
 tree; rule '**Drop what you create.** Example: `drop table t;` 정리한다'
 expect 1 "$B:3: Hangul outside the term table" "Hangul outside the term table is reported"
+
+# A dangling symlink is in the file set but cannot be read; root reads a chmod 000 file anyway.
+tree; rm "$D/$B" && ln -s gone.md "$D/$B"
+expect 1 "$B: could not be read" "a file the lint cannot read is reported"
 
 tree; sed -i '/^## Terms$/,$d' "$D/AGENTS.md"
 expect 1 'AGENTS.md: no term table (a "| Term |" header row)' "a root AGENTS.md without the term table is reported once"

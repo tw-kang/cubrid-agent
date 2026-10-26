@@ -21,7 +21,7 @@ note_fail() { T_FAIL=$((T_FAIL+1)); FAILURES="$FAILURES
 flat() { printf '%s' "$1" | tr '\n' '|'; }
 
 REPO=cubrid-testcases-private-ex
-A= O= C= W= CAN= ORIGIN_TIP= FEATURE_TIP=
+A= O= C= W= CANONICAL= ORIGIN_TIP= FEATURE_TIP=
 
 # A = fake cubrid-agent, O = bare origin, W = a second working copy that moves the origin,
 # C = the clone under test, left on a feature branch and behind the origin so that a deploy which
@@ -29,15 +29,15 @@ A= O= C= W= CAN= ORIGIN_TIP= FEATURE_TIP=
 # directory comes from mktemp rather than a counter.
 fixture() {
   local d; d=$(mktemp -d "$T/case.XXXX")
-  A=$d/agent; O=$d/$REPO.git; W=$d/seed; C=$d/clone; CAN=$A/rulebook/$REPO
-  mkdir -p "$A/scripts" "$A/.github" "$CAN/shell/rules"
+  A=$d/agent; O=$d/$REPO.git; W=$d/seed; C=$d/clone; CANONICAL=$A/rulebook/$REPO
+  mkdir -p "$A/scripts" "$A/.github" "$CANONICAL/shell/rules"
   cp "$SRC" "$A/scripts/deploy-rulebook.sh"
   printf '# head keys\nCUBRIDQA-1663\n' > "$A/.github/head-keys.txt"
   printf '# category owner\nshell tester-shell\nsql tester-sql\n' > "$A/rulebook/category-owners.txt"
-  printf 'root rules\n' > "$CAN/AGENTS.md"
-  printf 'shell rules\n' > "$CAN/shell/AGENTS.md"
-  printf 'what to check\n' > "$CAN/shell/rules/test-perspectives.md"
-  printf 'how to write\n' > "$CAN/shell/rules/writing-rules.md"
+  printf 'root rules\n' > "$CANONICAL/AGENTS.md"
+  printf 'shell rules\n' > "$CANONICAL/shell/AGENTS.md"
+  printf 'what to check\n' > "$CANONICAL/shell/rules/test-perspectives.md"
+  printf 'how to write\n' > "$CANONICAL/shell/rules/writing-rules.md"
   git -C "$A" init -q && git -C "$A" add -A && git -C "$A" commit -qm init
 
   git init -q -b develop "$W"
@@ -82,7 +82,7 @@ c_bytes() {
   fixture; deployed || return
   local p
   for p in AGENTS.md shell/AGENTS.md shell/rules/test-perspectives.md shell/rules/writing-rules.md; do
-    git -C "$C" show "HEAD:$p" 2>/dev/null | cmp -s - "$CAN/$p" || echo "$p is not committed byte for byte;"
+    git -C "$C" show "HEAD:$p" 2>/dev/null | cmp -s - "$CANONICAL/$p" || echo "$p is not committed byte for byte;"
   done
 }
 t "every canonical file is committed byte for byte" c_bytes
@@ -155,10 +155,20 @@ c_dirty_untracked() {
 }
 t "an untracked file where the rulebook would land is refused and left untouched" c_dirty_untracked
 
+# A branch cut from a fork's develop carries whatever the fork holds. With https disallowed a fetch
+# fails too, so the case also wants the refusal to name CUBRID.
+c_fork_origin() {
+  fixture; git -C "$C" remote set-url origin "https://github.com/tester/$REPO.git"
+  export GIT_ALLOW_PROTOCOL=file GIT_TERMINAL_PROMPT=0
+  refused_untouched "$C"
+  printf '%s\n' "$OUT" | grep -q 'CUBRID' || echo "the refusal does not name CUBRID — $(flat "$OUT")"
+}
+t "an origin on a GitHub owner other than CUBRID is refused and the clone left untouched" c_fork_origin
+
 origin_deployed() {  # put an exact deployed copy on the origin, after the clone, so only a fetch sees it
   mkdir -p "$W/shell/rules"
-  cp "$CAN/AGENTS.md" "$W/AGENTS.md" && cp "$CAN/shell/AGENTS.md" "$W/shell/AGENTS.md"
-  cp "$CAN/shell/rules/"*.md "$W/shell/rules/"
+  cp "$CANONICAL/AGENTS.md" "$W/AGENTS.md" && cp "$CANONICAL/shell/AGENTS.md" "$W/shell/AGENTS.md"
+  cp "$CANONICAL/shell/rules/"*.md "$W/shell/rules/"
   ln -sfn AGENTS.md "$W/CLAUDE.md" && ln -sfn AGENTS.md "$W/shell/CLAUDE.md"
 }
 named() { printf '%s\n' "$OUT" | grep -qE "(^|[[:space:]])$1\$"; }
@@ -195,7 +205,7 @@ t "--check exits 0 when origin/develop carries exactly the deployed copy" c_chec
 
 c_one_commit() {
   fixture
-  cp "$CAN/AGENTS.md" "$W/AGENTS.md" && ln -sfn AGENTS.md "$W/CLAUDE.md"
+  cp "$CANONICAL/AGENTS.md" "$W/AGENTS.md" && ln -sfn AGENTS.md "$W/CLAUDE.md"
   origin_commit "root files already deployed"
   deployed || return
   local n; n=$(git -C "$C" rev-list --count "$ORIGIN_TIP..HEAD")
@@ -212,6 +222,18 @@ c_nothing() {
   printf '%s\n' "$OUT" | grep -q 'nothing to deploy' || echo "no 'nothing to deploy' — $(flat "$OUT")"
 }
 t "nothing to deploy leaves no empty branch behind" c_nothing
+
+# --check reads the mode, and cp keeps the mode of a file it overwrites, so a deploy that leaves it
+# makes a branch with no commit.
+c_mode_only() {
+  fixture; origin_deployed; chmod +x "$W/shell/AGENTS.md"; origin_commit "deployed copy, one file executable"
+  run --check "$C"
+  named shell/AGENTS.md || echo "--check does not name shell/AGENTS.md — $(flat "$OUT");"
+  deployed || return
+  [ "$(git -C "$C" ls-tree HEAD -- shell/AGENTS.md | cut -d' ' -f1)" = 100644 ] || echo "shell/AGENTS.md is not 100644 after the deploy;"
+  [ "$(git -C "$C" rev-list --count "$ORIGIN_TIP..HEAD")" -ge 1 ] || echo "the branch has no commit"
+}
+t "a file on origin/develop that differs only in mode is reported by --check and fixed by a deploy" c_mode_only
 
 # The owner approves the rulebook content; a PR without the owner as reviewer has no approver.
 c_no_owner() {
@@ -232,7 +254,7 @@ c_source() {
 t "every deploy commit names the cubrid-agent commit it copied from" c_source
 
 c_dirty_canonical() {
-  fixture; printf 'not committed\n' >> "$CAN/shell/rules/writing-rules.md"
+  fixture; printf 'not committed\n' >> "$CANONICAL/shell/rules/writing-rules.md"
   refused_untouched "$C"
 }
 t "an uncommitted canonical tree is refused, since no commit could name it" c_dirty_canonical

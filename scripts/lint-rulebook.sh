@@ -2,21 +2,18 @@
 # Shape lint for the rulebook canonical copy of one tc repo (rulebook/<tc repo>/). One line per
 # violation, exit 0 only when there is none.
 #
-# Dev-only: run by check-invariants.sh, so `validate` refuses a canonical copy that a deploy would
-# ship broken. The developers' agents read the deployed copy in a repo that runs no check of its own.
+# Dev-only, run by check-invariants.sh.
 set -u
 export LC_ALL=C
 
 [ $# -eq 1 ] && [ -d "$1" ] || { echo "usage: lint-rulebook.sh <rulebook tree of one tc repo>" >&2; exit 2; }
 cd "$1" || exit 2
 
-# A rule paragraph starts with "**" after a blank line and runs to the next blank line outside a fence.
-# Its bold run is the rule sentence; "Example:" with something after it is the example. Plain paragraphs
-# are facts and carry neither. The stoplist catches the declarative openers; a POS tagger is not on CI.
+# The stoplist of declarative openers stands in for a POS tagger, which CI does not have.
 #
 # Terms: general English cannot be listed, so the check reads what the writer marks. An italic span is a
 # term and must be a row of the root term table; Hangul belongs only in that table's Korean column.
-BODY='
+PARAGRAPH_AWK='
 BEGIN { n = split(TERMS, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") term[t[i]] = 1 }
 function terms_in(line,   s, w, x, y) {
   s = line; gsub(/`[^`]*`/, "", s); gsub(/\*\*/, "", s)
@@ -80,8 +77,9 @@ checks() {
 
   comm -12 <(printf '%s\n' "$want") <(printf '%s\n' "$have") | while read -r f; do
     [ -n "$f" ] || continue
-    awk -v blank=1 -v TERMED="$termed" -v TERMS="$terms" -v HANGUL="$(printf '[\352-\355]')" "$BODY" "$f" \
+    awk -v blank=1 -v TERMED="$termed" -v TERMS="$terms" -v HANGUL="$(printf '[\352-\355]')" "$PARAGRAPH_AWK" "$f" \
       | sort -t: -k2,2n -s
+    [ "${PIPESTATUS[0]}" -eq 0 ] || { echo "$f: could not be read"; continue; }
     case "$f" in
       */writing-rules.md)
         for s in '## New TC' '## Changing an existing TC'; do

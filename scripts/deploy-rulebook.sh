@@ -31,18 +31,22 @@ done
 [ $# -eq 1 ] || usage
 CLONE=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null) || die 2 "not a git clone: $1"
 URL=$(git -C "$CLONE" remote get-url origin 2>/dev/null) || die 2 "$CLONE has no origin remote"
+# A local path, as the tests use, names no owner.
+if [[ $URL =~ github\.com[:/]([^/]+)/ ]] && [ "${BASH_REMATCH[1],,}" != cubrid ]; then
+  die 2 "origin is $URL, not a CUBRID repo, so the branch would start from a fork; point origin at \
+github.com/CUBRID and keep the fork as another remote"
+fi
 NAME=$(basename "${URL%/}" .git)
-CAN=$ROOT/rulebook/$NAME
-[ -d "$CAN" ] || die 2 "no canonical rulebook for $NAME at rulebook/$NAME"
-mapfile -t FILES < <(cd "$CAN" && find . -type f | sed 's|^\./||' | sort)
+CANONICAL=$ROOT/rulebook/$NAME
+[ -d "$CANONICAL" ] || die 2 "no canonical rulebook for $NAME at rulebook/$NAME"
+mapfile -t FILES < <(cd "$CANONICAL" && find . -type f | sed 's|^\./||' | sort)
 mapfile -t LINKS < <(printf '%s\n' "${FILES[@]}" | sed -nE 's#(^|/)AGENTS\.md$#\1CLAUDE.md#p')
 mapfile -t UNITS < <(printf '%s\n' "${FILES[@]}" | sed -n 's|/.*||p' | sort -u)
 
 expected() {  # "<mode> <blob><TAB><path>" for every path a deploy writes
   local p link
   for p in "${FILES[@]}"; do
-    printf '%s %s\t%s\n' "$([ -x "$CAN/$p" ] && echo 100755 || echo 100644)" \
-      "$(git -C "$CLONE" hash-object "$CAN/$p")" "$p"
+    printf '100644 %s\t%s\n' "$(git -C "$CLONE" hash-object "$CANONICAL/$p")" "$p"
   done
   link=$(printf 'AGENTS.md' | git -C "$CLONE" hash-object --stdin)
   for p in "${LINKS[@]}"; do printf '120000 %s\t%s\n' "$link" "$p"; done
@@ -88,25 +92,26 @@ fi
 
 git -C "$CLONE" fetch -q origin +refs/heads/develop:refs/remotes/origin/develop || die 1 "fetch from origin failed"
 
-D=$(drift)
-if [ -z "$D" ]; then
+DRIFT=$(drift)
+if [ -z "$DRIFT" ]; then
   echo "deploy-rulebook: origin/develop matches rulebook/$NAME"
   [ "$CHECK" -eq 1 ] || echo "deploy-rulebook: nothing to deploy, no branch made"
   exit 0
 fi
 if [ "$CHECK" -eq 1 ]; then
-  printf '%s\n' "$D"
-  echo "deploy-rulebook: $(printf '%s\n' "$D" | grep -c .) path(s) on origin/develop differ from rulebook/$NAME"
+  printf '%s\n' "$DRIFT"
+  echo "deploy-rulebook: $(printf '%s\n' "$DRIFT" | grep -c .) path(s) on origin/develop differ from rulebook/$NAME"
   exit 1
 fi
 
 git -C "$CLONE" switch -q --no-track -c "$BRANCH" origin/develop || die 1 "could not create $BRANCH"
 
+# cp keeps the mode of a file it overwrites, and drift() expects 100644.
 for p in "${FILES[@]}"; do
-  mkdir -p "$(dirname "$CLONE/$p")" && cp "$CAN/$p" "$CLONE/$p" || die 1 "copy failed: $p"
+  mkdir -p "$(dirname "$CLONE/$p")" && cp "$CANONICAL/$p" "$CLONE/$p" && chmod 644 "$CLONE/$p" || die 1 "copy failed: $p"
 done
 for l in "${LINKS[@]}"; do
-  ln -sfn AGENTS.md "$CLONE/$l"
+  ln -sfn AGENTS.md "$CLONE/$l" || die 1 "symlink failed: $l"
 done
 
 commit_unit() {  # <subject> <paths...>
@@ -118,13 +123,12 @@ commit_unit() {  # <subject> <paths...>
 }
 in_unit() { printf '%s\n' "${FILES[@]}" "${LINKS[@]}" | grep -E "$1" | sort; }
 
-# One commit per unit so that each reverts alone, and so that a first deploy has two or more: the tc
-# repos squash a one-commit PR under that commit's subject instead of the PR title.
-mapfile -t P < <(in_unit '^[^/]+$')
-commit_unit "[$KEY] Deploy the repo-wide rulebook" "${P[@]}"
+# One commit per unit, so that each reverts alone.
+mapfile -t UNIT_PATHS < <(in_unit '^[^/]+$')
+commit_unit "[$KEY] Deploy the repo-wide rulebook" "${UNIT_PATHS[@]}"
 for u in "${UNITS[@]}"; do
-  mapfile -t P < <(in_unit "^$u/")
-  commit_unit "[$KEY] Deploy the $u rulebook" "${P[@]}"
+  mapfile -t UNIT_PATHS < <(in_unit "^$u/")
+  commit_unit "[$KEY] Deploy the $u rulebook" "${UNIT_PATHS[@]}"
 done
 
 NCOMMITS=$(git -C "$CLONE" rev-list --count origin/develop..HEAD)
