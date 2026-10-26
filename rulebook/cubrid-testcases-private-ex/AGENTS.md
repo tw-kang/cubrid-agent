@@ -1,5 +1,11 @@
 # cubrid-testcases-private-ex rulebook
 
+The rules for the TCs under `shell/` are in [shell/AGENTS.md](shell/AGENTS.md) and the two files it links.
+
+**Open the clone of this repo as the working directory for TC work.** An agent finds `shell/AGENTS.md` only when it lies under the working directory. Example: start the agent in `~/cubrid-testcases-private-ex`, not in `~/cubrid` with an absolute path to `~/cubrid-testcases-private-ex/shell/`.
+
+**Propose a *rulebook* change to the QA team in [CUBRIDQA-1505](https://jira.cubrid.org/browse/CUBRIDQA-1505) or as a PR to [cubrid-agent](https://github.com/tw-kang/cubrid-agent), with one piece of evidence.** This repo holds the *deployed copy*; QA edits the *canonical copy* in `cubrid-agent` and deploys it here after approval. The evidence is one of a review that rejected a TC (comment link), a regression failure (QAHome or CI link), or a mining result. Example: a comment on CUBRIDQA-1505 that proposes a rule and links the CI run it would have prevented.
+
 ## Terms
 
 | Term | Korean | Meaning |
