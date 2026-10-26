@@ -42,7 +42,7 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
   - 스펙은 언제나 PR로 낸다.
   - 스펙 밖의 변경은 배포면이나 `.claude-plugin/marketplace.json`을 바꿀 때만 PR로 낸다. 이 경로 목록은 `scripts/check-pr-push.sh`가 정한다. PR 없이 이 경로를 바꾼 커밋이 `develop`에 push되면 `validate`가 실패한다.
 - **커밋 제목의 Jira 키는 커밋이 `develop`에 들어가는 길에 따라 다르다.**
-  - **PR 안의 커밋에는 키를 붙이지 않는다.** squash 머지가 PR 헤더의 키를 `develop`에 남는 커밋에 붙이기 때문이다.
+  - **이 repo의 PR 안의 커밋에는 키를 붙이지 않는다.** squash 머지가 PR 헤더의 키를 `develop`에 남는 커밋에 붙이기 때문이다. squash 제목 설정이 다른 repo의 커밋은 [PR 흐름](./docs/agents/issue-tracker.md#pr-흐름)을 따른다.
   - **직접 커밋은 제목을 그 커밋이 속한 일의 헤드 키로 시작한다.** 예: `[CUBRIDQA-1663] Fix a typo`. 헤드 키 목록의 자리는 [세 단계](./docs/agents/issue-tracker.md#세-단계)에 있다. `validate`가 `develop` push에서 이 규칙을 검사한다(`scripts/check-pr-push.sh`).
 - **배포면은 릴리스 PR(`develop`→`main`)로만 사용자에게 나간다.**
 - **배포면을 바꾼 커밋은 같은 커밋에서 `CHANGELOG.md`의 `[Unreleased]` 절에 항목 하나를 넣는다.** 항목은 자리 태그로 시작한다 — `- (major)`·`- (minor)`·`- (patch)` 중 하나다. push 전에 `scripts/release.sh check`로 확인한다.

@@ -127,6 +127,10 @@ grep -qF 'research-recheck.py <결과 파일>' docs/agents/issue-tracker.md || _
 grep -q '티켓 파일을 만들지 않는다' docs/agents/issue-tracker.md    || _t="$_t only-the-leader-makes-tickets"
 grep -qF ' · 이전:' docs/agents/issue-tracker.md                   || _t="$_t reopen-status-chain"
 grep -q '후속 커밋을 PR에 더할 때' docs/agents/issue-tracker.md     || _t="$_t follow-up-commit-reread"
+grep -qF '`independent` fence' docs/agents/issue-tracker.md       || _t="$_t research-independent-check"
+grep -qF '`team-lead`는 그 서브에이전트를 띄운 작업 세션' docs/agents/issue-tracker.md || _t="$_t team-lead-is-the-work-session"
+grep -q '닫기 전 알림' docs/agents/issue-tracker.md                 || _t="$_t notify-leader-before-closing"
+grep -qF 'COMMIT_OR_PR_TITLE' docs/agents/issue-tracker.md         || _t="$_t commit-or-pr-title-flow"
 _retro=$(sed -n '/^- \*\*`\/retro` 제안\*\*/,/^$/p' docs/agents/issue-tracker.md)
 for _w in 결과 재발 높음 중간 낮음; do
   printf '%s\n' "$_retro" | grep -q "\*\*$_w\*\*" || _t="$_t retro-severity:$_w"
