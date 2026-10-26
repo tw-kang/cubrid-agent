@@ -17,14 +17,25 @@ Layout: the result file `<name>.md` cites its numbers as `[ID]` tags; the blocks
     ```expected
     exact stdout
     ```
+    ```independent
+    commands that reach the same number without the research script
+    ```
+
+The `independent` fence is optional per block. Every line it prints must be a line of the expected, so
+it may confirm one number of a longer block. At least five blocks (every block, when there are fewer)
+must carry one: a research script that is consistently wrong passes its own expected, and only a
+second path to the number catches it.
 
 `[ENV]` runs first wherever it sits, and alone: the variables it defines and the directory it ends
 in are the environment of every other block. Without it, blocks run in the repro file's directory.
 
 Exit 1 when any of these holds; 2 on a usage error:
   - a block has no expected, an empty expected, or output that differs from it
+  - an independent fence prints nothing, or a line that is not a line of its block's expected, or
+    repeats its block's sh fence
+  - fewer blocks carry an independent fence than the floor above
   - the result cites an ID no block defines, or a block is never cited
-  - a block reads a moving ref (`origin/...`, bare `HEAD`)
+  - a block reads a moving ref (`origin/...`, bare `HEAD`) in its sh or independent fence
   - the result has a tag the grammar cannot parse (`[` + uppercase + ... `]` that is not `[ID]`)
   - with --twice, a block's two runs differ
   - IDs were given, so blocks were skipped: a partial run never passes
@@ -37,7 +48,9 @@ import sys
 BLOCK_RE = re.compile(r'^#### \[([A-Z][A-Z0-9]*)\][^\n]*\n(.*?)(?=^#### \[|\Z)', re.M | re.S)
 SH_RE = re.compile(r'```sh\n(.*?)```', re.S)
 EXPECTED_RE = re.compile(r'```expected\n(.*?)```', re.S)
+INDEPENDENT_RE = re.compile(r'```independent\n(.*?)```', re.S)
 SHOW_CHARS = 3000
+INDEPENDENT_NEEDED = 5
 
 
 def say(line):
@@ -49,7 +62,9 @@ def parse_blocks(text):
     for bid, body in BLOCK_RE.findall(text):
         sh = SH_RE.search(body)
         exp = EXPECTED_RE.search(body)
-        out.append((bid, sh.group(1) if sh else None, exp.group(1).strip() if exp else None))
+        ind = INDEPENDENT_RE.search(body)
+        out.append((bid, sh.group(1) if sh else None, exp.group(1).strip() if exp else None,
+                    ind.group(1) if ind else None))
     return out
 
 
@@ -96,6 +111,10 @@ def run_block(code, decls, cwd):
     return r.stdout.strip(), r.stderr.strip()
 
 
+def confirms(ind_out, exp):
+    return bool(ind_out) and set(ind_out.splitlines()) <= set(exp.splitlines())
+
+
 def main(argv):
     twice = '--twice' in argv
     args = [a for a in argv if a != '--twice']
@@ -115,11 +134,19 @@ def main(argv):
     blocks = sorted(parse_blocks(repro), key=lambda b: b[0] != 'ENV')
     cwd = os.path.dirname(os.path.abspath(repro_path))
 
-    defined = {bid for bid, _, _ in blocks}
+    defined = {bid for bid, _, _, _ in blocks}
     cited, unparsed = scan_tags(result)
     undefined = sorted(cited - defined)
     unused = sorted(defined - cited - {'ENV'})
-    unpinned = [(bid, m.group(0)) for bid, code, _ in blocks if code and (m := MOVING_REF_RE.search(code))]
+    unpinned = [(bid, m.group(0)) for bid, code, _, ind in blocks
+                if (m := MOVING_REF_RE.search(f'{code or ""}\n{ind or ""}'))]
+    independent = list(dict.fromkeys(bid for bid, _, _, ind in blocks if bid != 'ENV' and ind))
+    copied = [bid for bid, code, _, ind in blocks if ind and code and ind.split() == code.split()]
+    needed = min(INDEPENDENT_NEEDED, len(defined - {'ENV'}))
+    too_few = len(independent) < needed
+    tags = ' '.join(f'[{i}]' for i in independent) or 'none'
+    say(f'{"TOO FEW INDEPENDENT" if too_few else "INDEPENDENT"}: {tags} ({len(independent)} of {needed} needed)')
+    if copied: say('COPIED SH INTO INDEPENDENT: ' + ' '.join(f'[{i}]' for i in copied))
     if undefined: say('UNDEFINED IDS: ' + ' '.join(f'[{i}]' for i in undefined))
     if unused: say('UNUSED BLOCKS: ' + ' '.join(f'[{i}]' for i in unused))
     if unparsed: say('UNPARSED TAGS: ' + ' '.join(f'[{t}]' for t in unparsed))
@@ -127,7 +154,7 @@ def main(argv):
 
     decls = ''
     stats = {'pass': 0, 'fail': 0, 'noexp': 0, 'nondet': 0, 'skip': 0}
-    for bid, code, exp in blocks:
+    for bid, code, exp, ind in blocks:
         if bid == 'ENV':
             if code is None:
                 say('[ENV] NOSH'); stats['fail'] += 1
@@ -149,11 +176,12 @@ def main(argv):
         runs = [run_block(code, decls, cwd) for _ in range(2 if twice else 1)]
         out, err = runs[0]
         second_out = runs[1][0] if twice else out
+        ind_out, ind_err = run_block(ind, decls, cwd) if ind else (None, '')
         if second_out != out:
             status = 'NONDET'
         elif not exp:
             status = 'NOEXP'
-        elif out == exp:
+        elif out == exp and (ind_out is None or confirms(ind_out, exp)):
             status = 'PASS'
         else:
             status = 'FAIL'
@@ -162,15 +190,17 @@ def main(argv):
         if status != 'PASS':
             say('--- got:\n' + out[:SHOW_CHARS])
             if err: say('--- stderr:\n' + err[:SHOW_CHARS])
+            if ind_out is not None: say('--- independent got:\n' + ind_out[:SHOW_CHARS])
+            if ind_err: say('--- independent stderr:\n' + ind_err[:SHOW_CHARS])
             if exp: say('--- expected:\n' + exp[:SHOW_CHARS])
             if status == 'NONDET': say('--- second run:\n' + second_out[:SHOW_CHARS])
 
-    static = len(undefined) + len(unused) + len(unparsed) + len(unpinned)
+    static = len(undefined) + len(unused) + len(unparsed) + len(unpinned) + len(copied) + too_few
     bad = stats['fail'] + stats['noexp'] + stats['nondet'] + stats['skip'] + static
     say('SUMMARY blocks {}: pass {pass} fail {fail} noexp {noexp} nondet {nondet} skip {skip}'
         .format(len(blocks), **stats)
         + f' | undefined {len(undefined)} unused {len(unused)} unparsed {len(unparsed)}'
-        + f' unpinned {len(unpinned)} -> exit {1 if bad else 0}')
+        + f' unpinned {len(unpinned)} independent {len(independent)}/{needed} -> exit {1 if bad else 0}')
     return 1 if bad else 0
 
 

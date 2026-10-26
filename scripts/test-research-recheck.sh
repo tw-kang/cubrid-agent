@@ -17,9 +17,15 @@ note_fail() { T_FAIL=$((T_FAIL+1)); FAILURES="$FAILURES
     $1"; }
 flat() { printf '%s' "$1" | tr '\n' '|'; }
 
-blk() {  # blk <ID> <sh> [expected]  -> one repro block on stdout; an empty 3rd arg is an empty expected
+# blk <ID> <sh> [expected [independent]]  -> one repro block on stdout; an empty 3rd arg is an empty
+# expected. Without a 4th arg the block gets an independent fence that prints the expected with printf, so
+# cases about other rules meet the independent floor and never repeat their sh; an empty 4th arg leaves the
+# fence out.
+blk() {
   printf '#### [%s]\n\n```sh\n%s\n```\n' "$1" "$2"
   [ $# -ge 3 ] && printf '\n```expected\n%s\n```\n' "$3"
+  [ $# -eq 3 ] && printf '\n```independent\nprintf '"'"'%%s\\n'"'"' %q\n```\n' "$3"
+  [ -n "${4-}" ] && printf '\n```independent\n%s\n```\n' "$4"
   printf '\n'
 }
 
@@ -45,6 +51,34 @@ expect 0 '^\[A\] PASS' "a block whose output equals its expected passes" -- "$D/
 
 fixture '값은 3이다 [A].' "$(blk A "printf '4\n'" '3')"
 expect 1 '^\[A\] FAIL' "output that differs from expected fails" -- "$D/r.md"
+
+# The research script and the expected agree on 43; a command that skips the script counts 42.
+fixture '값은 43이다 [A].' "$(blk A "printf '43\n'" '43' "printf '42\n'")"
+expect 1 '^\[A\] FAIL' "an independent fence that disagrees with expected fails though the sh output matches" -- "$D/r.md"
+
+fixture '[A]' "$(blk A "printf 'pop 882\ncases 17627\n'" $'pop 882\ncases 17627' "echo 'cases 17627'")"
+expect 0 '^\[A\] PASS' "an independent fence may confirm one line of a longer expected" -- "$D/r.md"
+
+fixture '[A]' "$(blk A 'echo 3' '3' 'true')"
+expect 1 '^\[A\] FAIL' "an independent fence that prints nothing fails — nothing was confirmed" -- "$D/r.md"
+
+fixture '[A]' "$(blk A 'echo 3' '3' 'echo  3')"
+expect 1 'COPIED SH.*\[A\]' "an independent fence that repeats the sh fence fails — it is not a second path" -- "$D/r.md"
+
+fixture '[A] [B] [C] [D] [E] [F]' "$(for i in A B C D; do blk $i 'echo 1' '1'; done; blk E 'echo 1' '1' ''; blk F 'echo 1' '1' '')"
+expect 1 '^TOO FEW INDEPENDENT' "four independent fences among six blocks fail — five are needed" -- "$D/r.md"
+
+fixture '[A] [B] [C] [D] [E] [F]' "$(for i in A B C D E; do blk $i 'echo 1' '1'; done; blk F 'echo 1' '1' '')"
+expect 0 '^INDEPENDENT: \[A\] \[B\] \[C\] \[D\] \[E\] \(5 of 5' "five independent fences among six blocks pass" -- "$D/r.md"
+
+fixture '[A]' "$(blk A 'echo 1' '1'; blk A 'echo 1' '1')"
+expect 0 '^INDEPENDENT: \[A\] \(1 of 1 needed' "an ID defined twice counts once toward the floor" -- "$D/r.md"
+
+fixture '[A] [B]' "$(blk A 'echo 1' '1'; blk B 'echo 1' '1' '')"
+expect 1 '^TOO FEW INDEPENDENT.*1 of 2' "a result with fewer than five blocks needs a fence in every block" -- "$D/r.md"
+
+fixture '[A]' "$(blk A 'echo 3' '3' ': origin/develop; echo 3')"
+expect 1 'UNPINNED.*\[A\].*origin/' "an independent fence that names origin/... fails" -- "$D/r.md"
 
 fixture '값은 3이다 [A].' "$(blk A "printf '3\n'")"
 expect 1 '^\[A\] NOEXP' "a block without expected fails — nothing was compared" -- "$D/r.md"
