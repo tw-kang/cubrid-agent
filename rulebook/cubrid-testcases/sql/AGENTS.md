@@ -4,12 +4,7 @@
 
 ## Operational facts
 
-Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it. gha-ci, the CI of the engine repo (`CUBRID/cubrid`), takes the TCs from the `tc/pr-<N>` branches and runs the sql and medium TCs of this repo and the shell TCs of `cubrid-testcases-private-ex`. The engine PR can merge only when all of them pass. gha-ci runs the TCs under `sql/` and `medium/` at two times:
-
-- On an engine PR, only after a comment `/run sql`, `/run medium`, or `/run all` on it. The results show on the engine PR as the statuses `gha-ci: test_sql` and `gha-ci: test_medium`.
-- In the nightly run, on each new develop commit of the engine repo, with the TCs on develop of this repo. A push to develop of the engine repo only builds it.
-
-After you change only TCs on `tc/pr-<N>`, the comment `/run rerun <run id>` runs again, on the same engine commit, the directories that failed in that run, the TCs it left unrun, and the TCs changed on `tc/pr-<N>` since. When a TC PR is merged is in [The PR](#the-pr).
+Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it.
 
 Windows tests of sql and medium TCs have stopped: from the 11.4.6 and 11.3.6 patch releases, CUBRID ships CUBRID-For-WSL instead of a Windows build. No regression compares output with a `.answer_win` file any more. What this means when you change a TC is in [writing rules](rules/writing-rules.md#changing-an-existing-tc).
 
@@ -33,7 +28,7 @@ A TC file `bug_bts_<NNNN>.sql` belongs to the Jira issue `CUBRIDSUS-<NNNN>`: `sq
 
 **Replace the default title of the Draft TC PR that the engine repo opened for your engine PR with a title in the form above before the TC PR merges.** The default title starts `[CBRD-XXXXX] Draft: TC changes for PR`, and the squash merge of a TC PR keeps the PR title as the commit title on develop. Example: `[CBRD-XXXXX] Draft: TC changes for PR CUBRID/cubrid#NNNN` becomes `[CBRD-XXXXX] Add sql testcase for LEFT JOIN over a derived table`.
 
-**When the CI of your engine PR needs a fix of an existing TC or a new TC, commit it to the `tc/pr-<N>` branch of that engine PR.** gha-ci takes the TCs for the engine PR from that branch ([Operational facts](#operational-facts)). Example: for engine PR 1234, check out `tc/pr-1234` of this repo, commit the TC there, and push the branch.
+**When the CI of your engine PR needs a fix of an existing TC or a new TC, commit it to the `tc/pr-<N>` branch of that engine PR.** Example: for engine PR 1234, check out `tc/pr-1234` of this repo, commit the TC there, and push the branch.
 
 **Put a fix of an existing TC and a new TC in separate commits, and write in each commit message why the change is needed and what it changes.** Example: one commit `Fix cbrd_xxxxx: add ORDER BY to Case 3, because a parallel scan returns its rows in another order`, and another commit `Add cbrd_yyyyy for LEFT JOIN over a derived table`.
 
@@ -43,4 +38,4 @@ A TC file `bug_bts_<NNNN>.sql` belongs to the Jira issue `CUBRIDSUS-<NNNN>`: `sq
 
 **When you change an existing *answer file*, write in the PR which lines changed and why: the engine change or issue that changed them, or why the old lines were wrong.** An answer file overwritten with the run output alone can keep the output of a bug. Example: the PR says `cbrd_xxxxx.answer: Case 3 now prints an error instead of NULL because CBRD-YYYYY made the conversion strict`.
 
-**Merge a TC PR once the engine PR it tests passes CI and meets its other merge requirements, and merge that engine PR right after the TC PR.** The nightly run tests the TCs on develop of this repo, so a TC merged before its engine change fails there, and the engine repo blocks the merge of an engine PR until the TC PR on its `tc/pr-<N>` is merged or closed. Example: CUBRID/cubrid#NNNN passes `gha-ci: test_sql` and meets its merge requirements, the TC PR on `tc/pr-NNNN` is merged, and CUBRID/cubrid#NNNN is merged right after it.
+**Merge a TC PR once the engine PR it tests passes CI and meets its other merge requirements, and merge that engine PR right after the TC PR.** The engine repo blocks the merge of an engine PR until the TC PR on its `tc/pr-<N>` is merged or closed, and a TC on develop without its engine change fails in the CI of other engine PRs until that engine PR follows. Example: CUBRID/cubrid#NNNN passes CI and meets its merge requirements, the TC PR on `tc/pr-NNNN` is merged, and CUBRID/cubrid#NNNN is merged right after it.
