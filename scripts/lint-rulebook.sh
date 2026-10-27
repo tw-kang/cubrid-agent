@@ -62,8 +62,50 @@ fence              { if (start) para = para "\n" $0; next }
 END { flush() }
 '
 
+# Links: the tree is what the tc repo receives, so a relative link must land on a file of the tree, never on
+# the disk around it. Anchors are GitHub's heading anchors. GitHub keeps non-ASCII letters, which this drops,
+# but the body is English and Hangul outside the term table is a violation already.
+LINK_AWK='
+BEGIN { for (i = 1; i < ARGC; i++) file[ARGV[i]] = 1 }
+function resolve(from, path,   d, n, i, k, seg, out, p) {
+  d = from; sub(/[^\/]*$/, "", d)
+  n = split(d path, seg, "/"); k = 0
+  for (i = 1; i <= n; i++) {
+    if (seg[i] == "" || seg[i] == ".") continue
+    if (seg[i] == "..") { if (k == 0) return ""; k--; continue }
+    out[++k] = seg[i]
+  }
+  p = out[1]; for (i = 2; i <= k; i++) p = p "/" out[i]
+  return p
+}
+FNR == 1           { fence = 0 }
+/^[ \t]*(```|~~~)/ { fence = !fence; next }
+fence              { next }
+/^#+[ \t]/ {
+  h = tolower($0); sub(/^#+[ \t]+/, "", h); gsub(/[^a-z0-9_ -]/, "", h); gsub(/ /, "-", h)
+  id = h; if ((FILENAME, h) in seen) id = h "-" seen[FILENAME, h]
+  seen[FILENAME, h]++; anchor[FILENAME, id] = 1
+}
+{
+  s = $0; gsub(/`[^`]*`/, "", s)
+  while (match(s, /\]\([^) \t]+/)) {
+    t = substr(s, RSTART + 2, RLENGTH - 2); s = substr(s, RSTART + RLENGTH)
+    if (t !~ /^[A-Za-z][A-Za-z0-9+.-]*:/) link[++nl] = FILENAME SUBSEP FNR SUBSEP t
+  }
+}
+END {
+  for (i = 1; i <= nl; i++) {
+    split(link[i], l, SUBSEP); t = l[3]; a = ""
+    if ((k = index(t, "#"))) { a = substr(t, k + 1); t = substr(t, 1, k - 1) }
+    p = t == "" ? l[1] : resolve(l[1], t)
+    if (!(p in file)) print l[1] ":" l[2] ": link \"" l[3] "\" is not a file of the rulebook"
+    else if (a != "" && !((p, a) in anchor)) print l[1] ":" l[2] ": link \"" l[3] "\": " p " has no heading \"#" a "\""
+  }
+}
+'
+
 violations() {
-  local cats want have f terms="" termed=0
+  local cats want have f terms="" termed=0 readable=()
   cats=$(find . -mindepth 1 -maxdepth 1 -type d | sed 's|^\./||' | sort)
   want=$({ echo AGENTS.md
            for c in $cats; do printf '%s\n' "$c/AGENTS.md" "$c/rules/test-perspectives.md" "$c/rules/writing-rules.md"; done
@@ -97,6 +139,10 @@ violations() {
         [ "$n" -le 200 ] || echo "$f: $n lines, over 200" ;;
     esac
   done
+
+  mapfile -t readable < <(comm -12 <(printf '%s\n' "$want") <(printf '%s\n' "$have") | while read -r f; do
+    [ -r "$f" ] && printf '%s\n' "$f"; done)
+  [ ${#readable[@]} -eq 0 ] || awk "$LINK_AWK" "${readable[@]}"
 }
 
 out=$(violations)
