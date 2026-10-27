@@ -6,10 +6,12 @@ These *test perspectives* say what a TC under `medium/` checks. How to write the
 
 These rules of the [sql test perspectives](../../sql/rules/test-perspectives.md) hold for medium TCs as well:
 
-- the `ORDER BY` that gives the rows of a multi-row SELECT a fixed order ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)); when an engine change only reorders the rows of a SELECT without one, add the `ORDER BY` and then make the *answer file* again from a run ([sql writing rules](../../sql/rules/writing-rules.md#answer-files)),
+- the `ORDER BY` that gives the rows of a multi-row SELECT a fixed order ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)),
 - the exact error code of a statement that must fail, and a SELECT of the state after it ([sql](../../sql/rules/test-perspectives.md#evidence-in-the-answer-file)),
 - when a query gets a recompile hint or a join hint ([sql](../../sql/rules/test-perspectives.md#plans-hints-and-data-size)),
 - how far past a *threshold* the data of a TC goes ([sql](../../sql/rules/test-perspectives.md#plans-hints-and-data-size)).
+
+**When an engine change only reorders the rows of a SELECT that has no `ORDER BY`, add an `ORDER BY` that fixes the order before you make the *answer file* again from a run.** An answer file made again without the `ORDER BY` holds the row order of one build, and the next change of a scan or of the space management fails the TC again. How to make an answer file of a medium TC is in the [writing rules](writing-rules.md#answer-files). Example: `_05_err_x/cases/strlen.sql` turned `select * from cs;` on line 190 into `select * from cs order by s desc;`.
 
 **After a TC changes a class that `mdb` holds and rolls the change back, select from that class and check that its rows and attributes are as they were before the change.** In medium the rollback is itself under test: a rollback that misses part of a change still passes in its own TC and breaks a TC that runs later, where the cause is hard to find. Example: after `update joe.product_c set price = price * 2;` and `rollback;`, the TC runs `select price from joe.product_c order by 1;`, and the answer file shows the prices from before the update; other changes worth this check are DDL on a class that a subclass or a vclass such as `joe.employees_v` refers to, and a `drop index`.
 
@@ -33,10 +35,12 @@ CTP loads `mdb` from `medium/files/mdb.tar.gz` once per run and runs the medium 
 
 **Check a query plan, or an output that only CCI gives, in a sql TC, not in a medium TC.** CTP does not run medium TCs through CCI, and medium has no `.answer_cci` file, no `.queryPlan` file, and no `--@queryplan` line. Example: a TC that checks which join method a query uses goes to `sql/` and puts the plan into its answer file, as [Plans, hints, and data size](../../sql/rules/test-perspectives.md#plans-hints-and-data-size) in the sql test perspectives says.
 
+**Check concurrency, lock waits, and deadlocks in an isolation TC also when the scenario fits `_07_mc_dep/` or `_08_mc_ind/`, and put a scenario that can stop the server or damage the database into a shell TC.** CTP runs the files of those two directories one after another like the files of any other directory, and a server that stops or a database that breaks fails every medium TC after it in the run. Example: a check that a second transaction waits for the lock that a first one holds on `x_base_c0` is an isolation TC, not a file under `_08_mc_ind/`.
+
 These rules of the [sql test perspectives](../../sql/rules/test-perspectives.md) hold for medium TCs as well:
 
-- the category that takes what a TC cannot check ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)): concurrency, lock waits, and deadlocks go to `isolation/`, also for the files of `_07_mc_dep/` and `_08_mc_ind/`, which CTP runs one after another like the others; a scenario that can stop the server or damage the database fails every medium TC after it and goes to a shell TC,
-- a row count printed with `count(*)`, because the comparison with the answer file ignores line breaks ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)).
+- the category that takes what a TC cannot check ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)),
+- a row count printed with `count(*)`, because CTP removes CR and LF before it compares output ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)).
 
 ## Model TCs
 
