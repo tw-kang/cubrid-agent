@@ -1,5 +1,11 @@
 # cubrid-testcases rulebook
 
+The rules for the TCs under `sql/` are in [sql/AGENTS.md](sql/AGENTS.md), and the rules for the TCs under `medium/` are in [medium/AGENTS.md](medium/AGENTS.md); each of the two links two more files.
+
+**Open the clone of this repo as the working directory for TC work.** An agent finds `sql/AGENTS.md` and `medium/AGENTS.md` only when they lie under the working directory. Example: start the agent in `~/cubrid-testcases`, not in `~/cubrid` with an absolute path to `~/cubrid-testcases/sql/`.
+
+**Propose a *rulebook* change to the QA team in [CUBRIDQA-1505](https://jira.cubrid.org/browse/CUBRIDQA-1505) or as a PR to [cubrid-agent](https://github.com/tw-kang/cubrid-agent), with one piece of evidence.** This repo holds the *deployed copy*; QA edits the *canonical copy* in `cubrid-agent` and deploys it here after approval. The evidence is one of a review that rejected a TC (comment link), a regression failure (QAHome or CI link), or a mining result. Example: a comment on CUBRIDQA-1505 that proposes a rule and links the CI run it would have prevented.
+
 ## Terms
 
 | Term | Korean | Meaning |
