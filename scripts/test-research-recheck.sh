@@ -59,6 +59,13 @@ expect 1 '^\[A\] FAIL' "an independent fence that disagrees with expected fails 
 fixture '[A]' "$(blk A "printf 'pop 882\ncases 17627\n'" $'pop 882\ncases 17627' "echo 'cases 17627'")"
 expect 0 '^\[A\] PASS' "an independent fence may confirm one line of a longer expected" -- "$D/r.md"
 
+# A report indents its lines under a header, so a fence that confirms one of them starts with spaces.
+fixture '[A]' "$(blk A "printf 'n 2\n  a 1\n  b 1\n'" $'n 2\n  a 1\n  b 1' "printf '  b 1\n'")"
+expect 0 '^\[A\] PASS' "an independent fence whose first line is indented confirms that line of the expected" -- "$D/r.md"
+
+fixture '[A]' "$(blk A "printf '  a 1\n  b 1\n'" $'  a 1\n  b 1' "printf '  a 1\n'")"
+expect 0 '^\[A\] PASS' "a block whose output starts with an indented line passes against the same expected" -- "$D/r.md"
+
 fixture '[A]' "$(blk A 'echo 3' '3' 'true')"
 expect 1 '^\[A\] FAIL' "an independent fence that prints nothing fails — nothing was confirmed" -- "$D/r.md"
 

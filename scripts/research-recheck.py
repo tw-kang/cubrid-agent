@@ -63,7 +63,7 @@ def parse_blocks(text):
         sh = SH_RE.search(body)
         exp = EXPECTED_RE.search(body)
         ind = INDEPENDENT_RE.search(body)
-        out.append((bid, sh.group(1) if sh else None, exp.group(1).strip() if exp else None,
+        out.append((bid, sh.group(1) if sh else None, exp.group(1).rstrip('\n') if exp else None,
                     ind.group(1) if ind else None))
     return out
 
@@ -108,7 +108,7 @@ def run_env(code, cwd):
 
 def run_block(code, decls, cwd):
     r = subprocess.run(['bash', '-c', decls + '\n' + code], capture_output=True, text=True, cwd=cwd)
-    return r.stdout.strip(), r.stderr.strip()
+    return r.stdout.rstrip('\n'), r.stderr.strip()
 
 
 def confirms(ind_out, exp):
