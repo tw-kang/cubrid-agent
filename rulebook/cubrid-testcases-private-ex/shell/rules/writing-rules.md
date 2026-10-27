@@ -128,6 +128,8 @@ wait_until 60 eval 'cubrid tranlist $db 2>/dev/null | grep -qw csql' || write_no
 
 ### Cleanup
 
+**Keep each TC atomic, so that it affects neither the TC before it nor the TC after it, and restore the state it started from as soon as it ends.** The rules of this section and the cleanup rules in [Environment](#environment) and [Waiting and processes](#waiting-and-processes) are how a TC does it. Example: a TC that creates its database, changes a parameter with `change_db_parameter`, and starts a background `csql` ends with that process waited for, the database deleted, the parameter restored by `finish`, and its files removed, so the next TC starts from the same state as this one did.
+
 **Run `cubrid deletedb` at the end of each TC on every database it created, through the `cubrid` command that `init test` puts first on `PATH`, not through `cub_admin`.** That `cubrid` is a CTP wrapper: before it deletes the database, it writes a NOK for new core files and `FATAL ERROR`, so it catches a crash of the TC wherever it happened. A TC that tests `cub_admin` itself is the exception. Example: `cubrid deletedb $db` after `cubrid server stop $db`, and `cub_admin deletedb $db` only in a TC of `cub_admin`.
 
 **Put `export SKIP_CHECK_FATAL_ERROR=TRUE` after `init test` in a TC whose scenario writes `FATAL ERROR` on purpose, such as a reproduced crash.** It turns off only the `FATAL ERROR` count of `cubrid deletedb`: a core file left behind is still a NOK and brings the `FATAL ERROR` NOK back with it. Example: a TC that checks `LOG FATAL ERROR: logpb_restore` after a failed restore sets it right after `init test`.
