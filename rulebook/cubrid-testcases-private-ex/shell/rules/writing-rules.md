@@ -130,6 +130,8 @@ wait_until 60 eval 'cubrid tranlist $db 2>/dev/null | grep -qw csql' || write_no
 
 **Run `cubrid deletedb` at the end of each TC on every database it created, through the `cubrid` command that `init test` puts first on `PATH`, not through `cub_admin`.** That `cubrid` is a CTP wrapper: before it deletes the database, it writes a NOK for new core files and `FATAL ERROR`, so it catches a crash of the TC wherever it happened. A TC that tests `cub_admin` itself is the exception. Example: `cubrid deletedb $db` after `cubrid server stop $db`, and `cub_admin deletedb $db` only in a TC of `cub_admin`.
 
+**Put `export SKIP_CHECK_FATAL_ERROR=TRUE` after `init test` in a TC whose scenario writes `FATAL ERROR` on purpose, such as a reproduced crash.** Unless it is set, `cubrid deletedb` writes a NOK for each new `FATAL ERROR` in `$CUBRID/log`; it still writes a NOK for any core file left behind. Example: a TC that checks `LOG FATAL ERROR: logpb_restore` after a failed restore sets it right after `init test`.
+
 **Remove a leftover database directory before you create the database.** A run that ended early can leave the database behind. Example: `rm -rf $db; mkdir $db` before `cubrid_createdb`.
 
 **At the end of the TC, stop the server, run `cubrid deletedb`, remove the files, and call `finish`, in that order.** `cubrid deletedb` before `cubrid server stop` fails and leaves the database for the next run. Example: `cubrid server stop $db; cubrid deletedb $db; rm -f *.log; finish`.
