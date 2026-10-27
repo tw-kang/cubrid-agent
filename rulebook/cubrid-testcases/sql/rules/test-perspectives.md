@@ -4,7 +4,7 @@ These *test perspectives* say what a TC under `sql/` checks. How to write the fi
 
 ## Scenarios to cover
 
-**Give each scenario of the Jira issue a case, whether the issue describes it in its description, its acceptance criteria, a comment, or an attached file.** A scenario that no case runs is a regression that nobody catches. Example: the issue describes two queries and attaches a script with a third, so the TC has Case 1 to Case 3, one for each.
+**Give each scenario of the Jira issue a case, whether the issue describes it in its description, its acceptance criteria, a comment, or an attached file.** A regression in a scenario that no case runs goes unseen. Example: the issue describes two queries and attaches a script with a third, so the TC has Case 1 to Case 3, one for each.
 
 **Next to the case that reproduces the issue, add cases with boundary values and invalid inputs, and run the same operation through the related functions and DML statements.** A regression often shows only at an edge of the input range or in a sibling of the reported function. For a function or an operator, the edges include the minimum and the maximum of the type, `NULL`, the empty string, an empty table, and another collation, and a bound gets a case just below it, on it, and just above it. Example: a TC for an `ADDDATE` fix also runs the INT amount `-2147483648` and a `NULL` amount, and runs the same amounts through `SUBDATE`, `DATE_ADD`, and `DATE_SUB`.
 
