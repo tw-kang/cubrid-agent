@@ -54,7 +54,7 @@ A change of an existing TC follows the [New TC](#new-tc) section and these rules
 - leaving a `.answer_win` file as it is, because Windows tests have stopped ([sql](../../sql/rules/writing-rules.md#changing-an-existing-tc)),
 - updating an answer file that keeps a known wrong result once its issue is closed ([sql](../../sql/rules/writing-rules.md#answer-files)).
 
-A PR that changes an answer file says which lines changed and why ([medium/AGENTS.md](../AGENTS.md#the-pr)).
+A PR that changes an answer file follows [The PR](../../sql/AGENTS.md#the-pr) in `sql/AGENTS.md`.
 
 **When you change an answer file that a patch file of the JDBC compatibility test names, check that each such patch file still applies, and change it in the same PR when it does not.** The compatibility test applies the patch file with `patch -p0 -f` before it compares, and a patch that fails leaves the answer file unpatched, so that test compares the output of the older version with the wrong answer file. Example: in `medium/`, `grep -l '^Index: _02_xtests/answers/str_ops.answer' config/daily_regression_test_exclude_list_compatibility/patch_files/*` lists the patch files that name `str_ops.answer`, and `patch --dry-run -p0 < <patch file>` shows whether each still applies.
 
