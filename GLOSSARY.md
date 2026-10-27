@@ -68,3 +68,8 @@ tc repo 개발자가 읽는 영문 용어 표는 정본의 루트 `AGENTS.md`에
 | **버그 경로(bug path)** | 이슈의 버그가 지나가는 엔진 코드 경로다. 이 경로에 닿지 않는 TC는 수정 전 빌드에서도 통과한다 |
 | **중단 경로(abort path)** | 실패한 단계 뒤에 TC를 일찍 끝내는 TC 스크립트의 경로다. 형식은 `shell/rules/writing-rules.md`에 있다 |
 | **설명 블록(description block)** | TC 스크립트 2행, `#!/bin/bash` 바로 다음에 두는 블록이다. 이슈 키와 TC가 무엇을 확인하는지 적는다 |
+| **헤더 블록(header block)** | TC 파일 맨 앞에 두는 `/** … */` 블록이다. 이슈와 TC가 무엇을 확인하는지 적는다. 형식은 `cubrid-testcases`의 `sql/rules/writing-rules.md`에 있다 |
+| **케이스 라벨(evaluate label)** | TC의 `evaluate '…';` 문장에 쓰는 문자열이다. 답지에 찍혀 시나리오가 어디서 시작하는지 보인다 |
+| **알려진 오답(known wrong result)** | 열린 이슈 때문에 틀린 답지의 값이다 |
+| **임계값(threshold)** | 엔진이 질의를 실행하는 방식을 바꾸는 크기다. 행 수나 페이지 수로 센다 |
+| **준비 단계(setup)** | TC의 시나리오들이 함께 쓰는 스키마와 데이터를 만드는 문장들이다 |
