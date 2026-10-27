@@ -30,11 +30,15 @@ A TC file `bug_bts_<NNNN>.sql` belongs to the Jira issue `CUBRIDSUS-<NNNN>`: `sq
 
 **When the CI of your engine PR needs a fix of an existing TC or a new TC, commit it to the `tc/pr-<N>` branch of that engine PR.** Example: for engine PR 1234, check out `tc/pr-1234` of this repo, commit the TC there, and push the branch.
 
+**For an engine PR to a `release/11.x` branch, open the TC PR to the same release branch of this repo yourself.** The engine repo makes `tc/pr-<N>` and its Draft TC PR only for an engine PR to develop or to a `feature/` branch ([Operational facts](#operational-facts)). Example: the backport of CBRD-XXXXX to `release/11.4` gets a TC PR from your branch to `release/11.4`, titled `[CBRD-XXXXX] Backport from develop to 11.4 - <original title>`.
+
+**When your TC needs a change that reached develop after `tc/pr-<N>` was made, merge develop into `tc/pr-<N>`.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge develop into it. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`, with no rebase and no force-push.
+
 **Put a fix of an existing TC and a new TC in separate commits, and write in each commit message why the change is needed and what it changes.** Example: one commit `Fix cbrd_xxxxx: add ORDER BY to Case 3, because a parallel scan returns its rows in another order`, and another commit `Add cbrd_yyyyy for LEFT JOIN over a derived table`.
 
 **Commit only the files that the TC needs, and leave out the outputs of a run such as `.result` files and `csql.err`.** CTP writes a `.result` file next to each case on every run. Example: before you open the PR, `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
 
-**Change only the TCs and files of one issue in a PR, and merge no whole branch, such as develop into a release branch, through a TC PR.** An unrelated change in a TC PR gets no review of its own and cannot be reverted alone. Example: a PR for CBRD-XXXXX changes `cbrd_xxxxx.sql` and its *answer file* only, and a typo fix in another TC goes in a PR of its own.
+**Change only the TCs and files of one issue in a PR, and merge no whole branch, such as develop into a release branch, through a TC PR.** An unrelated change in a TC PR gets no review of its own and cannot be reverted alone. A merge of develop into `tc/pr-<N>` adds no change of another branch to its TC PR, which goes to develop. Example: a PR for CBRD-XXXXX changes `cbrd_xxxxx.sql` and its *answer file* only, and a typo fix in another TC goes in a PR of its own.
 
 **When you change an existing *answer file*, write in the PR which lines changed and why: the engine change or issue that changed them, or why the old lines were wrong.** An answer file overwritten with the run output alone can keep the output of a bug. Example: the PR says `cbrd_xxxxx.answer: Case 3 now prints an error instead of NULL because CBRD-YYYYY made the conversion strict`.
 
