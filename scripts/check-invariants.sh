@@ -129,6 +129,7 @@ grep -q '티켓 파일을 만들지 않는다' docs/agents/issue-tracker.md    |
 grep -qF ' · 이전:' docs/agents/issue-tracker.md                   || _t="$_t reopen-status-chain"
 grep -q '후속 커밋을 PR에 더할 때' docs/agents/issue-tracker.md     || _t="$_t follow-up-commit-reread"
 grep -qF '`independent` fence' docs/agents/issue-tracker.md       || _t="$_t research-independent-check"
+grep -q '^- \*\*위치 주장\*\*.*`grep -n`' docs/agents/issue-tracker.md || _t="$_t location-claim-with-output"
 grep -qF '`team-lead`는 그 서브에이전트를 띄운 작업 세션' docs/agents/issue-tracker.md || _t="$_t team-lead-is-the-work-session"
 grep -q '닫기 전 알림' docs/agents/issue-tracker.md                 || _t="$_t notify-leader-before-closing"
 grep -qF 'COMMIT_OR_PR_TITLE' docs/agents/issue-tracker.md         || _t="$_t commit-or-pr-title-flow"
