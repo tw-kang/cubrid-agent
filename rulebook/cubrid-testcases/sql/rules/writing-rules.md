@@ -23,7 +23,7 @@ These *writing rules* say how to write the files of a TC under `sql/`. What a TC
 **Start a new TC file with one *header block* that names the issue key, says what the TC checks, and lists its cases under `Coverage:`, with no `--` inside it.** The header block is one `/** … */` comment. The reviewer and the next person who changes the TC read from the block which issue the TC reproduces and what each case checks. CTP drops each line that starts with `--`, inside the block as well, so the block that reaches the server is not the block you wrote. The block follows the rule for block comments in [Statements and comments](#statements-and-comments) as well. Example:
 ```sql
 /**
- *  This test case verifies CBRD-xxxxx: <title of the issue>
+ *  This test case verifies CBRD-XXXXX: <title of the issue>
  *
  *  <what the fix changed, and how the cases check it>
  *
@@ -108,7 +108,7 @@ deallocate prepare q1;
 
 [Operational facts](../AGENTS.md#operational-facts) says which Jira issue an old TC named `bug_bts_<NNNN>.sql` belongs to. A change of an answer file also follows [The PR](../AGENTS.md#the-pr) in `sql/AGENTS.md` and the known wrong result rule of [Answer files](#answer-files).
 
-**When you fix an unstable or broken existing TC, keep the tables and queries of its scenario and change only the output that is not deterministic, and when the scenario itself must change, ask the developer of its issue to review the change.** The scenario is what reproduces the issue, and a new scenario can miss the *bug path*. A new form of the scenario can go into a file of its own beside the old one, named as in [Place and files](#place-and-files). A scenario that a change of the engine specification made invalid can change without that review. Example: a TC whose plans now change with the page count keeps its tables and queries and checks only the results of those queries; its PR asks the developer of CBRD-xxxxx before it replaces a system table in a query.
+**When you fix an unstable or broken existing TC, keep the tables and queries of its scenario and change only the output that is not deterministic, and when the scenario itself must change, ask the developer of its issue to review the change.** The scenario is what reproduces the issue, and a new scenario can miss the *bug path*. A new form of the scenario can go into a file of its own beside the old one, named as in [Place and files](#place-and-files). A scenario that a change of the engine specification made invalid can change without that review. Example: a TC whose plans now change with the page count keeps its tables and queries and checks only the results of those queries; its PR asks the developer of CBRD-XXXXX before it replaces a system table in a query.
 
 **Leave a `.answer_win` file as it is when you change the `.answer` file beside it.** Windows tests have stopped, and no run compares with a `.answer_win` file ([Operational facts](../AGENTS.md#operational-facts)). Example: a PR that updates `answers/cbrd_xxxxx.answer` leaves `answers/cbrd_xxxxx.answer_win` unchanged.
 
