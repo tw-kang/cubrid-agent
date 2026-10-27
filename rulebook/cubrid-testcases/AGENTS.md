@@ -18,7 +18,7 @@ The rules for the TCs under `sql/` are in [sql/AGENTS.md](sql/AGENTS.md), and th
 | answer file | 답지 | The file of expected output that a TC compares its output with (`.answer`). |
 | bug path | 버그 경로 | The engine code path that the bug of the issue runs through. A TC that never reaches it passes on a build without the fix. |
 | header block | 헤더 블록 | The `/** … */` block at the top of a TC file that names the issue and says what the TC checks. Its form is in `sql/rules/writing-rules.md`. |
-| evaluate label | 케이스 라벨 | The string of an `evaluate '…';` statement. It shows in the answer file and marks where a scenario of the TC starts. |
+| evaluate label | 케이스 라벨 | The string of an `evaluate '…';` statement. It shows in the answer file and marks where a case of the TC starts. |
 | known wrong result | 알려진 오답 | A value in an answer file that is wrong because of an open issue. |
 | threshold | 임계값 | A size, counted in rows or pages, at which the engine changes how it runs a query. |
 | setup | 준비 단계 | The statements of a TC that create the schema and the data that its scenarios share. |
