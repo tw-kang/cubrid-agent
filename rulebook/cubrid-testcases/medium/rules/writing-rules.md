@@ -12,10 +12,10 @@ The rest of this section holds for every TC under `medium/`, and [Changing an ex
 - the *evaluate label* `evaluate 'Case N: …';` of each scenario ([sql](../../sql/rules/writing-rules.md#header-and-labels)),
 - the output of a bug that the TC does not test, and the mark of a *known wrong result* ([sql](../../sql/rules/writing-rules.md#answer-files)),
 - one file for one issue, and when and how to split it ([sql](../../sql/rules/writing-rules.md#place-and-files)),
-- restoring at the end of the file each session setting that the TC changed, `set names` and a `call login` as another user included ([sql](../../sql/rules/writing-rules.md#cleanup)),
+- restoring at the end of the file each session setting that the TC changed ([sql](../../sql/rules/writing-rules.md#cleanup)),
 - making the answer file from a run and never editing it by hand ([sql](../../sql/rules/writing-rules.md#answer-files)),
 - one answer file in `answers/` for each `.sql` file in `cases/`, and no empty answer file ([sql](../../sql/rules/writing-rules.md#place-and-files)),
-- only TC files in `cases/` and `answers/`, and no subdirectory in them ([sql](../../sql/rules/writing-rules.md#place-and-files)),
+- only TC files in `cases/` and `answers/` ([sql](../../sql/rules/writing-rules.md#place-and-files)),
 - a `;` at the end of every statement, and no `;` or `'` in a block comment ([sql](../../sql/rules/writing-rules.md#statements-and-comments)),
 - the exact form of the CTP control lines such as `autocommit off;` and `--+ holdcas on;` ([sql](../../sql/rules/writing-rules.md#statements-and-comments)),
 - UTF-8 without a BOM and LF line ends ([sql](../../sql/rules/writing-rules.md#place-and-files)).
@@ -25,6 +25,8 @@ The rest of this section holds for every TC under `medium/`, and [Changing an ex
 **Put a TC that reads data that an earlier file committed only under `_07_mc_dep/` or `_08_mc_ind/`, name it `<capital letter><three digits>_<name>.sql`, and leave the names of the files already there as they are.** CTP runs the files of a directory in the sort order of their names, so a file that sorts in between, or a changed number, changes what the files after it read. Example: `_08_mc_ind/cases/I018_qset0.sql` counts rows of `x_base_c0` that `I014_dub1.sql` inserted and committed before it, so renaming `I014_dub1.sql` to `I020_dub1.sql` runs it after `I018_qset0.sql` and changes that count.
 
 **Name a new TC file outside `_07_mc_dep/` and `_08_mc_ind/` with lowercase letters, digits, and underscores only.** Example: `outer_inner.sql`, not `server-concurrent-sortmerge.sql` or `test_add_months_QA.sql`; a TC of an issue is `cbrd_xxxxx.sql`, or `cbrd_xxxxx_<keyword>.sql` for a split file, as the [sql writing rules](../../sql/rules/writing-rules.md#place-and-files) say.
+
+**Make no subdirectory under `cases/` or `answers/`.** Example: `_02_xtests/cases/setjn1.sql` and `_02_xtests/answers/setjn1.answer`, not `_02_xtests/cases/old/setjn1.sql`.
 
 ### Start and end of the file
 
@@ -38,6 +40,8 @@ drop vclass joe.xxx_v;
 drop class joe.xxx;
 commit;
 ```
+
+**When a TC logs in as another user with `call login`, log in as `dba` again with `call login('dba', '') on class db_user;` before the file ends.** CTP keeps the connection of a file for the files after it and does not log it in again, so the next file runs as the user that the file left. Example: `_01_fixed/cases/fview1_1.sql` logs in as `public` on line 9 and as `dba` again on line 17, while `_04_full/cases/sesnsch.sql` ends logged in as `PUBLIC`.
 
 **In a file that stores a value in a host variable or a session variable, such as `select … into :u` or `SELECT … TO :maxvalue`, make `--+ holdcas on;` the first line and `--+ holdcas off;` the last line.** Without `holdcas` the broker can run the next statement on another CAS, where the variable does not exist. Example: `_05_err_x/cases/label1.sql` has `--+ holdcas on;` on line 1, `select _db_user into :u …` on line 3, and `--+ holdcas off;` on line 6, its last line.
 
