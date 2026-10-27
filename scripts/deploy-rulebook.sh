@@ -6,9 +6,10 @@
 #
 # The clone's origin URL picks the canonical tree rulebook/<repo>/. A deploy branches from the fetched
 # origin/develop, copies the tree, puts a CLAUDE.md symlink next to every AGENTS.md, commits, and prints
-# the PR body skeleton with the reviewers from rulebook/category-owners.txt. It never pushes. --check
-# names every path on origin/develop that a deploy would change. The head key comes from
-# .github/head-keys.txt unless --key names it.
+# the PR body skeleton with the reviewers from rulebook/category-owners.txt. If the branch exists, the
+# deploy commits on top of it instead and merges origin/develop in when the branch is behind; a branch
+# that already matches gets no commit. It never pushes. --check names every path on origin/develop that
+# a deploy would change. The head key comes from .github/head-keys.txt unless --key names it.
 #
 # Dev-only, not shipped. Exit 0 = deployed, nothing to deploy, or no drift; 1 = refused or drift found;
 # 2 = bad input.
@@ -51,11 +52,11 @@ expected() {  # "<mode> <blob><TAB><path>" for every path a deploy writes
   link=$(printf 'AGENTS.md' | git -C "$CLONE" hash-object --stdin)
   for p in "${LINKS[@]}"; do printf '120000 %s\t%s\n' "$link" "$p"; done
 }
-drift() {  # one line per path whose origin/develop entry is not what a deploy writes
+drift() {  # <ref>: one line per path whose entry in <ref> is not what a deploy writes
   local ms p
   declare -A have
   while IFS=$'\t' read -r ms p; do have[$p]=$ms; done < <(
-    git -C "$CLONE" ls-tree -r origin/develop -- "${FILES[@]}" "${LINKS[@]}" | sed -E 's/^([0-9]+) [a-z]+ /\1 /')
+    git -C "$CLONE" ls-tree -r "$1" -- "${FILES[@]}" "${LINKS[@]}" | sed -E 's/^([0-9]+) [a-z]+ /\1 /')
   while IFS=$'\t' read -r ms p; do
     if [ -z "${have[$p]:-}" ]; then echo "missing  $p"
     elif [ "${have[$p]}" != "$ms" ]; then echo "differs  $p"; fi
@@ -92,7 +93,7 @@ fi
 
 git -C "$CLONE" fetch -q origin +refs/heads/develop:refs/remotes/origin/develop || die 1 "fetch from origin failed"
 
-DRIFT=$(drift)
+DRIFT=$(drift origin/develop)
 if [ -z "$DRIFT" ]; then
   echo "deploy-rulebook: origin/develop matches rulebook/$NAME"
   [ "$CHECK" -eq 1 ] || echo "deploy-rulebook: nothing to deploy, no branch made"
@@ -104,7 +105,20 @@ if [ "$CHECK" -eq 1 ]; then
   exit 1
 fi
 
-git -C "$CLONE" switch -q --no-track -c "$BRANCH" origin/develop || die 1 "could not create $BRANCH"
+# An existing branch carries an open PR, which takes new commits on top and is never rewritten.
+if git -C "$CLONE" show-ref --verify -q "refs/heads/$BRANCH"; then
+  [ -n "$(drift "refs/heads/$BRANCH")" ] \
+    || { echo "deploy-rulebook: $BRANCH already matches rulebook/$NAME, no commit made"; exit 0; }
+  BASE=$(git -C "$CLONE" rev-parse --short=12 "refs/heads/$BRANCH")
+  git -C "$CLONE" switch -q "$BRANCH" || die 1 "could not switch to $BRANCH"
+  if ! git -C "$CLONE" merge-base --is-ancestor origin/develop HEAD; then
+    git -C "$CLONE" merge -q --no-edit -m "[$KEY] Merge origin/develop into $BRANCH" origin/develop \
+      || { git -C "$CLONE" merge --abort; die 1 "merging origin/develop into $BRANCH failed; merge it by hand"; }
+  fi
+else
+  BASE=origin/develop
+  git -C "$CLONE" switch -q --no-track -c "$BRANCH" origin/develop || die 1 "could not create $BRANCH"
+fi
 
 # cp keeps the mode of a file it overwrites, and drift() expects 100644.
 for p in "${FILES[@]}"; do
@@ -131,9 +145,13 @@ for u in "${UNITS[@]}"; do
   commit_unit "[$KEY] Deploy the $u rulebook" "${UNIT_PATHS[@]}"
 done
 
-NCOMMITS=$(git -C "$CLONE" rev-list --count origin/develop..HEAD)
-printf 'deploy-rulebook: branch %s in %s, %d commit(s) on origin/develop\n' "$BRANCH" "$CLONE" "$NCOMMITS"
-git -C "$CLONE" log --reverse --format='  %h %s' origin/develop..HEAD
+NCOMMITS=$(git -C "$CLONE" rev-list --count --first-parent "$BASE..HEAD")
+printf 'deploy-rulebook: branch %s in %s, %d commit(s) on %s\n' "$BRANCH" "$CLONE" "$NCOMMITS" "$BASE"
+git -C "$CLONE" log --reverse --first-parent --format='  %h %s' "$BASE..HEAD"
+if [ "$BASE" != origin/develop ]; then
+  echo "Not pushed: push $BRANCH to your fork as it is to update its open PR. The new commits sit on top, so no force."
+  exit 0
+fi
 [ "$NCOMMITS" -eq 1 ] && echo "deploy-rulebook: warning: one commit. Where squash_merge_commit_title is" \
   "COMMIT_OR_PR_TITLE, a one-commit PR merges under this commit's subject, which carries the head key," \
   "not the PR title's sub-task key. Ask the merger to use the PR title as the squash title." >&2

@@ -21,7 +21,7 @@ note_fail() { T_FAIL=$((T_FAIL+1)); FAILURES="$FAILURES
 flat() { printf '%s' "$1" | tr '\n' '|'; }
 
 REPO=cubrid-testcases-private-ex
-A= O= C= W= CANONICAL= ORIGIN_TIP= FEATURE_TIP=
+A= O= C= W= F= CANONICAL= ORIGIN_TIP= FEATURE_TIP=
 
 # A = fake cubrid-agent, O = bare origin, W = a second working copy that moves the origin,
 # C = the clone under test, left on a feature branch and behind the origin so that a deploy which
@@ -277,6 +277,62 @@ c_key_given() {
   printf '%s\n' "$OUT" | grep -qxF '<http://jira.cubrid.org/browse/CUBRIDQA-1700>' || echo "the body links another key;"
 }
 t "--key names the head key of the branch, the subjects and the body" c_key_given
+
+# The tc PR stays open while the owner reviews it, and its branch is never force-pushed, so a fix to
+# the canonical tree has to reach that branch as commits on top of it.
+fork_pushed() {  # push the deploy branch to a fresh bare fork, as opening the PR does
+  F=$(dirname "$C")/fork.git
+  git init -q --bare "$F" && git -C "$C" push -q "$F" cubridqa-1663-rulebook 2>/dev/null
+}
+canonical_fix() { printf 'how to write, fixed\n' > "$CANONICAL/shell/rules/writing-rules.md"; git -C "$A" commit -qam "fix a rule"; }
+
+c_update() {
+  fixture; deployed || return; fork_pushed || { echo "the first push failed"; return; }
+  local first; first=$(git -C "$C" rev-parse HEAD)
+  git -C "$C" switch -q feature; canonical_fix
+  deployed || return
+  [ "$(git -C "$C" symbolic-ref --short HEAD)" = cubridqa-1663-rulebook ] || echo "not on the deploy branch;"
+  git -C "$C" merge-base --is-ancestor "$first" HEAD || { echo "the first deploy's commits are gone;"; return; }
+  [ "$(git -C "$C" rev-list --count "$first..HEAD")" = 1 ] || echo "expected one new commit;"
+  [ "$(git -C "$C" diff-tree --no-commit-id --name-only -r HEAD)" = shell/rules/writing-rules.md ] \
+    || echo "the new commit holds more than the changed file;"
+  case "$(git -C "$C" log -1 --format=%s)" in "[CUBRIDQA-1663] "?*) ;; *) echo "subject not headed by the head key;" ;; esac
+  git -C "$C" show HEAD:shell/rules/writing-rules.md | cmp -s - "$CANONICAL/shell/rules/writing-rules.md" \
+    || echo "the fix is not committed byte for byte;"
+  git -C "$C" push -q "$F" cubridqa-1663-rulebook 2>/dev/null || echo "a plain push to the fork was rejected;"
+  printf '%s\n' "$OUT" | grep -q 'open PR' || echo "does not say the push updates the open PR;"
+  printf '%s\n' "$OUT" | grep -qF -- '----- PR body -----' && echo "prints a PR body skeleton for a PR that exists;"
+  printf '%s\n' "$OUT" | grep -q 'warning: one commit' && echo "warns of one commit though the PR already has more"
+}
+t "on an existing deploy branch, a canonical fix lands as a commit on top that a plain push accepts" c_update
+
+# A rebase would rewrite the commits the fork already has, and the push would need force.
+c_update_behind() {
+  fixture; deployed || return; fork_pushed || { echo "the first push failed"; return; }
+  local first; first=$(git -C "$C" rev-parse HEAD)
+  git -C "$C" switch -q feature
+  printf 'tc\n' > "$W/shell/_01/cases/c.sh"; origin_commit "origin moves while the PR is open"
+  canonical_fix
+  deployed || return
+  git -C "$C" merge-base --is-ancestor "$first" HEAD || { echo "the first deploy's commits were rewritten;"; return; }
+  git -C "$C" merge-base --is-ancestor "$ORIGIN_TIP" HEAD || echo "the branch lacks the new origin/develop tip;"
+  git -C "$C" show HEAD:shell/rules/writing-rules.md | cmp -s - "$CANONICAL/shell/rules/writing-rules.md" \
+    || echo "the fix is not committed;"
+  git -C "$C" push -q "$F" cubridqa-1663-rulebook 2>/dev/null || echo "a plain push to the fork was rejected"
+}
+t "a deploy branch behind origin/develop takes it by merge, not by rebase" c_update_behind
+
+c_update_nothing() {
+  fixture; deployed || return
+  local first; first=$(git -C "$C" rev-parse HEAD)
+  git -C "$C" switch -q feature
+  printf 'tc\n' > "$W/shell/_01/cases/c.sh"; origin_commit "origin moves while the PR is open"
+  deployed || return
+  [ "$(git -C "$C" rev-parse cubridqa-1663-rulebook)" = "$first" ] || echo "the deploy branch moved;"
+  [ "$(git -C "$C" symbolic-ref --short HEAD)" = feature ] || echo "moved HEAD;"
+  printf '%s\n' "$OUT" | grep -q 'no commit' || echo "no 'no commit' — $(flat "$OUT")"
+}
+t "a deploy branch that already matches the canonical tree gets no commit, not even a merge" c_update_nothing
 
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'deploy-rulebook: %d/%d\n' "$T_PASS" "$T_PASS"
