@@ -35,11 +35,10 @@ CTP loads `mdb` from `medium/files/mdb.tar.gz` once per run and runs the medium 
 
 **Check a query plan, or an output that only CCI gives, in a sql TC, not in a medium TC.** CTP does not run medium TCs through CCI, and medium has no `.answer_cci` file, no `.queryPlan` file, and no `--@queryplan` line. Example: a TC that checks which join method a query uses goes to `sql/` and puts the plan into its answer file, as [Plans, hints, and data size](../../sql/rules/test-perspectives.md#plans-hints-and-data-size) in the sql test perspectives says.
 
-**Check concurrency, lock waits, and deadlocks in an isolation TC also when the scenario fits `_07_mc_dep/` or `_08_mc_ind/`, and put a scenario that can stop the server or damage the database into a shell TC.** CTP runs the files of those two directories one after another like the files of any other directory, and a server that stops or a database that breaks fails every medium TC after it in the run. Example: a check that a second transaction waits for the lock that a first one holds on `x_base_c0` is an isolation TC, not a file under `_08_mc_ind/`.
+**Check concurrency in an isolation TC also when the scenario fits `_07_mc_dep/` or `_08_mc_ind/`, and put a scenario that can stop the server or damage the database into a shell TC.** CTP runs the files of those two directories one after another like the files of any other directory, and a server that stops or a database that breaks fails every medium TC after it in the run. Which category takes the other checks that a medium TC cannot run is in the [sql test perspectives](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check). Example: a check that a second transaction waits for the lock that a first one holds on `x_base_c0` is an isolation TC, not a file under `_08_mc_ind/`.
 
-These rules of the [sql test perspectives](../../sql/rules/test-perspectives.md) hold for medium TCs as well:
+This rule of the [sql test perspectives](../../sql/rules/test-perspectives.md) holds for medium TCs as well:
 
-- the category that takes what a TC cannot check ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)),
 - a row count printed with `count(*)`, because CTP removes CR and LF before it compares output ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)).
 
 ## Model TCs
