@@ -9,7 +9,7 @@ These *writing rules* say how to write the files of a TC under `medium/`. What a
 The rest of this section holds for every TC under `medium/`, and [Changing an existing TC](#changing-an-existing-tc) adds the rules for a change. These rules of the [sql writing rules](../../sql/rules/writing-rules.md#new-tc) hold for medium TCs as well:
 
 - the *header block* that starts a new TC file with the issue key, what the TC checks, and its cases under `Coverage:` ([sql](../../sql/rules/writing-rules.md#header-and-labels)),
-- the *evaluate label* `evaluate 'Case N: …';` of each scenario ([sql](../../sql/rules/writing-rules.md#header-and-labels)),
+- the *evaluate label* `evaluate 'Case N: …';` of each case ([sql](../../sql/rules/writing-rules.md#header-and-labels)),
 - the output of a bug that the TC does not test, and the mark of a *known wrong result* ([sql](../../sql/rules/writing-rules.md#answer-files)),
 - one file for one issue, and when and how to split it ([sql](../../sql/rules/writing-rules.md#place-and-files)),
 - restoring at the end of the file each session setting that the TC changed ([sql](../../sql/rules/writing-rules.md#cleanup)),
