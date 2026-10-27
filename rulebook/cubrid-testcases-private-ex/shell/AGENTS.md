@@ -15,7 +15,7 @@ CTP judges a TC only by its `.result` file: the TC fails when the file has a NOK
 
 Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releases, CUBRID ships CUBRID-For-WSL instead of a Windows build. What this means for a new TC is in [writing rules](rules/writing-rules.md#new-tc).
 
-Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it. gha-ci, the CI of the engine repo, takes the TCs from the `tc/pr-<N>` branches and runs the shell TCs of this repo and the sql and medium TCs of `cubrid-testcases` in the *CI pod*. The engine PR can merge only when all of them pass.
+Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it. gha-ci, the CI of the engine repo, takes the TCs from the `tc/pr-<N>` branches and runs the shell TCs of this repo and the sql and medium TCs of `cubrid-testcases` in the *CI pod*. An engine PR to develop can merge only when all of them pass.
 
 ## Before the PR
 
@@ -29,9 +29,9 @@ Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-
 
 ## The PR
 
-**Title the PR `[CBRD-XXXXX] Add shell TC for …` for a new TC or `[CBRD-XXXXX] Revised, …` for a change, and put the Jira link on the first line of the body.** A PR for a branch other than develop ends its title with the branch, and a PR without an engine issue uses the `CUBRIDQA-XXXX` key of the QA work. Example: `[CBRD-XXXXX] Add shell TC for backupdb on a full volume (11.4)`.
+**Start the PR title with the issue key in brackets, and put the Jira link on the first line of the body.** The words after the key are free. A PR for a branch other than develop ends its title with the branch, and a PR without an engine issue uses the `CUBRIDQA-XXXX` key of the QA work. Example: `[CBRD-XXXXX] Add a TC for backupdb on a full volume and update the answer of cbrd_yyyyy (11.4)`.
 
-**Replace the default title of the Draft TC PR that the engine repo opened for your engine PR with a title in the form above before the TC PR merges.** The default title starts `[CBRD-XXXXX] Draft: TC changes for PR`, and the squash merge of a TC PR keeps the PR title as the commit title on develop. Example: `[CBRD-XXXXX] Draft: TC changes for PR CUBRID/cubrid#1234` becomes `[CBRD-XXXXX] Add shell TC for backupdb on a full volume`.
+**Replace the default title of the Draft TC PR that the engine repo opened for your engine PR with the issue key and words that say what the TC change does, before the TC PR merges.** The default title starts `[CBRD-XXXXX] Draft: TC changes for PR`, and the squash merge of a TC PR keeps the PR title as the commit title on develop. Example: `[CBRD-XXXXX] Draft: TC changes for PR CUBRID/cubrid#1234` becomes `[CBRD-XXXXX] Add a TC for backupdb on a full volume`.
 
 **When the CI of your engine PR needs a fix of an existing TC or a new TC, commit it to the `tc/pr-<N>` branch of that engine PR.** Example: for engine PR 1234, check out `tc/pr-1234` of this repo, commit the TC there, and push the branch.
 

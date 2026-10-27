@@ -32,7 +32,7 @@ These *test perspectives* say what a TC under `shell/` checks. How to write the 
 
 **Compare string and binary values themselves, not their length or row count.** A count or a length misses a value whose bytes are wrong, such as a string that carries bytes of the next column. Example: the TC checks that `select decode(c, 'a' || CHR(0) || 'b', 'PASS', 'FAIL') from t` returns `'PASS'`; other values worth this check are multibyte strings and the empty string against `NULL`.
 
-**When the issue is a crash that leaves a core file, check for core files and the server `.err` file right after the reproduction steps.** The TC then judges the crash it reproduces where it happens, and the `cubrid deletedb` that ends every TC ([writing rules](writing-rules.md#new-tc)) still reports core files and `FATAL ERROR` for any other defect of the TC. Example: right after the query that crashed the server, the TC looks for new `core.*` files, greps the server `.err` file for the error that the issue names, and calls `write_nok` with what it found.
+**When the issue is a crash that leaves a core file, check for core files and the server `.err` file right after the reproduction steps, and delete the core files you checked at once.** The TC then judges the crash it reproduces where it happens, and the `cubrid deletedb` that ends every TC ([writing rules](writing-rules.md#new-tc)) reports only the core files and `FATAL ERROR` of any other defect of the TC. Example: right after the query that crashed the server, the TC looks for new `core.*` files, greps the server `.err` file for the error that the issue names, calls `write_nok` with what it found, and removes those `core.*` files and no others.
 
 ## What a shell TC cannot check
 
