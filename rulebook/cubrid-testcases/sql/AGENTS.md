@@ -4,9 +4,9 @@
 
 ## Operational facts
 
-The CI of the engine repo (`CUBRID/cubrid`) runs the TCs under `sql/` and `medium/` in two ways:
+Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it. gha-ci, the CI of the engine repo (`CUBRID/cubrid`), takes the TCs from the `tc/pr-<N>` branches and runs the sql and medium TCs of this repo and the shell TCs of `cubrid-testcases-private-ex`. The engine PR can merge only when all of them pass. gha-ci runs the TCs under `sql/` and `medium/` at two times:
 
-- On an engine pull request into develop or a `feature/` branch, only after a comment `/run sql`, `/run medium`, or `/run all` on it. The run reads the TCs from the branch `tc/pr-<N>` of this repo, where `<N>` is the number of the engine pull request; TC Branch Sync creates that branch and a Draft PR on it here when the pull request opens. The results show on the pull request as the statuses `gha-ci: test_sql` and `gha-ci: test_medium`.
+- On an engine PR, only after a comment `/run sql`, `/run medium`, or `/run all` on it. The results show on the engine PR as the statuses `gha-ci: test_sql` and `gha-ci: test_medium`.
 - In the nightly run, on each new develop commit of the engine repo, with the TCs on develop of this repo. A push to develop of the engine repo only builds it.
 
 After you change only TCs on `tc/pr-<N>`, the comment `/run rerun <run id>` runs again, on the same engine commit, the directories that failed in that run, the TCs it left unrun, and the TCs changed on `tc/pr-<N>` since. When a TC PR is merged is in [The PR](#the-pr).
@@ -29,7 +29,13 @@ A TC file `bug_bts_<NNNN>.sql` belongs to the Jira issue `CUBRIDSUS-<NNNN>`: `sq
 
 ## The PR
 
-**Title a TC PR `[CBRD-XXXXX] Add sql testcase for …` for a new TC or `[CBRD-XXXXX] Revise testcase for …` for a change, and start its body with the Jira link and the engine PR, then the cases and the builds you ran the TC on.** A reviewer checks the TC against the issue and the engine change, and the builds show that the TC catches the bug. A backport takes the title `[CBRD-XXXXX] Backport from develop to 11.x - <original title>`, and the Draft PR that TC Branch Sync opens on `tc/pr-<N>` may keep the title it got. Example: `[CBRD-XXXXX] Add sql testcase for LEFT JOIN over a derived table`, with a body that starts with `http://jira.cubrid.org/browse/CBRD-XXXXX` and `Engine PR: CUBRID/cubrid#NNNN`.
+**Title a TC PR `[CBRD-XXXXX] Add sql testcase for …` for a new TC or `[CBRD-XXXXX] Revise testcase for …` for a change, and start its body with the Jira link and the engine PR, then the cases and the builds you ran the TC on.** A reviewer checks the TC against the issue and the engine change, and the builds show that the TC catches the bug. A backport takes the title `[CBRD-XXXXX] Backport from develop to 11.x - <original title>`. Example: `[CBRD-XXXXX] Add sql testcase for LEFT JOIN over a derived table`, with a body that starts with `http://jira.cubrid.org/browse/CBRD-XXXXX` and `Engine PR: CUBRID/cubrid#NNNN`.
+
+**Replace the default title of the Draft TC PR that the engine repo opened for your engine PR with a title in the form above before the TC PR merges.** The default title starts `[CBRD-XXXXX] Draft: TC changes for PR`, and the squash merge of a TC PR keeps the PR title as the commit title on develop. Example: `[CBRD-XXXXX] Draft: TC changes for PR CUBRID/cubrid#NNNN` becomes `[CBRD-XXXXX] Add sql testcase for LEFT JOIN over a derived table`.
+
+**When the CI of your engine PR needs a fix of an existing TC or a new TC, commit it to the `tc/pr-<N>` branch of that engine PR.** gha-ci takes the TCs for the engine PR from that branch ([Operational facts](#operational-facts)). Example: for engine PR 1234, check out `tc/pr-1234` of this repo, commit the TC there, and push the branch.
+
+**Put a fix of an existing TC and a new TC in separate commits, and write in each commit message why the change is needed and what it changes.** Example: one commit `Fix cbrd_xxxxx: add ORDER BY to Case 3, because a parallel scan returns its rows in another order`, and another commit `Add cbrd_yyyyy for LEFT JOIN over a derived table`.
 
 **Commit only the files that the TC needs, and leave out the outputs of a run such as `.result` files and `csql.err`.** CTP writes a `.result` file next to each case on every run. Example: before you open the PR, `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
 
