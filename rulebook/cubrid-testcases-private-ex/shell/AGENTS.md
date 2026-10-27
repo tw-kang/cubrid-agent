@@ -37,7 +37,9 @@ Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-
 
 **For an engine PR to a `release/11.x` branch, open the TC PR to the same release branch of this repo yourself.** No `tc/pr-<N>` is made for such a PR ([Operational facts](#operational-facts)). Example: the backport of CBRD-xxxxx to `release/11.4` gets a TC PR from your branch to `release/11.4`.
 
-**When your TC needs a change that reached the base branch (develop) after `tc/pr-<N>` was made, merge the base branch into `tc/pr-<N>` and into the engine PR, without a rebase or a force-push.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge the base branch into it, and a `tc/pr-<N>` that carries newer base-branch history than the engine PR fails for reasons the change does not cause. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`, and the same `git merge origin/develop` on the branch of engine PR 1234.
+**When your TC needs a change that reached the base branch (develop) after `tc/pr-<N>` was made, merge the base branch into `tc/pr-<N>`, without a rebase or a force-push.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge the base branch into it. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`.
+
+**Whenever you merge the base branch into `tc/pr-<N>`, for any reason, merge it into the engine PR as well, without a rebase or a force-push.** A `tc/pr-<N>` that carries newer base-branch history than the engine PR fails for reasons the change does not cause. Example: after `git merge origin/develop` on `tc/pr-1234`, run the same `git merge origin/develop` on the branch of engine PR 1234 and push it.
 
 **Put a fix of an existing TC and a new TC in separate commits, and write in each commit message why the change is needed and what it changes.** Example: one commit `Fix cbrd_xxxxx: wait for the server with wait_until, because the fixed sleep was too short on the CI pod`, and another commit `Add cbrd_yyyyy for the new option of backupdb`.
 
