@@ -43,9 +43,11 @@ These rules of the [sql test perspectives](../../sql/rules/test-perspectives.md)
 **Copy what a model TC does well, and write each point listed under "Differs" the way this *rulebook* says.** The listed points break a rule, and a copy would carry the break into another TC. Example: copy the cleanup at the end of `fview1_1.sql`, and give a SELECT like the one on its line 12 an `ORDER BY`.
 
 - `medium/_02_xtests/cases/between.sql`: it starts with `autocommit off;`, creates and fills its own table, ends with `rollback;`, and gives each of its three multi-row SELECTs an `ORDER BY`.
+  Differs: it has no *header block* and no *evaluate label*, which the [writing rules](writing-rules.md#new-tc) ask of a new TC.
 - `medium/_01_fixed/cases/fview1_1.sql`: its scenario needs a `commit`, so it ends with `call login('dba', '')`, `rollback;`, the drops, and `commit;` (lines 17 to 21), and its answer file keeps what `public` gets on a vclass of `joe`.
-  Differs: line 12 selects the two rows of `joe.xxx_v` without `ORDER BY`.
+  Differs: line 12 selects the two rows of `joe.xxx_v` without `ORDER BY`; it has no header block and no evaluate label.
 - `medium/_05_err_x/cases/6583.sql`: it causes the unique violation `Error:-670` and then checks the rows of `tokuisaki` with a SELECT that has an `ORDER BY` (line 23).
+  Differs: it has no header block and no evaluate label.
 
 ## Bad TCs
 
