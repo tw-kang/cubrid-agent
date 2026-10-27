@@ -6,7 +6,7 @@ These *test perspectives* say what a TC under `medium/` checks. How to write the
 
 These rules of the [sql test perspectives](../../sql/rules/test-perspectives.md) hold for medium TCs as well:
 
-- the `ORDER BY` that gives the rows of a multi-row SELECT a fixed order ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)); when an engine change only reorders the rows of a SELECT without one, add the `ORDER BY` and then make the *answer file* again from a run ([sql writing rules](../../sql/rules/writing-rules.md#new-tc)),
+- the `ORDER BY` that gives the rows of a multi-row SELECT a fixed order ([sql](../../sql/rules/test-perspectives.md#what-sql-tcs-cannot-check)); when an engine change only reorders the rows of a SELECT without one, add the `ORDER BY` and then make the *answer file* again from a run ([sql writing rules](../../sql/rules/writing-rules.md#answer-files)),
 - the exact error code of a statement that must fail, and a SELECT of the state after it ([sql](../../sql/rules/test-perspectives.md#evidence-in-the-answer-file)),
 - when a query gets a recompile hint or a join hint ([sql](../../sql/rules/test-perspectives.md#plans-hints-and-data-size)),
 - how far past a *threshold* the data of a TC goes ([sql](../../sql/rules/test-perspectives.md#plans-hints-and-data-size)).
