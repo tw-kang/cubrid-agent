@@ -99,7 +99,7 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
    4. PR을 Ready로 바꾼다. `validate`가 통과하는지 본다.
    5. 여기서 멈춘다. 사람에게 Ready PR과 sub-task 키를 알린다. 머지하지 않는다.
 3. **사람이 "머지"를 지시하면**:
-   1. squash 커밋 본문을 파일로 적는다. 내용은 마지막 커밋까지 반영한 최종 변경의 요약이다. 리뷰 수정, 되돌린 단계, 후속 정정 같은 브랜치 이력은 뺀다. trailer 줄(`Co-Authored-By:` 같은 끝 줄)은 끝에 한 번만 둔다.
+   1. squash 커밋 본문을 파일로 적는다. 첫 줄은 PR 헤더의 키(sub-task 키)로 만든 Jira 링크(`http://jira.cubrid.org/browse/<키>`)다. 그다음은 마지막 커밋까지 반영한 최종 변경의 영문 요약이다. 리뷰 수정, 되돌린 단계, 후속 정정 같은 브랜치 이력은 뺀다. trailer 줄(`Co-Authored-By:` 같은 끝 줄)은 끝에 한 번만 둔다. 이 형식은 [공식 프로세스의 Merge(p20)](../dev-process.md#핵심-운영-규칙)를 따른다.
    2. 기본 본문(PR의 커밋 메시지를 이은 것)으로 머지하지 않는다. 1의 파일을 `gh pr merge --squash --body-file <파일>`로 주어 squash 머지한다. PR #21의 squash 커밋 `ea39d2b`는 기본 본문으로 머지됐다. 그 본문은 커밋 메시지 18개를 이은 246줄이다. trailer 줄도 18번 되풀이된다.
    3. sub-task를 Closed/Fixed로 바꾼다(`transition <키> --to "Close Issue" --yes`). readback으로 resolution이 `Fixed`인지 본다.
 4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. 주의 — 다시 닫는 전이가 `resolution`을 요구하면 아래 `update` 항목의 Closed 이슈 주의를 따른다. 머지 지시가 오면 3처럼 머지하고 다시 닫는다.

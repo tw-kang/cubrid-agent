@@ -121,6 +121,7 @@ grep -q 'to-tickets' docs/agents/issue-tracker.md                 || _t="$_t tic
 grep -q '머지 준비' docs/agents/issue-tracker.md                   || _t="$_t merge-ready-steps"
 grep -q '"머지"를 지시하면' docs/agents/issue-tracker.md            || _t="$_t merge-is-its-own-instruction"
 grep -qF 'gh pr merge --squash --body-file' docs/agents/issue-tracker.md || _t="$_t squash-body-written"
+grep -q '첫 줄은.*jira\.cubrid\.org/browse/<키>' docs/agents/issue-tracker.md || _t="$_t squash-body-jira-url"
 grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
 grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 grep -q '지도에 영향을 주는 사실' docs/agents/issue-tracker.md      || _t="$_t report-three-items"
