@@ -124,7 +124,7 @@ wait_until 60 eval 'cubrid tranlist $db 2>/dev/null | grep -qw csql' || write_no
 
 **Keep the output of any bug other than the one the TC tests out of an answer file by changing the scenario to avoid that bug, for example by masking the output or taking another path.** An answer file that holds a bug's output passes only while the bug stays, and the fix of that bug turns it into a NOK. Example: mask with `sed` a plan line that an open optimizer bug changes.
 
-**When the scenario cannot avoid a bug other than the one the TC tests, file an issue for it, write its key and the words `known wrong answer` in the description block, keep the output in the answer file, and update the answer file when that issue is closed.** The key in the block tells the reviewer why the answer file holds a wrong line and tells the next person when to update it. Example: the plan line that the open optimizer bug changes is what the TC checks, so the block says `Known wrong answer: CBRD-yyyyy` and the answer file keeps the line.
+**When the scenario cannot avoid a bug other than the one the TC tests, file an issue for it, write its key and the words `known wrong result` in the description block, keep the output in the answer file, and update the answer file when that issue is closed.** The key in the block tells the reviewer why the answer file holds a wrong line and tells the next person when to update it. Example: the plan line that the open optimizer bug changes is what the TC checks, so the block says `Known wrong result: CBRD-yyyyy` and the answer file keeps the line.
 
 ### Cleanup
 
