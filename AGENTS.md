@@ -59,7 +59,7 @@ clone해서 개발하는 사람도 대개 AI 에이전트로 작업한다. 그�
 - **GitHub 설정의 현재 값은 아래와 같다.** 설정을 바꾸면 `gh api repos/tw-kang/cubrid-agent/branches/<브랜치>/protection`으로 다시 읽어 이 값과 대조한다.
   - `main`: PR 필수(승인 0건), required check `validate`, force push 금지, 삭제 금지, 관리자 우회 허용.
   - `develop`: required check `validate`, linear history 필수, force push 금지, 삭제 금지, 관리자 우회 허용. 관리자 우회는 릴리스 범프를 `develop`에 직접 push하려고 둔다.
-  - repo(`gh api repos/tw-kang/cubrid-agent`로 읽는다): squash 머지 켬, 머지 커밋 켬, rebase 머지 끔. squash 커밋 제목은 PR 제목(`squash_merge_commit_title=PR_TITLE`), 본문은 커밋 메시지(`COMMIT_MESSAGES`)다. 커밋이 하나뿐인 PR도 PR 헤더의 키가 `develop`에 남는다. `CUBRID/cubrid`와 같은 값이다.
+  - repo(`gh api repos/tw-kang/cubrid-agent`로 읽는다): squash 머지 켬, 머지 커밋 켬, rebase 머지 끔. squash 커밋 제목은 PR 제목(`squash_merge_commit_title=PR_TITLE`), 본문은 커밋 메시지(`COMMIT_MESSAGES`)다. 커밋이 하나뿐인 PR도 PR 헤더의 키가 `develop`에 남는다. `CUBRID/cubrid`와 같은 값이다. squash 커밋 본문은 머지할 때 정리해 새로 적는다([PR 흐름](./docs/agents/issue-tracker.md#pr-흐름)).
 - **사람의 "머지 준비" 지시와 "머지" 지시는 GitHub 설정이 아니라 절차 규칙이다.** 둘은 다른 지시다([PR 흐름](./docs/agents/issue-tracker.md#pr-흐름)). 유지보수자는 1인이고, GitHub은 본인 PR의 본인 승인을 허용하지 않는다. 그래서 승인 필수 설정과 CODEOWNERS를 걸지 않는다. 걸면 모든 PR이 막힌다.
 
 버저닝·릴리스를 왜 이렇게 정했는지는 CUBRIDQA-1508에 있다.

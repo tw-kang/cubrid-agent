@@ -97,13 +97,16 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
    4. PR을 Ready로 바꾼다. `validate`가 통과하는지 본다.
    5. 여기서 멈춘다. 사람에게 Ready PR과 sub-task 키를 알린다. 머지하지 않는다.
 3. **사람이 "머지"를 지시하면**:
-   1. squash 머지한다.
-   2. sub-task를 Closed/Fixed로 바꾼다(`transition <키> --to "Close Issue" --yes`). readback으로 resolution이 `Fixed`인지 본다.
+   1. squash 커밋 본문을 파일로 적는다. 내용은 마지막 커밋까지 반영한 최종 변경의 요약이다. 리뷰 수정, 되돌린 단계, 후속 정정 같은 브랜치 이력은 뺀다. trailer 줄(`Co-Authored-By:` 같은 끝 줄)은 끝에 한 번만 둔다.
+   2. 기본 본문(PR의 커밋 메시지를 이은 것)으로 머지하지 않는다. 1의 파일을 `gh pr merge --squash --body-file <파일>`로 주어 squash 머지한다. PR #21의 squash 커밋 `ea39d2b`는 기본 본문으로 머지됐다. 그 본문은 커밋 메시지 18개를 이은 246줄이다. trailer 줄도 18번 되풀이된다.
+   3. sub-task를 Closed/Fixed로 바꾼다(`transition <키> --to "Close Issue" --yes`). readback으로 resolution이 `Fixed`인지 본다.
 4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. 주의 — 다시 닫는 전이가 `resolution`을 요구하면 아래 `update` 항목의 Closed 이슈 주의를 따른다. 머지 지시가 오면 3처럼 머지하고 다시 닫는다.
 
 **squash 제목 설정이 `COMMIT_OR_PR_TITLE`인 repo의 PR**(설정은 `gh api repos/<owner>/<repo> --jq .squash_merge_commit_title`로 읽는다): 이 설정은 커밋이 하나뿐인 PR을 그 커밋의 제목으로 머지한다. 그래서 PR에 커밋을 둘 이상 둔다. 그러면 squash 제목은 "머지 준비"에서 sub-task 키로 바꾼 PR 제목이 된다. sub-task는 다른 PR처럼 "머지 준비"에서 만든다. 그래서 커밋할 때는 sub-task 키가 없다. 커밋 제목은 헤드 키로 시작한다.
 
-**후속 커밋을 PR에 더할 때**(어느 단계든): 그 커밋이 바꾼 사실을 같은 PR의 세 자리에서 다시 읽는다 — PR의 diff(`CHANGELOG.md` 항목 포함), PR 본문, 앞 커밋의 메시지. diff와 본문은 그 자리에서 고친다. 앞 커밋의 메시지는 고치지 못한다(force-push 금지). 그래서 새 커밋의 메시지에 무엇이 더는 참이 아닌지 적는다. squash 본문이 `COMMIT_MESSAGES`라서 앞 메시지가 머지 커밋에 그대로 남기 때문이다. PR #20의 후속 커밋이 수치 하나를 뺐을 때 CHANGELOG 항목과 앞 커밋 메시지가 거짓으로 남았다. 그래서 티켓 하나와 리더 왕복 한 번이 더 들었다.
+**후속 커밋을 PR에 더할 때**(어느 단계든): 그 커밋이 바꾼 사실을 같은 PR의 세 자리에서 다시 읽는다 — PR의 diff(`CHANGELOG.md` 항목 포함), PR 본문, 앞 커밋의 메시지. diff와 PR 본문은 그 자리에서 고친다. 앞 커밋의 메시지는 고치지 못한다(force-push 금지). 그래서 새 커밋의 메시지에 무엇이 더는 참이 아닌지 적는다.
+
+PR을 리뷰하는 사람은 지난번에 본 뒤의 변경을 새 커밋의 diff와 메시지로 읽는다. 새 메시지가 바뀐 사실을 말하지 않으면, 리뷰하는 사람은 이미 읽은 앞 메시지를 참이라고 여긴다. PR #20의 후속 커밋이 수치 하나를 뺐을 때 CHANGELOG 항목과 앞 커밋 메시지가 거짓으로 남았다. 그래서 티켓 하나와 리더 왕복 한 번이 더 들었다.
 
 ## Jira에 무엇을 남기나 — 열고 30초에 알 수 있게
 
