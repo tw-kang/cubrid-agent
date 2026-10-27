@@ -15,6 +15,8 @@ CTP judges a TC only by its `.result` file: the TC fails when the file has a NOK
 
 Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releases, CUBRID ships CUBRID-For-WSL instead of a Windows build. What this means for a new TC is in [writing rules](rules/writing-rules.md#new-tc).
 
+Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it. When the engine PR merges, the engine repo deletes its `tc/pr-<N>` branches, so the TC changes of a Draft TC PR that was closed instead of merged are lost.
+
 ## Before the PR
 
 **Before you write the TC, read the issue and its engine PR, run the reproduction steps of the issue yourself, and state in one sentence the behavior the TC reproduces.** The SQL in an issue can differ from the real syntax. Example: the issue shows `ANALYZE TABLE t UPDATE HISTOGRAM`, which CUBRID rejects, so the TC reproduces the bug with `UPDATE STATISTICS ON t`.
@@ -27,7 +29,19 @@ Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releas
 
 ## The PR
 
-**Title the PR `[CBRD-XXXXX] Add shell TC for …` for a new TC or `[CBRD-XXXXX] Revised, …` for a change, and put the Jira link on the first line of the body.** A PR for a branch other than develop ends its title with the branch, and a PR without an engine issue uses the `CUBRIDQA-XXXX` key of the QA work. Example: `[CBRD-XXXXX] Add shell TC for backupdb on a full volume (11.4)`.
+**Start the PR title with the issue key in brackets, and put the Jira link on the first line of the body.** The words after the key are free. A PR without an engine issue uses the `CUBRIDQA-XXXX` key of the QA work. Example: `[CBRD-XXXXX] Add a TC for backupdb on a full volume and update the answer of cbrd_yyyyy`.
+
+**Replace the default title of the Draft TC PR that the engine repo opened for your engine PR with a title that follows the rule above, before the Draft TC PR merges.** The default title holds `Draft: TC changes for PR`, with the issue key in front only when the engine PR title has one, and the squash merge keeps the PR title as the commit title on develop. Example: `[CBRD-XXXXX] Draft: TC changes for PR CUBRID/cubrid#1234` becomes `[CBRD-XXXXX] Add a TC for backupdb on a full volume`.
+
+**When the CI of your engine PR needs a fix of an existing TC or a new TC, commit it to the `tc/pr-<N>` branch of that engine PR.** Example: for engine PR 1234, check out `tc/pr-1234` of this repo, commit the TC there, and push the branch.
+
+**For an engine PR to a `release/11.x` branch, open the TC PR to the same release branch of this repo yourself.** No `tc/pr-<N>` is made for such a PR ([Operational facts](#operational-facts)). Example: the backport of CBRD-xxxxx to `release/11.4` gets a TC PR from your branch to `release/11.4`.
+
+**When your TC needs a change that reached the base branch (develop) after `tc/pr-<N>` was made, merge the base branch into `tc/pr-<N>`, without a rebase or a force-push.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge the base branch into it. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`.
+
+**Whenever you merge the base branch into `tc/pr-<N>`, for any reason, merge it into the engine PR as well, without a rebase or a force-push.** A `tc/pr-<N>` that carries newer base-branch history than the engine PR fails for reasons the change does not cause. Example: after `git merge origin/develop` on `tc/pr-1234`, run the same `git merge origin/develop` on the branch of engine PR 1234 and push it.
+
+**Put a fix of an existing TC and a new TC in separate commits, and write in each commit message why the change is needed and what it changes.** Example: one commit `Fix cbrd_xxxxx: wait for the server with wait_until, because the fixed sleep was too short on the CI pod`, and another commit `Add cbrd_yyyyy for the new option of backupdb`.
 
 **Commit only the files the TC needs.** Run outputs stay out: `.result`, `*.log`, `*.err`, DB volumes, core files, `lob/` directories. *Answer files* and the helper files the TC uses (`.java`, `.c`, compressed data) go in. Example: before you open the PR, `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
 
@@ -41,4 +55,6 @@ Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releas
 
 **Fix a TC problem in the TC, and send a CTP change that the TC needs to `cubrid-testtools` as its own PR.** Many TCs depend on how a CTP function behaves, so a change in `init.sh` or the CTP conf can break them without a NOK. Example: a TC needs a new wait helper, so the helper goes to `cubrid-testtools` first, as `wait_until` did, and the TC uses it after that PR is merged.
 
-**Merge a TC PR only after the engine PR it tests is merged into develop.** A TC merged earlier fails in the regression and gets reverted. Example: the TC PR for a fix on `feature/xyz` waits until `feature/xyz` is merged into develop.
+**When your engine PR changes no TC of this repo, close the Draft TC PR of this repo for it, and run the `Check TC PRs` check of the engine PR again.** That check blocks the engine PR while the Draft TC PR is open. Example: an engine PR that adds or changes only sql TCs leaves `tc/pr-1234` of this repo unchanged, so you close its Draft TC PR here and re-run `Check TC PRs` on engine PR 1234.
+
+**Merge a TC PR once the engine PR it tests has passed CI and meets every merge requirement but the `Check TC PRs` check, and merge that engine PR right after it.** That check passes only after the TC PR merges, and while only one of the two PRs is on the base branch, the runs of other developers fail: a TC fails without its engine fix, and an engine fix fails the TCs whose answers it changes. Example: the engine PR for CBRD-xxxxx has passed CI and has the approvals it needs, so you merge its TC PR and then the engine PR at once.
