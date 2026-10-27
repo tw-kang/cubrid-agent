@@ -104,7 +104,7 @@ deallocate prepare q1;
 
 ## Changing an existing TC
 
-**Bring a TC you change in line with the [New TC](#new-tc) section and the rules below, and leave a TC that you have no other reason to change as it is.** Changes made only for the *rulebook* touch many passing TCs at once, while a TC under change gets a review that can check these rules too. Example: a PR that fixes the `ORDER BY` of `cbrd_xxxxx.sql` also moves its `-- BUG` comment into the header block as a known wrong result line, and no PR changes the labels of fifty TCs that need nothing else.
+**Bring a TC you change in line with the [New TC](#new-tc) section and the rules below, and leave a TC that you have no other reason to change as it is.** Changes made only for the *rulebook* touch many passing TCs at once, while a TC under change gets a review that can check these rules too. Example: a PR that fixes the `ORDER BY` of `cbrd_xxxxx.sql` also starts each of its cases with `evaluate 'Case N: …';`, and no PR changes the labels of fifty TCs that need nothing else.
 
 [Operational facts](../AGENTS.md#operational-facts) says which Jira issue an old TC named `bug_bts_<NNNN>.sql` belongs to. A change of an answer file also follows [The PR](../AGENTS.md#the-pr) in `sql/AGENTS.md` and the known wrong result rule of [Answer files](#answer-files).
 
