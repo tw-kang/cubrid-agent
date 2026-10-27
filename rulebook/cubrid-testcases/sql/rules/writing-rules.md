@@ -80,7 +80,7 @@ execute q1 using 0, 1;
 deallocate prepare q1;
 ```
 
-**In a TC whose answer file holds a plan or a trace, name tables, indexes, and columns so that they differ in letters, not only in digits.** CTP masks the digits of a plan and a trace as `?`, so `idx1` and `idx2` both print as `idx?`, and a change from one index to the other goes unseen. Example: `i_heap_rem` and `i_heap_id`, or `t_drv` and `t_inner`, not `idx1` and `idx2`, or `t1` and `t2` in a check of the join order.
+**In a TC whose answer file holds a plan or a trace, name tables, indexes, and columns so that they differ in letters, not only in digits.** CTP replaces the numbers of a plan and a trace with `?` ([test perspectives](test-perspectives.md#what-sql-tcs-cannot-check)), so `idx1` and `idx2` both print as `idx?`, and a change from one index to the other goes unseen. Example: `i_heap_rem` and `i_heap_id`, or `t_drv` and `t_inner`, not `idx1` and `idx2`, or `t1` and `t2` in a check of the join order.
 
 ### Cleanup
 
@@ -92,7 +92,7 @@ deallocate prepare q1;
 
 ### Answer files
 
-**Make the answer file by running the `.sql` file in CTP and copying its whole result file, never by editing the answer file by hand, and change a `.sql` file and its answer file in the same PR.** CTP compares the whole result with the answer file as one string after it removes only CR and LF, so one space of column padding fails the run, and an editor that removes the spaces at line ends breaks the answer file the same way. Which build makes the answer file is in [Before the PR](../AGENTS.md#before-the-pr). Example: run `run cbrd_xxxxx.sql` in the interactive mode of CTP and then `cp cases/cbrd_xxxxx.result answers/cbrd_xxxxx.answer`; after a fix of a label in the `.sql` file, run it again instead of fixing the label in the answer file.
+**Make the answer file by running the `.sql` file in CTP and copying its whole result file, never by editing the answer file by hand, and change a `.sql` file and its answer file in the same PR.** CTP compares the whole result with the answer file as one string after it removes only CR and LF ([test perspectives](test-perspectives.md#what-sql-tcs-cannot-check)), so one space of column padding fails the run, and an editor that removes the spaces at line ends breaks the answer file the same way. Which build makes the answer file is in [Before the PR](../AGENTS.md#before-the-pr). Example: run `run cbrd_xxxxx.sql` in the interactive mode of CTP and then `cp cases/cbrd_xxxxx.result answers/cbrd_xxxxx.answer`; after a fix of a label in the `.sql` file, run it again instead of fixing the label in the answer file.
 
 **After you make or change a `.answer` file, run the `.sql` file again with `run_cci` in the interactive mode of CTP, and when the output differs, add a `.answer_cci` file, or change the existing one together with the `.answer` file.** The CCI run runs the same `.sql` files through the CCI driver and compares each with its `.answer_cci` file when one exists and with its `.answer` file otherwise. Example: `run_cci cbrd_xxxxx.sql` prints a plan that `run cbrd_xxxxx.sql` did not, so `answers/cbrd_xxxxx.answer_cci` goes into the same PR as `answers/cbrd_xxxxx.answer`.
 

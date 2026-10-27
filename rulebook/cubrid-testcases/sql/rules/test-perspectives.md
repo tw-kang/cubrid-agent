@@ -38,7 +38,7 @@ These *test perspectives* say what a TC under `sql/` checks. How to write the fi
 
 ## What sql TCs cannot check
 
-CTP runs the TC files of a run one after another on one database, in one environment that `sql.conf` fixes. It compares the output of each file with its answer file as text, after it masks the numbers of plans and traces and removes line breaks. The checks below give results that change from run to run or that this comparison cannot see, and each rule says what to do instead.
+CTP runs the TC files of a run one after another on one database ([Before the PR](../AGENTS.md#before-the-pr)), in one environment that `sql.conf` fixes. It compares the output of each file with its answer file as one string, after it removes only CR and LF and replaces the numbers of plans and traces with `?`. The checks below give results that change from run to run or that this comparison cannot see, and each rule says what to do instead.
 
 **Give each SELECT that can return more than one row an `ORDER BY` on the whole select list or on a unique key, so that the rows come in one fixed order.** Without it, the scan or the degree of parallelism changes the order on the same engine, and the answer file fails without a regression. When `DISTINCT` or `GROUP BY` keeps one of several rows that tie, fix which one, such as with `MIN(id)`. Example: `select grantor_name, object_name, auth_type from db_auth order by grantor_name, object_name, auth_type;`, not `… order by grantor_name;` alone.
 
@@ -46,7 +46,7 @@ CTP runs the TC files of a run one after another on one database, in one environ
 
 **Write queries whose result does not depend on the machine, the physical order of rows, or timing.** The row count of a catalog or a system class depends on what other TCs left, a result that follows the physical order of rows or a hash layout changes with the storage, and `sleep()` does not order statements. A non-aggregated column outside `GROUP BY` can come from any row of its group, and one value can print in more than one form. Example: `select a, min(b) from t group by a order by a;`, not `select a, b from t group by a;`, and `select count(*) from db_class where class_name = 't';`, not `select count(*) from db_class;`.
 
-**Print the number of rows with `count(*)` when it matters, because CTP removes every line break before it compares output.** Two rows `1` and `2` can then compare equal to one row `12`, and outputs that differ only in blank lines compare equal. Example: `select count(*) from t where a > 0;` next to `select a from t where a > 0 order by a;`.
+**Print the number of rows with `count(*)` when it matters, because CTP removes CR and LF before it compares output.** Two rows `1` and `2` can then compare equal to one row `12`, and outputs that differ only in blank lines compare equal. Example: `select count(*) from t where a > 0;` next to `select a from t where a > 0 order by a;`.
 
 **Check a plan or a trace by its lines and their shape, not by a number in it.** CTP replaces every number in the plan of `--@queryplan` or a `.queryPlan` file and in the output of `show trace` with `?`, so cost, cardinality, rows, fetches, time, and the number of parallel workers all print as `?`. For the same reason, names that differ only in digits look the same in a plan, as the [writing rules](writing-rules.md#plans-and-traces) say. Example: the TC checks that the trace has a parallel workers line under the `SCAN` line, not that it shows 4 workers.
 
