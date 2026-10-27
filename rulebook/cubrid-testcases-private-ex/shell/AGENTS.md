@@ -35,7 +35,7 @@ Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-
 
 **When the CI of your engine PR needs a fix of an existing TC or a new TC, commit it to the `tc/pr-<N>` branch of that engine PR.** Example: for engine PR 1234, check out `tc/pr-1234` of this repo, commit the TC there, and push the branch.
 
-**For an engine PR to a `release/11.x` branch, open the TC PR to the same release branch of this repo yourself.** The engine repo makes `tc/pr-<N>` and its Draft TC PR only for an engine PR to develop or to a `feature/` branch. Example: the backport of CBRD-xxxxx to `release/11.4` gets a TC PR from your branch to `release/11.4`, titled `[CBRD-xxxxx] … (11.4)`.
+**For an engine PR to a `release/11.x` branch, open the TC PR to the same release branch of this repo yourself.** No `tc/pr-<N>` is made for such a PR ([Operational facts](#operational-facts)). Example: the backport of CBRD-xxxxx to `release/11.4` gets a TC PR from your branch to `release/11.4`, titled `[CBRD-xxxxx] … (11.4)`.
 
 **When your TC needs a change that reached develop after `tc/pr-<N>` was made, merge develop into `tc/pr-<N>`.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge develop into it. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`, with no rebase and no force-push.
 
