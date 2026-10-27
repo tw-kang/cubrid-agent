@@ -1,0 +1,6 @@
+# Category -> the category owner's GitHub login, one pair per line.
+# Read by scripts/deploy-rulebook.sh: the owner of every category in a deployed tree becomes a reviewer
+# of the tc repo PR and approves the rulebook content. A category missing here stops the deploy.
+shell swi0110
+sql kiho-um
+medium kiho-um

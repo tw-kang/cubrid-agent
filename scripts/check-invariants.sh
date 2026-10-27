@@ -675,6 +675,27 @@ else fail "rule-inventory test failed — run scripts/test-rule-inventory.sh:"; 
 if _t=$(bash scripts/test-research-recheck.sh 2>&1); then pass "research recheck refuses what it must: $_t"
 else fail "research-recheck test failed — run scripts/test-research-recheck.sh:"; printf '         %s\n' "$_t"; fi
 
+# The tc repos run no check on the rulebook their developers' agents read, so the canonical copy is
+# linted here, before a deploy can copy a broken shape into them.
+if _t=$(bash scripts/test-lint-rulebook.sh 2>&1); then pass "rulebook lint behaves: $_t"
+else fail "rulebook lint test failed — run scripts/test-lint-rulebook.sh:"; printf '         %s\n' "$_t"; fi
+for _rb in rulebook/*/; do
+  [ -d "$_rb" ] || continue
+  if _t=$(bash scripts/lint-rulebook.sh "$_rb" 2>&1); then pass "${_rb%/} passes lint-rulebook.sh"
+  else fail "${_rb%/} breaks the rulebook shape — run scripts/lint-rulebook.sh ${_rb%/}:"; printf '         %s\n' "$_t"; fi
+done
+
+# GLOSSARY.md repeats the rulebook term tables for cubrid-agent readers (the spec wants both), and a
+# copy kept by hand drifts. A GLOSSARY row is **<Korean>(<English>)** or the reverse; the English half
+# is the one without Hangul.
+_gl=$(LC_ALL=C awk -F'|' -v HANGUL="$(printf '[\352-\355]')" '/^## /{ s = /^## 룰북/ } s && /^\| \*\*/ {
+        c = $2; gsub(/^ *\*\*|\*\* *$/, "", c)
+        outside = c; sub(/\(.*/, "", outside); inside = c; sub(/^[^(]*\(/, "", inside); sub(/\)$/, "", inside)
+        print (outside ~ HANGUL) ? inside : outside }' GLOSSARY.md | LC_ALL=C sort -u)
+_tb=$(for _rb in rulebook/*/; do bash scripts/lint-rulebook.sh --terms "$_rb"; done | LC_ALL=C sort -u)
+if [ -n "$_tb" ] && [ "$_gl" = "$_tb" ]; then pass "GLOSSARY.md 룰북 section and the rulebook term tables list the same $(printf '%s\n' "$_tb" | grep -c .) terms"
+else fail "GLOSSARY.md 룰북 section and the rulebook term tables differ — only in GLOSSARY: $(LC_ALL=C comm -23 <(printf '%s\n' "$_gl") <(printf '%s\n' "$_tb") | paste -sd, -); only in a term table: $(LC_ALL=C comm -13 <(printf '%s\n' "$_gl") <(printf '%s\n' "$_tb") | paste -sd, -)"; fi
+
 # Both directions are load-bearing: isolating with nothing to lose leaves a worktree per issue on CI,
 # and not isolating loses someone's staged work to a branch they do not own.
 if _t=$(bash scripts/test-prepare-tc-workspace.sh 2>&1); then pass "TC worktree decision behaves: $_t"
@@ -712,6 +733,11 @@ else fail "validate-plugin.yml lost fetch-depth: 0 — release check 7 would ski
 # on live PRs and pushes, so a rule that stopped firing would show as green, not as an error.
 if _t=$(bash scripts/test-check-pr-push.sh 2>&1); then pass "PR and push rules behave: $_t"
 else fail "PR/push rules test failed — run scripts/test-check-pr-push.sh:"; printf '         %s\n' "$_t"; fi
+
+# A deploy that branches from a stale base, drops a symlink or overwrites someone's uncommitted work
+# lands in a tc repo PR that the category owner reviews for content, not for these.
+if _t=$(bash scripts/test-deploy-rulebook.sh 2>&1); then pass "rulebook deploy behaves: $_t"
+else fail "deploy-rulebook test failed — run scripts/test-deploy-rulebook.sh:"; printf '         %s\n' "$_t"; fi
 
 # marketplace.json is read from the catalog clone, not from the versioned cache, so an edit there
 # reaches every install without a version bump. `claude plugin validate` checks its shape, not whether
