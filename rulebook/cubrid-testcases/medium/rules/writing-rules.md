@@ -4,26 +4,26 @@ These *writing rules* say how to write the files of a TC under `medium/`. What a
 
 ## New TC
 
-**Write a TC for a new issue under `sql/`, not `medium/`, unless its scenario needs the inheritance, collection, or vclass data that `mdb` holds.** No TC of a new issue has gone under `medium/` since the medium TCs were imported into this repo, and the work there is changing them and their *answer files*. Example: the TC of a wrong result of `LEFT JOIN` goes to `sql/_13_issues/_26_2h/cases/cbrd_xxxxx.sql`, where the [sql writing rules](../../sql/rules/writing-rules.md#new-tc) place it.
+**Write a TC for a new issue under `sql/`, not `medium/`, unless its scenario needs the inheritance, collection, or vclass data that `mdb` holds.** No TC of a new issue has gone under `medium/` since the medium TCs were imported into this repo, and the work there is changing them and their *answer files*. Example: the TC of a wrong result of `LEFT JOIN` goes to `sql/_13_issues/_26_2h/cases/cbrd_xxxxx.sql`, where the [sql writing rules](../../sql/rules/writing-rules.md#place-and-files) place it.
 
 The rest of this section holds for every TC under `medium/`, and [Changing an existing TC](#changing-an-existing-tc) adds the rules for a change. These rules of the [sql writing rules](../../sql/rules/writing-rules.md#new-tc) hold for medium TCs as well:
 
-- the *evaluate label* `evaluate 'Case N: …';` of each scenario ([sql](../../sql/rules/writing-rules.md#new-tc)),
-- the output of a bug that the TC does not test, and the mark of a *known wrong result* ([sql](../../sql/rules/writing-rules.md#new-tc)),
-- one file for one issue, and when and how to split it ([sql](../../sql/rules/writing-rules.md#new-tc)),
-- restoring at the end of the file each session setting that the TC changed, `set names` and a `call login` as another user included ([sql](../../sql/rules/writing-rules.md#new-tc)),
-- making the answer file from a run and never editing it by hand ([sql](../../sql/rules/writing-rules.md#new-tc)),
-- one answer file in `answers/` for each `.sql` file in `cases/`, and no empty answer file ([sql](../../sql/rules/writing-rules.md#new-tc)),
-- only TC files in `cases/` and `answers/`, and no subdirectory in them ([sql](../../sql/rules/writing-rules.md#new-tc)),
-- a `;` at the end of every statement, and no `;` or `'` in a block comment ([sql](../../sql/rules/writing-rules.md#new-tc)),
-- the exact form of the CTP control lines such as `autocommit off;` and `--+ holdcas on;` ([sql](../../sql/rules/writing-rules.md#new-tc)),
-- UTF-8 without a BOM and LF line ends ([sql](../../sql/rules/writing-rules.md#new-tc)).
+- the *evaluate label* `evaluate 'Case N: …';` of each scenario ([sql](../../sql/rules/writing-rules.md#header-and-labels)),
+- the output of a bug that the TC does not test, and the mark of a *known wrong result* ([sql](../../sql/rules/writing-rules.md#answer-files)),
+- one file for one issue, and when and how to split it ([sql](../../sql/rules/writing-rules.md#place-and-files)),
+- restoring at the end of the file each session setting that the TC changed, `set names` and a `call login` as another user included ([sql](../../sql/rules/writing-rules.md#cleanup)),
+- making the answer file from a run and never editing it by hand ([sql](../../sql/rules/writing-rules.md#answer-files)),
+- one answer file in `answers/` for each `.sql` file in `cases/`, and no empty answer file ([sql](../../sql/rules/writing-rules.md#place-and-files)),
+- only TC files in `cases/` and `answers/`, and no subdirectory in them ([sql](../../sql/rules/writing-rules.md#place-and-files)),
+- a `;` at the end of every statement, and no `;` or `'` in a block comment ([sql](../../sql/rules/writing-rules.md#statements-and-comments)),
+- the exact form of the CTP control lines such as `autocommit off;` and `--+ holdcas on;` ([sql](../../sql/rules/writing-rules.md#statements-and-comments)),
+- UTF-8 without a BOM and LF line ends ([sql](../../sql/rules/writing-rules.md#place-and-files)).
 
 ### Place and names
 
 **Put a TC that reads data that an earlier file committed only under `_07_mc_dep/` or `_08_mc_ind/`, name it `<capital letter><three digits>_<name>.sql`, and leave the names of the files already there as they are.** CTP runs the files of a directory in the sort order of their names, so a file that sorts in between, or a changed number, changes what the files after it read. Example: `_08_mc_ind/cases/I018_qset0.sql` counts rows of `x_base_c0` that `I014_dub1.sql` inserted and committed before it, so renaming `I014_dub1.sql` to `I020_dub1.sql` runs it after `I018_qset0.sql` and changes that count.
 
-**Name a new TC file outside `_07_mc_dep/` and `_08_mc_ind/` with lowercase letters, digits, and underscores only.** Example: `outer_inner.sql`, not `server-concurrent-sortmerge.sql` or `test_add_months_QA.sql`; a TC of an issue is `cbrd_xxxxx.sql`, or `cbrd_xxxxx_<keyword>.sql` for a split file, as the [sql writing rules](../../sql/rules/writing-rules.md#new-tc) say.
+**Name a new TC file outside `_07_mc_dep/` and `_08_mc_ind/` with lowercase letters, digits, and underscores only.** Example: `outer_inner.sql`, not `server-concurrent-sortmerge.sql` or `test_add_months_QA.sql`; a TC of an issue is `cbrd_xxxxx.sql`, or `cbrd_xxxxx_<keyword>.sql` for a split file, as the [sql writing rules](../../sql/rules/writing-rules.md#place-and-files) say.
 
 ### Start and end of the file
 
@@ -51,7 +51,7 @@ A change of an existing TC follows the [New TC](#new-tc) section and these rules
 - bringing a TC that you change in line with the *rulebook*, and leaving as it is a TC that you have no other reason to change ([sql](../../sql/rules/writing-rules.md#changing-an-existing-tc)),
 - keeping the scenario that the TC was written to reproduce ([sql](../../sql/rules/writing-rules.md#changing-an-existing-tc)),
 - leaving a `.answer_win` file as it is, because Windows tests have stopped ([sql](../../sql/rules/writing-rules.md#changing-an-existing-tc)),
-- updating an answer file that keeps a known wrong result once its issue is closed ([sql](../../sql/rules/writing-rules.md#new-tc)).
+- updating an answer file that keeps a known wrong result once its issue is closed ([sql](../../sql/rules/writing-rules.md#answer-files)).
 
 A PR that changes an answer file says which lines changed and why ([medium/AGENTS.md](../AGENTS.md#the-pr)).
 
