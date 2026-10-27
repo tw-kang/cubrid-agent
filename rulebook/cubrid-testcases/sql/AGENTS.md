@@ -8,7 +8,7 @@ Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-
 
 Windows tests of sql and medium TCs have stopped: from the 11.4.6 and 11.3.6 patch releases, CUBRID ships CUBRID-For-WSL instead of a Windows build. No run compares output with a `.answer_win` file any more. What this means when you change a TC is in [writing rules](rules/writing-rules.md#changing-an-existing-tc).
 
-`sql/_13_issues/` holds one directory per half-year, `_<yy>_<1|2>h/`, such as `_26_2h/`. A code-name directory `_<no>_<codename>/`, such as `_36_guava/`, takes its name from a Jira version of CUBRID: `_35_fig_cake/` is the version `fig-cake`. Which TC goes into which directory is in [writing rules](rules/writing-rules.md#new-tc).
+`sql/_13_issues/` holds one directory per half-year, `_<yy>_<1|2>h/`, such as `_26_2h/`. A code-name directory `_<no>_<codename>/`, such as `_36_guava/`, takes its name from a Jira version of CUBRID: `_35_fig_cake/` is the version `fig-cake`. Which TC goes into which directory is in [writing rules](rules/writing-rules.md#place-and-files).
 
 A TC file `bug_bts_<NNNN>.sql` belongs to the Jira issue `CUBRIDSUS-<NNNN>`: `sql/_13_issues/_12_2h/cases/bug_bts_8664.sql` is the TC of CUBRIDSUS-8664.
 
