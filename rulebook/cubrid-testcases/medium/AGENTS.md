@@ -6,12 +6,12 @@ A rule that holds for sql and medium TCs alike stands once, in the files under `
 
 ## Operational facts
 
-The CI and the nightly run of the engine repo and the stop of Windows tests hold for medium TCs as they do for sql TCs: see [Operational facts](../sql/AGENTS.md#operational-facts) in `sql/AGENTS.md`.
+The `tc/pr-<N>` branch and the Draft TC PR of an engine PR, the CI and the nightly run of the engine repo, and the stop of Windows tests hold for medium TCs as they do for sql TCs: see [Operational facts](../sql/AGENTS.md#operational-facts) in `sql/AGENTS.md`.
 
 This repo holds no list of excluded medium TCs. `medium/config/` holds only the patch files of the JDBC compatibility test, and CTP reads the excluded TCs from the file that `testcase_exclude_from_file` names in its `medium.conf`, by default `${CTP_HOME}/conf/exclusions.txt` outside this repo.
 
 ## The PR
 
-The rules of [The PR](../sql/AGENTS.md#the-pr) in `sql/AGENTS.md` on a changed *answer file* and on when to merge a TC PR hold for medium TCs as well.
+The rules of [The PR](../sql/AGENTS.md#the-pr) in `sql/AGENTS.md` on the title of the Draft TC PR, on committing to `tc/pr-<N>` with a fix and a new TC in separate commits, on a changed *answer file*, and on when to merge a TC PR hold for medium TCs as well.
 
 **Leave `medium/files/mdb.tar.gz` unchanged, and create the data that a TC needs inside the TC.** Every TC under `medium/` runs on the database that CTP loads from this archive, and the JDBC compatibility test loads it too, so a change to it changes the output of all of them. How a TC rolls its data back is in [writing rules](rules/writing-rules.md#new-tc). Example: a TC that needs a class with a set attribute creates it after `autocommit off;` and ends with `rollback;`, and the PR leaves `mdb.tar.gz` as it is.
