@@ -4,4 +4,62 @@ These *writing rules* say how to write the files of a TC under `medium/`. What a
 
 ## New TC
 
+**Write a TC for a new issue under `sql/`, not `medium/`, unless its scenario needs the inheritance, collection, or vclass data that `mdb` holds.** No TC of a new issue has gone under `medium/` since the medium TCs were imported into this repo, and the work there is changing them and their *answer files*. Example: the TC of a wrong result of `LEFT JOIN` goes to `sql/_13_issues/_26_2h/cases/cbrd_xxxxx.sql`, where the [sql writing rules](../../sql/rules/writing-rules.md#new-tc) place it.
+
+The rest of this section holds for every TC under `medium/`, and [Changing an existing TC](#changing-an-existing-tc) adds the rules for a change. These rules of the [sql writing rules](../../sql/rules/writing-rules.md#new-tc) hold for medium TCs as well:
+
+- the *evaluate label* `evaluate 'Case N: …';` of each scenario ([sql](../../sql/rules/writing-rules.md#new-tc)),
+- the output of a bug that the TC does not test, and the mark of a *known wrong result* ([sql](../../sql/rules/writing-rules.md#new-tc)),
+- one file for one issue, and when and how to split it ([sql](../../sql/rules/writing-rules.md#new-tc)),
+- restoring at the end of the file each session setting that the TC changed, `set names` and a `call login` as another user included ([sql](../../sql/rules/writing-rules.md#new-tc)),
+- making the answer file from a run and never editing it by hand ([sql](../../sql/rules/writing-rules.md#new-tc)),
+- one answer file in `answers/` for each `.sql` file in `cases/`, and no empty answer file ([sql](../../sql/rules/writing-rules.md#new-tc)),
+- only TC files in `cases/` and `answers/`, and no subdirectory in them ([sql](../../sql/rules/writing-rules.md#new-tc)),
+- a `;` at the end of every statement, and no `;` or `'` in a block comment ([sql](../../sql/rules/writing-rules.md#new-tc)),
+- the exact form of the CTP control lines such as `autocommit off;` and `--+ holdcas on;` ([sql](../../sql/rules/writing-rules.md#new-tc)),
+- UTF-8 without a BOM and LF line ends ([sql](../../sql/rules/writing-rules.md#new-tc)).
+
+### Place and names
+
+**Put a TC that reads data that an earlier file committed only under `_07_mc_dep/` or `_08_mc_ind/`, name it `<capital letter><three digits>_<name>.sql`, and leave the names of the files already there as they are.** CTP runs the files of a directory in the sort order of their names, so a file that sorts in between, or a changed number, changes what the files after it read. Example: `_08_mc_ind/cases/I018_qset0.sql` counts rows of `x_base_c0` that `I014_dub1.sql` inserted and committed before it, so renaming `I014_dub1.sql` to `I020_dub1.sql` runs it after `I018_qset0.sql` and changes that count.
+
+**Name a new TC file outside `_07_mc_dep/` and `_08_mc_ind/` with lowercase letters, digits, and underscores only.** Example: `outer_inner.sql`, not `server-concurrent-sortmerge.sql` or `test_add_months_QA.sql`; a TC of an issue is `cbrd_xxxxx.sql`, or `cbrd_xxxxx_<keyword>.sql` for a split file, as the [sql writing rules](../../sql/rules/writing-rules.md#new-tc) say.
+
+### Start and end of the file
+
+**Start a medium TC with `autocommit off;` and end it with `rollback;`, unless it commits data that the later files of `_08_mc_ind/` read.** CTP commits on every connection of a file when the file ends, so a change that the TC does not roll back stays in `mdb`, which no PR may change ([medium/AGENTS.md](../AGENTS.md#the-pr)), and changes the output of every TC that runs after it ([test perspectives](test-perspectives.md#what-a-medium-tc-cannot-check)); how a TC checks the rollback itself is in [What a medium TC checks](test-perspectives.md#what-a-medium-tc-checks). Example: `_02_xtests/cases/between.sql` creates and fills the table `barbar` after `autocommit off;` on line 1 and ends with `rollback;` on line 45.
+
+**When the scenario needs a `commit`, end the file with `call login('dba', '') on class db_user;`, `rollback;`, a `drop` of each object and user that the TC created, and `commit;`, in that order.** An object that a commit left behind stays in `mdb`, so a later TC that creates the same name fails, or a catalog query in it prints one more row. Example: `_01_fixed/cases/fview1_1.sql` commits a vclass of `joe` for `public` and ends with lines 17 to 21:
+```sql
+call login('dba', '') on class db_user;
+rollback;
+drop vclass joe.xxx_v;
+drop class joe.xxx;
+commit;
+```
+
+**In a file that stores a value in a host variable or a session variable, such as `select … into :u` or `SELECT … TO :maxvalue`, make `--+ holdcas on;` the first line and `--+ holdcas off;` the last line.** Without `holdcas` the broker can run the next statement on another CAS, where the variable does not exist. Example: `_05_err_x/cases/label1.sql` has `--+ holdcas on;` on line 1, `select _db_user into :u …` on line 3, and `--+ holdcas off;` on line 6, its last line.
+
+### Answer files
+
+**Make an answer file from a CTP run of the whole directory of the TC, or of all of `medium/` when you can, not from a run of the TC alone.** Each run loads `mdb` fresh and runs its TCs on it one after another, and a TC sees what the TCs before it left ([test perspectives](test-perspectives.md#what-a-medium-tc-cannot-check)), so its output alone can differ from its output in the regression. Example: set `scenario` in the `[sql]` section of the CTP medium conf to `${HOME}/cubrid-testcases/medium/_02_xtests`, run `ctp.sh medium -c <conf>`, and make `answers/between.answer` from the `between.result` of that run.
+
 ## Changing an existing TC
+
+A change of an existing TC follows the [New TC](#new-tc) section and these rules of the [sql writing rules](../../sql/rules/writing-rules.md#changing-an-existing-tc):
+
+- bringing a TC that you change in line with the *rulebook*, and leaving as it is a TC that you have no other reason to change ([sql](../../sql/rules/writing-rules.md#changing-an-existing-tc)),
+- keeping the scenario that the TC was written to reproduce ([sql](../../sql/rules/writing-rules.md#changing-an-existing-tc)),
+- leaving a `.answer_win` file as it is, because Windows tests have stopped ([sql](../../sql/rules/writing-rules.md#changing-an-existing-tc)),
+- updating an answer file that keeps a known wrong result once its issue is closed ([sql](../../sql/rules/writing-rules.md#new-tc)).
+
+A PR that changes an answer file says which lines changed and why ([medium/AGENTS.md](../AGENTS.md#the-pr)).
+
+**When you change an answer file that a patch file of the JDBC compatibility test names, check that each such patch file still applies, and change it in the same PR when it does not.** The compatibility test applies the patch file with `patch -p0 -f` before it compares, and a patch that fails leaves the answer file unpatched, so that test compares the output of the older version with the wrong answer file. Example: in `medium/`, `grep -l '^Index: _02_xtests/answers/str_ops.answer' config/daily_regression_test_exclude_list_compatibility/patch_files/*` lists the patch files that name `str_ops.answer`, and `patch --dry-run -p0 < <patch file>` shows whether each still applies.
+
+**Name a patch file `jdbc_medium_<x.y.z>_<D|S64>_patch` under `medium/config/daily_regression_test_exclude_list_compatibility/patch_files/`, and write it as a unified diff whose paths start below `medium/`.** The test picks the patch file by the version in its name and applies it in `medium/` with `patch -p0`, so another name, or a path that starts with `medium/`, leaves the answer files unpatched. Example: the header of `jdbc_medium_10.0.0_D_patch`, not `--- medium/_02_xtests/answers/str_ops.answer` or a file named `jdbc_medium_10.0.0.patch`:
+```
+Index: _02_xtests/answers/str_ops.answer
+--- _02_xtests/answers/str_ops.answer
++++ _02_xtests/answers/str_ops.answer
+```
