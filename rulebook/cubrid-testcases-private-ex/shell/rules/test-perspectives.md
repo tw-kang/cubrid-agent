@@ -54,11 +54,11 @@ Shell TCs run on shared machines that CTP drives without a terminal. The checks 
 
 **Copy what a model TC does well, and write each point listed under "Differs" the way the [writing rules](writing-rules.md#new-tc) say.** The listed points break a writing rule, and a copy would carry the break into a new TC. Example: copy the positive control of `cbrd_26719`, and open its *description block* with a quoted delimiter such as `:<<'END'`, not `:<< END`.
 
-- `shell/_40_guava/cbrd_26374/cbrd_26374_unknown/cases/cbrd_26374_unknown.sh`: its header lists the seven checks, and each scenario that expects a failure checks the exact error message, such as `Class dba.v1 does not exist.`
+- `shell/_40_guava/cbrd_26374/cbrd_26374_unknown/cases/cbrd_26374_unknown.sh`: its description block lists the seven checks, and each scenario that expects a failure checks the exact error message, such as `Class dba.v1 does not exist.`
   Differs: lines 2 and 210 open a heredoc with an unquoted delimiter though the body has no `$`.
 - `shell/_40_guava/cbrd_26719/cases/cbrd_26719.sh`: it first checks a positive control (alone, with the worker pool free, the query runs a parallel probe), and its verdicts prove that the serial fallback under contention really happened.
   Differs: line 3 opens a heredoc with an unquoted delimiter though the body has no `$`; lines 78, 192, 208, 217, 222, 230, 237, and 245 call `write_nok` with no argument.
-- `shell/_37_elderberry/cbrd_23842_cdc/bug/cbrd_27026/cases/cbrd_27026.sh`: in 78 lines it holds a control scenario and the bug scenario, and its header states the result expected before and after the fix.
+- `shell/_37_elderberry/cbrd_23842_cdc/bug/cbrd_27026/cases/cbrd_27026.sh`: in 78 lines it holds a positive control and the bug scenario, and its description block states the result expected before and after the fix.
   Differs: line 37 waits with `sleep 1` and no reason comment; line 63 ends an abort path with `exit 0`, not `exit 1`; line 70 puts a command substitution straight into `[ ]`; the TC tests a bug fix but sits in the feature group `_37_elderberry/`, and a TC like it goes to the [half-year directory](writing-rules.md#new-tc) of its issue, here `shell/_06_issues/_26_2h/cbrd_27026/`.
 
 ## Bad TCs

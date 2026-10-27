@@ -59,7 +59,9 @@ DESCRIPTION
 
 **Use `localhost` when the TC needs no particular address, and when it needs a numeric address, get one IPv4 address in one fixed way.** `hostname -I` lists every address of the host, and on a dual-stack host the first one can be IPv6. Example: `host_ip=localhost` for a DBLink to a database on the same machine, and `127.0.0.1` where a command needs a numeric address.
 
-**Leave the CUBRID install, the home directory, and other repository checkouts in place, and call no `ctp.sh` inside a TC.** The TCs of one run share the install, so a TC that moves or deletes part of it breaks every TC after it. Example: `mv $CUBRID`, `rm -rf $CUBRID`, and a library copied into `$CUBRID/lib` stay out of a TC.
+**Leave the CUBRID install, the home directory, and other repository checkouts in place.** The TCs of one run share the install, so a TC that moves or deletes part of it breaks every TC after it. Example: `mv $CUBRID`, `rm -rf $CUBRID`, and a library copied into `$CUBRID/lib` stay out of a TC.
+
+**Call no `ctp.sh` inside a TC.** Example: a TC that needs the steps of another TC copies them into its own script instead of running `ctp.sh` on that TC.
 
 **Create temporary files and work directories in the `cases/` directory where the script runs, and remove them at cleanup.** `/tmp` is shared by every user of a VM, and `TMPDIR` is set in neither environment, so the TC uses neither `/tmp` nor `$TMPDIR`. Example: `mkdir -p bk_dir` and `cubrid backupdb -D ./bk_dir $db`, not `/tmp/bk_dir`.
 
@@ -88,7 +90,7 @@ wait_until 60 eval 'cubrid tranlist $db 2>/dev/null | grep -qw csql' || write_no
 
 **Save the PID of each background command with `pid=$!` right after it, and end that process with `wait $pid` or `xkill_pid $pid` before the TC ends.** An orphan process keeps a database or a port, and the next TC fails on it. Example: `cubrid backupdb -D ./bk1 $db > bk1.log 2>&1 < /dev/null &`, then `bk1_pid=$!`, and later `wait $bk1_pid`.
 
-**Stop a process with a `cubrid` command, `xkill`, or `xkill_pid`, and only a process that the TC started.** `pkill` and `kill -9 $(pgrep …)` also end processes that the TC did not start, including those of other users on a shared VM. `xkill` matches part of a process name, so only `xkill_pid` with a PID stops exactly the process the TC started. Example: `cubrid server stop $db` for the server and `xkill_pid $bk1_pid` for a background `backupdb`, not `pkill cub`.
+**Stop a process with a `cubrid` command, `xkill`, or `xkill_pid`, and only a process that the TC started.** `pkill` and `kill -9 $(pgrep …)` also end processes that the TC did not start, including those of other users on a shared VM. `xkill` stops every process of your user whose PID or command name contains its argument, so it is exact only for an argument that matches no other process; `xkill_pid` stops exactly the PID it gets. Example: `cubrid server stop $db` for the server and `xkill_pid $bk1_pid` for a background `backupdb`, not `pkill cub`, and not `xkill $bk1_pid`, which also stops PID 1234 when `$bk1_pid` is 234.
 
 **Give `/dev/null` as stdin to each command that can ask for confirmation, such as `backupdb` and `deletedb`, or use its option that skips the prompt.** Under CTP the prompt waits for input that never comes and the TC hangs until the TC timeout, while the same TC run from a terminal shows no problem. Example: `cubrid backupdb -D ./bk2 $db < /dev/null`.
 
@@ -102,7 +104,7 @@ wait_until 60 eval 'cubrid tranlist $db 2>/dev/null | grep -qw csql' || write_no
 
 **End an *abort path*, a path that stops the TC after a failed step, with `write_nok`, the cleanup, `finish`, and `exit 1`.** `finish` restores the settings for the next TC but does not stop the script, so an abort path without `exit` runs on into the checks. CTP reads no exit code ([Operational facts](../AGENTS.md#operational-facts)), so the `1` is for a person who runs the script by hand. Example: `cubrid server start $db || { write_nok "server start failed"; cubrid deletedb $db; finish; exit 1; }`.
 
-**Put no `exit` at the normal end of the script.** The script ends after `finish` anyway, and CTP reads no exit code. Example: the script ends with `finish`, not with `finish` and then `exit 0`.
+**Put no `exit` at the normal end of the script.** The script ends after `finish` anyway, and CTP reads no exit code ([Operational facts](../AGENTS.md#operational-facts)). Example: the script ends with `finish`, not with `finish` and then `exit 0`.
 
 **Pass `write_nok` the log file or a message that shows why the check failed.** `write_nok <file>` copies the file into the `.result` file, so the CI result shows the cause without a rerun. Example: `write_nok result.log` or `write_nok "scenario 2: expected 3 rows, got $cnt"`, not a bare `write_nok`.
 
@@ -112,7 +114,9 @@ wait_until 60 eval 'cubrid tranlist $db 2>/dev/null | grep -qw csql' || write_no
 
 ### Answer files
 
-**Make each answer file from the output of a run of the TC and commit it in `cases/`, and check a result of a line or two with `grep` instead.** `init answer` does not make one: it writes no file that `compare_result_between_files` reads. Example: run the TC once, read `result.log` after the normalizing step, and save it as `cases/cbrd_xxxxx.answer`; a check that one row came back greps for that row.
+**Make each answer file from the output of a run of the TC and commit it in `cases/`.** `init answer` does not make one: it writes no file that `compare_result_between_files` reads. Example: run the TC once, read `result.log` after the normalizing step, and save it as `cases/cbrd_xxxxx.answer`.
+
+**Check a result of a line or two with `grep` instead of an answer file.** Example: a check that one row came back greps for that row.
 
 **Keep one answer file for outputs that are the same.** Copies of one output must all change when the output changes. Example: when `cbrd_xxxxx_01.answer` to `cbrd_xxxxx_08.answer` would hold the same lines, the TC keeps one `cbrd_xxxxx.answer` and compares each output with it.
 
@@ -126,9 +130,13 @@ wait_until 60 eval 'cubrid tranlist $db 2>/dev/null | grep -qw csql' || write_no
 
 **Run `cubrid deletedb` at the end of each TC on every database it created, through the `cubrid` command that `init test` puts first on `PATH`, not through `cub_admin`.** That `cubrid` is a CTP wrapper: before it deletes the database, it writes a NOK for new core files and `FATAL ERROR`, so it catches a crash of the TC wherever it happened. A TC that tests `cub_admin` itself is the exception. Example: `cubrid deletedb $db` after `cubrid server stop $db`, and `cub_admin deletedb $db` only in a TC of `cub_admin`.
 
-**Remove a leftover database directory before you create the database, and at the end stop the server, run `cubrid deletedb`, remove the files, and call `finish`, in that order.** A run that ended early can leave the database behind, and `cubrid deletedb` before `cubrid server stop` fails and leaves the database for the next run. Example: `rm -rf $db; mkdir $db` before `cubrid_createdb`, and `cubrid server stop $db; cubrid deletedb $db; rm -f *.log; finish` at the end.
+**Remove a leftover database directory before you create the database.** A run that ended early can leave the database behind. Example: `rm -rf $db; mkdir $db` before `cubrid_createdb`.
 
-**Remove the files the TC created with `rm -f` after its last check, and leave committed files and the `.result` file unchanged while the TC runs.** `rm` without `-f` prints an error when a glob matches nothing, a log removed before the check takes the evidence of a NOK with it, and a committed file edited in place changes the next run. Example: `rm -f *.log *_temp_diff listdrv` before `finish`; the TC copies a template to a new file before it runs `sed -i`, instead of editing the committed template.
+**At the end of the TC, stop the server, run `cubrid deletedb`, remove the files, and call `finish`, in that order.** `cubrid deletedb` before `cubrid server stop` fails and leaves the database for the next run. Example: `cubrid server stop $db; cubrid deletedb $db; rm -f *.log; finish`.
+
+**Remove the files the TC created with `rm -f` after its last check.** `rm` without `-f` prints an error when a glob matches nothing, and a log removed before the check takes the evidence of a NOK with it. Example: `rm -f *.log *_temp_diff listdrv` before `finish`.
+
+**Leave committed files and the `.result` file unchanged while the TC runs.** A committed file edited in place changes the next run. Example: the TC copies a template to a new file before it runs `sed -i`, instead of editing the committed template.
 
 ## Changing an existing TC
 

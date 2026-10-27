@@ -58,8 +58,8 @@ tc repo 개발자가 읽는 영문 용어 표는 정본의 루트 `AGENTS.md`에
 | **writing rules(작성 규칙)** | TC 파일을 어떻게 쓰는지 담는 룰북 파일이다. 파일은 `<카테고리>/rules/writing-rules.md`다 |
 | **OK/NOK 판정(verdict)** | TC가 `write_ok`나 `write_nok`를 한 번 부르는 것이다. 위 **판정형 vs 생성형**의 판정(에이전트가 내는 권고)과 다른 뜻이다 |
 | **답지(answer file)** | TC가 실행 결과를 비교하는 기대 출력 파일이다(`.answer`) |
-| **격리(quarantine)** | 원인을 못 찾은 흔들리는 TC를 `_25_unstable` 아래 같은 상대 경로로 옮기는 것이다 |
-| **제외(exclusion)** | TC를 excluded list에 더하는 것이다 |
+| **격리(quarantine)** | 흔들리는 TC를 `_25_unstable` 아래 같은 상대 경로로 옮기는 것이다 |
+| **제외(exclusion)** | TC를 **제외 목록**에 더하는 것이다 |
 | **대기 상한(wait limit)** | `wait_until`에 주는 timeout이다 |
 | **담당자 확인 목록(owner checklist)** | 카테고리 담당자가 확인할 항목의 목록이다. 룰북을 tc repo에 배포하는 PR의 본문에 둔다 |
 | **CI 파드(CI pod)** | 엔진 repo(`CUBRID/cubrid`)의 CI가 TC를 돌리는 pod다 |

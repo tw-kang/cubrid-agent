@@ -29,7 +29,7 @@ Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releas
 
 **Title the PR `[CBRD-XXXXX] Add shell TC for …` for a new TC or `[CBRD-XXXXX] Revised, …` for a change, and put the Jira link on the first line of the body.** A PR for a branch other than develop ends its title with the branch, and a PR without an engine issue uses the `CUBRIDQA-XXXX` key of the QA work. Example: `[CBRD-XXXXX] Add shell TC for backupdb on a full volume (11.4)`.
 
-**Commit only the files the TC needs, and run `git status` before you open the PR.** Run outputs stay out: `.result`, `*.log`, `*.err`, DB volumes, core files, `lob/` directories. *Answer files* and the helper files the TC uses (`.java`, `.c`, compressed data) go in. Example: `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
+**Commit only the files the TC needs.** Run outputs stay out: `.result`, `*.log`, `*.err`, DB volumes, core files, `lob/` directories. *Answer files* and the helper files the TC uses (`.java`, `.c`, compressed data) go in. Example: before you open the PR, `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
 
 **Shrink a large data or archive file before you commit it, or build the data inside the script.** Example: trim a `.tar.gz` to the files the TC reads, and create a large set of DB objects with a loop in the script instead of committing them.
 
