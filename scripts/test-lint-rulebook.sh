@@ -151,6 +151,8 @@ tree; headed '**Follow the anchors.** Example: [a](#plans-hints-and-data-size) [
 expect 0 "" "an anchor follows GitHub's heading rule, and a repeated heading takes -1"
 tree; headed '**Follow the anchors.** Example: [d](#notes-2)'
 expect 1 "$B:11: link \"#notes-2\": $B has no heading \"#notes-2\"" "a heading repeated twice has no -2 anchor"
+tree; printf '# Test perspectives\n\n## Notes \n\n%s\n' '**Read the notes.** Example: [notes](#notes)' > "$D/$B"
+expect 0 "" "trailing blanks of a heading are not part of its anchor"
 
 tree; rule '**Cite the issue.** Example: [CUBRIDQA-1505](https://jira.cubrid.org/browse/CUBRIDQA-1505)'
 expect 0 "" "an external URL is not checked"
