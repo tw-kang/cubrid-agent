@@ -15,7 +15,7 @@ CTP judges a TC only by its `.result` file: the TC fails when the file has a NOK
 
 Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releases, CUBRID ships CUBRID-For-WSL instead of a Windows build. What this means for a new TC is in [writing rules](rules/writing-rules.md#new-tc).
 
-Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it.
+Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it. When the engine PR merges, the engine repo deletes its `tc/pr-<N>` branches, so the TC changes of a Draft TC PR that was closed instead of merged are lost.
 
 ## Before the PR
 
@@ -37,7 +37,7 @@ Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-
 
 **For an engine PR to a `release/11.x` branch, open the TC PR to the same release branch of this repo yourself.** No `tc/pr-<N>` is made for such a PR ([Operational facts](#operational-facts)). Example: the backport of CBRD-xxxxx to `release/11.4` gets a TC PR from your branch to `release/11.4`.
 
-**When your TC needs a change that reached develop after `tc/pr-<N>` was made, merge develop into `tc/pr-<N>`, without a rebase or a force-push.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge develop into it. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`.
+**When your TC needs a change that reached the base branch (develop) after `tc/pr-<N>` was made, merge the base branch into `tc/pr-<N>` and into the engine PR, without a rebase or a force-push.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge the base branch into it, and a `tc/pr-<N>` that carries newer base-branch history than the engine PR fails for reasons the change does not cause. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`, and the same `git merge origin/develop` on the branch of engine PR 1234.
 
 **Put a fix of an existing TC and a new TC in separate commits, and write in each commit message why the change is needed and what it changes.** Example: one commit `Fix cbrd_xxxxx: wait for the server with wait_until, because the fixed sleep was too short on the CI pod`, and another commit `Add cbrd_yyyyy for the new option of backupdb`.
 
@@ -53,4 +53,6 @@ Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-
 
 **Fix a TC problem in the TC, and send a CTP change that the TC needs to `cubrid-testtools` as its own PR.** Many TCs depend on how a CTP function behaves, so a change in `init.sh` or the CTP conf can break them without a NOK. Example: a TC needs a new wait helper, so the helper goes to `cubrid-testtools` first, as `wait_until` did, and the TC uses it after that PR is merged.
 
-**Merge a TC PR once the engine PR it tests has passed CI and meets every merge requirement but the `Check TC PRs` check, and merge that engine PR right after it.** That check passes only after the TC PR merges, and a TC on develop without its fix fails in the CI of other engine PRs and in *VM daily* until the engine PR follows. Example: the engine PR for CBRD-xxxxx has passed CI and has the approvals it needs, so you merge its TC PR and then the engine PR at once.
+**When your engine PR changes no TC of this repo, close the Draft TC PR of this repo for it, and run the `Check TC PRs` check of the engine PR again.** That check blocks the engine PR while the Draft TC PR is open. Example: an engine PR that adds or changes only sql TCs leaves `tc/pr-1234` of this repo unchanged, so you close its Draft TC PR here and re-run `Check TC PRs` on engine PR 1234.
+
+**Merge a TC PR once the engine PR it tests has passed CI and meets every merge requirement but the `Check TC PRs` check, and merge that engine PR right after it.** That check passes only after the TC PR merges, and while only one of the two PRs is on the base branch, the runs of other developers fail: a TC fails without its engine fix, and an engine fix fails the TCs whose answers it changes. Example: the engine PR for CBRD-xxxxx has passed CI and has the approvals it needs, so you merge its TC PR and then the engine PR at once.
