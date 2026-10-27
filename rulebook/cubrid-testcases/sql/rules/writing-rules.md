@@ -60,7 +60,7 @@ call login('dba', '') on class db_user;
 
 **When the data of a TC must pass a *threshold*, write its row count, its page count, the threshold, and the reason in `--` lines of their own above the statement that creates the data.** CTP drops a line that starts with `--`, while a comment on a line of a statement goes into the statement that CTP reads, with the effects that the `;` rule of [Statements and comments](#statements-and-comments) names. How far above the threshold the data goes is in the [test perspectives](test-perspectives.md#plans-hints-and-data-size). Example:
 ```sql
--- 100,000 rows of 168 bytes: 1,177 heap pages, 36 times the parallel heap scan threshold of 32 pages under CTP
+-- 100,000 rows of 168 bytes: 1,177 heap pages, past the parallel heap scan threshold of 32 pages under CTP, so that a scan of t_heap runs in parallel
 create table t_heap (id int, pad varchar(128));
 insert into t_heap select rownum, sha2(rownum, 512) from db_class a, db_class b, db_class c, db_class d limit 100000;
 ```
