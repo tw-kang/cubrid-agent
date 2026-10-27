@@ -15,7 +15,7 @@ CTP judges a TC only by its `.result` file: the TC fails when the file has a NOK
 
 Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releases, CUBRID ships CUBRID-For-WSL instead of a Windows build. What this means for a new TC is in [writing rules](rules/writing-rules.md#new-tc).
 
-Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it. gha-ci, the CI of the engine repo, takes the TCs from the `tc/pr-<N>` branches and runs the shell TCs of this repo and the sql and medium TCs of `cubrid-testcases` in the *CI pod*. An engine PR to develop can merge only when all of them pass.
+Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it.
 
 ## Before the PR
 
@@ -35,9 +35,9 @@ Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-
 
 **When the CI of your engine PR needs a fix of an existing TC or a new TC, commit it to the `tc/pr-<N>` branch of that engine PR.** Example: for engine PR 1234, check out `tc/pr-1234` of this repo, commit the TC there, and push the branch.
 
-**After you push a TC change to `tc/pr-<N>`, start a new gha-ci run on the engine PR to test it.** A run tests the commit of `tc/pr-<N>` that it saw when it started, so a push during or after the run is not in it. Example: when the head commit of the engine PR is the one the last run tested, comment `/run rerun <run id>` with the id of that run, which runs its failures and every TC under a changed `cases/` directory, new TCs included; otherwise comment `/run shell`.
+**For an engine PR to a `release/11.x` branch, open the TC PR to the same release branch of this repo yourself.** The engine repo makes `tc/pr-<N>` and its Draft TC PR only for an engine PR to develop or to a `feature/` branch. Example: the backport of CBRD-xxxxx to `release/11.4` gets a TC PR from your branch to `release/11.4`, titled `[CBRD-xxxxx] … (11.4)`.
 
-**When your TC needs a change that reached develop after `tc/pr-<N>` was made, merge develop into `tc/pr-<N>`.** gha-ci reads `tc/pr-<N>` as it is and does not merge develop into it. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`, with no rebase and no force-push.
+**When your TC needs a change that reached develop after `tc/pr-<N>` was made, merge develop into `tc/pr-<N>`.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge develop into it. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`, with no rebase and no force-push.
 
 **Put a fix of an existing TC and a new TC in separate commits, and write in each commit message why the change is needed and what it changes.** Example: one commit `Fix cbrd_xxxxx: wait for the server with wait_until, because the fixed sleep was too short on the CI pod`, and another commit `Add cbrd_yyyyy for the new option of backupdb`.
 
