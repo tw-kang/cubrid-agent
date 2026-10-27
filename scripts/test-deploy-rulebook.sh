@@ -52,7 +52,7 @@ fixture() {
   origin_commit "origin moves after the clone"
 }
 
-origin_commit() {  # commit whatever W holds and push it to the origin's develop
+origin_commit() {
   git -C "$W" add -A && git -C "$W" commit -qm "$1" && git -C "$W" push -q "$O" develop
   ORIGIN_TIP=$(git -C "$O" rev-parse develop)
 }
@@ -64,7 +64,7 @@ t() {  # t <label> <case function>: the function prints why it failed, or nothin
   if [ -z "$why" ]; then T_PASS=$((T_PASS+1)); else note_fail "$1: $(flat "$why")"; fi
 }
 
-deployed() {  # run a deploy that must succeed; print why it did not
+deployed() {
   run "$C"
   [ "$RC" -eq 0 ] || { echo "exit $RC — $(flat "$OUT")"; return 1; }
 }
@@ -136,7 +136,7 @@ clone_state() {  # every ref (remote-tracking ones show a fetch), HEAD, and the 
   git -C "$C" status --porcelain
   cat "$C/local.txt" "$C/shell/AGENTS.md" 2>/dev/null
 }
-refused_untouched() {  # run with the given args; the run must fail and leave the clone as it was
+refused_untouched() {
   local before; before=$(clone_state)
   run "$@"
   [ "$RC" -ne 0 ] || { echo "exit 0 — $(flat "$OUT")"; return; }
@@ -155,15 +155,29 @@ c_dirty_untracked() {
 }
 t "an untracked file where the rulebook would land is refused and left untouched" c_dirty_untracked
 
-# A branch cut from a fork's develop carries whatever the fork holds. With https disallowed a fetch
-# fails too, so the case also wants the refusal to name CUBRID.
-c_fork_origin() {
-  fixture; git -C "$C" remote set-url origin "https://github.com/tester/$REPO.git"
+# A branch cut from a fork's develop carries whatever the fork holds. With only file:// allowed a fetch
+# fails too, so each case also wants the refusal to name CUBRID.
+fork_refused() {  # <origin url>
+  fixture; git -C "$C" remote set-url origin "$1"
   export GIT_ALLOW_PROTOCOL=file GIT_TERMINAL_PROMPT=0
   refused_untouched "$C"
+  [ "$RC" -eq 1 ] || echo "exit $RC, not 1;"
   printf '%s\n' "$OUT" | grep -q 'CUBRID' || echo "the refusal does not name CUBRID — $(flat "$OUT")"
 }
+c_fork_origin() { fork_refused "https://github.com/tester/$REPO.git"; }
 t "an origin on a GitHub owner other than CUBRID is refused and the clone left untouched" c_fork_origin
+
+# An SSH host alias from ~/.ssh/config hides github.com, so only the owner tells a fork apart.
+c_fork_alias() { fork_refused "git@gh-work:tester/$REPO.git"; }
+t "an origin behind an SSH host alias on an owner other than CUBRID is refused" c_fork_alias
+
+c_cubrid_alias() {
+  fixture; git -C "$C" remote set-url origin "git@gh-work:CUBRID/$REPO.git"
+  export GIT_ALLOW_PROTOCOL=file GIT_TERMINAL_PROMPT=0
+  run "$C"
+  printf '%s\n' "$OUT" | grep -q 'not a CUBRID repo' && echo "refused as a fork — $(flat "$OUT")"
+}
+t "an origin behind an SSH host alias on CUBRID is not refused as a fork" c_cubrid_alias
 
 origin_deployed() {  # put an exact deployed copy on the origin, after the clone, so only a fetch sees it
   mkdir -p "$W/shell/rules"
@@ -239,6 +253,7 @@ t "a file on origin/develop that differs only in mode is reported by --check and
 c_no_owner() {
   fixture; printf 'sql tester-sql\n' > "$A/rulebook/category-owners.txt"; git -C "$A" commit -qam "drop shell"
   refused_untouched "$C"
+  [ "$RC" -eq 1 ] || echo "exit $RC, not 1;"
   printf '%s\n' "$OUT" | grep -q 'shell' || echo "the refusal does not name shell — $(flat "$OUT")"
 }
 t "a category with no owner in the table is refused and the clone left untouched" c_no_owner

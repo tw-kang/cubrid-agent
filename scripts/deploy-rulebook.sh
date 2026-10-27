@@ -32,11 +32,14 @@ done
 [ $# -eq 1 ] || usage
 CLONE=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null) || die 2 "not a git clone: $1"
 URL=$(git -C "$CLONE" remote get-url origin 2>/dev/null) || die 2 "$CLONE has no origin remote"
-# A local path, as the tests use, names no owner.
-if [[ $URL =~ github\.com[:/]([^/]+)/ ]] && [ "${BASH_REMATCH[1],,}" != cubrid ]; then
-  die 2 "origin is $URL, not a CUBRID repo, so the branch would start from a fork; point origin at \
-github.com/CUBRID and keep the fork as another remote"
-fi
+# A local path, as the tests use, names no owner. Any other URL is read for its owner, the segment
+# before the repo name, since an SSH host alias can stand in for github.com.
+case $URL in
+  /*|./*|../*|file://*) ;;
+  *) OWNER=$(basename "$(dirname "${URL#*:}")")
+     [ "${OWNER,,}" = cubrid ] || die 1 "origin is $URL, not a CUBRID repo, so the branch would start from a \
+fork; point origin at github.com/CUBRID and keep the fork as another remote" ;;
+esac
 NAME=$(basename "${URL%/}" .git)
 CANONICAL=$ROOT/rulebook/$NAME
 [ -d "$CANONICAL" ] || die 2 "no canonical rulebook for $NAME at rulebook/$NAME"
@@ -44,7 +47,7 @@ mapfile -t FILES < <(cd "$CANONICAL" && find . -type f | sed 's|^\./||' | sort)
 mapfile -t LINKS < <(printf '%s\n' "${FILES[@]}" | sed -nE 's#(^|/)AGENTS\.md$#\1CLAUDE.md#p')
 mapfile -t UNITS < <(printf '%s\n' "${FILES[@]}" | sed -n 's|/.*||p' | sort -u)
 
-expected() {  # "<mode> <blob><TAB><path>" for every path a deploy writes
+expected() {
   local p link
   for p in "${FILES[@]}"; do
     printf '100644 %s\t%s\n' "$(git -C "$CLONE" hash-object "$CANONICAL/$p")" "$p"
@@ -52,14 +55,14 @@ expected() {  # "<mode> <blob><TAB><path>" for every path a deploy writes
   link=$(printf 'AGENTS.md' | git -C "$CLONE" hash-object --stdin)
   for p in "${LINKS[@]}"; do printf '120000 %s\t%s\n' "$link" "$p"; done
 }
-drift() {  # <ref>: one line per path whose entry in <ref> is not what a deploy writes
-  local ms p
+drift() {
+  local mode_blob p
   declare -A have
-  while IFS=$'\t' read -r ms p; do have[$p]=$ms; done < <(
+  while IFS=$'\t' read -r mode_blob p; do have[$p]=$mode_blob; done < <(
     git -C "$CLONE" ls-tree -r "$1" -- "${FILES[@]}" "${LINKS[@]}" | sed -E 's/^([0-9]+) [a-z]+ /\1 /')
-  while IFS=$'\t' read -r ms p; do
+  while IFS=$'\t' read -r mode_blob p; do
     if [ -z "${have[$p]:-}" ]; then echo "missing  $p"
-    elif [ "${have[$p]}" != "$ms" ]; then echo "differs  $p"; fi
+    elif [ "${have[$p]}" != "$mode_blob" ]; then echo "differs  $p"; fi
   done < <(expected)
 }
 
@@ -67,9 +70,9 @@ if [ "$CHECK" -eq 0 ]; then
   OWNERS=$ROOT/rulebook/category-owners.txt
   REVIEWERS=()
   for u in "${UNITS[@]}"; do
-    o=$(sed 's/#.*//' "$OWNERS" 2>/dev/null | awk -v c="$u" '$1 == c { print $2 }')
-    [ -n "$o" ] || die 2 "no owner for category $u in rulebook/category-owners.txt"
-    REVIEWERS+=("$o")
+    owner=$(sed 's/#.*//' "$OWNERS" 2>/dev/null | awk -v c="$u" '$1 == c { print $2 }')
+    [ -n "$owner" ] || die 1 "no owner for category $u in rulebook/category-owners.txt"
+    REVIEWERS+=("$owner")
   done
   mapfile -t REVIEWERS < <(printf '%s\n' "${REVIEWERS[@]}" | sort -u)
 
@@ -135,13 +138,13 @@ commit_unit() {  # <subject> <paths...>
   git -C "$CLONE" commit -q -m "$subject" -m "Copied from cubrid-agent rulebook/$NAME/ at $SOURCE." \
     || die 1 "commit failed: $subject"
 }
-in_unit() { printf '%s\n' "${FILES[@]}" "${LINKS[@]}" | grep -E "$1" | sort; }
+paths_matching() { printf '%s\n' "${FILES[@]}" "${LINKS[@]}" | grep -E "$1" | sort; }
 
 # One commit per unit, so that each reverts alone.
-mapfile -t UNIT_PATHS < <(in_unit '^[^/]+$')
+mapfile -t UNIT_PATHS < <(paths_matching '^[^/]+$')
 commit_unit "[$KEY] Deploy the repo-wide rulebook" "${UNIT_PATHS[@]}"
 for u in "${UNITS[@]}"; do
-  mapfile -t UNIT_PATHS < <(in_unit "^$u/")
+  mapfile -t UNIT_PATHS < <(paths_matching "^$u/")
   commit_unit "[$KEY] Deploy the $u rulebook" "${UNIT_PATHS[@]}"
 done
 

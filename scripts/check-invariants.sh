@@ -688,13 +688,11 @@ done
 # GLOSSARY.md repeats the rulebook term tables for cubrid-agent readers (the spec wants both), and a
 # copy kept by hand drifts. A GLOSSARY row is **<Korean>(<English>)** or the reverse; the English half
 # is the one without Hangul.
-_gl=$(LC_ALL=C awk -F'|' -v H="$(printf '[\352-\355]')" '/^## /{ s = /^## 룰북/ } s && /^\| \*\*/ {
-        c = $2; gsub(/^ *\*\*|\*\* *$/, "", c); o = c; sub(/\(.*/, "", o); i = c; sub(/^[^(]*\(/, "", i); sub(/\)$/, "", i)
-        print (o ~ H) ? i : o }' GLOSSARY.md | LC_ALL=C sort -u)
-_tb=$(for _f in rulebook/*/AGENTS.md; do
-        awk '/^\|[ \t]*Term[ \t]*\|/ { t = 1; next } t && !/^\|/ { exit }
-             t { c = $0; sub(/^\|[ \t]*/, "", c); sub(/[ \t]*\|.*/, "", c); if (c !~ /^:?-+:?$/) print c }' "$_f"
-      done | LC_ALL=C sort -u)
+_gl=$(LC_ALL=C awk -F'|' -v HANGUL="$(printf '[\352-\355]')" '/^## /{ s = /^## 룰북/ } s && /^\| \*\*/ {
+        c = $2; gsub(/^ *\*\*|\*\* *$/, "", c)
+        outside = c; sub(/\(.*/, "", outside); inside = c; sub(/^[^(]*\(/, "", inside); sub(/\)$/, "", inside)
+        print (outside ~ HANGUL) ? inside : outside }' GLOSSARY.md | LC_ALL=C sort -u)
+_tb=$(for _rb in rulebook/*/; do bash scripts/lint-rulebook.sh --terms "$_rb"; done | LC_ALL=C sort -u)
 if [ -n "$_tb" ] && [ "$_gl" = "$_tb" ]; then pass "GLOSSARY.md 룰북 section and the rulebook term tables list the same $(printf '%s\n' "$_tb" | grep -c .) terms"
 else fail "GLOSSARY.md 룰북 section and the rulebook term tables differ — only in GLOSSARY: $(LC_ALL=C comm -23 <(printf '%s\n' "$_gl") <(printf '%s\n' "$_tb") | paste -sd, -); only in a term table: $(LC_ALL=C comm -13 <(printf '%s\n' "$_gl") <(printf '%s\n' "$_tb") | paste -sd, -)"; fi
 

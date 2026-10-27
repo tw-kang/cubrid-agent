@@ -1,13 +1,21 @@
 #!/bin/bash
 # Shape lint for the rulebook canonical copy of one tc repo (rulebook/<tc repo>/). One line per
-# violation, exit 0 only when there is none.
+# violation, exit 0 only when there is none. --terms prints the term column of the root term table.
 #
 # Dev-only, run by check-invariants.sh.
 set -u
 export LC_ALL=C
 
-[ $# -eq 1 ] && [ -d "$1" ] || { echo "usage: lint-rulebook.sh <rulebook tree of one tc repo>" >&2; exit 2; }
+TERMS_ONLY=0
+[ "${1:-}" = --terms ] && { TERMS_ONLY=1; shift; }
+[ $# -eq 1 ] && [ -d "$1" ] || { echo "usage: lint-rulebook.sh [--terms] <rulebook tree of one tc repo>" >&2; exit 2; }
 cd "$1" || exit 2
+
+term_column() {
+  awk '/^\|[ \t]*Term[ \t]*\|/ { t = 1; next } t && !/^\|/ { exit }
+       t { c = $0; sub(/^\|[ \t]*/, "", c); sub(/[ \t]*\|.*/, "", c); if (c !~ /^:?-+:?$/) print c }' AGENTS.md
+}
+[ "$TERMS_ONLY" -eq 1 ] && { term_column; exit; }
 
 # The stoplist of declarative openers stands in for a POS tagger, which CI does not have.
 #
@@ -54,7 +62,7 @@ fence              { if (start) para = para "\n" $0; next }
 END { flush() }
 '
 
-checks() {
+violations() {
   local cats want have f terms="" termed=0
   cats=$(find . -mindepth 1 -maxdepth 1 -type d | sed 's|^\./||' | sort)
   want=$({ echo AGENTS.md
@@ -71,8 +79,7 @@ checks() {
 
   if grep -q '^|[[:space:]]*Term[[:space:]]*|' AGENTS.md 2>/dev/null; then
     termed=1
-    terms=$(awk '/^\|[ \t]*Term[ \t]*\|/ { t = 1; next } t && !/^\|/ { exit }
-                 t { c = $0; sub(/^\|[ \t]*/, "", c); sub(/[ \t]*\|.*/, "", c); if (c !~ /^:?-+:?$/) print tolower(c) }' AGENTS.md)
+    terms=$(term_column | tr '[:upper:]' '[:lower:]')
   elif [ -f AGENTS.md ]; then echo 'AGENTS.md: no term table (a "| Term |" header row)'; fi
 
   comm -12 <(printf '%s\n' "$want") <(printf '%s\n' "$have") | while read -r f; do
@@ -92,7 +99,7 @@ checks() {
   done
 }
 
-out=$(checks)
+out=$(violations)
 [ -z "$out" ] && exit 0
 printf '%s\n' "$out"
 exit 1

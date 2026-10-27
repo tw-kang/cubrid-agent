@@ -135,6 +135,10 @@ expect 1 "$B: could not be read" "a file the lint cannot read is reported"
 tree; sed -i '/^## Terms$/,$d' "$D/AGENTS.md"
 expect 1 'AGENTS.md: no term table (a "| Term |" header row)' "a root AGENTS.md without the term table is reported once"
 
+# check-invariants.sh compares these terms with GLOSSARY.md, so the table has one parser.
+tree
+expect 0 $'verdict\nanswer file' "--terms prints the first column of the root term table as written" --terms "$D"
+
 expect 2 - "a path that is not a directory is a usage error" "$T/none"
 if bash "$LINT" >/dev/null 2>&1; [ $? -eq 2 ]; then T_PASS=$((T_PASS+1)); else note_fail "no argument: exit was not 2"; fi
 
