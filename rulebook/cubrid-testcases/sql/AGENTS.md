@@ -4,7 +4,7 @@
 
 ## Operational facts
 
-Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it.
+Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it. When the engine PR merges, the engine repo deletes its `tc/pr-<N>` branches, so the TC changes of a Draft TC PR that was closed instead of merged are lost.
 
 Windows tests of sql and medium TCs have stopped: from the 11.4.6 and 11.3.6 patch releases, CUBRID ships CUBRID-For-WSL instead of a Windows build. No run compares output with a `.answer_win` file any more. What this means when you change a TC is in [writing rules](rules/writing-rules.md#changing-an-existing-tc).
 
@@ -32,7 +32,9 @@ A TC file `bug_bts_<NNNN>.sql` belongs to the Jira issue `CUBRIDSUS-<NNNN>`: `sq
 
 **For an engine PR to a `release/11.x` branch, open the TC PR to the same release branch of this repo yourself.** The engine repo makes `tc/pr-<N>` and its Draft TC PR only for an engine PR to develop or to a `feature/` branch ([Operational facts](#operational-facts)). Example: the backport of CBRD-XXXXX to `release/11.4` gets a TC PR from your branch to `release/11.4`, titled `[CBRD-XXXXX] Backport from develop to 11.4 - <original title>`.
 
-**When your TC needs a change that reached develop after `tc/pr-<N>` was made, merge develop into `tc/pr-<N>`, without a rebase or a force-push.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge develop into it. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`.
+**When your TC needs a change that reached the base branch (develop) after `tc/pr-<N>` was made, merge the base branch into `tc/pr-<N>`, without a rebase or a force-push.** The CI of the engine PR reads `tc/pr-<N>` as it is and does not merge the base branch into it. Example: `git switch tc/pr-1234 && git merge origin/develop && git push origin tc/pr-1234`.
+
+**Whenever you merge the base branch into `tc/pr-<N>`, for any reason, merge it into the engine PR as well, without a rebase or a force-push.** A `tc/pr-<N>` that carries newer base-branch history than the engine PR fails for reasons the change does not cause. Example: after `git merge origin/develop` on `tc/pr-1234`, run the same `git merge origin/develop` on the branch of engine PR 1234 and push it.
 
 **Put a fix of an existing TC and a new TC in separate commits, and write in each commit message why the change is needed and what it changes.** Example: one commit `Fix cbrd_xxxxx: add ORDER BY to Case 3, because a parallel scan returns its rows in another order`, and another commit `Add cbrd_yyyyy for LEFT JOIN over a derived table`.
 
@@ -42,4 +44,6 @@ A TC file `bug_bts_<NNNN>.sql` belongs to the Jira issue `CUBRIDSUS-<NNNN>`: `sq
 
 **When you change an existing *answer file*, write in the PR which lines changed and why: the engine change or issue that changed them, or why the old lines were wrong.** An answer file overwritten with the run output alone can keep the output of a bug. Example: the PR says `cbrd_xxxxx.answer: Case 3 now prints an error instead of NULL because CBRD-YYYYY made the conversion strict`.
 
-**Merge a TC PR once the engine PR it tests has passed CI and meets every merge requirement but the `Check TC PRs` check, and merge that engine PR right after it.** That check passes only after the TC PR merges, and a TC on develop without its engine change fails in the CI of other engine PRs until that engine PR follows. Example: CUBRID/cubrid#NNNN has passed CI and has the approvals it needs, the TC PR on `tc/pr-NNNN` is merged, and CUBRID/cubrid#NNNN is merged right after it.
+**When your engine PR changes no TC of this repo, close the Draft TC PR of this repo for it, and run the `Check TC PRs` check of the engine PR again.** That check blocks the engine PR while the Draft TC PR is open. Example: an engine PR that adds or changes only shell TCs leaves `tc/pr-1234` of this repo unchanged, so you close its Draft TC PR here and re-run `Check TC PRs` on engine PR 1234.
+
+**Merge a TC PR once the engine PR it tests has passed CI and meets every merge requirement but the `Check TC PRs` check, and merge that engine PR right after it.** That check passes only after the TC PR merges, and while only one of the two PRs is on the base branch, the runs of other developers fail: a TC fails without its engine fix, and an engine fix fails the TCs whose answers it changes. Example: CUBRID/cubrid#NNNN has passed CI and has the approvals it needs, the TC PR on `tc/pr-NNNN` is merged, and CUBRID/cubrid#NNNN is merged right after it.
