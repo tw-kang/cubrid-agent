@@ -12,6 +12,7 @@ The rest of this section holds for every TC under `medium/`, and [Changing an ex
 - the *evaluate label* `evaluate 'Case N: …';` of each case ([sql](../../sql/rules/writing-rules.md#header-and-labels)),
 - the output of a bug that the TC does not test, and the mark of a *known wrong result* ([sql](../../sql/rules/writing-rules.md#answer-files)),
 - one file for one issue, and when and how to split it ([sql](../../sql/rules/writing-rules.md#place-and-files)),
+- keeping each TC atomic, so that it affects no TC before or after it and restores the state it started from as soon as it ends ([sql](../../sql/rules/writing-rules.md#cleanup)),
 - restoring at the end of the file each session setting that the TC changed ([sql](../../sql/rules/writing-rules.md#cleanup)),
 - making the answer file from a run and never editing it by hand ([sql](../../sql/rules/writing-rules.md#answer-files)),
 - one answer file in `answers/` for each `.sql` file in `cases/`, and no empty answer file ([sql](../../sql/rules/writing-rules.md#place-and-files)),
