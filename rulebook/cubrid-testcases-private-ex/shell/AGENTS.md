@@ -6,7 +6,7 @@
 
 Two environments run the TCs under `shell/`. The rule that a TC fits both is in [writing rules](rules/writing-rules.md#new-tc).
 
-- *CI pod*: runs as root, keeps the TCs and databases on tmpfs, and gives 8 CPUs, a 64 MB `/dev/shm`, and a TC timeout of 1200 seconds.
+- *CI pod*: runs as root, keeps the TCs and databases on tmpfs, and gives 8 CPUs, a 64 MB `/dev/shm`, and a TC timeout of 1200 seconds, set by `testcase_timeout_in_secs` in [`CTP/conf/shell_ci.conf`](https://github.com/CUBRID/cubrid-testtools/blob/develop/CTP/conf/shell_ci.conf) of `cubrid-testtools`. It runs the image `cubridci/cubridci:test_rl8.10` from Docker Hub, built from [`docker/ci/Dockerfile`](https://github.com/CUBRID/cubridci/blob/test_rl8.10/docker/ci/Dockerfile) on the `test_rl8.10` branch of `CUBRID/cubridci`, so you can write and try a TC locally in the same environment.
 - *VM daily*: runs as a normal user on shared machines that several users work on.
 
 Both skip the TCs in the *excluded list*. Only the CI pod skips `_25_unstable/`, so a TC in *quarantine* still runs in VM daily, and a TC under *exclusion* runs nowhere. How to quarantine or exclude a TC is in [writing rules](rules/writing-rules.md#changing-an-existing-tc).
