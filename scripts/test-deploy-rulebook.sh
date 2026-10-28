@@ -215,6 +215,7 @@ c_check_differs() {
   for p in shell/CLAUDE.md shell/rules/writing-rules.md shell/rules/test-perspectives.md; do
     named "$p" || echo "$p not reported;"
   done
+  printf '%s\n' "$OUT" | grep -qx 'differs  shell/CLAUDE.md' || echo "the symlink is not reported as differs;"
   for p in AGENTS.md CLAUDE.md shell/AGENTS.md; do
     named "$p" && echo "$p reported though it matches;"
   done

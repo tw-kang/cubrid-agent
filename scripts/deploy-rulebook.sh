@@ -5,11 +5,12 @@
 #   deploy-rulebook.sh --check <tc repo clone>
 #
 # The clone's origin URL picks the canonical tree rulebook/<repo>/. A deploy branches from the fetched
-# origin/develop, copies the tree, puts a CLAUDE.md that imports AGENTS.md next to every AGENTS.md, commits, and prints
-# the PR body skeleton with the reviewers from rulebook/category-owners.txt. If the branch exists, the
-# deploy commits on top of it instead and merges origin/develop in when the branch is behind; a branch
-# that already matches gets no commit. It never pushes. --check names every path on origin/develop that
-# a deploy would change. The head key comes from .github/head-keys.txt unless --key names it.
+# origin/develop, copies the tree, puts a CLAUDE.md that imports AGENTS.md next to every AGENTS.md,
+# commits, and prints the PR body skeleton with the reviewers from rulebook/category-owners.txt. If the
+# branch exists, the deploy commits on top of it instead and merges origin/develop in when the branch is
+# behind; a branch that already matches gets no commit. It never pushes. --check names every path on
+# origin/develop that a deploy would change. The head key comes from .github/head-keys.txt unless --key
+# names it.
 # Before it commits, a deploy reads the repo's squash_merge_commit_title with gh, or takes it from
 # DEPLOY_RULEBOOK_SQUASH_TITLE: under PR_TITLE the commit subjects carry no key, under COMMIT_OR_PR_TITLE
 # they start with it. A setting it cannot read stops the deploy.
@@ -48,6 +49,7 @@ CANONICAL=$ROOT/rulebook/$NAME
 [ -d "$CANONICAL" ] || die 2 "no canonical rulebook for $NAME at rulebook/$NAME"
 mapfile -t FILES < <(cd "$CANONICAL" && find . -type f | sed 's|^\./||' | sort)
 mapfile -t IMPORTS < <(printf '%s\n' "${FILES[@]}" | sed -nE 's#(^|/)AGENTS\.md$#\1CLAUDE.md#p')
+IMPORT_LINE='@AGENTS.md'
 mapfile -t UNITS < <(printf '%s\n' "${FILES[@]}" | sed -n 's|/.*||p' | sort -u)
 
 expected() {
@@ -55,7 +57,7 @@ expected() {
   for p in "${FILES[@]}"; do
     printf '100644 %s\t%s\n' "$(git -C "$CLONE" hash-object "$CANONICAL/$p")" "$p"
   done
-  import=$(printf '@AGENTS.md\n' | git -C "$CLONE" hash-object --stdin)
+  import=$(printf '%s\n' "$IMPORT_LINE" | git -C "$CLONE" hash-object --stdin)
   for p in "${IMPORTS[@]}"; do printf '100644 %s\t%s\n' "$import" "$p"; done
 }
 drift() {
@@ -146,8 +148,8 @@ for p in "${FILES[@]}"; do
   mkdir -p "$(dirname "$CLONE/$p")" && cp "$CANONICAL/$p" "$CLONE/$p" && chmod 644 "$CLONE/$p" || die 1 "copy failed: $p"
 done
 # rm first: a branch from an older deploy holds a CLAUDE.md symlink, and a write would follow it into AGENTS.md.
-for l in "${IMPORTS[@]}"; do
-  rm -f "$CLONE/$l" && printf '@AGENTS.md\n' > "$CLONE/$l" || die 1 "write failed: $l"
+for p in "${IMPORTS[@]}"; do
+  rm -f "$CLONE/$p" && printf '%s\n' "$IMPORT_LINE" > "$CLONE/$p" || die 1 "write failed: $p"
 done
 
 commit_unit() {  # <subject> <paths...>
