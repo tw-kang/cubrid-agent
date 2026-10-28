@@ -63,19 +63,17 @@ END { flush() }
 '
 
 # Links: the tree is what the tc repo receives, so a relative link must land on a file of the tree, never on
-# the disk around it. Anchors are GitHub's heading anchors. GitHub keeps non-ASCII letters, which this drops,
+# the disk around it. A link starting with "/" is an absolute path to the agent that reads the file, so it
+# never resolves. Anchors are GitHub's heading anchors. GitHub keeps non-ASCII letters, which this drops,
 # but the body is English and Hangul outside the term table is a violation already.
 LINK_AWK='
 BEGIN { for (i = 1; i < ARGC; i++) file[ARGV[i]] = 1 }
-function resolve(from, path,   d, n, i, k, seg, out, p) {
-  d = from; sub(/[^\/]*$/, "", d)
-  n = split(d path, seg, "/"); k = 0
-  for (i = 1; i <= n; i++) {
-    if (seg[i] == "" || seg[i] == ".") continue
-    if (seg[i] == "..") { if (k == 0) return ""; k--; continue }
-    out[++k] = seg[i]
-  }
-  p = out[1]; for (i = 2; i <= k; i++) p = p "/" out[i]
+function resolve(from, path,   n, i, seg, p) {
+  if (path ~ /^\//) return ""
+  sub(/[^\/]*$/, "", from); n = split(from path, seg, "/")
+  for (i = 1; i <= n; i++)
+    if (seg[i] == "..") { if (p == "") return ""; sub(/\/?[^\/]*$/, "", p) }
+    else if (seg[i] != "" && seg[i] != ".") p = p (p == "" ? "" : "/") seg[i]
   return p
 }
 FNR == 1           { fence = 0 }
@@ -83,8 +81,7 @@ FNR == 1           { fence = 0 }
 fence              { next }
 /^#+[ \t]/ {
   h = tolower($0); sub(/^#+[ \t]+/, "", h); sub(/[ \t]+$/, "", h); gsub(/[^a-z0-9_ -]/, "", h); gsub(/ /, "-", h)
-  id = h; if ((FILENAME, h) in seen) id = h "-" seen[FILENAME, h]
-  seen[FILENAME, h]++; anchor[FILENAME, id] = 1
+  rep = seen[FILENAME, h]++; anchor[FILENAME, rep ? h "-" rep : h] = 1
 }
 {
   s = $0; gsub(/`[^`]*`/, "", s)

@@ -132,12 +132,19 @@ expect 1 "$B:3: Hangul outside the term table" "Hangul outside the term table is
 tree; rule '**Read the cleanup rules.** Example: [cleanup](cleanup.md)'
 expect 1 "$B:3: link \"cleanup.md\" is not a file of the rulebook" "a link to a file the tree lacks is reported"
 
-tree; rule '**Keep the *verdict* of a medium case.** Example: [change](../../medium/rules/writing-rules.md#changing-an-existing-tc)'
+tree; printf '\n## Medium only\n' >> "$D/medium/rules/writing-rules.md"
+rule '**Keep the *verdict* of a medium case.** Example: [change](../../medium/rules/writing-rules.md#medium-only)'
 expect 0 "" "a link to a heading of another category resolves"
 
 # The tree is the tc repo: a file beside it on disk is not deployed, so the link breaks there.
 tree; touch "$T/AGENTS.md"; rule '**Read the note.** Example: [note](../../../AGENTS.md)'
 expect 1 "$B:3: link \"../../../AGENTS.md\" is not a file of the rulebook" "a link that climbs out of the tree is reported"
+
+tree; rule '**Read the root.** Example: [root](../../AGENTS.md/..)'
+expect 1 "$B:3: link \"../../AGENTS.md/..\" is not a file of the rulebook" "a link that folds back to the tree root is reported"
+
+tree; rule '**Read the rules.** Example: [rules](/writing-rules.md)'
+expect 1 "$B:3: link \"/writing-rules.md\" is not a file of the rulebook" "a link that starts with / is reported"
 
 tree; rule '**Read the rules for a new TC.** Example: [new TC](writing-rules.md#new-tcs)'
 expect 1 "$B:3: link \"writing-rules.md#new-tcs\": sql/rules/writing-rules.md has no heading \"#new-tcs\"" \
@@ -162,6 +169,10 @@ expect 0 "" "a link inside a code span or a fence is not checked"
 
 tree; rule $'**Name the step.** Example: [setup](#setup)\n```bash\n# setup\n```'
 expect 1 "$B:3: link \"#setup\": $B has no heading \"#setup\"" "a comment line inside a fence is not a heading"
+
+# One awk reads every file, and sql/rules/writing-rules.md is read right after $B.
+tree; rule $'**Read the rules for a new TC.** Example: [new TC](writing-rules.md#new-tc)\n```bash\nwrite_ok'
+expect 0 "" "a fence left open in one file does not hide the headings of the next"
 
 # A dangling symlink is in the file set but cannot be read; root reads a chmod 000 file anyway.
 tree; rm "$D/$B" && ln -s gone.md "$D/$B"
