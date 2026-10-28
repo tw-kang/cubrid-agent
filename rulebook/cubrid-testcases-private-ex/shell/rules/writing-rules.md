@@ -47,6 +47,8 @@ DESCRIPTION
 
 **Remove unused code, unused files, and repeated steps before the PR.** A reviewer reads every line of a TC as part of what it tests, and a dead line sends them looking for a check that is not there. Example: drop a `result_file=…` line, which `init test` already sets, and a `for` loop that runs once.
 
+**Put a multi-step sequence that the TC repeats into a shell function, and call that function each time.** One definition keeps the copies from drifting apart, and the reviewer reads the steps once. Example: the TC runs a query with `csql`, greps the result, and calls `write_ok` or `write_nok` for four cases, so it defines `check_pass` once and calls it four times.
+
 ### Environment
 
 **Write the TC to pass in both the *CI pod* and *VM daily*, within the limits that [Operational facts](../AGENTS.md#operational-facts) lists for each.** A TC that passes in only one of them fails in the other or ends up in quarantine. A TC fits both only when it relies on nothing that one of them alone has: root or a normal user, `LANG`, `LC_ALL`, or `SHELL` in the environment, a CPU count, a file system, or a tool or database outside CUBRID and CTP. Example: the TC creates its own database instead of using `demodb`, which the CI image lacks, and sets `LANG` itself when its output depends on it; a TC that needs 3 GB of memory or 1,000 threads goes to `shell_heavy`.
