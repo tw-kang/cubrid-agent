@@ -130,6 +130,7 @@ grep -qF '`**Status:** ready-for-agent`' docs/agents/issue-tracker.md || _t="$_t
 grep -qF 'research-recheck.py <결과 파일>' docs/agents/issue-tracker.md || _t="$_t research-recheck-before-resolve"
 grep -q '티켓 파일을 만들지 않는다' docs/agents/issue-tracker.md    || _t="$_t only-the-leader-makes-tickets"
 grep -qF ' · 이전:' docs/agents/issue-tracker.md                   || _t="$_t reopen-status-chain"
+grep -q '재오픈 절의 할 일만 한다\. Claim과 Resolve는 위 절차대로 한다' docs/agents/issue-tracker.md || _t="$_t reopen-scope-keeps-claim"
 grep -q '후속 커밋을 PR에 더할 때' docs/agents/issue-tracker.md     || _t="$_t follow-up-commit-reread"
 grep -qF '`independent` fence' docs/agents/issue-tracker.md       || _t="$_t research-independent-check"
 grep -q '^- \*\*위치 주장\*\*.*`grep -n`' docs/agents/issue-tracker.md || _t="$_t location-claim-with-output"
