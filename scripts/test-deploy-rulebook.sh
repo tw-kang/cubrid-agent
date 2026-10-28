@@ -230,7 +230,7 @@ c_check_matches() {
 t "--check exits 0 when origin/develop carries exactly the deployed copy" c_check_matches
 
 c_one_commit() {
-  fixture; export DEPLOY_RULEBOOK_SQUASH_TITLE=COMMIT_OR_PR_TITLE
+  fixture
   cp "$CANONICAL/AGENTS.md" "$W/AGENTS.md" && ln -sfn AGENTS.md "$W/CLAUDE.md"
   origin_commit "root files already deployed"
   deployed || return
@@ -376,9 +376,25 @@ c_update_behind() {
   git -C "$C" merge-base --is-ancestor "$ORIGIN_TIP" HEAD || echo "the branch lacks the new origin/develop tip;"
   git -C "$C" show HEAD:shell/rules/writing-rules.md | cmp -s - "$CANONICAL/shell/rules/writing-rules.md" \
     || echo "the fix is not committed;"
-  git -C "$C" push -q "$F" cubridqa-1663-rulebook 2>/dev/null || echo "a plain push to the fork was rejected"
+  git -C "$C" push -q "$F" cubridqa-1663-rulebook 2>/dev/null || echo "a plain push to the fork was rejected;"
+  local subjects; subjects=$(git -C "$C" log --reverse --first-parent --format=%s "$first..HEAD" | tr '\n' '|')
+  [ "$subjects" = "[CUBRIDQA-1663] Merge origin/develop into cubridqa-1663-rulebook|[CUBRIDQA-1663] Deploy the shell rulebook|" ] \
+    || echo "subjects: $subjects"
 }
-t "a deploy branch behind origin/develop takes it by merge, not by rebase" c_update_behind
+t "a deploy branch behind origin/develop takes it by merge, not by rebase, with keyed subjects under COMMIT_OR_PR_TITLE" c_update_behind
+
+c_update_behind_pr_title() {
+  fixture; export DEPLOY_RULEBOOK_SQUASH_TITLE=PR_TITLE
+  deployed || return
+  local first; first=$(git -C "$C" rev-parse HEAD)
+  git -C "$C" switch -q feature
+  printf 'tc\n' > "$W/shell/_01/cases/c.sh"; origin_commit "origin moves while the PR is open"
+  canonical_fix
+  deployed || return
+  local subjects; subjects=$(git -C "$C" log --reverse --first-parent --format=%s "$first..HEAD" | tr '\n' '|')
+  [ "$subjects" = "Merge origin/develop into cubridqa-1663-rulebook|Deploy the shell rulebook|" ] || echo "subjects: $subjects"
+}
+t "where the squash title is PR_TITLE, the merge and the fix on an open deploy branch carry no key" c_update_behind_pr_title
 
 c_update_nothing() {
   fixture; deployed || return

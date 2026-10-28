@@ -103,13 +103,13 @@ $DIRTY"
     SQUASH_TITLE=$(gh api "repos/$OWNER/$NAME" --jq .squash_merge_commit_title 2>/dev/null)
   fi
   case $SQUASH_TITLE in
-    PR_TITLE) TAG= ;;
-    COMMIT_OR_PR_TITLE) TAG="[$KEY] " ;;
+    PR_TITLE) KEY_PREFIX= ;;
+    COMMIT_OR_PR_TITLE) KEY_PREFIX="[$KEY] " ;;
     *) die 1 "could not read squash_merge_commit_title of $NAME (${FROM}: '$SQUASH_TITLE'); it decides whether \
 the commit subjects carry $KEY. Read it with gh api repos/<owner>/$NAME and pass it as DEPLOY_RULEBOOK_SQUASH_TITLE" ;;
   esac
   echo "deploy-rulebook: squash_merge_commit_title is $SQUASH_TITLE ($FROM), so commit subjects carry" \
-    "${TAG:-no key}"
+    "${KEY_PREFIX:-no key}"
 fi
 
 git -C "$CLONE" fetch -q origin +refs/heads/develop:refs/remotes/origin/develop || die 1 "fetch from origin failed"
@@ -133,7 +133,7 @@ if git -C "$CLONE" show-ref --verify -q "refs/heads/$BRANCH"; then
   BASE=$(git -C "$CLONE" rev-parse --short=12 "refs/heads/$BRANCH")
   git -C "$CLONE" switch -q "$BRANCH" || die 1 "could not switch to $BRANCH"
   if ! git -C "$CLONE" merge-base --is-ancestor origin/develop HEAD; then
-    git -C "$CLONE" merge -q --no-edit -m "${TAG}Merge origin/develop into $BRANCH" origin/develop \
+    git -C "$CLONE" merge -q --no-edit -m "${KEY_PREFIX}Merge origin/develop into $BRANCH" origin/develop \
       || { git -C "$CLONE" merge --abort; die 1 "merging origin/develop into $BRANCH failed; merge it by hand"; }
   fi
 else
@@ -160,10 +160,10 @@ paths_matching() { printf '%s\n' "${FILES[@]}" "${LINKS[@]}" | grep -E "$1" | so
 
 # One commit per unit, so that each reverts alone.
 mapfile -t UNIT_PATHS < <(paths_matching '^[^/]+$')
-commit_unit "${TAG}Deploy the repo-wide rulebook" "${UNIT_PATHS[@]}"
+commit_unit "${KEY_PREFIX}Deploy the repo-wide rulebook" "${UNIT_PATHS[@]}"
 for u in "${UNITS[@]}"; do
   mapfile -t UNIT_PATHS < <(paths_matching "^$u/")
-  commit_unit "${TAG}Deploy the $u rulebook" "${UNIT_PATHS[@]}"
+  commit_unit "${KEY_PREFIX}Deploy the $u rulebook" "${UNIT_PATHS[@]}"
 done
 
 NCOMMITS=$(git -C "$CLONE" rev-list --count --first-parent "$BASE..HEAD")
@@ -173,7 +173,7 @@ if [ "$BASE" != origin/develop ]; then
   echo "Not pushed: push $BRANCH to your fork as it is to update its open PR. The new commits sit on top, so no force."
   exit 0
 fi
-[ "$NCOMMITS" -eq 1 ] && [ "$SQUASH_TITLE" = COMMIT_OR_PR_TITLE ] && echo "deploy-rulebook: warning: one commit." \
+[ "$NCOMMITS" -eq 1 ] && [ -n "$KEY_PREFIX" ] && echo "deploy-rulebook: warning: one commit." \
   "With squash_merge_commit_title COMMIT_OR_PR_TITLE, a one-commit PR merges under this commit's subject," \
   "which carries the head key, not the PR title's sub-task key. Ask the merger to use the PR title as the squash title." >&2
 echo "Not pushed: push it to your fork and open a Draft PR (docs/agents/issue-tracker.md, PR 흐름)."
