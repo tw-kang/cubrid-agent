@@ -22,13 +22,9 @@ open=""
 for url in $hits; do
   state=$(gh pr view "$url" --json state --jq .state) \
     || { echo "check-subtask-resolve: gh pr view $url failed — no verdict" >&2; exit 2; }
-  [ "$state" = OPEN ] && open="$open $url"
+  [ "$state" = OPEN ] && open+=$'\n'"  $url"
 done
 
-if [ -z "$open" ]; then
-  echo "resolve: no open PR carries $key in its title"
-  exit 0
-fi
-echo "keep: open PRs still carry $key in their title:"
-printf '  %s\n' $open
+[ -z "$open" ] && { echo "resolve: no open PR carries $key in its title"; exit 0; }
+echo "keep: open PRs still carry $key in their title:$open"
 exit 1
