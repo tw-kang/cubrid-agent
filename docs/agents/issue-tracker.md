@@ -109,7 +109,7 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 3. **사람이 "머지"를 지시하면**:
    1. squash 커밋 본문을 파일로 적는다. 첫 줄은 PR 헤더의 키(sub-task 키)로 만든 Jira 링크(`http://jira.cubrid.org/browse/<키>`)다. 그다음은 마지막 커밋까지 반영한 최종 변경의 영문 요약이다. 리뷰 수정, 되돌린 단계, 후속 정정 같은 브랜치 이력은 뺀다. trailer 줄(`Co-Authored-By:` 같은 끝 줄)은 끝에 한 번만 둔다. 이 형식은 [공식 프로세스의 Merge(p20)](../dev-process.md#핵심-운영-규칙)를 따른다.
    2. 기본 본문(PR의 커밋 메시지를 이은 것)으로 머지하지 않는다. 1의 파일을 `gh pr merge --squash --body-file <파일>`로 주어 squash 머지한다. PR #21의 squash 커밋 `ea39d2b`는 기본 본문으로 머지됐다. 그 본문은 커밋 메시지 18개를 이은 246줄이다. trailer 줄도 18번 되풀이된다.
-   3. sub-task를 Resolved로 바꾼다(`transition <키> --to "Resolve Issue" --yes`). 이 전이는 resolution을 따로 받지 않고 `Fixed`를 남긴다(CUBRIDQA-1684·1690, 10-28). readback으로 status `Resolved`, resolution `Fixed`를 본다. 다른 값이면 멈추고 리더에게 알린다.
+   3. cubrid-agent의 `scripts/check-subtask-resolve.sh <키>`가 exit 0일 때만 sub-task를 Resolved로 바꾼다(`transition <키> --to "Resolve Issue" --yes`). exit 1이면 그 키를 제목에 단 열린 PR이 남아 있으므로, 마지막 PR을 머지하는 세션이 바꾼다. 이 전이는 resolution을 따로 받지 않고 `Fixed`를 남긴다(CUBRIDQA-1684·1690, 10-28). readback으로 status `Resolved`, resolution `Fixed`를 본다. 다른 값이면 멈추고 리더에게 알린다.
    - 작업 세션은 Close하지 않는다. 리더가 정한 점검 시점에 리더가 헤드 아래 sub-task를 읽고, Resolved인 것을 한꺼번에 Close한다. 그 시점은 지도 순서표의 "1차 끝 점검" 행에 있다.
 4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. "머지 준비"에서는 2의 1(sub-task 만들기)과 2(담당자)를 건너뛴다. 머지 지시가 오면 3처럼 머지하고 다시 Resolved로 바꾼다.
 

@@ -128,6 +128,7 @@ _flow=$(sed -n '/^## PR 흐름/,/^## Jira에/p' docs/agents/issue-tracker.md)
 printf '%s\n' "$_flow" | grep -qF -- '--to "Start Progress"'   || _t="$_t subtask-in-progress-at-merge-ready"
 printf '%s\n' "$_flow" | grep -qF -- '--to "Resolve Issue"'    || _t="$_t subtask-resolved-at-merge"
 printf '%s\n' "$_flow" | grep -qF 'Close Issue'                && _t="$_t work-session-closes-a-subtask"
+printf '%s\n' "$_flow" | grep -qF 'check-subtask-resolve.sh <키>' || _t="$_t resolve-after-the-last-pr"
 grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 grep -q '지도에 영향을 주는 사실' docs/agents/issue-tracker.md      || _t="$_t report-three-items"
 grep -q '초안을 쓴 뒤에 `/code-review`를 돌린다' docs/agents/issue-tracker.md || _t="$_t review-after-the-answer-draft"
@@ -715,6 +716,11 @@ else fail "GLOSSARY.md 룰북 section and the rulebook term tables differ — on
 # and not isolating loses someone's staged work to a branch they do not own.
 if _t=$(bash scripts/test-prepare-tc-workspace.sh 2>&1); then pass "TC worktree decision behaves: $_t"
 else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-workspace.sh:"; printf '         %s\n' "$_t"; fi
+
+# A sub-task resolved while another PR still carries its key has to be reopened, and that is one more
+# Jira write for the user to approve.
+if _t=$(bash scripts/test-check-subtask-resolve.sh 2>&1); then pass "sub-task resolve check behaves: $_t"
+else fail "sub-task resolve check test failed — run scripts/test-check-subtask-resolve.sh:"; printf '         %s\n' "$_t"; fi
 
 if _t=$(bash scripts/test-verify-run.sh 2>&1); then pass "verify-run writes where it is told: $_t"
 else fail "verify-run test failed — run scripts/test-verify-run.sh:"; printf '         %s\n' "$_t"; fi
