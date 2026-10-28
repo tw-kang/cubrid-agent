@@ -90,9 +90,9 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 
 1. **열 때**: Draft PR로 연다. PR 헤더는 헤드 키다. `/implement-spec`이 끝나도 Draft로 둔다. Ready는 2의 "머지 준비" 안에서만 바꾼다.
 2. **사람이 "머지 준비"를 지시하면** 아래를 순서대로 한다.
-   1. sub-task를 만든다. `create`에는 `--parent`가 없으므로 Task로 만든 뒤 헤드 아래로 옮긴다. description은 PR 본문처럼 한글, 사용자 관점으로 쓴다.
+   1. sub-task를 만든다. `create`에는 `--parent`가 없으므로 Task로 만든 뒤 헤드 아래로 옮긴다. description은 PR 본문처럼 한글, 사용자 관점으로 쓴다. description 파일은 Jira wiki 표기로 쓴다(아래 "이슈 생성" 항목).
       ```bash
-      cubrid-jira create --project CUBRIDQA --type Task --summary "<PR 제목에서 PR 헤더를 뺀 것>" --description-file <파일> --yes
+      cubrid-jira create --project CUBRIDQA --type Task --summary "<PR 제목에서 PR 헤더를 뺀 것>" --description-file <파일> --from jira --yes
       cubrid-jira convert-to-subtask <새 키> --to <헤드 키> --yes
       ```
    2. 담당자를 바로잡는다. 새 sub-task의 담당자는 기본값으로 다른 사람이 된다. 계정은 `$CUBRID_JIRA_USER`에서 읽는다(비어 있으면 `source ~/.cubrid-agent/env.sh`). 사람 이름을 박지 않는다.
@@ -205,8 +205,10 @@ Jira 쪽 생성·조회·수정은 `cubrid-jira` CLI(`~/.local/bin/cubrid-jira`)
 
 모든 **쓰기 명령은 기본 dry-run**이다. 실제 전송하려면 `--yes`가 필수다. 서버 기본값은 `http://jira.cubrid.org`.
 
-- **이슈 생성**: `cubrid-jira create --project CUBRIDQA --type Task --summary "..." [--description-file PATH] [--label ...] [--field "QA Scenario=..."] --yes`
-  - 본문(description)은 markdown 파일을 주면 Jira wiki markup으로 변환된다. wiki 표기를 그대로 올리려면 `--from jira`를 쓴다(markdown 변환이 escape를 넣는다). heredoc 대신 파일 경로를 쓴다.
+- **이슈 생성**: `cubrid-jira create --project CUBRIDQA --type Task --summary "..." [--description-file PATH --from jira] [--label ...] [--field "QA Scenario=..."] --yes`
+  - description과 댓글 본문은 Jira wiki 표기(`h3.`, `*`, `{{…}}`)로 쓰고 `--from jira`를 준다. heredoc 대신 파일 경로를 쓴다.
+  - 기본값 `--from markdown`은 쓰지 않는다. 이 변환은 제목마다 `{anchor:…}`를 넣는다. `create`, `update --description-file`, `comment`의 dry-run에서 셋 다 그랬다(2026-10-28).
+  - `pandoc -f markdown-auto_identifiers -t jira`로 미리 바꿔도 `{anchor:}`가 남는다(pandoc 2.19.2). 그래서 wiki 표기로 직접 쓴다.
   - 이슈 타입(`--type`)은 프로젝트가 허용하는 값(예: `Task`, `Bug`, `Improvement`) 중 하나.
 - **sub-task로 옮기기**: `cubrid-jira convert-to-subtask <KEY> --to <부모> --yes`. 반대는 `convert-to-issue`, 부모 바꾸기는 `reparent`다.
 - **이슈 읽기(단건)**: `cubrid-jira search <KEY>` — 캐시 우선으로 live fetch, markdown을 stdout에 출력. 오프라인은 `--cache-only`.
@@ -215,8 +217,8 @@ Jira 쪽 생성·조회·수정은 `cubrid-jira` CLI(`~/.local/bin/cubrid-jira`)
   - 예: `cubrid-jira jql "project = CUBRIDQA AND status != Closed ORDER BY updated DESC" --output json` — 에이전트/jq 파이프용 raw JSON.
   - 쓴 뒤에는 이 명령으로 다시 읽어 결과를 확인한다(readback).
 - **첨부 다운로드**: `cubrid-jira attachment <KEY> --output json` — 전부 받고 파일별 매니페스트를 한 줄 JSON으로 출력(`--list`는 메타데이터만). 기본 저장 위치는 `~/.local/share/cubrid-jira/attachments/<KEY>/`(`$CUBRID_JIRA_DIR`가 있으면 그 아래, `--out DIR`로 지정 가능)이고, 각 항목의 `path`가 실제 경로다. 5MiB 초과는 받지 않고 `skipped` 사유만 남긴다 — 코어·바이너리가 디스크에 쌓이지 않는다.
-- **댓글**: 추가 `cubrid-jira comment <KEY> --body-file PATH --yes` / 목록 `comment-list` / 수정 `comment-update` / 삭제 `comment-delete`.
-- **필드 수정**: `cubrid-jira update <KEY> [--summary "..."] [--description-file PATH] [--field FIELD=VALUE] --yes`
+- **댓글**: 추가 `cubrid-jira comment <KEY> --body-file PATH --from jira --yes` / 목록 `comment-list` / 수정 `cubrid-jira comment-update <KEY> --id <ID> --body-file PATH --from jira --yes` / 삭제 `comment-delete`.
+- **필드 수정**: `cubrid-jira update <KEY> [--summary "..."] [--description-file PATH --from jira] [--field FIELD=VALUE] --yes`
   - `--description-file`은 기존 description을 **replace**한다(history엔 남음). `-`로 stdin 입력 가능.
   - ⚠️ **Closed 이슈는 description이 편집 화면에 없어 `HTTP 400 … "Field 'description' cannot be set. It is not on the appropriate screen, or unknown."`이 난다** — 권한·설정 문제로 읽히지만 원인은 **상태**다. 고쳐야 하면 `transition --to "Reopen Issue"` → `update` → **`Close Issue` 전이로 원래 resolution을 되돌린다**. 되닫는 전이는 `resolution`이 필수인데 CLI는 전이에 필드를 못 실으므로 이 마지막 단계만 REST 직결이다(`POST /rest/api/2/issue/<KEY>/transitions`, 페이로드를 먼저 출력해 확인). **되닫는 전이가 있는지 Reopen 전에는 조회되지 않으니**, 그 상태에 머물러도 되는 이슈에만 한다.
   - `--field`는 커스텀 필드 id(`customfield_210565`) 또는 표시 이름(`"QA Scenario"`) 둘 다 받는다.

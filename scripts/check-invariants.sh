@@ -161,6 +161,11 @@ else
   fail "the tracker rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
 fi
 
+# -o takes each command on its own: one doc line can hold two, and only one of them may lack the flag.
+_jw=$(git grep -n -o -E 'cubrid-jira [a-z-]+ [^`]*--(description|body)-file[^`]*' -- '*.md' | grep -v -e '--from jira')
+if [ -z "$_jw" ]; then pass "every documented cubrid-jira description or comment write passes --from jira"
+else fail "cubrid-jira writes without --from jira; the default markdown conversion writes {anchor:…} into each heading:"; printf '         %s\n' "$_jw"; fi
+
 # The plugin skills read these two files. A label table or an ADR prompt left there would make a skill
 # label a ticket or propose an ADR this repo no longer keeps.
 _t=""
