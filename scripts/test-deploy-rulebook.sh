@@ -14,6 +14,8 @@ trap 'rm -rf "$T"' EXIT
 export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com
 export GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+# A local origin names no GitHub repo to ask, so the setting comes in from outside.
+export DEPLOY_RULEBOOK_SQUASH_TITLE=COMMIT_OR_PR_TITLE
 
 T_PASS=0; T_FAIL=0; FAILURES=""
 note_fail() { T_FAIL=$((T_FAIL+1)); FAILURES="$FAILURES
@@ -114,7 +116,17 @@ c_commits() {
   done
   [ "$units" = " root shell" ] || echo "expected one root and one shell commit, got:$units"
 }
-t "one commit for the root files and one per category, each headed by the head key" c_commits
+t "one commit for the root files and one per category, each headed by the head key under COMMIT_OR_PR_TITLE" c_commits
+
+# A PR_TITLE repo squashes every PR under the PR title, so the commits inside the PR carry no key.
+c_title_pr() {
+  fixture; export DEPLOY_RULEBOOK_SQUASH_TITLE=PR_TITLE
+  deployed || return
+  local subjects; subjects=$(git -C "$C" log --reverse --format=%s "$ORIGIN_TIP..HEAD" | tr '\n' '|')
+  [ "$subjects" = "Deploy the repo-wide rulebook|Deploy the shell rulebook|" ] || echo "subjects: $subjects;"
+  printf '%s\n' "$OUT" | grep -q 'PR_TITLE' || echo "the output does not name the setting it read"
+}
+t "where the squash title is PR_TITLE, the commit subjects carry no key" c_title_pr
 
 # The owner table also lists sql; only the categories in this repo's tree may become reviewers.
 c_pr_body() {
@@ -226,7 +238,38 @@ c_one_commit() {
   [ "$n" = 1 ] || { echo "expected 1 commit, got $n"; return; }
   printf '%s\n' "$OUT" | grep -q 'warning: one commit' || echo "no 'warning: one commit' — $(flat "$OUT")"
 }
-t "a deploy that yields a single commit warns" c_one_commit
+t "where the squash title is COMMIT_OR_PR_TITLE, a deploy that yields a single commit warns" c_one_commit
+
+c_one_commit_pr_title() {
+  fixture; export DEPLOY_RULEBOOK_SQUASH_TITLE=PR_TITLE
+  cp "$CANONICAL/AGENTS.md" "$W/AGENTS.md" && ln -sfn AGENTS.md "$W/CLAUDE.md"
+  origin_commit "root files already deployed"
+  deployed || return
+  [ "$(git -C "$C" rev-list --count "$ORIGIN_TIP..HEAD")" = 1 ] || { echo "expected 1 commit"; return; }
+  printf '%s\n' "$OUT" | grep -q 'warning: one commit' && echo "warns though a PR_TITLE squash takes the PR title"
+}
+t "where the squash title is PR_TITLE, a single commit is no cause for a warning" c_one_commit_pr_title
+
+c_title_unknown() {
+  fixture; unset DEPLOY_RULEBOOK_SQUASH_TITLE
+  refused_untouched "$C"
+  printf '%s\n' "$OUT" | grep -q 'squash_merge_commit_title' || echo "the refusal does not name the setting — $(flat "$OUT")"
+}
+t "with a local origin and no setting given, the deploy is refused and the clone left untouched" c_title_unknown
+
+c_title_unread() {
+  fixture; unset DEPLOY_RULEBOOK_SQUASH_TITLE
+  git -C "$C" remote set-url origin "git@gh-work:CUBRID/$REPO.git"
+  export GIT_ALLOW_PROTOCOL=file GIT_TERMINAL_PROMPT=0
+  local bin; bin=$(dirname "$C")/bin; mkdir -p "$bin"
+  printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "%s/gh.log"\nexit 1\n' "$bin" > "$bin/gh" && chmod +x "$bin/gh"
+  export PATH="$bin:$PATH"
+  refused_untouched "$C"
+  grep -q "^api repos/CUBRID/$REPO " "$bin/gh.log" 2>/dev/null || echo "gh was not asked about CUBRID/$REPO;"
+  printf '%s\n' "$OUT" | tail -1 | grep -q 'squash_merge_commit_title' \
+    || echo "the refusal does not name the setting — $(flat "$OUT")"
+}
+t "when GitHub does not answer for the origin's repo, the deploy is refused before the fetch" c_title_unread
 
 c_nothing() {
   fixture; origin_deployed; origin_commit "deployed copy"
@@ -333,9 +376,25 @@ c_update_behind() {
   git -C "$C" merge-base --is-ancestor "$ORIGIN_TIP" HEAD || echo "the branch lacks the new origin/develop tip;"
   git -C "$C" show HEAD:shell/rules/writing-rules.md | cmp -s - "$CANONICAL/shell/rules/writing-rules.md" \
     || echo "the fix is not committed;"
-  git -C "$C" push -q "$F" cubridqa-1663-rulebook 2>/dev/null || echo "a plain push to the fork was rejected"
+  git -C "$C" push -q "$F" cubridqa-1663-rulebook 2>/dev/null || echo "a plain push to the fork was rejected;"
+  local subjects; subjects=$(git -C "$C" log --reverse --first-parent --format=%s "$first..HEAD" | tr '\n' '|')
+  [ "$subjects" = "[CUBRIDQA-1663] Merge origin/develop into cubridqa-1663-rulebook|[CUBRIDQA-1663] Deploy the shell rulebook|" ] \
+    || echo "subjects: $subjects"
 }
-t "a deploy branch behind origin/develop takes it by merge, not by rebase" c_update_behind
+t "a deploy branch behind origin/develop takes it by merge, not by rebase, with keyed subjects under COMMIT_OR_PR_TITLE" c_update_behind
+
+c_update_behind_pr_title() {
+  fixture; export DEPLOY_RULEBOOK_SQUASH_TITLE=PR_TITLE
+  deployed || return
+  local first; first=$(git -C "$C" rev-parse HEAD)
+  git -C "$C" switch -q feature
+  printf 'tc\n' > "$W/shell/_01/cases/c.sh"; origin_commit "origin moves while the PR is open"
+  canonical_fix
+  deployed || return
+  local subjects; subjects=$(git -C "$C" log --reverse --first-parent --format=%s "$first..HEAD" | tr '\n' '|')
+  [ "$subjects" = "Merge origin/develop into cubridqa-1663-rulebook|Deploy the shell rulebook|" ] || echo "subjects: $subjects"
+}
+t "where the squash title is PR_TITLE, the merge and the fix on an open deploy branch carry no key" c_update_behind_pr_title
 
 c_update_nothing() {
   fixture; deployed || return
