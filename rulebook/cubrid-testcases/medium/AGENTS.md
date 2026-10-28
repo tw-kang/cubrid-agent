@@ -14,6 +14,6 @@ This repo holds no list of excluded medium TCs. `medium/config/` holds only the 
 
 ## The PR
 
-The rules of [The PR](../sql/AGENTS.md#the-pr) in `sql/AGENTS.md` on the title of a TC PR and of the Draft TC PR, on committing to `tc/pr-<N>`, on a new TC and a change in separate commits and their messages, on committing only the files that the TC needs, on changing only the TCs and files of one issue in a PR, on a TC PR to a release branch, on merging the base branch into `tc/pr-<N>` and into the engine PR, on a changed *answer file*, on closing the Draft TC PR of an engine PR that changes no TC of this repo, and on when to merge a TC PR hold for medium TCs as well.
+Every rule of [The PR](../sql/AGENTS.md#the-pr) in `sql/AGENTS.md` holds for medium TCs as well.
 
 **Leave `medium/files/mdb.tar.gz` unchanged, and create the data that a TC needs inside the TC.** Every TC under `medium/` runs on the database that CTP loads from this archive, and the JDBC compatibility test loads it too, so a change to it changes the output of all of them. How a TC rolls its data back is in [writing rules](rules/writing-rules.md#start-and-end-of-the-file). Example: a TC that needs a class with a set attribute creates it after `autocommit off;` and ends with `rollback;`, and the PR leaves `mdb.tar.gz` as it is.
