@@ -6,7 +6,7 @@ A rule that holds for sql and medium TCs alike stands once, in the files under `
 
 ## Operational facts
 
-The `tc/pr-<N>` branch and the Draft TC PR of an engine PR and the stop of Windows tests hold for medium TCs as they do for sql TCs: see [Operational facts](../sql/AGENTS.md#operational-facts) in `sql/AGENTS.md`.
+The `tc/pr-<N>` branch and the Draft TC PR of an engine PR, the image of the *CI pod*, and the stop of Windows tests hold for medium TCs as they do for sql TCs: see [Operational facts](../sql/AGENTS.md#operational-facts) in `sql/AGENTS.md`.
 
 This repo holds no list of excluded medium TCs. `medium/config/` holds only the patch files of the JDBC compatibility test, and CTP reads the excluded TCs from the file that `testcase_exclude_from_file` names in its `medium.conf`, by default `${CTP_HOME}/conf/exclusions.txt` outside this repo.
 
