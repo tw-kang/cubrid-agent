@@ -98,6 +98,7 @@ grep -q '^## DP7' CODING_STANDARDS.md                || _m="$_m DP7"
 grep -q 'ASD-STE100' CODING_STANDARDS.md             || _m="$_m korean-prose-rules"
 grep -qF 'LC_ALL=C' CODING_STANDARDS.md              || _m="$_m sort-under-C-locale"
 grep -q '^## .*주석' CODING_STANDARDS.md             || _m="$_m comments-rule"
+grep -q '^## DP11 — 동작 문장은 테스트 경우가 고정한다' CODING_STANDARDS.md || _m="$_m behaviour-sentence-has-a-test"
 grep -q '같은 테스트를 통과하는 더 짧은 판' CODING_STANDARDS.md || _m="$_m shorter-code-same-tests"
 # The PR template is a file, linked rather than copied; $FORK guards against a hardcoded person.
 grep -qF '.github/PULL_REQUEST_TEMPLATE.md' AGENTS.md || _m="$_m pr-template-link"
