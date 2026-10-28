@@ -133,6 +133,8 @@ grep -q '후속 커밋을 PR에 더할 때' docs/agents/issue-tracker.md     || 
 grep -qF '`independent` fence' docs/agents/issue-tracker.md       || _t="$_t research-independent-check"
 grep -q '^- \*\*위치 주장\*\*.*`grep -n`' docs/agents/issue-tracker.md || _t="$_t location-claim-with-output"
 grep -qF '`team-lead`는 그 서브에이전트를 띄운 작업 세션' docs/agents/issue-tracker.md || _t="$_t team-lead-is-the-work-session"
+grep -q 'ID를 정의한 파일과 행을 함께 넘긴다' docs/agents/issue-tracker.md || _t="$_t subagent-id-with-its-definition"
+grep -qF 'Answer`가 기대는 검사 스크립트는 `.scratch/v2-<묶음>/tools/`' docs/agents/issue-tracker.md || _t="$_t spec-check-scripts-in-tools"
 grep -q '닫기 전 알림' docs/agents/issue-tracker.md                 || _t="$_t notify-leader-before-closing"
 grep -qF 'COMMIT_OR_PR_TITLE' docs/agents/issue-tracker.md         || _t="$_t commit-or-pr-title-flow"
 _retro=$(sed -n '/^- \*\*`\/retro` 제안\*\*/,/^$/p' docs/agents/issue-tracker.md)
