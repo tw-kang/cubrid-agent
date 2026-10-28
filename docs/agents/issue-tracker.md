@@ -47,6 +47,7 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
   - 상태를 셀 때는 `Status:` 줄을 ` · 이전:` 앞까지만 읽는다. 줄 전체를 grep하면 "이전: resolved"가 걸린다.
 - **Resolve**:
   1. 티켓 끝에 `## Answer`를 적는다. 재오픈된 티켓은 `## Answer (재오픈분 — <YYYY-MM-DD>, <세션 이름>)` 절에 따로 적는다. 기존 `## Answer`와 1차분의 체크박스는 고치지 않는다. 재오픈 절의 체크박스만 `- [x]`로 바꾼다.
+     - Answer의 초안을 쓴 뒤에 `/code-review`를 돌린다. PR이 있으면 PR 본문의 초안도 먼저 쓴다. Spec 축에는 그 초안들을 함께 넘긴다. 초안의 동작 문장을 보는 판단 규칙은 [`CODING_STANDARDS.md`](../../CODING_STANDARDS.md)에 둔다. `v2-shell-rulebook` 01 재오픈분에서는 `/code-review`가 Answer보다 먼저 돌았다. 그래서 Answer의 "`/`로 시작하는 링크도 위반이다"가 거짓인 채 리더에게 갔다(`7ea10c5`).
   2. `Status: resolved`로 바꾼다.
   3. 리더에게 SendMessage로 알린다. 보고에는 아래 세 항목이 반드시 있다. 길이 제한은 없다.
      - **실물**: 그 일에 해당하는 머지 SHA, PR 번호나 링크, 결과 파일 경로

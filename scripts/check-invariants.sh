@@ -125,6 +125,7 @@ grep -q '첫 줄은.*jira\.cubrid\.org/browse/<키>' docs/agents/issue-tracker.m
 grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
 grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 grep -q '지도에 영향을 주는 사실' docs/agents/issue-tracker.md      || _t="$_t report-three-items"
+grep -q '초안을 쓴 뒤에 `/code-review`를 돌린다' docs/agents/issue-tracker.md || _t="$_t review-after-the-answer-draft"
 grep -qF '`**Status:** ready-for-agent`' docs/agents/issue-tracker.md || _t="$_t spec-ticket-status-form"
 grep -qF 'research-recheck.py <결과 파일>' docs/agents/issue-tracker.md || _t="$_t research-recheck-before-resolve"
 grep -q '티켓 파일을 만들지 않는다' docs/agents/issue-tracker.md    || _t="$_t only-the-leader-makes-tickets"
