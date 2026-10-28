@@ -5,7 +5,7 @@
 #   deploy-rulebook.sh --check <tc repo clone>
 #
 # The clone's origin URL picks the canonical tree rulebook/<repo>/. A deploy branches from the fetched
-# origin/develop, copies the tree, puts a CLAUDE.md symlink next to every AGENTS.md, commits, and prints
+# origin/develop, copies the tree, puts a CLAUDE.md that imports AGENTS.md next to every AGENTS.md, commits, and prints
 # the PR body skeleton with the reviewers from rulebook/category-owners.txt. If the branch exists, the
 # deploy commits on top of it instead and merges origin/develop in when the branch is behind; a branch
 # that already matches gets no commit. It never pushes. --check names every path on origin/develop that
@@ -47,22 +47,22 @@ NAME=$(basename "${URL%/}" .git)
 CANONICAL=$ROOT/rulebook/$NAME
 [ -d "$CANONICAL" ] || die 2 "no canonical rulebook for $NAME at rulebook/$NAME"
 mapfile -t FILES < <(cd "$CANONICAL" && find . -type f | sed 's|^\./||' | sort)
-mapfile -t LINKS < <(printf '%s\n' "${FILES[@]}" | sed -nE 's#(^|/)AGENTS\.md$#\1CLAUDE.md#p')
+mapfile -t IMPORTS < <(printf '%s\n' "${FILES[@]}" | sed -nE 's#(^|/)AGENTS\.md$#\1CLAUDE.md#p')
 mapfile -t UNITS < <(printf '%s\n' "${FILES[@]}" | sed -n 's|/.*||p' | sort -u)
 
 expected() {
-  local p link
+  local p import
   for p in "${FILES[@]}"; do
     printf '100644 %s\t%s\n' "$(git -C "$CLONE" hash-object "$CANONICAL/$p")" "$p"
   done
-  link=$(printf 'AGENTS.md' | git -C "$CLONE" hash-object --stdin)
-  for p in "${LINKS[@]}"; do printf '120000 %s\t%s\n' "$link" "$p"; done
+  import=$(printf '@AGENTS.md\n' | git -C "$CLONE" hash-object --stdin)
+  for p in "${IMPORTS[@]}"; do printf '100644 %s\t%s\n' "$import" "$p"; done
 }
 drift() {
   local mode_blob p
   declare -A have
   while IFS=$'\t' read -r mode_blob p; do have[$p]=$mode_blob; done < <(
-    git -C "$CLONE" ls-tree -r "$1" -- "${FILES[@]}" "${LINKS[@]}" | sed -E 's/^([0-9]+) [a-z]+ /\1 /')
+    git -C "$CLONE" ls-tree -r "$1" -- "${FILES[@]}" "${IMPORTS[@]}" | sed -E 's/^([0-9]+) [a-z]+ /\1 /')
   while IFS=$'\t' read -r mode_blob p; do
     if [ -z "${have[$p]:-}" ]; then echo "missing  $p"
     elif [ "${have[$p]}" != "$mode_blob" ]; then echo "differs  $p"; fi
@@ -145,8 +145,9 @@ fi
 for p in "${FILES[@]}"; do
   mkdir -p "$(dirname "$CLONE/$p")" && cp "$CANONICAL/$p" "$CLONE/$p" && chmod 644 "$CLONE/$p" || die 1 "copy failed: $p"
 done
-for l in "${LINKS[@]}"; do
-  ln -sfn AGENTS.md "$CLONE/$l" || die 1 "symlink failed: $l"
+# rm first: a branch from an older deploy holds a CLAUDE.md symlink, and a write would follow it into AGENTS.md.
+for l in "${IMPORTS[@]}"; do
+  rm -f "$CLONE/$l" && printf '@AGENTS.md\n' > "$CLONE/$l" || die 1 "write failed: $l"
 done
 
 commit_unit() {  # <subject> <paths...>
@@ -156,7 +157,7 @@ commit_unit() {  # <subject> <paths...>
   git -C "$CLONE" commit -q -m "$subject" -m "Copied from cubrid-agent rulebook/$NAME/ at $SOURCE." \
     || die 1 "commit failed: $subject"
 }
-paths_matching() { printf '%s\n' "${FILES[@]}" "${LINKS[@]}" | grep -E "$1" | sort; }
+paths_matching() { printf '%s\n' "${FILES[@]}" "${IMPORTS[@]}" | grep -E "$1" | sort; }
 
 # One commit per unit, so that each reverts alone.
 mapfile -t UNIT_PATHS < <(paths_matching '^[^/]+$')
