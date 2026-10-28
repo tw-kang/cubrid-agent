@@ -165,6 +165,10 @@ fi
 _jw=$(git grep -n -o -E 'cubrid-jira [a-z-]+ [^`]*--(description|body)-file[^`]*' -- '*.md' | grep -v -e '--from jira')
 if [ -z "$_jw" ]; then pass "every documented cubrid-jira description or comment write passes --from jira"
 else fail "cubrid-jira writes without --from jira; the default markdown conversion writes {anchor:…} into each heading:"; printf '         %s\n' "$_jw"; fi
+# Leading spaces count: this doc indents fences that sit inside a list.
+_ah=$(git grep -n -E '^[[:space:]]*h[1-6]\.[[:space:]]*\{anchor' -- '*.md')
+if [ -z "$_ah" ]; then pass "no documented Jira wiki heading opens with {anchor:…}"
+else fail "Jira wiki headings in docs open with {anchor:…}, the markdown converter's trace:"; printf '         %s\n' "$_ah"; fi
 
 # The plugin skills read these two files. A label table or an ADR prompt left there would make a skill
 # label a ticket or propose an ADR this repo no longer keeps.
