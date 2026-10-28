@@ -26,7 +26,7 @@ A TC file `bug_bts_<NNNN>.sql` belongs to the Jira issue `CUBRIDSUS-<NNNN>`: `sq
 
 ## The PR
 
-**Title a TC PR `[CBRD-XXXXX] Add sql testcase for …` for a new TC or `[CBRD-XXXXX] Revise testcase for …` for a change, and start its body with the Jira link and the engine PR, then the cases and the builds you ran the TC on.** A reviewer checks the TC against the issue and the engine change, and the builds show that the TC catches the bug. A backport takes the title `[CBRD-XXXXX] Backport from develop to 11.x - <original title>`. Example: `[CBRD-XXXXX] Add sql testcase for LEFT JOIN over a derived table`, with a body that starts with `http://jira.cubrid.org/browse/CBRD-XXXXX` and `Engine PR: CUBRID/cubrid#NNNN`.
+**Start the title of a TC PR with the issue key in brackets, and start its body with the Jira link and the engine PR, then the cases and the builds you ran the TC on.** The words after the key are free; the commit messages say what the PR adds and changes. A reviewer checks the TC against the issue and the engine change, and the builds show that the TC catches the bug. Example: `[CBRD-XXXXX] Add sql testcase for LEFT JOIN over a derived table`, with a body that starts with `http://jira.cubrid.org/browse/CBRD-XXXXX` and `Engine PR: CUBRID/cubrid#NNNN`.
 
 **Replace the default title of the Draft TC PR that the engine repo opened for your engine PR with a title that follows the rule above, before the Draft TC PR merges.** The default title holds `Draft: TC changes for PR`, with the issue key in front only when the engine PR title has one, and the squash merge keeps the PR title as the commit title on develop. Example: `[CBRD-XXXXX] Draft: TC changes for PR CUBRID/cubrid#NNNN` becomes `[CBRD-XXXXX] Add sql testcase for LEFT JOIN over a derived table`.
 
@@ -38,7 +38,7 @@ A TC file `bug_bts_<NNNN>.sql` belongs to the Jira issue `CUBRIDSUS-<NNNN>`: `sq
 
 **Whenever you merge the base branch into `tc/pr-<N>`, for any reason, merge it into the engine PR as well, without a rebase or a force-push.** A `tc/pr-<N>` that carries newer base-branch history than the engine PR fails for reasons the change does not cause. Example: after `git merge origin/develop` on `tc/pr-1234`, run the same `git merge origin/develop` on the branch of engine PR 1234 and push it.
 
-**Put a fix of an existing TC and a new TC in separate commits, and write in each commit message why the change is needed and what it changes.** Example: one commit `Fix cbrd_xxxxx: add ORDER BY to Case 3, because a parallel scan returns its rows in another order`, and another commit `Add cbrd_yyyyy for LEFT JOIN over a derived table`.
+**Put a new TC and a change of an existing TC or its *answer file* in separate commits, start the message of a commit that adds a TC with `Add sql testcase for …` and of a commit that changes one with `Revise testcase for …`, and write in each message why the change is needed and what it changes.** Example: one commit `Revise testcase for cbrd_xxxxx: add ORDER BY to Case 3, because a parallel scan returns its rows in another order`, and another commit `Add sql testcase for LEFT JOIN over a derived table (cbrd_yyyyy)`.
 
 **Commit only the files that the TC needs, and leave out the outputs of a run such as `.result` files and `csql.err`.** CTP writes a `.result` file next to each case on every run. Example: before you open the PR, `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
 
