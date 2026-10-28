@@ -86,7 +86,7 @@ DESCRIPTION
 wait_until 60 eval 'cubrid tranlist $db 2>/dev/null | grep -qw csql' || write_nok "csql never showed in tranlist"
 ```
 
-**Set the wait limit to a whole number of seconds well above the normal time.** `wait_until` counts the limit in whole seconds, and a large limit costs time only when something is already wrong. Example: `wait_until 60 …` for a step that takes about 5 seconds, not `wait_until 6 …` or `wait_until 0.5 …`.
+**Set the wait limit to a whole number of seconds well above the normal time.** `wait_until` adds the limit to `$SECONDS` in shell arithmetic, so a fraction such as `0.5` is a syntax error that ends the whole script under `sh`, before its verdicts, cleanup, and `finish`. A large limit costs time only when something is already wrong, and `-i` sets an interval shorter than one second. Example: `wait_until 60 …` for a step that takes about 5 seconds, and `wait_until -i 0.2 10 …` to check every 0.2 seconds, not `wait_until 6 …` or `wait_until 0.5 …`.
 
 **Wrap a condition that has a pipeline or `$(...)` in `eval '...'`.** `eval` runs the whole condition again at each try. Example: `wait_until 60 eval '[ "$(grep -c ok out.log)" -ge 2 ]'`, not `wait_until 60 [ "$(grep -c ok out.log)" -ge 2 ]`, which counts once and then tests the same number at each try.
 
@@ -94,7 +94,7 @@ wait_until 60 eval 'cubrid tranlist $db 2>/dev/null | grep -qw csql' || write_no
 
 **Save the PID of each background command with `pid=$!` right after it, and end that process with `wait $pid` or `xkill_pid $pid` before the TC ends.** An orphan process keeps a database or a port, and the next TC fails on it. Example: `cubrid backupdb -D ./bk1 $db > bk1.log 2>&1 < /dev/null &`, then `bk1_pid=$!`, and later `wait $bk1_pid`.
 
-**Stop a process with a `cubrid` command, `xkill`, or `xkill_pid`, and only a process that the TC started.** `pkill` and `kill -9 $(pgrep …)` also end processes that the TC did not start, including those of other users on a shared VM. `xkill` stops every process of your user whose PID or command name contains its argument, so it is exact only for an argument that matches no other process; `xkill_pid` stops exactly the PID it gets. Example: `cubrid server stop $db` for the server and `xkill_pid $bk1_pid` for a background `backupdb`, not `pkill cub`, and not `xkill $bk1_pid`, which also stops PID 1234 when `$bk1_pid` is 234.
+**Stop a process with a `cubrid` command, `xkill`, or `xkill_pid`, and only a process that the TC started.** `pkill` and `kill -9 $(pgrep …)` end every matching process of your user, so `pkill cub` in the middle of a TC stops all CUBRID processes of that user, not only the one the step aims at, and on a developer's PC also the developer's own CUBRID. `xkill` stops every process of your user whose PID or command name contains its argument, so it is exact only for an argument that matches no other process; `xkill_pid` stops exactly the PID it gets. Example: `cubrid server stop $db` for the server and `xkill_pid $bk1_pid` for a background `backupdb`, not `pkill cub`, and not `xkill $bk1_pid`, which also stops PID 1234 when `$bk1_pid` is 234.
 
 **Give `/dev/null` as stdin to each command that can ask for confirmation, such as `backupdb` and `deletedb`, or use its option that skips the prompt.** Under CTP the prompt waits for input that never comes and the TC hangs until the TC timeout, while the same TC run from a terminal shows no problem. Example: `cubrid backupdb -D ./bk2 $db < /dev/null`.
 
