@@ -83,7 +83,7 @@ tree; rm "$D/medium/rules/writing-rules.md"
 expect 1 $'medium/rules/writing-rules.md: missing\nmedium/AGENTS.md:3: link "rules/writing-rules.md" is not a file of the rulebook' \
   "a missing file is reported, and so is every link to it"
 
-# The deploy makes the CLAUDE.md symlinks in the tc repo; one kept in the canonical copy is the usual extra.
+# The deploy writes CLAUDE.md in the tc repo; one kept in the canonical copy, here a symlink, is the usual extra.
 tree; ln -s AGENTS.md "$D/sql/CLAUDE.md"
 expect 1 "sql/CLAUDE.md: not in the rulebook file set" "an extra file, a symlink included, is reported"
 

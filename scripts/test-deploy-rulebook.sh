@@ -89,16 +89,19 @@ c_bytes() {
 }
 t "every canonical file is committed byte for byte" c_bytes
 
-c_symlink() {
+# Git for Windows checks a symlink out as a plain file holding its target unless core.symlinks is on,
+# and Claude Code then reads the bare word AGENTS.md; an import line reads the same everywhere.
+c_claude_md() {
   fixture; deployed || return
   local p mode
   for p in CLAUDE.md shell/CLAUDE.md; do
     mode=$(git -C "$C" ls-tree HEAD -- "$p" | cut -d' ' -f1)
-    [ "$mode" = 120000 ] || { echo "$p has mode '$mode';"; continue; }
-    [ "$(git -C "$C" cat-file -p "HEAD:$p")" = AGENTS.md ] || echo "$p does not point at AGENTS.md;"
+    [ "$mode" = 100644 ] || { echo "$p has mode '$mode';"; continue; }
+    git -C "$C" cat-file -p "HEAD:$p" | cmp -s - <(printf '@AGENTS.md\n') || echo "$p does not hold the one line @AGENTS.md;"
+    [ -L "$C/$p" ] && echo "$p is a symlink in the work tree;"
   done
 }
-t "a CLAUDE.md symlink to AGENTS.md sits next to every AGENTS.md" c_symlink
+t "a CLAUDE.md that imports AGENTS.md with the one line @AGENTS.md sits next to every AGENTS.md" c_claude_md
 
 # Each commit must revert alone, so each one holds exactly the root files or exactly one category.
 c_commits() {
@@ -195,15 +198,14 @@ origin_deployed() {  # put an exact deployed copy on the origin, after the clone
   mkdir -p "$W/shell/rules"
   cp "$CANONICAL/AGENTS.md" "$W/AGENTS.md" && cp "$CANONICAL/shell/AGENTS.md" "$W/shell/AGENTS.md"
   cp "$CANONICAL/shell/rules/"*.md "$W/shell/rules/"
-  ln -sfn AGENTS.md "$W/CLAUDE.md" && ln -sfn AGENTS.md "$W/shell/CLAUDE.md"
+  printf '@AGENTS.md\n' > "$W/CLAUDE.md" && printf '@AGENTS.md\n' > "$W/shell/CLAUDE.md"
 }
 named() { printf '%s\n' "$OUT" | grep -qE "(^|[[:space:]])$1\$"; }
 
-# shell/CLAUDE.md holds the same bytes as the symlink, as a checkout without core.symlinks writes it;
-# only its mode tells it apart.
+# shell/CLAUDE.md is the symlink that an older deploy left.
 c_check_differs() {
   fixture; origin_deployed
-  rm "$W/shell/CLAUDE.md" && printf 'AGENTS.md' > "$W/shell/CLAUDE.md"
+  ln -sfn AGENTS.md "$W/shell/CLAUDE.md"
   printf 'edited on develop\n' > "$W/shell/rules/writing-rules.md"
   rm "$W/shell/rules/test-perspectives.md"
   origin_commit "deployed copy drifts"
@@ -213,6 +215,7 @@ c_check_differs() {
   for p in shell/CLAUDE.md shell/rules/writing-rules.md shell/rules/test-perspectives.md; do
     named "$p" || echo "$p not reported;"
   done
+  printf '%s\n' "$OUT" | grep -qx 'differs  shell/CLAUDE.md' || echo "the symlink is not reported as differs;"
   for p in AGENTS.md CLAUDE.md shell/AGENTS.md; do
     named "$p" && echo "$p reported though it matches;"
   done
@@ -231,7 +234,7 @@ t "--check exits 0 when origin/develop carries exactly the deployed copy" c_chec
 
 c_one_commit() {
   fixture
-  cp "$CANONICAL/AGENTS.md" "$W/AGENTS.md" && ln -sfn AGENTS.md "$W/CLAUDE.md"
+  cp "$CANONICAL/AGENTS.md" "$W/AGENTS.md" && printf '@AGENTS.md\n' > "$W/CLAUDE.md"
   origin_commit "root files already deployed"
   deployed || return
   local n; n=$(git -C "$C" rev-list --count "$ORIGIN_TIP..HEAD")
@@ -242,7 +245,7 @@ t "where the squash title is COMMIT_OR_PR_TITLE, a deploy that yields a single c
 
 c_one_commit_pr_title() {
   fixture; export DEPLOY_RULEBOOK_SQUASH_TITLE=PR_TITLE
-  cp "$CANONICAL/AGENTS.md" "$W/AGENTS.md" && ln -sfn AGENTS.md "$W/CLAUDE.md"
+  cp "$CANONICAL/AGENTS.md" "$W/AGENTS.md" && printf '@AGENTS.md\n' > "$W/CLAUDE.md"
   origin_commit "root files already deployed"
   deployed || return
   [ "$(git -C "$C" rev-list --count "$ORIGIN_TIP..HEAD")" = 1 ] || { echo "expected 1 commit"; return; }
@@ -407,6 +410,26 @@ c_update_nothing() {
   printf '%s\n' "$OUT" | grep -q 'no commit' || echo "no 'no commit' — $(flat "$OUT")"
 }
 t "a deploy branch that already matches the canonical tree gets no commit, not even a merge" c_update_nothing
+
+# An open PR from an older deploy holds CLAUDE.md symlinks, and a write through one lands in AGENTS.md.
+c_update_from_symlink() {
+  fixture; deployed || return
+  ln -sfn AGENTS.md "$C/CLAUDE.md" && ln -sfn AGENTS.md "$C/shell/CLAUDE.md"
+  git -C "$C" add -A && git -C "$C" commit -qm "an older deploy" || { echo "could not commit the symlinks"; return; }
+  fork_pushed || { echo "the first push failed"; return; }
+  git -C "$C" switch -q feature
+  deployed || return
+  local p
+  for p in CLAUDE.md shell/CLAUDE.md; do
+    [ "$(git -C "$C" ls-tree HEAD -- "$p" | cut -d' ' -f1)" = 100644 ] || echo "$p is not a regular file;"
+    git -C "$C" cat-file -p "HEAD:$p" | cmp -s - <(printf '@AGENTS.md\n') || echo "$p does not hold @AGENTS.md;"
+  done
+  for p in AGENTS.md shell/AGENTS.md; do
+    git -C "$C" show "HEAD:$p" | cmp -s - "$CANONICAL/$p" || echo "$p was overwritten;"
+  done
+  git -C "$C" push -q "$F" cubridqa-1663-rulebook 2>/dev/null || echo "a plain push to the fork was rejected"
+}
+t "on a deploy branch with CLAUDE.md symlinks, a deploy replaces them with the import line and leaves AGENTS.md as it is" c_update_from_symlink
 
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'deploy-rulebook: %d/%d\n' "$T_PASS" "$T_PASS"
