@@ -47,30 +47,31 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
   - 상태를 셀 때는 `Status:` 줄을 ` · 이전:` 앞까지만 읽는다. 줄 전체를 grep하면 "이전: resolved"가 걸린다.
 - **Resolve**:
   1. 티켓 끝에 `## Answer`를 적는다. 재오픈된 티켓은 `## Answer (재오픈분 — <YYYY-MM-DD>, <세션 이름>)` 절에 따로 적는다. 기존 `## Answer`와 1차분의 체크박스는 고치지 않는다. 재오픈 절의 체크박스만 `- [x]`로 바꾼다.
-     - Answer의 초안을 쓴 뒤에 `/code-review`를 돌린다. PR이 있으면 PR 본문의 초안도 먼저 쓴다. Spec 축에는 그 초안들을 함께 넘긴다. 초안의 동작 문장을 보는 판단 규칙은 [`CODING_STANDARDS.md`](../../CODING_STANDARDS.md)에 둔다. `v2-shell-rulebook` 01 재오픈분에서는 `/code-review`가 Answer보다 먼저 돌았다. 그래서 Answer의 "`/`로 시작하는 링크도 위반이다"가 거짓인 채 리더에게 갔다(`7ea10c5`).
+     - Answer의 초안과, PR이 있으면 PR 본문의 초안을 쓴다. 초안을 쓴 뒤에 `/code-review`를 돌린다. Spec 축에는 그 초안들을 함께 넘긴다. 초안의 동작 문장을 보는 판단 규칙은 [`CODING_STANDARDS.md`](../../CODING_STANDARDS.md)에 둔다. `v2-shell-rulebook` 01 재오픈분에서는 `/code-review`가 Answer보다 먼저 돌았다. 그래서 `7ea10c5`의 코드와 다른 Answer 문장("`/`로 시작하는 링크도 위반이다")이 리더에게 갔다.
   2. `Status: resolved`로 바꾼다.
   3. 리더에게 SendMessage로 알린다. 보고에는 아래 세 항목이 반드시 있다. 길이 제한은 없다.
      - **실물**: 그 일에 해당하는 머지 SHA, PR 번호나 링크, 결과 파일 경로
      - **닫은 티켓**: 티켓 경로
      - **지도에 영향을 주는 사실**: 순서표, 막힘 관계, 다음 티켓에 영향을 주는 것. 없으면 "없음"이라고 적는다.
   - **`map.md`는 고치지 않는다.** Decisions so far와 순서표는 리더가 실물(커밋, PR, 파일)과 대조한 뒤 고친다. wayfinder 기본 절차의 "지도에 context pointer 추가"를 이 알림이 대신한다.
-- **재오픈**: 닫힌 티켓의 후속 일은 리더가 새 티켓 대신 그 티켓을 다시 연다. 판단 기준은 리더 몫이다(지도 Notes "리더 운용"의 "후속 일은 새 티켓보다 재오픈"). 리더가 새 요구를 적는 절을 이 문서는 **재오픈 절**이라 부른다. 그 이름은 `## 재오픈 (날짜, 누가 — 이유)`다. 다른 티켓을 흡수한 재오픈이면 이름이 `## 재오픈분 — <주제>`이고, `## 흡수한 NN` 절은 원문 이력이다. 작업 세션은 재오픈 절의 할 일만 한다. Claim과 Resolve는 위 절차대로 한다.
+- **재오픈**: 닫힌 티켓의 후속 일은 리더가 새 티켓 대신 그 티켓을 다시 연다. 판단 기준은 리더 몫이다(지도 Notes "리더 운용"의 "후속 일은 새 티켓보다 재오픈"). 리더가 새 요구를 적는 절을 이 문서는 **재오픈 절**이라 부른다. 그 이름은 `## 재오픈 (날짜, 누가 — 이유)`다. 다른 티켓을 흡수한 재오픈이면 이름이 `## 재오픈분 — <주제>`이고, `## 흡수한 NN` 절은 원문 이력이다.
+  - 작업 세션은 재오픈 절의 할 일만 한다. Claim과 Resolve는 위 절차대로 한다.
 - **Research 결과**: `.scratch/v2/research/<name>.md`에 쓴다. 브랜치를 만들거나 push하지 않는다. 이 repo는 공개이고 tc repo 일부는 비공개이기 때문이다.
   - 다음 티켓이 쓰는 수치마다 그 수치를 다시 내는 명령을 붙인다. 명령은 옆 파일 `<name>.repro.md`의 `#### [ID]` 블록(`sh` + `expected`)에 둔다. 결과 파일은 수치 옆에 `[ID]`를 적는다. 결과 파일의 첫 절(리드)이 재현 파일을 가리킨다. 블록 형식의 정본은 `scripts/research-recheck.py`의 머리 주석이다.
   - resolve 전에 `scripts/research-recheck.py <결과 파일>`이 exit 0인지 본다. 명령, `INDEPENDENT` 줄, `SUMMARY` 줄을 `## Answer`에 적는다. 손으로 다시 세거나 그때 짠 검사기로 대신하지 않는다. 02에서 그런 검사기 다섯 중 둘이 틀린 채 통과했다.
   - resolve하는 세션은 블록 5개 이상에서 주장 하나씩을 결과를 낸 스크립트 없이 다시 낸다(예: `git show <고정 SHA>:<경로> | wc -l`, `grep -c`). 블록이 5개보다 적으면 모든 블록에서 한다. 그 명령은 그 블록의 `independent` fence에 둔다. recheck가 fence를 가진 블록의 수와 fence의 출력을 검사한다. 결과를 낸 스크립트가 일관되게 틀리면 그 출력으로 채운 expected도 같이 틀린다. 10에서 줄 수가 1씩 많은 결함이 37블록 PASS를 두 번 받았다.
   - 개수를 내는 명령은 센 항목(ID나 경로)도 함께 찍는다. 항목이 많으면 표본을 찍는다. 개수만 찍으면 잘못 잡은 항목이 보이지 않는다.
 - **위치 주장**: 파일의 행 번호나 위치를 말하는 주장은 그 행을 `grep -n`이나 `sed -n`으로 찍은 출력과 함께 둔다. 이 규칙은 research 결과와, 다음 티켓이 입력으로 쓰는 티켓의 `## Answer`에 모두 건다. `v2-sql-medium-rulebook` 01에서 서브에이전트가 "29~30행, 데이터를 만드는 줄 옆"이라 적은 주석은 실제로 29~31행, 데이터 문장 위의 별도 줄이었다. 그 글이 사용자 선택지의 추천안이 되었다.
-  - "없다", "N곳뿐" 같은 개수나 부재의 주장에는 pathspec 없는 `git grep -n -i <말>`의 출력을 붙인다. 그 출력에서 뺀 줄마다 뺀 이유를 적는다. 이 줄은 리더에게 보내는 보고에도 건다. #33의 보고는 "심링크 표기는 `check-invariants.sh` 한 곳뿐"이라 적었다. 그 grep은 범위를 손으로 골라 `scripts/test-lint-rulebook.sh`를 빠뜨렸고, 리더 대조도 통과했다.
-- **서브에이전트**: research를 서브에이전트에 나눠 맡길 때 아래를 지킨다.
+  - "없다", "N곳뿐" 같은 개수나 부재의 주장에는 pathspec 없는 `git grep -n -i <말>`의 출력을 붙인다. 그 출력에서 뺀 줄마다 뺀 이유를 적는다. 이 줄은 리더에게 보내는 보고에도 건다. PR #33을 맡은 세션의 보고는 "심링크 표기는 `check-invariants.sh` 한 곳뿐"이라 적었다. 그 grep은 범위를 손으로 골라 `scripts/test-lint-rulebook.sh`를 빠뜨렸다. 그 보고는 리더 대조도 통과했다.
+- **서브에이전트**: research를 서브에이전트에 나눠 맡길 때 아래를 지킨다. 아래의 ID 줄은 구현과 리뷰를 맡길 때에도 지킨다.
   - 지시문에 넣는다 — 오래 걸리는 명령은 foreground로 돌린다. 도구 상한(한 번에 10분)을 넘기면 나눠 돌린다. background 명령을 기다리며 턴을 끝내지 않는다.
   - 서브에이전트를 띄운 작업 세션은 "기다린다"는 idle 알림을 끝으로 믿지 않는다. 알림을 받으면 그 명령이 쓴 출력 파일을 직접 본다. 02에서 두 번 생겼다. 한 번은 13시간 넘게 멈췄다.
   - 병렬 서브에이전트에게는 각자 다른 중간 파일 디렉토리를 준다. 같은 scratchpad 루트를 주면 서로 덮는다(03 재오픈분, 에이전트 6개).
   - 서브에이전트가 SendMessage로 부르는 `team-lead`는 그 서브에이전트를 띄운 작업 세션이다. 리더가 아니다. 리더에게 보고하는 쪽은 작업 세션뿐이다. 10의 작업 세션은 `team-lead`를 리더로 읽었다. 그래서 리더에게 보낸 보고 두 건에 "서브에이전트가 리더에게 보고했다"고 잘못 적었다.
-  - 지시문에 ID(규칙 ID, 표의 행 ID)를 넘길 때는 그 ID를 정의한 파일과 행을 함께 넘긴다. 이 줄은 research 밖의 서브에이전트(구현, 리뷰)에도 건다. `v2-sql-medium-rulebook` 06의 작업 세션은 구현 서브에이전트에 "U-1720-2 = gha-ci가 그 브랜치에서 돌림"이라고 보냈다. 02 표의 정의는 `commit-to-tc-pr-branch`였다.
+  - 지시문에 ID(규칙 ID, 표의 행 ID)를 넘길 때는 그 ID를 정의한 파일과 행을 함께 넘긴다. `v2-sql-medium-rulebook` 06의 작업 세션은 구현 서브에이전트에 "U-1720-2 = gha-ci가 그 브랜치에서 돌림"이라고 보냈다. 02 표의 정의는 `commit-to-tc-pr-branch`였다.
 - **새로 드러난 결정**: 작업 세션은 티켓 파일을 만들지 않는다. 새 결정이나 조사가 필요하면 리더에게 SendMessage로 제안한다. 같은 내용을 맡은 티켓의 `## Comments`에도 적는다. 새 티켓을 만들지 기존 티켓을 재오픈할지는 리더가 판단한다.
 - **스펙을 맡은 작업 세션**: `/implement-spec`으로 `.scratch/v2-<묶음>/spec.md`를 처리할 때도 위 Claim·Resolve·알림 규칙을 스펙 단위로 따른다. 보고는 Resolve 3의 세 항목으로 한다. 티켓이 리더에게 값을 넘기라고 하면 그때도 알린다.
-  - 스펙 티켓의 `## Answer`가 기대는 검사 스크립트는 `.scratch/v2-<묶음>/tools/`에 둔다. Answer에는 그 경로와 실행 명령을 적는다. 세션 scratchpad(`/tmp/…`)의 경로는 Answer에 적지 않는다. scratchpad는 세션 하나의 `/tmp` 아래 디렉토리다. `/tmp`가 지워지면 Answer의 재현 명령도 사라진다. `v2-sql-medium-rulebook`의 스크립트는 scratchpad에서 판이 갈렸다. 리더가 옛 판 `both.sh`를 돌려 거짓 MISSING을 보았다. 옮긴 뒤의 보기는 `.scratch/v2-sql-medium-rulebook/tools/`다.
+  - 스펙 티켓의 `## Answer`가 기대는 검사 스크립트는 `.scratch/v2-<묶음>/tools/`에 둔다. Answer에는 그 경로와 실행 명령을 적는다. 세션 scratchpad(`/tmp/…`)의 경로는 Answer에 적지 않는다. `/tmp`의 scratchpad가 지워지면 Answer의 재현 명령도 사라진다. `v2-sql-medium-rulebook`에서는 리더가 scratchpad에 남은 옛 판 `both.sh`를 돌려 거짓 MISSING을 보았다. 옮긴 뒤의 보기는 `.scratch/v2-sql-medium-rulebook/tools/`다.
 - **`/retro` 제안**: 맡은 티켓의 `## Comments`에 적는다. 티켓으로 만들지는 리더가 판단한다. retro를 요청하는 조건은 [`AGENTS.md`](../../AGENTS.md)의 `/retro` 줄에 있다.
   - **닫기 전 알림**: resolve 뒤 세션을 닫기 전에 리더에게 SendMessage로 알린다. 알림에는 retro 제안의 수와 자리를 적는다. 제안이 없으면 retro 없이 닫는다고 적는다. resolve 직후에 닫으면 이 내용을 Resolve 3의 알림에 함께 적는다. 10에서 이 알림이 없어 사용자가 "리더에게 보고부터하라"고 다시 지시했다.
   - 제안마다 두 가지를 한 줄씩 적는다.
@@ -98,10 +99,10 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
       ```bash
       cubrid-jira assign <새 키> --to "$CUBRID_JIRA_USER" --yes
       ```
-   3. sub-task를 In Progress로 바꾼다. 리뷰를 받는 동안 sub-task는 In Progress다. 이미 In Progress이면 그대로 둔다.
+   3. sub-task가 In Progress가 아니면 In Progress로 바꾼다. 리뷰를 받는 동안 sub-task는 In Progress다. 바꾸지 않았어도 readback으로 부모, 담당자, status를 본다.
       ```bash
-      cubrid-jira transition <키> --to "Start Progress" --yes
-      cubrid-jira jql 'key = <키>' --fields parent,assignee,status --output json   # 부모, 담당자, In Progress를 확인한다
+      cubrid-jira transition <키> --to "Start Progress" --yes                        # In Progress가 아닐 때만
+      cubrid-jira jql 'key = <키>' --fields parent,assignee,status --output json   # 언제나
       ```
    4. PR 헤더를 sub-task 키로 바꾼다. PR 본문 첫 줄의 Jira 링크도 같은 키로 바꾼다.
    5. PR을 Ready로 바꾼다. `validate`가 통과하는지 본다.
@@ -109,9 +110,12 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 3. **사람이 "머지"를 지시하면**:
    1. squash 커밋 본문을 파일로 적는다. 첫 줄은 PR 헤더의 키(sub-task 키)로 만든 Jira 링크(`http://jira.cubrid.org/browse/<키>`)다. 그다음은 마지막 커밋까지 반영한 최종 변경의 영문 요약이다. 리뷰 수정, 되돌린 단계, 후속 정정 같은 브랜치 이력은 뺀다. trailer 줄(`Co-Authored-By:` 같은 끝 줄)은 끝에 한 번만 둔다. 이 형식은 [공식 프로세스의 Merge(p20)](../dev-process.md#핵심-운영-규칙)를 따른다.
    2. 기본 본문(PR의 커밋 메시지를 이은 것)으로 머지하지 않는다. 1의 파일을 `gh pr merge --squash --body-file <파일>`로 주어 squash 머지한다. PR #21의 squash 커밋 `ea39d2b`는 기본 본문으로 머지됐다. 그 본문은 커밋 메시지 18개를 이은 246줄이다. trailer 줄도 18번 되풀이된다.
-   3. cubrid-agent의 `scripts/check-subtask-resolve.sh <키>`가 exit 0일 때만 sub-task를 Resolved로 바꾼다(`transition <키> --to "Resolve Issue" --yes`). exit 1이면 그 키를 제목에 단 열린 PR이 남아 있으므로, 마지막 PR을 머지하는 세션이 바꾼다. 이 전이는 resolution을 따로 받지 않고 `Fixed`를 남긴다(CUBRIDQA-1684·1690, 10-28). readback으로 status `Resolved`, resolution `Fixed`를 본다. 다른 값이면 멈추고 리더에게 알린다.
-   - 작업 세션은 Close하지 않는다. 리더가 정한 점검 시점에 리더가 헤드 아래 sub-task를 읽고, Resolved인 것을 한꺼번에 Close한다. 그 시점은 지도 순서표의 "1차 끝 점검" 행에 있다.
-4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. "머지 준비"에서는 2의 1(sub-task 만들기)과 2(담당자)를 건너뛴다. 머지 지시가 오면 3처럼 머지하고 다시 Resolved로 바꾼다.
+   3. 머지 뒤에 cubrid-agent의 `scripts/check-subtask-resolve.sh <키>`를 돌린다. exit 0일 때만 sub-task를 Resolved로 바꾼다(`transition <키> --to "Resolve Issue" --yes`).
+      - exit 1이면 그 키를 제목에 단 열린 PR이 남아 있다. sub-task를 그대로 둔다. 마지막 PR을 머지하는 세션이 바꾼다.
+      - exit 2이면 판정이 없다. 출력의 오류를 고친 뒤 다시 돌린다.
+      - `Resolve Issue`는 resolution을 따로 받지 않고 `Fixed`를 남긴다(CUBRIDQA-1684·1690, 10-28). readback으로 status `Resolved`, resolution `Fixed`를 본다. 다른 값이면 멈추고 리더에게 알린다.
+   - 작업 세션은 Close하지 않는다. Close는 리더가 정한 점검 시점에 리더가 한다. 그때 리더는 헤드 아래의 Resolved인 sub-task를 한꺼번에 Close한다. 그 시점은 지도 순서표의 "1차 끝 점검" 행에 있다.
+4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. "머지 준비"에서는 2의 1(sub-task 만들기)과 2(담당자)를 건너뛴다. "머지" 지시가 오면 3을 처음부터 따른다.
 
 **squash 제목 설정이 `COMMIT_OR_PR_TITLE`인 repo의 PR**(설정은 `gh api repos/<owner>/<repo> --jq .squash_merge_commit_title`로 읽는다): 이 설정은 커밋이 하나뿐인 PR을 그 커밋의 제목으로 머지한다. 그래서 PR에 커밋을 둘 이상 둔다. 그러면 squash 제목은 "머지 준비"에서 sub-task 키로 바꾼 PR 제목이 된다. sub-task는 다른 PR처럼 "머지 준비"에서 만든다. 그래서 커밋할 때는 sub-task 키가 없다. 커밋 제목은 헤드 키로 시작한다.
 

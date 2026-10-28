@@ -123,11 +123,11 @@ grep -q '"머지"를 지시하면' docs/agents/issue-tracker.md            || _t
 grep -qF 'gh pr merge --squash --body-file' docs/agents/issue-tracker.md || _t="$_t squash-body-written"
 grep -q '첫 줄은.*jira\.cubrid\.org/browse/<키>' docs/agents/issue-tracker.md || _t="$_t squash-body-jira-url"
 grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
-# The user's state model (D9, 10-28): In Progress under review, Resolved at merge, Close by the leader only.
+# Sub-task states: In Progress under review, Resolved at merge. Only the leader closes, so the PR flow names no Close.
 _flow=$(sed -n '/^## PR 흐름/,/^## Jira에/p' docs/agents/issue-tracker.md)
 printf '%s\n' "$_flow" | grep -qF -- '--to "Start Progress"'   || _t="$_t subtask-in-progress-at-merge-ready"
 printf '%s\n' "$_flow" | grep -qF -- '--to "Resolve Issue"'    || _t="$_t subtask-resolved-at-merge"
-printf '%s\n' "$_flow" | grep -qF 'Close Issue'                && _t="$_t work-session-closes-a-subtask"
+printf '%s\n' "$_flow" | grep -qF 'Close Issue'                && _t="$_t close-transition-in-pr-flow"
 printf '%s\n' "$_flow" | grep -qF 'check-subtask-resolve.sh <키>' || _t="$_t resolve-after-the-last-pr"
 grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
 grep -q '지도에 영향을 주는 사실' docs/agents/issue-tracker.md      || _t="$_t report-three-items"
