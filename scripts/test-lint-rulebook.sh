@@ -80,7 +80,8 @@ tree
 expect 0 "" "a tree in the agreed shape passes silently"
 
 tree; rm "$D/medium/rules/writing-rules.md"
-expect 1 "medium/rules/writing-rules.md: missing" "a missing file is reported"
+expect 1 $'medium/rules/writing-rules.md: missing\nmedium/AGENTS.md:3: link "rules/writing-rules.md" is not a file of the rulebook' \
+  "a missing file is reported, and so is every link to it"
 
 # The deploy makes the CLAUDE.md symlinks in the tc repo; one kept in the canonical copy is the usual extra.
 tree; ln -s AGENTS.md "$D/sql/CLAUDE.md"
@@ -127,6 +128,51 @@ expect 0 "" "asterisks inside a code span are not a term"
 
 tree; rule '**Drop what you create.** Example: `drop table t;` 정리한다'
 expect 1 "$B:3: Hangul outside the term table" "Hangul outside the term table is reported"
+
+tree; rule '**Read the cleanup rules.** Example: [cleanup](cleanup.md)'
+expect 1 "$B:3: link \"cleanup.md\" is not a file of the rulebook" "a link to a file the tree lacks is reported"
+
+tree; printf '\n## Medium only\n' >> "$D/medium/rules/writing-rules.md"
+rule '**Keep the *verdict* of a medium case.** Example: [change](../../medium/rules/writing-rules.md#medium-only)'
+expect 0 "" "a link to a heading of another category resolves"
+
+# The tree is the tc repo: a file beside it on disk is not deployed, so the link breaks there.
+tree; touch "$T/AGENTS.md"; rule '**Read the note.** Example: [note](../../../AGENTS.md)'
+expect 1 "$B:3: link \"../../../AGENTS.md\" is not a file of the rulebook" "a link that climbs out of the tree is reported"
+
+tree; rule '**Read the root.** Example: [root](../../AGENTS.md/..)'
+expect 1 "$B:3: link \"../../AGENTS.md/..\" is not a file of the rulebook" "a link that folds back to the tree root is reported"
+
+tree; rule '**Read the rules.** Example: [rules](/writing-rules.md)'
+expect 1 "$B:3: link \"/writing-rules.md\" is not a file of the rulebook" "a link that starts with / is reported"
+
+tree; rule '**Read the rules for a new TC.** Example: [new TC](writing-rules.md#new-tcs)'
+expect 1 "$B:3: link \"writing-rules.md#new-tcs\": sql/rules/writing-rules.md has no heading \"#new-tcs\"" \
+  "a link to a heading the file lacks is reported"
+
+# Expected anchors are the ones GitHub renders for the same heading shapes in this repo's docs.
+headed() {  # the paragraph is on line 11
+  printf '# Test perspectives\n\n## Plans, hints, and data size\n\n## The `write_ok` call — once per path\n\n## Notes\n\n## Notes\n\n%s\n' "$1" > "$D/$B"
+}
+tree; headed '**Follow the anchors.** Example: [a](#plans-hints-and-data-size) [b](#the-write_ok-call--once-per-path) [c](#notes-1)'
+expect 0 "" "an anchor follows GitHub's heading rule, and a repeated heading takes -1"
+tree; headed '**Follow the anchors.** Example: [d](#notes-2)'
+expect 1 "$B:11: link \"#notes-2\": $B has no heading \"#notes-2\"" "a heading repeated twice has no -2 anchor"
+tree; printf '# Test perspectives\n\n## Notes \n\n%s\n' '**Read the notes.** Example: [notes](#notes)' > "$D/$B"
+expect 0 "" "trailing blanks of a heading are not part of its anchor"
+
+tree; rule '**Cite the issue.** Example: [CUBRIDQA-1505](https://jira.cubrid.org/browse/CUBRIDQA-1505)'
+expect 0 "" "an external URL is not checked"
+
+tree; rule $'**Write a link as markdown.** Example: `[a](none.md)`\n```md\n[b](none.md)\n```'
+expect 0 "" "a link inside a code span or a fence is not checked"
+
+tree; rule $'**Name the step.** Example: [setup](#setup)\n```bash\n# setup\n```'
+expect 1 "$B:3: link \"#setup\": $B has no heading \"#setup\"" "a comment line inside a fence is not a heading"
+
+# One awk reads every file, and sql/rules/writing-rules.md is read right after $B.
+tree; rule $'**Read the rules for a new TC.** Example: [new TC](writing-rules.md#new-tc)\n```bash\nwrite_ok'
+expect 0 "" "a fence left open in one file does not hide the headings of the next"
 
 # A dangling symlink is in the file set but cannot be read; root reads a chmod 000 file anyway.
 tree; rm "$D/$B" && ln -s gone.md "$D/$B"
