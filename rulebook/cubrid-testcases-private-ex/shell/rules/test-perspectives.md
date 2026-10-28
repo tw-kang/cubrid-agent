@@ -46,7 +46,7 @@ Shell TCs run on shared machines that CTP drives without a terminal. The checks 
 
 **Give each multi-row SELECT that you compare with an answer file an `ORDER BY` on a unique key, and sort other output that has no fixed order before you compare it.** Rows of a SELECT without `ORDER BY` and lines that a parallel run logs come in any order. Example: `select owner_name, class_name from db_class order by owner_name, class_name;`, and `sort px.log > px.sorted` for the log of a parallel query.
 
-**Point a DBLink TC under `shell/` at a second CUBRID database, and test DBLink to Oracle, MySQL, or MariaDB outside `shell/`.** Neither the CI pod nor VM daily has an Oracle, MySQL, or MariaDB server, so a TC that needs one fails in both. Example: the TC creates `db2` on the same machine and names it in `CREATE SERVER`.
+**Point a DBLink TC at a second CUBRID database, unless it tests DBLink to Oracle, MySQL, or MariaDB, which goes under `_25_unstable`.** Such a TC needs a server that VM daily has and the CI pod lacks: it starts its own from the media under `$HOME/dblink_<dbms>`, which the CI image lacks, and [writing rules](writing-rules.md#place-and-files) say where it goes. Example: the TC creates `db2` on the same machine and names it in `CREATE SERVER`.
 
 **Test only what runs without interactive input.** The [writing rules](writing-rules.md#new-tc) say why a prompt hangs a TC under CTP and how to give `/dev/null` to a command that may prompt. Example: a check of what `csql` does with a statement typed at its prompt is not a shell TC, and a check of the same statement through `csql -c` is.
 
