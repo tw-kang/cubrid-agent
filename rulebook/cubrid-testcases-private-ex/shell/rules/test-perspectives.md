@@ -59,7 +59,7 @@ Shell TCs run on shared machines that CTP drives without a terminal. The checks 
 - `shell/_40_guava/cbrd_26719/cases/cbrd_26719.sh`: it first checks a positive control (alone, with the worker pool free, the query runs a parallel probe), and its verdicts prove that the serial fallback under contention really happened.
   Differs: line 3 opens a heredoc with an unquoted delimiter though the body has no `$`; lines 78, 192, 208, 217, 222, 230, 237, and 245 call `write_nok` with no argument.
 - `shell/_37_elderberry/cbrd_23842_cdc/bug/cbrd_27026/cases/cbrd_27026.sh`: in 78 lines it holds a positive control and the bug scenario, and its description block states the result expected before and after the fix.
-  Differs: line 37 waits with `sleep 1` and no reason comment; line 63 ends an abort path with `exit 0`, not `exit 1`; line 70 puts a command substitution straight into `[ ]`; the TC tests a bug fix but sits in the feature group `_37_elderberry/`, and a TC like it goes to the [half-year directory](writing-rules.md#new-tc) of its issue, here `shell/_06_issues/_26_2h/cbrd_27026/`.
+  Differs: line 37 waits with `sleep 1` and no reason comment; line 63 ends an abort path with `exit 0`, not `exit 1`; line 70 puts a command substitution straight into `[ ]`; the TC tests a bug fix but sits in the feature group `_37_elderberry/`, and a TC like it goes to the [half-year directory](writing-rules.md#new-tc) of the day it is written, here `shell/_06_issues/_26_2h/cbrd_27026/`.
 
 ## Bad TCs
 
