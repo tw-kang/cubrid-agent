@@ -10,7 +10,7 @@ These *writing rules* say how to write the files of a TC under `shell/`. What a 
 
 **Put the entry script of a TC at `<name>/cases/<name>.sh`, with the same `<name>` for the directory and the script.** CTP runs only the script named after its directory, so a TC under another name never runs and never fails. Example: `shell/_06_issues/_26_2h/cbrd_xxxxx/cases/cbrd_xxxxx.sh`, not `cbrd_xxxxx/cases/test.sh` or `cbrd_xxxxx/cbrd_xxxxx.sh`.
 
-**Put a bug-fix TC under `_06_issues/_<yy>_<1|2>h/` for the half-year in which its issue was created.** The date of the issue picks the directory, not the day you write the TC. The directories `_25_2h` to `_26_2h` mostly follow the date the issue was resolved, so a neighboring TC is no precedent for the directory. Example: a bug issue created on 2025-02-03 gets `shell/_06_issues/_25_1h/cbrd_xxxxx/` even when you write its TC in 2026.
+**Put a bug-fix TC under `_06_issues/_<yy>_<1|2>h/` for the half-year in which you write the TC.** The day you write the TC picks the directory, not a date on the issue, for developers and QA alike. Example: a bug issue created on 2025-02-03 gets `shell/_06_issues/_26_2h/cbrd_xxxxx/` when you write its TC on 2026-10-30.
 
 **Put a feature TC under a feature group of its release directory `_<no>_<release_code>/`.** Example: a feature TC goes under a group such as `shell/_40_guava/cbrd_xxxxx_<feature>/`.
 
