@@ -27,7 +27,7 @@ The rest of this section holds for every TC under `medium/`, and [Changing an ex
 
 **Name a new TC file with lowercase letters, digits, and underscores only.** Example: `outer_inner.sql`, not `server-concurrent-sortmerge.sql` or `test_add_months_QA.sql`; a TC of an issue is `cbrd_xxxxx.sql`, or `cbrd_xxxxx_<keyword>.sql` for a split file, as the [sql writing rules](../../sql/rules/writing-rules.md#place-and-files) say.
 
-**Make no subdirectory under `cases/` or `answers/`.** Example: `_02_xtests/cases/setjn1.sql` and `_02_xtests/answers/setjn1.answer`, not `_02_xtests/cases/old/setjn1.sql`.
+**Make no subdirectory under `cases/` or `answers/`.** CTP also runs a `.sql` file in a subdirectory of `cases/`, but it looks for the answer file in `answers/` without the subdirectory, so `cases/old/setjn1.sql` and `cases/setjn1.sql` read the same answer file. Example: `_02_xtests/cases/setjn1.sql` and `_02_xtests/answers/setjn1.answer`, not `_02_xtests/cases/old/setjn1.sql`.
 
 ### Start and end of the file
 
