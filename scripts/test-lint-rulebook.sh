@@ -129,6 +129,15 @@ expect 0 "" "asterisks inside a code span are not a term"
 tree; rule '**Drop what you create.** Example: `drop table t;` 정리한다'
 expect 1 "$B:3: Hangul outside the term table" "Hangul outside the term table is reported"
 
+tree; rule '**Keep the history out.** Example: `sql/_13_issues/_26_1h/cbrd_99999/` came in on 2026-01-02.'
+expect 1 "$B:3: cbrd_<number> and a date on one line" "a real case and a date on one line are reported"
+
+tree; rule '**Pick the directory by the day you write the TC.** Example: on 2026-10-30, `sql/_13_issues/_26_2h/cbrd_xxxxx/`.'
+expect 0 "" "a date next to the placeholder cbrd_xxxxx passes"
+
+tree; rule '**Name the case.** Example: `sql/_13_issues/_26_1h/cbrd_99999/`'
+expect 0 "" "a real case without a date passes"
+
 tree; rule '**Read the cleanup rules.** Example: [cleanup](cleanup.md)'
 expect 1 "$B:3: link \"cleanup.md\" is not a file of the rulebook" "a link to a file the tree lacks is reported"
 
