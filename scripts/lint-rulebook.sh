@@ -21,6 +21,8 @@ term_column() {
 #
 # Terms: general English cannot be listed, so the check reads what the writer marks. An italic span is a
 # term and must be a row of the root term table; Hangul belongs only in that table's Korean column.
+#
+# A real case and a date on one line are history of a tc repo that may be private, and this repo is public.
 PARAGRAPH_AWK='
 BEGIN { n = split(TERMS, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") term[t[i]] = 1 }
 function terms_in(line,   s, w, x, y) {
@@ -50,6 +52,7 @@ function flush(   p, i, lead, w) {
 }
 { table = FILENAME == "AGENTS.md" && ($0 ~ /^\|[ \t]*Term[ \t]*\|/ || (table && /^\|/)) }
 !table && $0 ~ HANGUL { print FILENAME ":" FNR ": Hangul outside the term table" }
+/cbrd_[0-9]/ && /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/ { print FILENAME ":" FNR ": cbrd_<number> and a date on one line" }
 /^[ \t]*(```|~~~)/ { fence = !fence; if (start) para = para "\n" $0; next }
 fence              { if (start) para = para "\n" $0; next }
 /^[ \t]*$/         { flush(); blank = 1; next }
