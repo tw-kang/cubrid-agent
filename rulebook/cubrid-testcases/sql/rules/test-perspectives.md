@@ -46,7 +46,7 @@ CTP runs the TC files of a run one after another on one database ([Before the PR
 
 **Write queries whose result does not depend on the machine, the physical order of rows, or timing.** The row count of a catalog or a system class depends on what other TCs left, a result that follows the physical order of rows or a hash layout changes with the storage, and `sleep()` does not order statements. A non-aggregated column outside `GROUP BY` can come from any row of its group, and one value can print in more than one form. Example: `select a, min(b) from t group by a order by a;`, not `select a, b from t group by a;`, and `select count(*) from db_class where class_name = 't';`, not `select count(*) from db_class;`.
 
-**Print the number of rows with `count(*)` when it matters, because CTP removes CR and LF before it compares output.** Two rows `1` and `2` can then compare equal to one row `12`, and outputs that differ only in blank lines compare equal. Example: `select count(*) from t where a > 0;` next to `select a from t where a > 0 order by a;`.
+**Print the number of rows with `count(*)` when it matters, because CTP removes CR and LF before it compares output.** Outputs that differ only in blank lines then compare equal. Example: `select count(*) from t where a > 0;` next to `select a from t where a > 0 order by a;`.
 
 **Check a plan or a trace by its lines and their shape, not by a number in it.** CTP replaces every number in the plan of `--@queryplan` or a `.queryPlan` file and in the output of `show trace` with `?`, so cost, cardinality, rows, fetches, time, and the number of parallel workers all print as `?`. For the same reason, names that differ only in digits look the same in a plan, as the [writing rules](writing-rules.md#plans-and-traces) say. Example: the TC checks that the trace has a parallel workers line under the `SCAN` line, not that it shows 4 workers.
 
@@ -64,7 +64,6 @@ CTP runs the TC files of a run one after another on one database ([Before the PR
   Differs: line 5 puts a `'` (`key's`) inside the header block.
 - `sql/_13_issues/_26_2h/cases/cbrd_27598.sql`: in a few lines its header block states the cause of the crash, the fix, and the six cases, and each query is compared with its serial twin.
 - `sql/_36_guava/cbrd_27100/cases/cbrd_27100.sql`: its header block states what the engine did before the fix (a default selectivity of 0.1), and each query is compared with its `parallel(0)` twin.
-  Differs: lines 10 and 11 put a `;` inside the header block.
 
 ## Bad TCs
 
@@ -74,4 +73,4 @@ Each TC below shows the defect named next to it.
 - `sql/_32_damson/cbrd_22856_Row_Value_Constructor/cases/Row_Value_Constructor_queryPlan.sql`: it never restores `set optimization level 513` (line 9), creates its table without dropping it first (line 2), and runs plan queries that return two rows with no `ORDER BY`, such as lines 22 and 43.
 - `sql/_05_plcsql/_01_testspec/_02_declaration/_09_percent_type/cases/28_error_unsupport_viewtable_percent_type_return.sql`: all of its 140 lines end in CRLF.
 - `sql/_36_guava/cbrd_26864/cases/cbrd_26864.sql`: line 21 of its opening block comment says `--+ holdcas on / off`, so CTP takes lines 1 to 61 for one holdcas control line and never runs the first `call login` (line 61).
-- `sql/_05_plcsql/_01_testspec/_01_basic_structure/_01_create_procedure/_04_with_parameters/cases/08_invalid_parameter.sql`: its last line, `--_ server-message off` (line 25), is a typo that CTP does not read as a control line, and neither `drop test_proc;` (line 10) nor `drop function test_proc2;` (line 23) drops a procedure as a procedure.
+- `sql/_05_plcsql/_01_testspec/_01_basic_structure/_01_create_procedure/_04_with_parameters/cases/08_invalid_parameter.sql`: neither `drop test_proc;` (line 10) nor `drop function test_proc2;` (line 23) drops a procedure as a procedure.
