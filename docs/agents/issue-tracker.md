@@ -122,7 +122,9 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 **tc PR이 리뷰를 받는 동안의 룰북 후속 PR**: 이 동안 `cubrid-agent`의 후속 PR(위 4)은 sub-task마다 하나만 연다. 리뷰 라운드의 수정은 그 PR에 커밋으로 더한다. 10-27~28에는 `cubrid-agent` PR #22~#33 열두 개가 열렸다. 그 열두 개의 PR 헤더는 CUBRIDQA-1684나 1690이다.
 - 배포는 `cubrid-agent` PR 브랜치의 worktree에서 `deploy-rulebook.sh`로 한다. 이 스크립트는 자기가 놓인 worktree의 `rulebook/`을 복사한다.
 - 배포 전에 `cubrid-agent` PR 브랜치가 `develop`보다 뒤처졌는지 본다. 뒤처졌으면 rebase하지 않고 `git merge origin/develop`을 한다.
-- 그 PR은 tc PR을 머지하기 직전에 한 번 머지한다. 순서는 사람의 "머지" 지시 → `cubrid-agent` PR 머지 → `develop`의 룰북 정본과 tc PR head를 `cmp`로 대조 → tc PR 머지다.
+- `cubrid-agent` PR은 tc PR을 머지하기 직전에 한 번 머지한다. tc PR의 "머지" 지시 하나가 `cubrid-agent` PR의 "머지 준비"와 "머지"를 함께 덮는다. 순서는 tc PR의 "머지" 지시 → `cubrid-agent` PR의 "머지 준비" → `cubrid-agent` PR 머지 → `cmp` 대조 → tc PR 머지다.
+  - `cubrid-agent` PR의 "머지 준비"와 머지는 위 4대로 한다. readback(2의 3)이 부모 헤드 키, 담당자 `$CUBRID_JIRA_USER`, status In Progress를 보이지 않거나 `validate`(2의 5)가 실패하면 머지하지 않는다. 그때는 멈추고 리더에게 알린다. 그 밖에는 2의 6에서 멈추지 않는다.
+  - `cmp` 대조의 두 쪽은 `develop`의 룰북 정본과 tc PR head다.
 
 **후속 커밋을 PR에 더할 때**(어느 단계든): 그 커밋이 바꾼 사실을 같은 PR의 세 자리에서 다시 읽는다 — PR의 diff(`CHANGELOG.md` 항목 포함), PR 본문, 앞 커밋의 메시지. diff와 PR 본문은 그 자리에서 고친다. 앞 커밋의 메시지는 고치지 못한다(force-push 금지). 그래서 새 커밋의 메시지에 무엇이 더는 참이 아닌지 적는다.
 
