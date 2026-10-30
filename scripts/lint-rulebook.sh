@@ -22,7 +22,7 @@ term_column() {
 # Terms: general English cannot be listed, so the check reads what the writer marks. An italic span is a
 # term and must be a row of the root term table; Hangul belongs only in that table's Korean column.
 #
-# A real case next to a date is history of a tc repo that may be private, and this repo is public.
+# A real case and a date on one line are history of a tc repo that may be private, and this repo is public.
 PARAGRAPH_AWK='
 BEGIN { n = split(TERMS, t, "\n"); for (i = 1; i <= n; i++) if (t[i] != "") term[t[i]] = 1 }
 function terms_in(line,   s, w, x, y) {

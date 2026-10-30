@@ -138,6 +138,9 @@ expect 0 "" "a date next to the placeholder cbrd_xxxxx passes"
 tree; rule '**Name the case.** Example: `sql/_13_issues/_26_1h/cbrd_99999/`'
 expect 0 "" "a real case without a date passes"
 
+tree; rule $'**Name the case.** Example: `sql/_13_issues/_26_1h/cbrd_99999/`\ncame in on 2026-01-02.'
+expect 0 "" "a real case and a date on two lines pass"
+
 tree; rule '**Read the cleanup rules.** Example: [cleanup](cleanup.md)'
 expect 1 "$B:3: link \"cleanup.md\" is not a file of the rulebook" "a link to a file the tree lacks is reported"
 
