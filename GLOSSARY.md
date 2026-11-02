@@ -68,6 +68,8 @@ tc repo 개발자가 읽는 영문 용어 표는 정본의 루트 `AGENTS.md`에
 | **버그 경로(bug path)** | 이슈의 버그가 지나가는 엔진 코드 경로다. 이 경로에 닿지 않는 TC는 수정 전 빌드에서도 통과한다 |
 | **중단 경로(abort path)** | 실패한 단계 뒤에 TC를 일찍 끝내는 TC 스크립트의 경로다. 형식은 `shell/rules/writing-rules.md`에 있다 |
 | **설명 블록(description block)** | TC 스크립트 2행, `#!/bin/bash` 바로 다음에 두는 블록이다. 이슈 키와 TC가 무엇을 확인하는지 적는다 |
+| **목록형 TC(list TC)** | 서로 상관없는 검사를 나란히 늘어놓은 TC다. SQL의 자리는 `shell/rules/writing-rules.md`에 있다 |
+| **흐름형 TC(flow TC)** | SQL이 셸 단계(파라미터 변경, 재시작, 유틸리티) 사이에 끼어 앞 단계에 기대는 TC다. SQL의 자리는 `shell/rules/writing-rules.md`에 있다 |
 | **헤더 블록(header block)** | TC 파일 맨 앞에 두는 `/** … */` 블록이다. 이슈와 TC가 무엇을 확인하는지 적는다. 형식은 `cubrid-testcases`의 `sql/rules/writing-rules.md`에 있다 |
 | **케이스 라벨(evaluate label)** | TC의 `evaluate '…';` 문장에 쓰는 문자열이다. 답지에 찍혀 케이스가 어디서 시작하는지 보인다 |
 | **알려진 오답(known wrong result)** | 열린 이슈 때문에 틀린 답지의 값이다 |
