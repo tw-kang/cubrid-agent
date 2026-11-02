@@ -43,7 +43,7 @@ Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-
 
 **Put a new TC and a change of an existing TC or its *answer file* in separate commits, start the message of a commit that adds a TC with `Add shell testcase for …` and of a commit that changes an existing TC or its *answer file* with `Revise testcase for …`, and write in each message why the change is needed and what it changes.** Example: one commit `Revise testcase for cbrd_xxxxx: wait for the server with wait_until, because the fixed sleep was too short on the CI pod`, and another commit `Add shell testcase for the new option of backupdb (cbrd_yyyyy)`.
 
-**Commit only the files the TC needs.** Run outputs stay out: `.result`, `*.log`, `*.err`, DB volumes, core files, `lob/` directories. *Answer files* and the helper files the TC uses (`.java`, `.c`, compressed data) go in. Example: before you open the PR, `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
+**Commit only the files the TC needs.** Run outputs stay out: `.result`, `*.log`, `*.err`, DB volumes, core files, `lob/` directories. *Answer files* and the helper files the TC uses (`.sql`, `.java`, `.c`, compressed data) go in. Example: before you open the PR, `git status` lists `cases/cbrd_xxxxx.result` as untracked, and you leave it out.
 
 **Shrink a large data or archive file before you commit it, or build the data inside the script.** Example: trim a `.tar.gz` to the files the TC reads, and create a large set of DB objects with a loop in the script instead of committing them.
 
