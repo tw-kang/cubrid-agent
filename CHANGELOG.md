@@ -7,6 +7,8 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-03
+
 - (patch) **The shipped skills no longer point at decision records that are gone.**
   `setup-cubrid-agent`, `author-testcase` and `gate-resolved` cited `.agents/adr/…` files and ADR
   numbers, `setup.sh` printed one in its output, and the `gate-resolved` evals cited one deleted
