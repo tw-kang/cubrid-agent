@@ -431,6 +431,90 @@ c_update_from_symlink() {
 }
 t "on a deploy branch with CLAUDE.md symlinks, a deploy replaces them with the import line and leaves AGENTS.md as it is" c_update_from_symlink
 
+# GitHub's squash merge puts the branch's change on develop as one new commit, so the branch tip never
+# becomes an ancestor of origin/develop and the merged branch stays in the clone (private-ex #4661, #4681).
+squash_merged() {  # <branch>
+  git -C "$W" fetch -q "$C" "$1" && git -C "$W" merge -q --squash FETCH_HEAD >/dev/null && origin_commit "squash $1"
+}
+on_branch() {  # <branch>: HEAD is on it, or say where it is
+  local b; b=$(git -C "$C" symbolic-ref --short HEAD)
+  [ "$b" = "$1" ] || { echo "HEAD is on $b, not $1 — $(flat "$OUT")"; return 1; }
+}
+
+c_merged() {
+  fixture; deployed || return
+  local merged; merged=$(git -C "$C" rev-parse HEAD)
+  git -C "$C" switch -q feature
+  squash_merged cubridqa-1663-rulebook || { echo "the squash merge failed"; return; }
+  canonical_fix
+  deployed || return
+  [ "$(git -C "$C" rev-parse cubridqa-1663-rulebook)" = "$merged" ] || echo "the merged branch moved;"
+  on_branch cubridqa-1663-rulebook-2 || return
+  git -C "$C" merge-base --is-ancestor "$ORIGIN_TIP" HEAD || echo "the new branch lacks the fetched origin/develop tip;"
+  git -C "$C" merge-base --is-ancestor "$merged" HEAD && echo "the new branch carries the merged branch's commits;"
+  [ "$(git -C "$C" rev-list --count "$ORIGIN_TIP..HEAD")" = 1 ] || echo "expected one commit on origin/develop;"
+  printf '%s\n' "$OUT" | grep -qxF \
+    "deploy-rulebook: cubridqa-1663-rulebook is already in origin/develop at ${ORIGIN_TIP:0:12}; it is left as it is" \
+    || echo "does not name the squash commit that holds the old branch;"
+  printf '%s\n' "$OUT" | grep -qF -- '----- PR body -----' || echo "prints no PR body skeleton for the new PR"
+}
+t "a squash-merged deploy branch is left as it is and the deploy starts the next one, -2, from origin/develop" c_merged
+
+second_fix() { printf 'what to check, fixed\n' > "$CANONICAL/shell/rules/test-perspectives.md"; git -C "$A" commit -qam "fix another rule"; }
+
+c_merged_twice() {
+  fixture; deployed || return
+  git -C "$C" switch -q feature
+  squash_merged cubridqa-1663-rulebook || { echo "the squash merge failed"; return; }
+  canonical_fix
+  deployed || return
+  local merged; merged=$(git -C "$C" rev-parse HEAD)
+  git -C "$C" switch -q feature
+  squash_merged cubridqa-1663-rulebook-2 || { echo "the squash merge of -2 failed"; return; }
+  second_fix
+  deployed || return
+  [ "$(git -C "$C" rev-parse cubridqa-1663-rulebook-2)" = "$merged" ] || echo "the merged -2 branch moved;"
+  on_branch cubridqa-1663-rulebook-3 || return
+  git -C "$C" merge-base --is-ancestor "$merged" HEAD && echo "the new branch carries the merged -2 commits;"
+  [ "$(git -C "$C" diff-tree --no-commit-id --name-only -r HEAD)" = shell/rules/test-perspectives.md ] \
+    || echo "the new commit holds more than the second fix"
+}
+t "when -2 is squash-merged too, the deploy starts -3" c_merged_twice
+
+c_merged_next_open() {
+  fixture; deployed || return
+  git -C "$C" switch -q feature
+  squash_merged cubridqa-1663-rulebook || { echo "the squash merge failed"; return; }
+  canonical_fix
+  deployed || return
+  local open; open=$(git -C "$C" rev-parse HEAD)
+  git -C "$C" switch -q feature; second_fix
+  deployed || return
+  on_branch cubridqa-1663-rulebook-2 || return
+  [ "$(git -C "$C" rev-list --count "$open..HEAD")" = 1 ] || echo "expected one new commit on -2;"
+  git -C "$C" merge-base --is-ancestor "$open" HEAD || echo "the open -2 branch was rewritten;"
+  git -C "$C" show-ref --verify -q refs/heads/cubridqa-1663-rulebook-3 && echo "made -3 though -2 is open;"
+  printf '%s\n' "$OUT" | grep -q 'open PR' || echo "does not say the push updates the open PR"
+}
+t "past a merged branch, an open -2 takes the new commit on top, as any open deploy branch does" c_merged_next_open
+
+# Bringing a branch up to date by merging origin/develop into it, as the no-rebase rule has it, leaves a
+# merged branch with no change of its own and no squash commit to match.
+c_merged_then_synced() {
+  fixture; deployed || return
+  git -C "$C" switch -q feature
+  squash_merged cubridqa-1663-rulebook || { echo "the squash merge failed"; return; }
+  { git -C "$C" fetch -q origin && git -C "$C" switch -q cubridqa-1663-rulebook \
+      && git -C "$C" merge -q --no-edit origin/develop && git -C "$C" switch -q feature; } \
+    || { echo "could not merge origin/develop into the merged branch"; return; }
+  local synced; synced=$(git -C "$C" rev-parse cubridqa-1663-rulebook)
+  canonical_fix
+  deployed || return
+  [ "$(git -C "$C" rev-parse cubridqa-1663-rulebook)" = "$synced" ] || echo "the merged branch moved;"
+  on_branch cubridqa-1663-rulebook-2
+}
+t "a merged branch that took origin/develop afterwards is merged too, and the deploy starts -2" c_merged_then_synced
+
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'deploy-rulebook: %d/%d\n' "$T_PASS" "$T_PASS"
   exit 0
