@@ -154,6 +154,15 @@ grep -q 'ID를 정의한 파일과 행을 함께 넘긴다' docs/agents/issue-tr
 grep -qF 'Answer`가 기대는 검사 스크립트는 `.scratch/v2-<묶음>/tools/`' docs/agents/issue-tracker.md || _t="$_t spec-check-scripts-in-tools"
 grep -q '닫기 전 알림' docs/agents/issue-tracker.md                 || _t="$_t notify-leader-before-closing"
 grep -qF 'COMMIT_OR_PR_TITLE' docs/agents/issue-tracker.md         || _t="$_t commit-or-pr-title-flow"
+grep -q '^- \*\*사용자가 고른 문구\*\*: 사용자가 고른 문구를 다른 문구로 바꾸려면, 바꾼 문구를 보이고 다시 묻는다\.' docs/agents/issue-tracker.md || _t="$_t reask-before-changing-chosen-wording"
+grep -q '^- \*\*초안의 자리\*\*:.*`\.scratch/<디렉토리>/notes/`에 쓴다\. 세션 scratchpad(`/tmp/…`)에 쓰지 않는다\.' docs/agents/issue-tracker.md || _t="$_t drafts-in-scratch-notes"
+grep -qF '세션 기록(`~/.claude/projects/<프로젝트>/<세션 id>.jsonl`)의 `timestamp`를 쓴다' docs/agents/issue-tracker.md || _t="$_t user-answer-time-from-session-log"
+printf '%s\n' "$_flow" | grep -qF '`@<리뷰어> <N>절, <행>: <무엇을 고쳤다> (<커밋 SHA>)`' || _t="$_t tc-review-reply-format"
+printf '%s\n' "$_flow" | grep -qF 'readback은 `pulls/<PR 번호>/comments`로 한다' || _t="$_t tc-review-reply-readback"
+# The warning has to come before the command: a reader who copies the command first never reaches it.
+_adm_w=$(printf '%s\n' "$_flow" | grep -n '^   - \*\*승인을 요구하는 repo의 머지\*\*: 경고 — .*사용자가 그 세션에서 "cubridci 계정으로 머지하라"라고 지시했을 때만 한다\.' | cut -d: -f1)
+_adm_c=$(printf '%s\n' "$_flow" | grep -n -- '--squash --admin --match-head-commit' | head -1 | cut -d: -f1)
+[ -n "$_adm_w" ] && [ -n "$_adm_c" ] && [ "$_adm_w" -lt "$_adm_c" ] || _t="$_t admin-merge-only-on-user-order"
 _retro=$(sed -n '/^- \*\*`\/retro` 제안\*\*/,/^$/p' docs/agents/issue-tracker.md)
 for _w in 결과 재발 높음 중간 낮음; do
   printf '%s\n' "$_retro" | grep -q "\*\*$_w\*\*" || _t="$_t retro-severity:$_w"

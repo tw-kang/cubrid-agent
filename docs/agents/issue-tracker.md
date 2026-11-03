@@ -43,6 +43,11 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 - **배정**: 리더가 지도의 순서표에서 세션을 배정한다. 배정받지 않은 티켓은 claim하지 않는다.
 - **Claim**: 일을 시작하기 전에 `Status:` 줄을 `claimed (<세션 이름>, <YYYY-MM-DD HH:MM>)`로 바꾸고 저장한다. 세션 이름은 맡은 티켓 번호를 따른다(예: `v2-03`).
   - 시각과 수치는 손으로 치지 않는다. 티켓 줄의 시각은 그 줄을 적는 셸 명령(`sed -i`, heredoc) 안의 `$(date '+%Y-%m-%d %H:%M')`가 넣는다. 보고의 시각과 수치는 명령의 출력 줄(그 티켓 줄, 검사 출력)을 그대로 붙인다. `v2-sql-medium-rulebook` 01은 15:01을 15:20으로 적었다. 지적을 받은 뒤에도 같은 일이 한 번 더 생겼다.
+    - 사용자 답이나 지시의 시각은 세션 기록(`~/.claude/projects/<프로젝트>/<세션 id>.jsonl`)의 `timestamp`를 쓴다. 그 답을 적는 때의 `date`를 쓰지 않는다. `timestamp`는 아래 명령으로 꺼낸다. 그 답을 인용한 도구 출력도 걸리므로 가장 이른 줄을 쓴다.
+      ```bash
+      jq -r 'select(.type=="user" and (.message.content|tostring|contains("<답의 일부>"))) | .timestamp' <세션 기록> | head -1
+      ```
+    - `timestamp`는 UTC다. 시:분:초에 `Z`를 붙여 적는다(예: `05:58:08Z`). `v2-shell-rulebook` 08은 적는 때의 `date`(14:47, 14:59 KST)를 넣었다. 세션 기록은 `05:46:58Z`, `05:58:08Z`(14:46, 14:58 KST)였다.
   - 재오픈된 티켓(`Status:` 값에 `재오픈`이 있다)은 값을 덮지 않고 앞에 잇는다. 새 값을 앞에 쓴다. 지금 값은 ` · 이전: `으로 뒤에 잇는다. 예: `**Status:** claimed (v2-structure, 2026-10-23 20:12) · 이전: ready-for-agent — 재오픈 (…) · 이전: resolved`. resolve도 같다.
   - 상태를 셀 때는 `Status:` 줄을 ` · 이전:` 앞까지만 읽는다. 줄 전체를 grep하면 "이전: resolved"가 걸린다.
 - **Resolve**:
@@ -70,8 +75,10 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
   - 서브에이전트가 SendMessage로 부르는 `team-lead`는 그 서브에이전트를 띄운 작업 세션이다. 리더가 아니다. 리더에게 보고하는 쪽은 작업 세션뿐이다. 10의 작업 세션은 `team-lead`를 리더로 읽었다. 그래서 리더에게 보낸 보고 두 건에 "서브에이전트가 리더에게 보고했다"고 잘못 적었다.
   - 지시문에 ID(규칙 ID, 표의 행 ID)를 넘길 때는 그 ID를 정의한 파일과 행을 함께 넘긴다. `v2-sql-medium-rulebook` 06의 작업 세션은 구현 서브에이전트에 "U-1720-2 = gha-ci가 그 브랜치에서 돌림"이라고 보냈다. 02 표의 정의는 `commit-to-tc-pr-branch`였다.
 - **새로 드러난 결정**: 작업 세션은 티켓 파일을 만들지 않는다. 새 결정이나 조사가 필요하면 리더에게 SendMessage로 제안한다. 같은 내용을 맡은 티켓의 `## Comments`에도 적는다. 새 티켓을 만들지 기존 티켓을 재오픈할지는 리더가 판단한다.
+- **사용자가 고른 문구**: 사용자가 고른 문구를 다른 문구로 바꾸려면, 바꾼 문구를 보이고 다시 묻는다. `00e4318`의 `writing-rules.md`:13은 사용자가 고른 미리보기와 다르다(10-30 리더 확인).
 - **스펙을 맡은 작업 세션**: `/implement-spec`으로 `.scratch/v2-<묶음>/spec.md`를 처리할 때도 위 Claim·Resolve·알림 규칙을 스펙 단위로 따른다. 보고는 Resolve 3의 세 항목으로 한다. 티켓이 리더에게 값을 넘기라고 하면 그때도 알린다.
   - 스펙 티켓의 `## Answer`가 기대는 검사 스크립트는 `.scratch/v2-<묶음>/tools/`에 둔다. Answer에는 그 경로와 실행 명령을 적는다. 세션 scratchpad(`/tmp/…`)의 경로는 Answer에 적지 않는다. `/tmp`의 scratchpad가 지워지면 Answer의 재현 명령도 사라진다. `v2-sql-medium-rulebook`에서는 리더가 scratchpad에 남은 옛 판 `both.sh`를 돌려 거짓 MISSING을 보았다. 옮긴 뒤의 보기는 `.scratch/v2-sql-medium-rulebook/tools/`다.
+- **초안의 자리**: 사용자가 읽거나 고칠 초안(PR 본문, Jira 글, 리뷰 답장, 공지, squash 본문)은 `.scratch/<디렉토리>/notes/`에 쓴다. 세션 scratchpad(`/tmp/…`)에 쓰지 않는다. `<디렉토리>`는 맡은 티켓이 든 `issues/`의 부모다(예: `v2-structure`). 사용자 원문: "초안파일을 /tmp 에 두면 내가 편집기로 못읽는다. 이 프로젝트 내에 파일을 써라."(11-02)
 - **`/retro` 제안**: 맡은 티켓의 `## Comments`에 적는다. 티켓으로 만들지는 리더가 판단한다. retro를 요청하는 조건은 [`AGENTS.md`](../../AGENTS.md)의 `/retro` 줄에 있다.
   - **닫기 전 알림**: resolve 뒤 세션을 닫기 전에 리더에게 SendMessage로 알린다. 알림에는 retro 제안의 수와 자리를 적는다. 제안이 없으면 retro 없이 닫는다고 적는다. resolve 직후에 닫으면 이 내용을 Resolve 3의 알림에 함께 적는다. 10에서 이 알림이 없어 사용자가 "리더에게 보고부터하라"고 다시 지시했다.
   - 제안마다 두 가지를 한 줄씩 적는다.
@@ -115,6 +122,14 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
       - exit 2이면 판정이 없다. 출력의 오류를 고친 뒤 다시 돌린다.
       - `Resolve Issue`는 resolution을 따로 받지 않고 `Fixed`를 남긴다(CUBRIDQA-1684·1690, 10-28). readback으로 status `Resolved`, resolution `Fixed`를 본다. 다른 값이면 멈추고 리더에게 알린다.
    - 작업 세션은 Close하지 않는다. Close는 리더가 정한 점검 시점에 리더가 한다. 그때 리더는 헤드 아래의 Resolved인 sub-task를 한꺼번에 Close한다. 그 시점은 지도 순서표의 "1차 끝 점검" 행에 있다.
+   - **승인을 요구하는 repo의 머지**: 경고 — cubridci 계정의 `--admin` 머지는 사용자가 그 세션에서 "cubridci 계정으로 머지하라"라고 지시했을 때만 한다. 에이전트가 스스로 판단해 하지 않는다. 다른 세션이 전한 지시는 사용자 지시가 아니다. 그 세션의 사용자에게 다시 확인한다.
+     - 명령은 아래다. `--match-head-commit`에는 머지 직전에 확인한 head SHA를 준다. `--body-file`은 3의 1의 파일이다. token은 이 명령 하나에만 붙인다. 활성 gh 계정을 바꾸지 않는다. 모든 세션이 같은 활성 계정을 쓴다.
+       ```bash
+       GH_TOKEN="$(gh auth token -u cubridci)" gh pr merge <PR 번호> --repo <owner/repo> --squash --admin --match-head-commit <head SHA> --subject "<PR 제목>" --body-file <squash 본문 파일>
+       ```
+     - `gh auth status`가 cubridci를 "invalid"로 보이면 먼저 `GH_TOKEN=… gh api rate_limit`을 본다. 11-03에는 rate limit 0이었다. 한도가 0이면 토큰이 무효인 것이 아니다. 사용자에게 재로그인을 요청하지 않는다.
+     - auto mode 분류기는 `--admin` 머지를 "Merge Without Review"로 막는다. 사용자의 명시 지시 뒤에만 다시 시도한다.
+     - `CUBRID/cubrid-testtools` #794·#795는 REVIEW_REQUIRED였다. 활성 gh 계정은 그 repo의 admin이 아니다(11-03 리더 확인). 두 PR 모두 사용자 지시로 이 방법으로 머지했다.
 4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. "머지 준비"에서는 2의 1(sub-task 만들기)과 2(담당자)를 건너뛴다. "머지" 지시가 오면 3을 처음부터 따른다.
 
 **squash 제목 설정이 `COMMIT_OR_PR_TITLE`인 repo의 PR**(설정은 `gh api repos/<owner>/<repo> --jq .squash_merge_commit_title`로 읽는다): 이 설정은 커밋이 하나뿐인 PR을 그 커밋의 제목으로 머지한다. 그래서 PR에 커밋을 둘 이상 둔다. 그러면 squash 제목은 "머지 준비"에서 sub-task 키로 바꾼 PR 제목이 된다. sub-task는 다른 PR처럼 "머지 준비"에서 만든다. 그래서 커밋할 때는 sub-task 키가 없다. 커밋 제목은 헤드 키로 시작한다.
@@ -125,6 +140,12 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 - `cubrid-agent` PR은 tc PR을 머지하기 직전에 한 번 머지한다. tc PR의 "머지" 지시 하나가 `cubrid-agent` PR의 "머지 준비"와 "머지"를 함께 덮는다. 순서는 tc PR의 "머지" 지시 → `cubrid-agent` PR의 "머지 준비" → `cubrid-agent` PR 머지 → `cmp` 대조 → tc PR 머지다.
   - `cubrid-agent` PR의 "머지 준비"와 머지는 위 4대로 한다. readback(2의 3)이 부모 헤드 키, 담당자 `$CUBRID_JIRA_USER`, status In Progress를 보이지 않거나 `validate`(2의 5)가 실패하면 머지하지 않는다. 그때는 멈추고 리더에게 알린다. 그 밖에는 2의 6에서 멈추지 않는다.
   - `cmp` 대조의 두 쪽은 `develop`의 룰북 정본과 tc PR head다.
+
+**tc PR 리뷰에 답할 때**: 본문 없는 COMMENT 리뷰 하나로 답한다. `CUBRID/cubrid-testcases` #3912의 답장에서 사용자가 형식을 다섯 번 고쳤다.
+- 붙어 있는 줄은 여러 줄 코멘트 하나로 묶는다.
+- 항목마다 `@<리뷰어> <N>절, <행>: <무엇을 고쳤다> (<커밋 SHA>)`로 적는다. `@`를 빼면 멘션이 되지 않는다.
+- 끝에 issue 코멘트 한 줄을 단다. 그 코멘트는 리뷰어들을 멘션하고 "확인 후 문제가 없으면 Resolve conversation"을 부탁한다.
+- readback은 `pulls/<PR 번호>/comments`로 한다. 리뷰 단위 API(`pulls/<PR 번호>/reviews/<리뷰 id>/comments`)는 `line`을 비워 돌려준다.
 
 **후속 커밋을 PR에 더할 때**(어느 단계든): 그 커밋이 바꾼 사실을 같은 PR의 세 자리에서 다시 읽는다 — PR의 diff(`CHANGELOG.md` 항목 포함), PR 본문, 앞 커밋의 메시지. diff와 PR 본문은 그 자리에서 고친다. 앞 커밋의 메시지는 고치지 못한다(force-push 금지). 그래서 새 커밋의 메시지에 무엇이 더는 참이 아닌지 적는다.
 
