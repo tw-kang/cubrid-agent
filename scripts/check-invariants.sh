@@ -131,6 +131,8 @@ printf '%s\n' "$_flow" | grep -qF -- '--to "Start Progress"'   || _t="$_t subtas
 printf '%s\n' "$_flow" | grep -qF -- '--to "Resolve Issue"'    || _t="$_t subtask-resolved-at-merge"
 printf '%s\n' "$_flow" | grep -qF 'Close Issue'                && _t="$_t close-transition-in-pr-flow"
 printf '%s\n' "$_flow" | grep -qF 'check-subtask-resolve.sh <키>' || _t="$_t resolve-after-the-last-pr"
+printf '%s\n' "$_flow" | grep -q '^   5\. PR을 Ready로 바꾼다\..*`scripts/pr-state\.sh <owner/repo> <PR 번호>`' || _t="$_t pr-state-at-ready"
+printf '%s\n' "$_flow" | grep -q '^   2\. 머지 직전에 `pr-state\.sh`' || _t="$_t pr-state-before-merge"
 printf '%s\n' "$_flow" | grep -qF '후속 PR(위 4)은 sub-task마다 하나만 연다' || _t="$_t one-rulebook-follow-up-pr-per-subtask"
 printf '%s\n' "$_flow" | grep -q 'tc PR의 "머지" 지시 → `cubrid-agent` PR의 "머지 준비" → `cubrid-agent` PR 머지 → .*대조 → tc PR 머지' || _t="$_t rulebook-merge-order"
 printf '%s\n' "$_flow" | grep -q '"머지 준비"와 머지는 위 4대로 한다\. .*실패하면 머지하지 않는다\. .*2의 6에서 멈추지 않는다\.' || _t="$_t follow-up-merge-ready-checks-then-no-stop"
@@ -735,6 +737,10 @@ else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-work
 # Jira write for the user to approve.
 if _t=$(bash scripts/test-check-subtask-resolve.sh 2>&1); then pass "sub-task resolve check behaves: $_t"
 else fail "sub-task resolve check test failed — run scripts/test-check-subtask-resolve.sh:"; printf '         %s\n' "$_t"; fi
+
+# A check or a comment the state read drops is one a Ready report or a merge goes ahead without.
+if _t=$(bash scripts/test-pr-state.sh 2>&1); then pass "PR state read prints every check and comment kind: $_t"
+else fail "pr-state test failed — run scripts/test-pr-state.sh:"; printf '         %s\n' "$_t"; fi
 
 if _t=$(bash scripts/test-verify-run.sh 2>&1); then pass "verify-run writes where it is told: $_t"
 else fail "verify-run test failed — run scripts/test-verify-run.sh:"; printf '         %s\n' "$_t"; fi
