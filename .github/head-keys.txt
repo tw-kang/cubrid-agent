@@ -1,0 +1,3 @@
+# Jira head keys, one per line. Read by scripts/check-pr-push.sh.
+# Never remove a key: a reopened sub-task's follow-up PR still opens from a branch named after its head.
+CUBRIDQA-1663

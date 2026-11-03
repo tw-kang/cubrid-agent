@@ -23,47 +23,83 @@ ISSUE_READERS=$(printf '%s\n' skills/*/create-*/SKILL.md skills/*/verify-*/SKILL
 # ---------------------------------------------------------------------------
 group "Non-product doc set (CUBRIDQA-1454: repo keeps the product, design lives in Jira)"
 
-# .agents/ is the normative set: four norm docs plus numbered ADRs. Nothing else.
-_agents_unexpected=$(git ls-files '.agents/*' \
-  | grep -v -E '^\.agents/(domain|design-principles|issue-tracker|triage-labels)\.md$' \
-  | grep -v -E '^\.agents/adr/[0-9]{4}-[a-z0-9-]+\.md$')
-if [ -z "$_agents_unexpected" ]; then pass ".agents/ holds only the norm docs + numbered ADRs"
-else fail ".agents/ has unexpected files:"; printf '         %s\n' $_agents_unexpected; fi
+# No ADRs: a decision's reason lives in Jira, the rule it set in a check or docs/agents/. An ADR kept
+# beside them is a third copy that drifts, and the plugin's domain-modeling skill writes docs/adr/ by
+# default.
+_adr_dirs=$(git ls-files | grep -E '^\.agents/|(^|/)adr/')
+if [ -z "$_adr_dirs" ]; then pass "no .agents/ and no ADR directory (reasons live in Jira, rules in checks and docs/agents/)"
+else fail "an ADR directory or .agents/ is back in git — put the reason in Jira and the rule in a check or docs/agents/:"; printf '         %s\n' $_adr_dirs; fi
 
-# docs/ keeps runbooks, the reference shelf, and PoC evidence reports — not design docs.
+# The retired ADRs were cited as backtick paths and "ADR 0004" in prose, shipped skills and runtime
+# output included, which the dead-link check below cannot see. CHANGELOG is history and keeps them.
+_adr_refs=$(git grep -l -E '\.agents/adr|ADR[ -]?[0-9]{4}' -- . ':!CHANGELOG.md' ':!scripts/check-invariants.sh' 2>/dev/null)
+if [ -z "$_adr_refs" ]; then pass "nothing points at a retired ADR"
+else fail "these files still point at an ADR that no longer exists — name the check, doc or Jira key instead:"; printf '         %s\n' $_adr_refs; fi
+
+# The plugin skills look for the glossary at the root and the agent docs under docs/agents/. Kept
+# elsewhere, an adapter paragraph broke on each plugin update, and domain-modeling creates a missing
+# GLOSSARY.md lazily — a second glossary beside ours.
+AGENT_DOCS="issue-tracker triage-labels domain"
+_m=""
+[ -n "$(git ls-files GLOSSARY.md)" ] || _m="$_m GLOSSARY.md-missing"
+[ -z "$(git ls-files CONTEXT.md)" ]  || _m="$_m CONTEXT.md-still-tracked"
+# /code-review reads CODING_STANDARDS.md whenever it exists, so the review rules live there and nowhere else.
+[ -n "$(git ls-files CODING_STANDARDS.md)" ] || _m="$_m CODING_STANDARDS.md-missing"
+[ -z "$(git ls-files docs/agents/design-principles.md)" ] || _m="$_m design-principles.md-still-tracked"
+for d in $AGENT_DOCS; do
+  [ -n "$(git ls-files "docs/agents/$d.md")" ] || _m="$_m docs/agents/$d.md-missing"
+done
+if [ -z "$_m" ]; then pass "GLOSSARY.md and CODING_STANDARDS.md at the root, the three agent docs in docs/agents/, no CONTEXT.md"
+else fail "docs are not where the plugin skills look:$_m — a skill would create its own copy"; fi
+
+# docs/ keeps runbooks, the pipeline map, the agent docs, the reference shelf and PoC evidence reports.
+# The reference shelf is one file of URLs: 143KB of vendored vendor docs once sat there going stale.
 _docs_unexpected=$(git ls-files 'docs/*' \
-  | grep -v -E '^docs/(deployment|dev-process|setup)\.md$' \
-  | grep -v -E '^docs/reference/' \
+  | grep -v -E '^docs/(deployment|dev-process|pipeline|setup)\.md$' \
+  | grep -v -E "^docs/agents/(${AGENT_DOCS// /|})\.md$" \
+  | grep -v -E '^docs/reference/README\.md$' \
   | grep -v -E '^docs/agents/[a-z-]+/reports/')
-if [ -z "$_docs_unexpected" ]; then pass "docs/ holds only runbooks, reference and PoC reports"
+if [ -z "$_docs_unexpected" ]; then pass "docs/ holds only runbooks, the pipeline map, agent docs, reference and PoC reports"
 else fail "docs/ has unexpected files:"; printf '         %s\n' $_docs_unexpected; fi
 
 # Paths 1454 removed. Their return means design crept back into the repo.
-for p in docs/adr docs/CONTEXT-MAP.md docs/staging.md docs/guides; do
+for p in docs/CONTEXT-MAP.md docs/staging.md docs/guides; do
   if [ -n "$(git ls-files "$p" "$p/*" 2>/dev/null)" ]; then fail "removed by 1454, back in git: $p"; fi
 done
 _design_back=$(git ls-files 'docs/agents/*' | grep -E '/(DESIGN|CONTEXT)\.md$')
 if [ -z "$_design_back" ]; then pass "no DESIGN.md / CONTEXT.md under docs/agents/ (they live in Jira)"
 else fail "design docs back in repo:"; printf '         %s\n' $_design_back; fi
 
-# Stage numbering belongs in Jira, not the product. CHANGELOG, the ADRs and this file are excluded.
-_staged=$(git ls-files | grep -v -E '^(CHANGELOG\.md|\.agents/adr/|scripts/check-invariants\.sh$)' \
+# Stage numbering belongs in Jira, not the product. CHANGELOG and this file are excluded.
+_staged=$(git ls-files | grep -v -E '^(CHANGELOG\.md|scripts/check-invariants\.sh$)' \
   | while read -r f; do [ -f "$f" ] && grep -lE '[Ss]tage[ _-]?[0-9]|스테이지' "$f" 2>/dev/null; done)
 if [ -z "$_staged" ]; then
-  pass "no stage bookkeeping outside CHANGELOG and the ADRs (rollout lives in CUBRIDQA-1425)"
+  pass "no stage bookkeeping outside CHANGELOG (progress lives in the local map)"
 else
-  fail "rollout-stage labels are back in the repo — move them to CUBRIDQA-1425:"; printf '         %s\n' $_staged
+  fail "rollout-stage labels are back in the repo — progress belongs in the local map (docs/agents/issue-tracker.md):"; printf '         %s\n' $_staged
 fi
 
-# An agent reads AGENTS.md first, so the two method rules must be in that file, not only in .agents/.
+# An agent reads AGENTS.md first, so the two method rules must be in that file, not only in docs/agents/.
 _m=""
 grep -q '개발 방식' AGENTS.md                      || _m="$_m the-section"
 grep -q '코드로 가능한 것은 최대한 코드로' AGENTS.md  || _m="$_m code-first-rule"
 grep -q '/code-review' AGENTS.md                    || _m="$_m skill-chain"
-grep -q 'CUBRIDQA-1425' AGENTS.md                   || _m="$_m ticket-first-check"
-grep -q '^## DP6' .agents/design-principles.md      || _m="$_m DP6"
+grep -q '/implement-spec' AGENTS.md                 || _m="$_m skill-chain-runs-specs"
+grep -q '/retro' AGENTS.md                          || _m="$_m retro-conditions"
+# The retro skill is disable-model-invocation; a doc telling the agent to call it was followed by skipping it.
+grep -q 'retro` 실행을 요청' AGENTS.md              || _m="$_m retro-asked-of-the-user"
+grep -qF '`/pr`' AGENTS.md                          || _m="$_m pr-skill-inside-template"
+grep -q 'PR 안의 커밋.*키를 붙이지 않는다' AGENTS.md  || _m="$_m no-key-in-pr-commits"
+grep -q '직접 커밋.*헤드 키로 시작한다' AGENTS.md     || _m="$_m head-key-on-direct-commits"
+grep -qF 'check-pr-push.sh' AGENTS.md               || _m="$_m machine-checked-flow"
+grep -q '^## DP6' CODING_STANDARDS.md                || _m="$_m DP6"
 grep -q '한 가지로만 읽히게' AGENTS.md               || _m="$_m unambiguous-once-short"
-grep -q '^## DP7' .agents/design-principles.md      || _m="$_m DP7"
+grep -q '^## DP7' CODING_STANDARDS.md                || _m="$_m DP7"
+grep -q 'ASD-STE100' CODING_STANDARDS.md             || _m="$_m korean-prose-rules"
+grep -qF 'LC_ALL=C' CODING_STANDARDS.md              || _m="$_m sort-under-C-locale"
+grep -q '^## .*주석' CODING_STANDARDS.md             || _m="$_m comments-rule"
+grep -qx '## DP11 — 동작 문장은 테스트 케이스가 고정한다' CODING_STANDARDS.md || _m="$_m behaviour-sentence-has-a-test"
+grep -q '같은 테스트를 통과하는 더 짧은 판' CODING_STANDARDS.md || _m="$_m shorter-code-same-tests"
 # The PR template is a file, linked rather than copied; $FORK guards against a hardcoded person.
 grep -qF '.github/PULL_REQUEST_TEMPLATE.md' AGENTS.md || _m="$_m pr-template-link"
 grep -q '### Purpose' .github/PULL_REQUEST_TEMPLATE.md || _m="$_m pr-template-headings"
@@ -78,16 +114,94 @@ fi
 
 # A pointer whose target is silent reads as "already covered", so the target must carry the rule.
 _t=""
-grep -q 'CUBRIDQA-1425' .agents/issue-tracker.md          || _t="$_t parent-key"
-grep -q '새로 만들지 않는다' .agents/issue-tracker.md      || _t="$_t default-is-no-new-ticket"
-grep -q 'to-spec' .agents/issue-tracker.md                || _t="$_t subtask-is-a-spec"
-grep -q 'to-tickets' .agents/issue-tracker.md             || _t="$_t task-is-a-work-item"
-grep -q 'linkedIssues' .agents/issue-tracker.md           || _t="$_t how-to-read-the-tree"
+grep -q 'Jira 헤드' docs/agents/issue-tracker.md                  || _t="$_t three-tiers"
+grep -q '^## Wayfinding operations' docs/agents/issue-tracker.md  || _t="$_t wayfinding-section"
+grep -qF 'claimed (' docs/agents/issue-tracker.md                 || _t="$_t claim-format"
+grep -qF "\$(date '+%Y-%m-%d %H:%M')" docs/agents/issue-tracker.md || _t="$_t time-from-date"
+grep -q 'to-spec' docs/agents/issue-tracker.md                    || _t="$_t spec-dir"
+grep -q 'to-tickets' docs/agents/issue-tracker.md                 || _t="$_t ticket-dir"
+grep -q '머지 준비' docs/agents/issue-tracker.md                   || _t="$_t merge-ready-steps"
+grep -q '"머지"를 지시하면' docs/agents/issue-tracker.md            || _t="$_t merge-is-its-own-instruction"
+grep -qF 'gh pr merge --squash --body-file' docs/agents/issue-tracker.md || _t="$_t squash-body-written"
+grep -q '첫 줄은.*jira\.cubrid\.org/browse/<키>' docs/agents/issue-tracker.md || _t="$_t squash-body-jira-url"
+grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t subtask-assignee-fix"
+# Sub-task states: In Progress under review, Resolved at merge. Only the leader closes, so the PR flow names no Close.
+_flow=$(sed -n '/^## PR 흐름/,/^## Jira에/p' docs/agents/issue-tracker.md)
+printf '%s\n' "$_flow" | grep -qF -- '--to "Start Progress"'   || _t="$_t subtask-in-progress-at-merge-ready"
+printf '%s\n' "$_flow" | grep -qF -- '--to "Resolve Issue"'    || _t="$_t subtask-resolved-at-merge"
+printf '%s\n' "$_flow" | grep -qF 'Close Issue'                && _t="$_t close-transition-in-pr-flow"
+printf '%s\n' "$_flow" | grep -qF 'check-subtask-resolve.sh <키>' || _t="$_t resolve-after-the-last-pr"
+printf '%s\n' "$_flow" | grep -q '^   5\. PR을 Ready로 바꾼다\..*`scripts/pr-state\.sh <owner/repo> <PR 번호>`' || _t="$_t pr-state-at-ready"
+printf '%s\n' "$_flow" | grep -q '^   2\. 머지 직전에 `pr-state\.sh`' || _t="$_t pr-state-before-merge"
+printf '%s\n' "$_flow" | grep -qF '후속 PR(위 4)은 sub-task마다 하나만 연다' || _t="$_t one-rulebook-follow-up-pr-per-subtask"
+printf '%s\n' "$_flow" | grep -q 'tc PR의 "머지" 지시 → `cubrid-agent` PR의 "머지 준비" → `cubrid-agent` PR 머지 → .*대조 → tc PR 머지' || _t="$_t rulebook-merge-order"
+printf '%s\n' "$_flow" | grep -q '"머지 준비"와 머지는 위 4대로 한다\. .*실패하면 머지하지 않는다\. .*2의 6에서 멈추지 않는다\.' || _t="$_t follow-up-merge-ready-checks-then-no-stop"
+grep -q 'Reopen한다' docs/agents/issue-tracker.md                  || _t="$_t reopen-not-a-new-subtask"
+grep -q '지도에 영향을 주는 사실' docs/agents/issue-tracker.md      || _t="$_t report-three-items"
+grep -q '초안을 쓴 뒤에 `/code-review`를 돌린다' docs/agents/issue-tracker.md || _t="$_t review-after-the-answer-draft"
+grep -qF '`**Status:** ready-for-agent`' docs/agents/issue-tracker.md || _t="$_t spec-ticket-status-form"
+grep -qF 'research-recheck.py <결과 파일>' docs/agents/issue-tracker.md || _t="$_t research-recheck-before-resolve"
+grep -q '티켓 파일을 만들지 않는다' docs/agents/issue-tracker.md    || _t="$_t only-the-leader-makes-tickets"
+grep -qF ' · 이전:' docs/agents/issue-tracker.md                   || _t="$_t reopen-status-chain"
+grep -q '재오픈 절의 할 일만 한다\. Claim과 Resolve는 위 절차대로 한다' docs/agents/issue-tracker.md || _t="$_t reopen-scope-keeps-claim"
+grep -q '후속 커밋을 PR에 더할 때' docs/agents/issue-tracker.md     || _t="$_t follow-up-commit-reread"
+grep -q '정형 문장.*근거 출력.*없으면 쓰지 않는다' docs/agents/issue-tracker.md || _t="$_t stock-pr-sentence-needs-output"
+grep -qF '`independent` fence' docs/agents/issue-tracker.md       || _t="$_t research-independent-check"
+grep -q '^- \*\*위치 주장\*\*.*`grep -n`' docs/agents/issue-tracker.md || _t="$_t location-claim-with-output"
+grep -qF 'pathspec 없는 `git grep -n -i <말>`의 출력' docs/agents/issue-tracker.md || _t="$_t count-claim-with-unscoped-grep"
+grep -qF '`team-lead`는 그 서브에이전트를 띄운 작업 세션' docs/agents/issue-tracker.md || _t="$_t team-lead-is-the-work-session"
+grep -q 'ID를 정의한 파일과 행을 함께 넘긴다' docs/agents/issue-tracker.md || _t="$_t subagent-id-with-its-definition"
+grep -qF 'Answer`가 기대는 검사 스크립트는 `.scratch/v2-<묶음>/tools/`' docs/agents/issue-tracker.md || _t="$_t spec-check-scripts-in-tools"
+grep -q '닫기 전 알림' docs/agents/issue-tracker.md                 || _t="$_t notify-leader-before-closing"
+grep -qF 'COMMIT_OR_PR_TITLE' docs/agents/issue-tracker.md         || _t="$_t commit-or-pr-title-flow"
+grep -q '^- \*\*사용자가 고른 문구\*\*: 사용자가 고른 문구를 다른 문구로 바꾸려면, 바꾼 문구를 보이고 다시 묻는다\.' docs/agents/issue-tracker.md || _t="$_t reask-before-changing-chosen-wording"
+grep -q '^- \*\*초안의 자리\*\*:.*`\.scratch/<디렉토리>/notes/`에 쓴다\. 세션 scratchpad(`/tmp/…`)에 쓰지 않는다\.' docs/agents/issue-tracker.md || _t="$_t drafts-in-scratch-notes"
+grep -qF '세션 기록(`~/.claude/projects/<프로젝트>/<세션 id>.jsonl`)의 `timestamp`를 쓴다' docs/agents/issue-tracker.md || _t="$_t user-answer-time-from-session-log"
+printf '%s\n' "$_flow" | grep -qF '`@<리뷰어> <N>절, <행>: <무엇을 고쳤다> (<커밋 SHA>)`' || _t="$_t tc-review-reply-format"
+printf '%s\n' "$_flow" | grep -qF 'readback은 `pulls/<PR 번호>/comments`로 한다' || _t="$_t tc-review-reply-readback"
+# The warning has to come before the command: a reader who copies the command first never reaches it.
+_adm_w=$(printf '%s\n' "$_flow" | grep -n '^   - \*\*승인을 요구하는 repo의 머지\*\*: 경고 — .*사용자가 그 세션에서 "cubridci 계정으로 머지하라"라고 지시했을 때만 한다\.' | cut -d: -f1)
+_adm_c=$(printf '%s\n' "$_flow" | grep -n -- '--squash --admin --match-head-commit' | head -1 | cut -d: -f1)
+[ -n "$_adm_w" ] && [ -n "$_adm_c" ] && [ "$_adm_w" -lt "$_adm_c" ] || _t="$_t admin-merge-only-on-user-order"
+_retro=$(sed -n '/^- \*\*`\/retro` 제안\*\*/,/^$/p' docs/agents/issue-tracker.md)
+for _w in 결과 재발 높음 중간 낮음; do
+  printf '%s\n' "$_retro" | grep -q "\*\*$_w\*\*" || _t="$_t retro-severity:$_w"
+done
 if [ -z "$_t" ]; then
-  pass ".agents/issue-tracker.md carries the ticket rule AGENTS.md points at (default: no new ticket)"
+  pass "docs/agents/issue-tracker.md carries the tracker and PR flow AGENTS.md points at"
 else
-  fail "the ticket rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
+  fail "the tracker rule is missing from the file AGENTS.md links for it:$_t — the link would dead-end"
 fi
+
+# -o takes each command on its own: one doc line can hold two, and only one of them may lack the flag.
+_jw=$(git grep -n -o -E 'cubrid-jira [a-z-]+ [^`]*--(description|body)-file[^`]*' -- '*.md' | grep -v -e '--from jira')
+if [ -z "$_jw" ]; then pass "every documented cubrid-jira description or comment write passes --from jira"
+else fail "cubrid-jira writes without --from jira; the default markdown conversion writes {anchor:…} into each heading:"; printf '         %s\n' "$_jw"; fi
+# Leading spaces count: this doc indents fences that sit inside a list.
+_ah=$(git grep -n -E '^[[:space:]]*h[1-6]\.[[:space:]]*\{anchor' -- '*.md')
+if [ -z "$_ah" ]; then pass "no documented Jira wiki heading opens with {anchor:…}"
+else fail "Jira wiki headings in docs open with {anchor:…}, the markdown converter's trace:"; printf '         %s\n' "$_ah"; fi
+
+# The plugin skills read these two files. A label table or an ADR prompt left there would make a skill
+# label a ticket or propose an ADR this repo no longer keeps.
+_t=""
+grep -q 'CUBRIDQA-1505' docs/agents/triage-labels.md   || _t="$_t intake-is-1505"
+! grep -q 'needs-triage' docs/agents/triage-labels.md  || _t="$_t label-table-still-there"
+grep -q 'ADR을 만들지 않는다' docs/agents/domain.md      || _t="$_t no-new-adr"
+if [ -z "$_t" ]; then pass "triage-labels.md names the intake ticket, domain.md says no ADRs"
+else fail "a plugin-read doc still steers to the v1 tracker:$_t"; fi
+
+# v1 tracker rules (1425 tree, GitHub-Issue work tickets, keys in commits) retired with the v2 tracker.
+# One left in a doc an agent reads sends work to a closed tree or a tracker nobody watches.
+_stale=$(git grep -l -E 'linkedIssues|gh issue|CUBRIDQA-1491|\[#NN\]|새로 만들지 않는다|작업 티켓' \
+  -- AGENTS.md GLOSSARY.md 'docs/*.md' .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null)
+_stale="$_stale $(git grep -l 'CUBRIDQA-1425' -- AGENTS.md GLOSSARY.md docs/agents/issue-tracker.md \
+  docs/agents/triage-labels.md docs/agents/domain.md .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null)"
+# The runbooks may cite 1425 as where a reason lives, but not as where the rollout is tracked now.
+_stale="$_stale $(git grep -l -E '롤아웃.*CUBRIDQA-1425|CUBRIDQA-1425.*롤아웃' -- 'docs/*.md' 2>/dev/null)"
+sed -n '/^## Agent skills/,$p' AGENTS.md | grep -q '\.agents/' && _stale="$_stale AGENTS.md#agent-skills:.agents/"
+if [ -z "${_stale// /}" ]; then pass "no v1 tracker rule left in AGENTS.md, GLOSSARY.md, docs/ or the PR template"
+else fail "v1 tracker rules are still written down — docs/agents/issue-tracker.md replaced them:"; printf '         %s\n' $_stale; fi
 
 # DP7-2: one fact, one place. CLAUDE.md is excluded — it is the symlink to AGENTS.md.
 _dup=""
@@ -95,23 +209,17 @@ _lang=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '\*\*영문
 [ "$(printf '%s\n' "$_lang" | grep -c .)" = 1 ] || _dup="$_dup language-policy-list[$(echo $_lang)]"
 _lbl=$(git ls-files '*.md' | grep -v '^CLAUDE\.md$' | xargs grep -l '현재 라벨을 읽' 2>/dev/null)
 [ "$(printf '%s\n' "$_lbl" | grep -c .)" = 1 ] || _dup="$_dup label-procedure[$(echo $_lbl)]"
+_hk=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -l 'head-keys\.txt' 2>/dev/null)
+[ "$_hk" = docs/agents/issue-tracker.md ] || _dup="$_dup head-keys-location[$(echo $_hk)]"
+_bf=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -l 'cubridqa-<헤드 키 번호>' 2>/dev/null)
+[ "$_bf" = docs/agents/issue-tracker.md ] || _dup="$_dup branch-name-format[$(echo $_bf)]"
+_ps=$(git ls-files '*.md' | grep -v -E '^(CLAUDE|CHANGELOG)\.md$' | xargs grep -h 'PR 하나' 2>/dev/null | grep -c 'sub-task')
+[ "$_ps" = 1 ] || _dup="$_dup one-PR-per-sub-task[$_ps lines]"
 if [ -z "$_dup" ]; then
-  pass "the language-policy list and the label procedure each live in exactly one file (DP7-2)"
+  pass "the language-policy list, the label procedure, the head-keys location, the branch-name format and one PR per sub-task each live in one place (DP7-2)"
 else
   fail "a rule is written in two places and will drift:$_dup — keep one, link from the other"
 fi
-
-# ---------------------------------------------------------------------------
-group "ADR numbering"
-
-_nums=$(git ls-files '.agents/adr/*.md' | sed -E 's|.*/([0-9]{4})-.*|\1|' | sort)
-_dupes=$(printf '%s\n' "$_nums" | uniq -d)
-[ -z "$_dupes" ] && pass "ADR numbers unique" || fail "duplicate ADR numbers: $(echo $_dupes)"
-
-_i=0; _gap=""
-for n in $_nums; do _i=$((_i+1)); [ "$n" = "$(printf '%04d' $_i)" ] || _gap="$_gap $n"; done
-[ -z "$_gap" ] && pass "ADR numbers contiguous from 0001 ($_i ADRs)" \
-               || fail "ADR numbering has a gap or does not start at 0001 — at:$_gap"
 
 # ---------------------------------------------------------------------------
 group "Agent-instruction entrypoint"
@@ -180,6 +288,24 @@ if [ -z "$_split" ]; then
 else
   fail "the shipped/in-progress split is broken:$_split — promote by moving into skills/qa/ AND adding the plugin.json line, in one commit"
 fi
+
+# Both install channels were verified against one layout, skills/<tree>/<name>/SKILL.md: plugin.json
+# lists that path, and the skills CLI discovers it on GitHub. A skill moved to the root or nested deeper
+# leaves the layout either channel was ever shown to find.
+_misplaced=$(git ls-files | grep -E '(^|/)SKILL\.md$' | grep -vE '^skills/[^/]+/[^/]+/SKILL\.md$')
+if [ -z "$_misplaced" ]; then pass "every SKILL.md sits at skills/<tree>/<name>/SKILL.md, the layout both install channels find"
+else fail "SKILL.md outside skills/<tree>/<name>/ — the plugin and the skills CLI may not find it:"; printf '         %s\n' $_misplaced; fi
+
+# The install entrypoint is a skill, not a command: a command rides the plugin channel only, a skill
+# rides both. It changes machine state, so the model must not start it on its own. Its setup.sh is the
+# one copy — npx copies only the skill's own directory, so a root wrapper would be a second entrypoint.
+_m=""
+sed -n '/^---$/,/^---$/p' skills/qa/setup-cubrid-agent/SKILL.md | grep -qx 'disable-model-invocation: true' \
+                                     || _m="$_m model-may-invoke-setup"
+[ -z "$(git ls-files setup.sh)" ]      || _m="$_m root-setup.sh"
+[ -z "$(git ls-files 'commands/*')" ]  || _m="$_m commands/"
+if [ -z "$_m" ]; then pass "setup-cubrid-agent is the only install entrypoint, and only a human starts it"
+else fail "the install entrypoint drifted:$_m — a command or a root setup.sh never reaches the skills-CLI channel, and a model-invocable setup changes a machine unasked"; fi
 
 # ---------------------------------------------------------------------------
 group "Rules that must hold in EVERY skill, not most of them"
@@ -252,7 +378,7 @@ fi
 
 # The scout names the half-year dir a new case belongs in; the lint hook judges whether the file
 # landed there. Same fact, two files — and they cannot share code, because a hook ships through the
-# plugin while a helper is installed into ~/.cubrid-agent/bin (ADR 0003). If the two expressions ever
+# plugin while a helper is installed into ~/.cubrid-agent/bin. If the two expressions ever
 # disagree, the pipeline sends the author to a directory its own gate then refuses.
 _hy_lint=$(sed -n 's/^[[:space:]]*_curhy=\(.*\)$/\1/p' scripts/lint-sql-tc.sh)
 _hy_scout=$(sed -n 's/^[[:space:]]*CURHY=\(.*\)$/\1/p' skills/qa/setup-cubrid-agent/bin/scout.sh)
@@ -331,7 +457,8 @@ fi
 
 # The stale-copy hint is byte-identical in every helper on purpose (one sentence, one wording), and it
 # is the sort of copy that rots: the next helper is written by copying an older one. Same directory and
-# same install unit, so unlike the cross-skill duplication forced by ADR 0003 this one is checkable.
+# same install unit, so unlike the cross-skill duplication the npx channel forces (DP7-2's exception in
+# CODING_STANDARDS.md) this one is checkable.
 _hint='this installed copy is stale'
 _miss=""; _n=0
 for _f in skills/qa/setup-cubrid-agent/bin/*.sh; do
@@ -352,8 +479,8 @@ fi
 # One resolution rule for the testcases clone, in one wording. Two wordings coexisted for a month: the
 # part skills kept a June sentence (discover the checkout from the cwd, else ask the user) while the
 # orchestrators and every helper moved to the $HOME standard, and nothing said so because each copy read
-# fine on its own. The duplication is sanctioned — ADR 0003's channel constraint means a part skill
-# cannot link to a shared file — the drift is not.
+# fine on its own. The duplication is sanctioned — `npx skills add` copies one skill directory, so a
+# part skill cannot link to a shared file (DP7-2's exception) — the drift is not.
 _rule='`$CUBRID_TESTCASES` if set, else `~/cubrid-testcases`'
 _miss=""; _n=0
 for _s in $(grep -lF 'CUBRID_TESTCASES' skills/qa/*/SKILL.md); do
@@ -376,23 +503,29 @@ else
 fi
 
 # The identity rule is duplicated on purpose — `npx skills add` copies one skill's own directory, so a
-# skill that resolves $QA_USER cannot link to a shared file (ADR 0003's channel constraint). What is
+# skill that resolves $QA_USER cannot link to a shared file (DP7-2's exception). What is
 # checkable is that no copy drifts into losing a part: the two copies already differ in wording, and
 # the part most likely to be dropped as boilerplate is the credential-safety half. Atoms, not byte
 # equality — each skill states the rule in its own context, and equality would fight that.
 _bad=""; _nid=0
 for _f in $(grep -l 'QA_USER' skills/*/*/SKILL.md 2>/dev/null); do
   _nid=$((_nid+1))
-  grep -qF 'ADR 0004' "$_f"    || _bad="$_bad $(basename "$(dirname "$_f")"):no-ADR-0004"
+  grep -qiF 'never hardcode' "$_f" || _bad="$_bad $(basename "$(dirname "$_f")"):may-hardcode-a-person"
   grep -qF 'never parse' "$_f" || _bad="$_bad $(basename "$(dirname "$_f")"):may-parse-netrc"
   grep -qF 'netrc' "$_f"       || _bad="$_bad $(basename "$(dirname "$_f")"):no-netrc-rule"
   grep -qF 'hostname' "$_f"    || _bad="$_bad $(basename "$(dirname "$_f")"):no-hostname-guard"
 done
 if [ -z "$_bad" ] && [ "$_nid" -gt 0 ]; then
-  pass "all $_nid skills that resolve \$QA_USER carry the whole identity rule (ADR 0004 + never-parse-netrc + hostname guard)"
+  pass "all $_nid skills that resolve \$QA_USER carry the whole identity rule (never-hardcode + never-parse-netrc + hostname guard)"
 else
   fail "identity rule drifted:${_bad:- no skill resolves \$QA_USER, which cannot be right} — a copy that lost the credential half is how a password reaches a transcript"
 fi
+
+# JQL currentUser() resolves to anonymous on jira.cubrid.org and returns no rows, not an error: the
+# same login got 230 rows by name and 0 by currentUser(). A queue built on it reads "nothing to do".
+_cu=$(git grep -l 'currentUser()' -- skills scripts hooks ':!scripts/check-invariants.sh' 2>/dev/null)
+if [ -z "$_cu" ]; then pass "no JQL uses currentUser() (it is silently anonymous on this Jira)"
+else fail "currentUser() returns 0 rows on jira.cubrid.org without an error — use \$QA_USER:"; printf '         %s\n' $_cu; fi
 
 # The guard that keeps ground-issue.sh's manifests from becoming permanent stop-reminders used to be
 # pinned here by grepping gate-stop.sh for one jq expression. That pinned the wording, not the
@@ -574,10 +707,49 @@ else fail "setup test failed — run scripts/test-setup.sh:"; printf '         %
 if _t=$(bash scripts/test-hint-missing-helper.sh 2>&1); then pass "missing-helper hint behaves: $_t"
 else fail "missing-helper hint test failed — run scripts/test-hint-missing-helper.sh:"; printf '         %s\n' "$_t"; fi
 
+# The "no rule lost" check once read a renamed Hangul rule as 0 lost; the test pins it under en_US.UTF-8.
+if _t=$(bash scripts/test-rule-inventory.sh 2>&1); then pass "rule inventory tells Hangul rules apart: $_t"
+else fail "rule-inventory test failed — run scripts/test-rule-inventory.sh:"; printf '         %s\n' "$_t"; fi
+
+# A research number is only as good as the checker that re-ran it: two of five hand-written ones
+# passed while wrong (v2-02). The shared one is pinned on every failure class it must refuse.
+if _t=$(bash scripts/test-research-recheck.sh 2>&1); then pass "research recheck refuses what it must: $_t"
+else fail "research-recheck test failed — run scripts/test-research-recheck.sh:"; printf '         %s\n' "$_t"; fi
+
+# The tc repos run no check on the rulebook their developers' agents read, so the canonical copy is
+# linted here, before a deploy can copy a broken shape into them.
+if _t=$(bash scripts/test-lint-rulebook.sh 2>&1); then pass "rulebook lint behaves: $_t"
+else fail "rulebook lint test failed — run scripts/test-lint-rulebook.sh:"; printf '         %s\n' "$_t"; fi
+for _rb in rulebook/*/; do
+  [ -d "$_rb" ] || continue
+  if _t=$(bash scripts/lint-rulebook.sh "$_rb" 2>&1); then pass "${_rb%/} passes lint-rulebook.sh"
+  else fail "${_rb%/} breaks the rulebook shape — run scripts/lint-rulebook.sh ${_rb%/}:"; printf '         %s\n' "$_t"; fi
+done
+
+# GLOSSARY.md repeats the rulebook term tables for cubrid-agent readers (the spec wants both), and a
+# copy kept by hand drifts. A GLOSSARY row is **<Korean>(<English>)** or the reverse; the English half
+# is the one without Hangul.
+_gl=$(LC_ALL=C awk -F'|' -v HANGUL="$(printf '[\352-\355]')" '/^## /{ s = /^## 룰북/ } s && /^\| \*\*/ {
+        c = $2; gsub(/^ *\*\*|\*\* *$/, "", c)
+        outside = c; sub(/\(.*/, "", outside); inside = c; sub(/^[^(]*\(/, "", inside); sub(/\)$/, "", inside)
+        print (outside ~ HANGUL) ? inside : outside }' GLOSSARY.md | LC_ALL=C sort -u)
+_tb=$(for _rb in rulebook/*/; do bash scripts/lint-rulebook.sh --terms "$_rb"; done | LC_ALL=C sort -u)
+if [ -n "$_tb" ] && [ "$_gl" = "$_tb" ]; then pass "GLOSSARY.md 룰북 section and the rulebook term tables list the same $(printf '%s\n' "$_tb" | grep -c .) terms"
+else fail "GLOSSARY.md 룰북 section and the rulebook term tables differ — only in GLOSSARY: $(LC_ALL=C comm -23 <(printf '%s\n' "$_gl") <(printf '%s\n' "$_tb") | paste -sd, -); only in a term table: $(LC_ALL=C comm -13 <(printf '%s\n' "$_gl") <(printf '%s\n' "$_tb") | paste -sd, -)"; fi
+
 # Both directions are load-bearing: isolating with nothing to lose leaves a worktree per issue on CI,
 # and not isolating loses someone's staged work to a branch they do not own.
 if _t=$(bash scripts/test-prepare-tc-workspace.sh 2>&1); then pass "TC worktree decision behaves: $_t"
 else fail "prepare-tc-workspace test failed — run scripts/test-prepare-tc-workspace.sh:"; printf '         %s\n' "$_t"; fi
+
+# A sub-task resolved while another PR still carries its key has to be reopened, and that is one more
+# Jira write for the user to approve.
+if _t=$(bash scripts/test-check-subtask-resolve.sh 2>&1); then pass "sub-task resolve check behaves: $_t"
+else fail "sub-task resolve check test failed — run scripts/test-check-subtask-resolve.sh:"; printf '         %s\n' "$_t"; fi
+
+# A check or a comment the state read drops is one a Ready report or a merge goes ahead without.
+if _t=$(bash scripts/test-pr-state.sh 2>&1); then pass "PR state read prints every check and comment kind: $_t"
+else fail "pr-state test failed — run scripts/test-pr-state.sh:"; printf '         %s\n' "$_t"; fi
 
 if _t=$(bash scripts/test-verify-run.sh 2>&1); then pass "verify-run writes where it is told: $_t"
 else fail "verify-run test failed — run scripts/test-verify-run.sh:"; printf '         %s\n' "$_t"; fi
@@ -600,6 +772,22 @@ else fail "not in a releasable state — run scripts/release.sh check:"; printf 
 
 if _t=$(bash scripts/test-release.sh 2>&1); then pass "release tooling behaves: $_t"
 else fail "release test failed — run scripts/test-release.sh:"; printf '         %s\n' "$_t"; fi
+
+# release.sh check 7 skips in a shallow clone and says so in a log nobody reads, so a depth-1 CI
+# checkout would let an undeclared shipped change through on every push.
+if grep -qE '^[[:space:]]*fetch-depth:[[:space:]]*0[[:space:]]*$' .github/workflows/validate-plugin.yml; then
+  pass "CI checks out full history, so release check 7 runs there"
+else fail "validate-plugin.yml lost fetch-depth: 0 — release check 7 would skip on every CI run"; fi
+
+# A placeholder head key once merged as a PR's only key (cubridci#127). CI runs check-pr-push.sh only
+# on live PRs and pushes, so a rule that stopped firing would show as green, not as an error.
+if _t=$(bash scripts/test-check-pr-push.sh 2>&1); then pass "PR and push rules behave: $_t"
+else fail "PR/push rules test failed — run scripts/test-check-pr-push.sh:"; printf '         %s\n' "$_t"; fi
+
+# A deploy that branches from a stale base, drops a CLAUDE.md or overwrites someone's uncommitted work
+# lands in a tc repo PR that the category owner reviews for content, not for these.
+if _t=$(bash scripts/test-deploy-rulebook.sh 2>&1); then pass "rulebook deploy behaves: $_t"
+else fail "deploy-rulebook test failed — run scripts/test-deploy-rulebook.sh:"; printf '         %s\n' "$_t"; fi
 
 # marketplace.json is read from the catalog clone, not from the versioned cache, so an edit there
 # reaches every install without a version bump. `claude plugin validate` checks its shape, not whether
@@ -634,7 +822,7 @@ else fail "manifest.blocked.example.json has author keys the full example does n
 group "Plugin manifest validation (optional — needs the claude CLI)"
 
 if command -v claude >/dev/null 2>&1; then
-  # --strict warned about one thing only, the deliberate `version` omission; 1.0.0 retired it (ADR 0003).
+  # --strict warned about one thing only, the deliberate `version` omission; 1.0.0 retired it.
   if claude plugin validate . --strict >/dev/null 2>&1; then pass "claude plugin validate . --strict passed"
   else fail "claude plugin validate . --strict failed — run it directly to see why"; fi
 else

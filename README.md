@@ -163,8 +163,9 @@ hooks/hooks.json   quality-gate hook config
 scripts/           hook scripts, addressed via ${CLAUDE_PLUGIN_ROOT},
                    plus check-invariants.sh (dev-only, run by CI)
                    and release.sh (dev-only, cuts a release)
-docs/              runbooks and reference (Korean, non-shipping)
-.agents/           agent norms and the thin ADR set (Korean, non-shipping)
+docs/              runbooks, reference and the pipeline map (Korean, non-shipping)
+docs/agents/       agent norms (Korean, non-shipping)
+GLOSSARY.md        shared glossary (Korean, non-shipping)
 ```
 
 ## Versioning

@@ -1,6 +1,6 @@
 # 셋업 — 팀원이 자기 머신에서 3종 스킬을 돌리기까지
 
-팀원이 **자기 로컬에서** 1순위 3종 스킬(`gate-resolved` · `author-testcase` · `review-testcase`)을 기동하기 위한 실행 가이드. 구조 정본(자산 3계층·확정 결정)은 [deployment.md](./deployment.md). 롤아웃 단계는 이 repo가 관리하지 않는다 — 정본은 CUBRIDQA-1425.
+팀원이 **자기 로컬에서** 1순위 3종 스킬(`gate-resolved` · `author-testcase` · `review-testcase`)을 기동하기 위한 실행 가이드. 구조 정본(자산 3계층·확정 결정)은 [deployment.md](./deployment.md). 롤아웃 단계를 어디서 관리하는지는 [`GLOSSARY.md`](../GLOSSARY.md)의 "롤아웃 단계"에 있다.
 
 > **"배포"가 아니라 "공유"**. 한 사람의 로컬 흐름을 팀이 각자 재현하도록 패키징한 것. 검증은 로컬 CTP, **Jira 쓰기는 호출 의도로 게이팅**한다 — 사람이 키를 나열한 targeted 호출은 전이·코멘트·필드를 실제로 쓰고, JQL/큐로 만든 batch 호출은 초안 유지(오탐 가드가 걸리면 targeted여도 초안+@질의로 강등). 머지/승인은 여전히 사람이 한다. 무인 자동 호출·k8s·pod·자동 스케줄·무인 batch 쓰기는 이 repo 밖이다 — CUBRIDQA-1440·1425.
 
@@ -34,9 +34,9 @@ bash skills/qa/setup-cubrid-agent/scripts/setup.sh              # 설치 없이 
 bash skills/qa/setup-cubrid-agent/scripts/setup.sh --build <url> # CTP 검증 스킬용 — ftp.cubrid.org/CUBRID_Engine/nightly/daily_build (사내 빌드서버를 쓰려면 CUBRID_BUILD_BASE)
 ```
 
-- setup 스크립트는 **멱등**(재실행 안전)·**비대화식**이며 CWD 비의존이다(정본은 setup-cubrid-agent 스킬 안, 루트 래퍼 없음 — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)). 하는 일/안 하는 일 경계는 [deployment.md](./deployment.md)의 3계층: Tier 2(머신 상태)는 스크립트가, Tier 3 중 **CLI 설치는 동의 한 번 뒤 스크립트가**(`--install-clis`, §3), **자격증명은 사람이**.
-- gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요. 단 **Jira 사용자명이 해석돼 있어야** 대기열 JQL이 동작한다: `export CUBRID_JIRA_USER=<계정>` 하거나 `/cubrid-agent:setup-cubrid-agent`를 한 번 돌려 `env.sh`가 내보내게 한다(ADR 0004). 값이 없으면 스킬은 0건을 보고하지 않고 중단한다.
-- 부품 스킬은 이 repo의 `skills/in-progress/`에 **소스로 들어 있다**(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md), 2트리 분리 — [ADR 0006](../.agents/adr/0006-shipped-vs-in-progress-skill-trees.md)). 별도 clone·심링크는 불필요하지만, **플러그인이 로드하는 건 `skills/qa/`의 6종뿐**이다(setup + 파이프라인 5종 = `plugin.json` 등재분과 일치). 부품 16종을 쓰려면 `npx skills add tw-kang/cubrid-agent -s <이름>`으로 따로 깐다(이 채널은 두 트리를 다 발견한다). 어떤 설치본이 실제로 무엇을 로드했는지와 그 상시 비용은 `claude plugin details cubrid-agent`로 확인한다 — 숫자를 여기 적어두면 낡는다(2026-07-29 ~1,185 tok이 07-31엔 ~1,988 tok이었다. description이 자란 결과이고 로드 대상은 그대로다).
+- setup 스크립트는 **멱등**(재실행 안전)·**비대화식**이며 CWD 비의존이다(정본은 setup-cubrid-agent 스킬 안, 루트 래퍼 없음). 하는 일/안 하는 일 경계는 [deployment.md](./deployment.md)의 3계층: Tier 2(머신 상태)는 스크립트가, Tier 3 중 **CLI 설치는 동의 한 번 뒤 스크립트가**(`--install-clis`, §3), **자격증명은 사람이**.
+- gate-resolved만 쓸 거면 `cubrid-jira` + 자격이면 충분 — `--build` 불필요. 단 **Jira 사용자명이 해석돼 있어야** 대기열 JQL이 동작한다: `export CUBRID_JIRA_USER=<계정>` 하거나 `/cubrid-agent:setup-cubrid-agent`를 한 번 돌려 `env.sh`가 내보내게 한다. 값이 없으면 스킬은 0건을 보고하지 않고 중단한다.
+- 부품 스킬은 이 repo의 `skills/in-progress/`에 **소스로 들어 있다**. 별도 clone·심링크는 불필요하지만, **플러그인이 로드하는 건 `skills/qa/`의 6종뿐**이다(setup + 파이프라인 5종 = `plugin.json` 등재분과 일치). 부품 16종을 쓰려면 `npx skills add tw-kang/cubrid-agent -s <이름>`으로 따로 깐다(이 채널은 두 트리를 다 발견한다). 어떤 설치본이 실제로 무엇을 로드했는지와 그 상시 비용은 `claude plugin details cubrid-agent`로 확인한다 — 숫자를 여기 적어두면 낡는다(2026-07-29 ~1,185 tok이 07-31엔 ~1,988 tok이었다. description이 자란 결과이고 로드 대상은 그대로다).
 
 ### 최신본 유지 — 설치는 한 번, 이후는 자동
 
@@ -68,7 +68,7 @@ jq -r '.extraKnownMarketplaces["cubrid-agent"].autoUpdate' ~/.claude/settings.js
 
 **플러그인이 갱신되면 `/cubrid-agent:setup-cubrid-agent`를 한 번 더 돌려라.** 플러그인 갱신은 스킬 본문을 바꾸지만 `~/.cubrid-agent/bin/`의 헬퍼 사본은 그대로 둔다 — 새 스킬이 새 플래그(예: `verify-run.sh --generate`)를 부르면 옛 사본은 `unknown option`으로 죽는다. setup은 멱등이고 헬퍼를 항상 덮어쓰므로 재실행이 곧 갱신이다. 그 상황에 걸리면 헬퍼가 **스스로 그 사실을 말한다**("this installed copy is stale … run /setup-cubrid-agent").
 
-> ⚠️ **팀에 전달되는 기준은 커밋이 아니라 `version`이다.** 고쳐서 push해도 버전을 안 올리면 아무에게도 가지 않는다. 버전이 사용자에게 무엇을 약속하는지는 `CHANGELOG.md`의 version note가 정본이다. 어떤 변경이 어느 자리를 얻는지와 릴리스 절차는 [ADR 0007](../.agents/adr/0007-versioning-and-releases.md)이 정본이다.
+> ⚠️ **팀에 전달되는 기준은 커밋이 아니라 `version`이다.** 고쳐서 push해도 버전을 안 올리면 아무에게도 가지 않는다. 버전이 사용자에게 무엇을 약속하는지는 `CHANGELOG.md`의 version note가 정본이다. 어떤 변경이 어느 자리를 얻는지와 릴리스 절차는 [`AGENTS.md`](../AGENTS.md)의 흐름 절과 `scripts/release.sh`가 정본이다.
 
 **무엇이 바뀌었는지는 GitHub Release 노트로 읽는다.** 릴리스마다 노트가 하나 생긴다 — [Releases](https://github.com/tw-kang/cubrid-agent/releases). 갱신을 받기 전에 읽으면 이번 버전이 무엇을 요구하는지 안다. 갱신이 안 온다고 느끼면 지금 버전부터 확인한다 — 위에서 말한 캐시 디렉토리의 이름이 그 버전이다.
 
@@ -78,7 +78,7 @@ jq -r '.extraKnownMarketplaces["cubrid-agent"].autoUpdate' ~/.claude/settings.js
 
 ```bash
 export CUBRID_JIRA_USER="..."; export CUBRID_JIRA_PASSWORD="..."   # 표준 (또는 ~/.netrc: machine jira.cubrid.org, chmod 600)
-gh auth login                                                       # 또는 GH_TOKEN. fork=각자 gh 계정(ADR 0004), base=CUBRID
+gh auth login                                                       # 또는 GH_TOKEN. fork=각자 gh 계정, base=CUBRID
 ```
 
 ## 3. CLI 설치 — 기본은 셋업이 깐다, 아래는 수동 경로
@@ -173,8 +173,8 @@ jq '{verify: .verify.status, review: .review.verdict, submitted,
 
 ## 7. 구성 요소
 
-- **setup-cubrid-agent 스킬 + `scripts/setup.sh`**(Tier 2 자동화, 진입점 `/cubrid-agent:setup-cubrid-agent` — [ADR 0003](../.agents/adr/0003-setup-entrypoint-skill.md)) — 스크립트가 `$HOME` 표준 배치(D7: 테스트케이스 clone·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, 컨테이너 이미지에서 그대로 재사용 가능(D5). 테스트케이스 clone 경로는 [D7](deployment.md)의 오버라이드 규약을 그대로 따른다 — 오버라이드가 있으면 기본 경로는 **만들지도 않고**, 그 값을 `env.sh`에 남기되 호출자가 export한 값이 이긴다. conf 사본은 setup이 만들지 않는다(`verify-run.sh`가 매 실행 만든다). 정본은 스킬 안 단 하나(루트 래퍼 없음).
-- **부품 스킬** — 이 repo `skills/in-progress/`에 소스로 들어 있다(흡수 — [ADR 0001](../.agents/adr/0001-repackage-as-plugin.md)). 배포분이 아니므로 플러그인은 로드하지 않는다 — `npx skills add` 채널로 개별 설치(§0 표 아래 주석).
+- **setup-cubrid-agent 스킬 + `scripts/setup.sh`**(Tier 2 자동화, 진입점 `/cubrid-agent:setup-cubrid-agent`) — 스크립트가 `$HOME` 표준 배치(D7: 테스트케이스 clone·`~/cubrid`·CTP·`~/.cubrid-agent`), 멱등·비대화식·기존 clone 불가침, `--build <url>` 옵션, 컨테이너 이미지에서 그대로 재사용 가능(D5). 테스트케이스 clone 경로는 [D7](deployment.md)의 오버라이드 규약을 그대로 따른다 — 오버라이드가 있으면 기본 경로는 **만들지도 않고**, 그 값을 `env.sh`에 남기되 호출자가 export한 값이 이긴다. conf 사본은 setup이 만들지 않는다(`verify-run.sh`가 매 실행 만든다). 정본은 스킬 안 단 하나(루트 래퍼 없음).
+- **부품 스킬** — 이 repo `skills/in-progress/`에 소스로 들어 있다. 배포분이 아니므로 플러그인은 로드하지 않는다 — `npx skills add` 채널로 개별 설치(§0 표 아래 주석).
 - **스킬 자기완결**(D8) — 스킬·hook은 `docs/`를 런타임 참조하지 않는다. review-testcase 연료(few-shot bank·카탈로그)는 스킬 `references/`에 내장.
 - **hook 하드 게이트**([`hooks/`](../hooks/)) — `gate-pr-submit`(제출 차단)·`lint-sql-tc`(린트→manifest)·`gate-stop`(리마인드). 여기에 게이트가 아닌 힌트가 하나 붙는다 — `hint-missing-helper`는 설치 안 된 헬퍼를 부르는 명령에 **어느 헬퍼가 왜 없는지**를 덧붙인다(막지 않는다. 그 명령은 어차피 실패한다).
 - **이슈 grounding = 명령 하나**, `~/.cubrid-agent/bin/ground-issue.sh <KEY>` (setup이 깐다) — 본문+**전체 코멘트**를 `<KEY>/issue.txt`로, 첨부 전체를 `<KEY>/attachments/`로 내려받고 **내용 기준으로** 분류해 읽을 것을 알려준다(`read`/`view`/못 읽으면 `unread`+사유). 스킬이 산문으로 갖고 있던 규칙 — `search` 금지(pandoc), mimeType 불신, 압축 풀기, PDF는 `pdftotext` 필요 — 이 스크립트 한 곳에 있다. 스킬은 절대경로로 부르므로 **헬퍼가 바뀌면 setup을 다시 돌려야** 새 사본이 깔린다.

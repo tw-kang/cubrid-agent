@@ -1,7 +1,7 @@
 #!/bin/bash
 # cubrid-agent setup — provisions the machine state into the $HOME standard layout.
 # This is the canonical script of the setup-cubrid-agent skill (entrypoint: /setup-cubrid-agent).
-# CWD-independent (ADR 0003), idempotent and non-interactive; never touches an existing clone.
+# CWD-independent, idempotent and non-interactive; never touches an existing clone.
 # --install-clis installs gh, pandoc and cubrid-jira; without it they are only checked.
 # Never injects credentials, and installs a CUBRID build only when given --build.
 set -u
@@ -35,7 +35,7 @@ echo "== Required tools =="
 for c in git jq grep; do command -v "$c" >/dev/null || fail "$c not found (required)"; done
 ok "git / jq / grep"
 
-echo "== Component skills — bundled in this repo (plugin) (ADR 0001) =="
+echo "== Component skills — bundled in this repo (plugin) =="
 ok "skills live under skills/qa/ — Claude Code: 'claude plugin install'; other CLIs: 'npx skills add' (see README). No clone+symlink needed."
 
 echo "== Plugin auto-update — so an install stays current =="
@@ -82,8 +82,8 @@ clone_if_absent() { # <url> <dir> [extra git-clone args...]
 TC=${CUBRID_TESTCASES:-$HOME/cubrid-testcases}
 clone_if_absent https://github.com/CUBRID/cubrid-testcases.git "$TC"
 [ "$TC" = "$HOME/cubrid-testcases" ] || ok "testcases clone: \$CUBRID_TESTCASES=$TC (~/cubrid-testcases untouched)"
-# Fork remote for TC PRs: $CUBRID_GH_FORK, else the gh-authenticated account (ADR 0004 — never a
-# hardcoded person). The remote is named 'fork'.
+# Fork remote for TC PRs: $CUBRID_GH_FORK, else the gh-authenticated account (never a hardcoded
+# person). The remote is named 'fork'.
 FORK_OWNER="${CUBRID_GH_FORK:-}"
 if [ -z "$FORK_OWNER" ] && command -v gh >/dev/null; then
   FORK_OWNER="$(gh api user --jq .login 2>/dev/null || true)"
@@ -141,7 +141,7 @@ if [ -z "$JH" ] || [ ! -x "$JH/bin/javac" ]; then
 fi
 if [ -n "$JH" ] && [ -x "$JH/bin/javac" ]; then ok "JDK: $JH"
 else todo "JDK (javac) not found — e.g. sudo dnf install java-1.8.0-openjdk-devel, then re-run setup"; fi
-# Resolve the Jira username ONCE (ADR 0004) so no skill re-parses ~/.netrc: an ad-hoc grep returns
+# Resolve the Jira username ONCE so no skill re-parses ~/.netrc: an ad-hoc grep returns
 # the HOST on the single-line form, which silently turns the Select JQL into a 0-issue query.
 resolve_jira_user() {
   if [ -n "${CUBRID_JIRA_USER:-}" ]; then printf '%s\n' "$CUBRID_JIRA_USER"; return 0; fi
