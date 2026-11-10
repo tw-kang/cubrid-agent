@@ -377,10 +377,7 @@ if [ -n "$_sc_rb" ] && [ "$_sc_rb" = "$_rb_sorted" ]; then
 else
   fail "scout.sh's RULEBOOK list drifted from rulebook/cubrid-testcases/ — only in scout:$(comm -23 <(printf '%s\n' "$_sc_rb") <(printf '%s\n' "$_rb_sorted") | tr '\n' ' ') only in the rulebook:$(comm -13 <(printf '%s\n' "$_sc_rb") <(printf '%s\n' "$_rb_sorted") | tr '\n' ' ')"
 fi
-# review-testcase judges a PR, and the PR worktree holds the PR's own copy of the rulebook: read there,
-# a PR that edits a rule passes itself by its own edit. L1 lost its criteria once create-sql's
-# checklist became a pointer, so L1 has to name the rulebook itself. The scout is what stops a review
-# whose clone lacks the rulebook, and what tells L3 alone to step aside.
+# The L1 atom reads the L1 section alone: the body names the rulebook path in other sections too.
 _rt=skills/qa/review-testcase/SKILL.md; _miss=""
 grep -qF 'never from the PR worktree' "$_rt" || _miss="$_miss not-the-pr-worktree"
 sed -n '/^## 3\. L1/,/^## 4\./p' "$_rt" | grep -qF '`sql/rules/writing-rules.md` "New TC"' \
@@ -391,6 +388,35 @@ if [ -z "$_miss" ]; then
   pass "review-testcase judges by origin/develop, not the PR worktree; its L1 names the rulebook; the scout gates only L3"
 else
   fail "review-testcase lost:$_miss — a PR could pass by its own rulebook edit, L1 would have no rules, or a missing JIRA user would skip L3"
+fi
+# The three TC skills name a rule by its rulebook file and heading. A heading the rulebook renames, or
+# never had, leaves that pointer leading nowhere. Only the quotes chained right after a backticked path
+# are read: other quotes in the same sentence are not section names.
+_badsec=""; _nsec=0
+for _f in $(git ls-files 'skills/qa/create-sql/SKILL.md' 'skills/qa/author-testcase/SKILL.md' 'skills/qa/review-testcase/SKILL.md' \
+              'skills/qa/create-sql/references/*.md' 'skills/qa/author-testcase/references/*.md' 'skills/qa/review-testcase/references/*.md'); do
+  while IFS= read -r _m; do
+    [ -n "$_m" ] || continue
+    _p=${_m#@@}; _p=${_p%%@@*}
+    while IFS= read -r _sec; do
+      [ -n "$_sec" ] || continue
+      _nsec=$((_nsec+1))
+      sed -n -E 's/^#{1,6} //p' "rulebook/cubrid-testcases/$_p" 2>/dev/null | grep -qxF "$_sec" \
+        || _badsec="$_badsec ${_f#skills/qa/}:\"$_sec\"($_p)"
+    done <<SEC
+$(printf '%s\n' "$_m" | grep -oE '"[^"]+"' | tr -d '"')
+SEC
+  done <<CITE
+$(sed -E 's/`((sql|medium)\/(AGENTS\.md|rules\/(writing-rules|test-perspectives)\.md))`/\n@@\1@@/g' "$_f" \
+    | grep -oE '^@@[^@]+@@ *"[^"]+"(( *\([^)]*\))?(, and also |, and |, | and )"[^"]+")*')
+CITE
+done
+if [ "$_nsec" -eq 0 ]; then
+  fail "found no rulebook section cited by name in the three TC skills — either the citations are gone or this check no longer matches their shape"
+elif [ -z "$_badsec" ]; then
+  pass "the $_nsec rulebook sections that create-sql, author-testcase and review-testcase cite by name are headings of the cited file"
+else
+  fail "cited rulebook section(s) that are not a heading of the cited file in rulebook/cubrid-testcases/:$_badsec"
 fi
 # lint-sql-tc.sh's wrong-tree message sends the author to "create-sql's directory convention", so the
 # heading stays in create-sql as a pointer to the rulebook section that holds the convention.
