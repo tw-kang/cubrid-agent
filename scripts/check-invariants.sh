@@ -4,6 +4,7 @@
 # Dev-only: not a hook, never invoked by a skill. Run by hand or from CI.
 # Deterministic and offline (git, jq, grep, sed only). `claude plugin validate` runs when present.
 set -u
+export LC_ALL=C
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "not a git repo" >&2; exit 1; }
 
@@ -368,6 +369,14 @@ for _s in create-sql author-testcase; do
     fail "$_s lost its rulebook read:$_miss — it would write or judge a TC by rules it no longer reads"
   fi
 done
+# The installed scout cannot read this repo, so it carries its own copy of the same file list.
+_sc_rb=$(sed -n "s/^RULEBOOK='\(.*\)'\$/\1/p" skills/qa/setup-cubrid-agent/bin/scout.sh | tr ' ' '\n' | grep . | sort)
+_rb_sorted=$(printf '%s\n' $_rb_files | sort)
+if [ -n "$_sc_rb" ] && [ "$_sc_rb" = "$_rb_sorted" ]; then
+  pass "scout.sh checks exactly the $(printf '%s\n' "$_sc_rb" | wc -l | tr -d ' ') files of rulebook/cubrid-testcases/ on origin/develop"
+else
+  fail "scout.sh's RULEBOOK list drifted from rulebook/cubrid-testcases/ — only in scout:$(comm -23 <(printf '%s\n' "$_sc_rb") <(printf '%s\n' "$_rb_sorted") | tr '\n' ' ') only in the rulebook:$(comm -13 <(printf '%s\n' "$_sc_rb") <(printf '%s\n' "$_rb_sorted") | tr '\n' ' ')"
+fi
 # lint-sql-tc.sh's wrong-tree message sends the author to "create-sql's directory convention", so the
 # heading stays in create-sql as a pointer to the rulebook section that holds the convention.
 if grep -q "create-sql's directory convention" scripts/lint-sql-tc.sh; then

@@ -193,7 +193,6 @@ STUB_NO_GH_TOKEN=1 GH_TOKEN=x run "GH_TOKEN counts" 0 "" "MISSING: gh credential
 # Still a full report: the caller decides whether the reduced path is acceptable, so it needs the rest.
 CUBRID="$T/none" run "report is still complete" 3 "cover  :"
 
-# ── the deployed rulebook: a stop when origin/develop lacks a file, never the reduced path ───────
 # A skill that went on would fill the rules from memory, so this is exit 1, not a MISSING line.
 reset_state
 manifest '{"select":{"issue_type":"Correct Error"}}'
