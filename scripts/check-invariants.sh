@@ -358,7 +358,10 @@ for _s in create-sql author-testcase; do
   for _r in $_rb_files; do
     grep -qF "git -C \"\$TC\" show origin/develop:$_r" "$_f" || _miss="$_miss $_r"
   done
-  grep -qF 'git -C "$TC" fetch origin' "$_f" || _miss="$_miss the-stop-and-fetch"
+  # The whole stop sentence, not the fetch command alone: author-testcase also quotes that command
+  # where it describes the scout, which would keep the check green after the stop itself is gone.
+  grep -qF '**If any of them fails, stop** and tell the user to run `git -C "$TC" fetch origin`' "$_f" \
+    || _miss="$_miss the-stop-and-fetch"
   if [ -z "$_miss" ]; then
     pass "$_s reads the $(printf '%s\n' $_rb_files | wc -l | tr -d ' ') deployed rulebook files from origin/develop and stops when one is missing"
   else
