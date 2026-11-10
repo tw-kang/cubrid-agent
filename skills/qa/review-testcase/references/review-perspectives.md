@@ -26,7 +26,7 @@ Its purpose is not to hold the TC rules — those are the testcase repo's deploy
 
 ## L1 — the perspectives humans flagged most
 
-Mechanical comments humans made *repeatedly* belong in static rules, not LLM judgment. L1 checks every bold rule of the rulebook, and the table above names the rule of each perspective. The mining found these perspectives repeated most, so look at them first:
+Mechanical comments humans made *repeatedly* belong in static rules, not LLM judgment. L1 checks the rulebook sections that [SKILL.md](../SKILL.md) L1 names, and the table above names the rule of each perspective. The mining found these perspectives repeated most, so look at them first:
 
 - **P2** — ssihil's most-repeated comment. A tie under `ORDER BY` was PR#3091's major.
 - **P6** — including the L1 check of a `.queryPlan` file against the plan output in the answer file ([SKILL.md](../SKILL.md) L1).

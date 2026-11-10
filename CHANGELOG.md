@@ -49,7 +49,8 @@ All notable changes to cubrid-agent are documented here. The format follows
   `sql/AGENTS.md` "The PR", and the `medium/` files for a TC that belongs there, instead of the
   `create-sql` checklist; an expected result at the end of an `evaluate` label after `; result =`
   is no longer a finding. The perspective catalog keeps the review questions that the rulebook
-  does not hold and names the rulebook section of each perspective. Few-shot entries that the
+  does not hold, names the rulebook section of each perspective, and leaves the list of L1's
+  sections to the skill. Few-shot entries that the
   rulebook contradicts now point at it: a still-open bug follows `sql/rules/writing-rules.md`
   "Answer files" instead of a kept `-- BUG` comment, and an error case is checked by its code, not
   its message. The review calls `scout.sh` first: exit 1 stops it, and it tells you to run the
