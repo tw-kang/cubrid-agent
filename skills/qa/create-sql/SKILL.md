@@ -5,94 +5,50 @@ description: "Create, draft, or scaffold a new CUBRID CTP SQL testcase (.sql + .
 
 # SQL Testcase Creator (CTP)
 
-Generate a CUBRID CTP SQL testcase that passes review on the first try. A good testcase is a self-contained `.sql` (setup → scenarios → cleanup) plus a matching `.answer` that CTP diffs to decide pass/fail — and the `.answer` is **generated**, never hand-written.
+Generate a CUBRID CTP SQL testcase that passes review on the first try: a `.sql` file plus the `.answer` that CTP compares its output with. **The rules a TC follows are not in this skill.** They are the testcase repo's rulebook, which you read from `origin/develop` before you write (Before you start). This skill holds the steps around them: what to look up, how the `.answer` gets made, and what to hand off.
 
 ## Scope
 
-**Produces:** the `.sql` file (owns its own setup and cleanup), an optional empty `.queryPlan` sidecar for optimizer tests, and correct directory paths under `cases/` + `answers/`.
+**Produces:** the `.sql` file, any file the rulebook puts beside it in `cases/` (such as an empty `.queryPlan`), and their paths under `cases/` + `answers/`.
 
 **Does NOT produce:** the `.answer` file (CTP generates it by running the `.sql` — see Lifecycle contract), CTP framework changes, CI config, or shell/JDBC/CCI/HA tests (route those to the matching `cubrid-*-tc-create` skill).
 
 ## Before you start
 
-- **One call answers the three points below: `~/.cubrid-agent/bin/scout.sh [CBRD-XXXXX] --grep <repro pattern>`** (installed by `/setup-cubrid-agent`). It reports whether CTP and the build are there, which tree this issue's TC goes in and which sibling to read first, and what the corpus already covers — and when something is absent it names it and stops (exit 3) instead of letting the first CTP run find out. **The key is optional**, so a request with no CBRD number still gets the environment and the pattern search. It reads only: no writes, no network, so calling it costs nothing but the call. Run it yourself when invoked directly; under `author-testcase` you may be handed its answer instead. What it does **not** decide is the TC's path — that stays the directory convention below.
+- **One call answers the three points below: `~/.cubrid-agent/bin/scout.sh [CBRD-XXXXX] --grep <repro pattern>`** (installed by `/setup-cubrid-agent`). It reports whether CTP and the build are there, which tree this issue's TC goes in and which sibling to read first, and what the corpus already covers — and when something is absent it names it and stops (exit 3) instead of letting the first CTP run find out. **The key is optional**, so a request with no CBRD number still gets the environment and the pattern search. It reads only: no writes, no network, so calling it costs nothing but the call. Run it yourself when invoked directly; under `author-testcase` you may be handed its answer instead. What it does **not** decide is the TC's path — that is the rulebook's (Directory convention below).
 - **CTP must be installed.** Expect it at `$CTP_HOME`, `~/CTP`, or `~/cubrid-testtools/CTP` — the scout reports which. If absent, stop and tell the user to install it (`git clone https://github.com/CUBRID/cubrid-testtools.git && cp -rf cubrid-testtools/CTP ~/`).
 - **Testcase repo.** `$TC` = `$CUBRID_TESTCASES` if set, else `~/cubrid-testcases` — never a hardcoded home path. On a machine where `~/cubrid-testcases` is a human's working tree, that variable is how a caller points this at a separate clone.
-- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced and `author-testcase` did not hand you grounded input, ground it yourself: `~/.cubrid-agent/bin/ground-issue.sh CBRD-XXXXX` (installed by `/setup-cubrid-agent`) puts the description **and every comment** in the run directory's `issue.txt`, downloads every attachment, and prints what to read: `read` (text, and extracted archive members), `view` (images — use the Read tool), `unread` **with the reason**. Read all of it: repro steps sit in a comment as often as in the description, and the developer's intended cases are often attachment-only (a `cbrd_XXXXX_testcases.sql`, sometimes a `.tgz` of cases + answers). **Never infer an `unread` attachment's contents from its filename** (CUBRIDQA-1488). If neither the script nor `cubrid-jira` is installed, skip — but grounding improves accuracy.
-- **Check for existing coverage first, and read the feature area's existing TC as the convention reference.** The scout's `--grep` is that check — give it the issue's tables/queries, since a search by cbrd number cannot see the same repro under another name. It also names the sibling tests under the target tree. **Read the header of the nearest sibling TC before writing**: it usually documents the area's conventions — which hints force the plan, how the data is sized against the thresholds CTP actually runs with, what the trace is expected to show. Skipping that step is what forced a rewrite round on a parallel-heap-scan TC whose sibling had already documented all of it (CUBRIDQA-1488). If it already exists — e.g. an older test that only flakes under a special CI mode — **differentiate** the new test (a distinct variant, or make it self-sufficient so it triggers the path in the standard suite) instead of duplicating it.
+- **Rulebook — read it before you write, from `origin/develop`, never from the working tree.** The clone may sit on any branch, and the rules must not change with it.
+  ```bash
+  git -C "$TC" show origin/develop:AGENTS.md
+  git -C "$TC" show origin/develop:sql/AGENTS.md
+  git -C "$TC" show origin/develop:sql/rules/writing-rules.md
+  git -C "$TC" show origin/develop:sql/rules/test-perspectives.md
+  # for a TC under medium/, and to decide whether it belongs there, also:
+  git -C "$TC" show origin/develop:medium/AGENTS.md
+  git -C "$TC" show origin/develop:medium/rules/writing-rules.md
+  git -C "$TC" show origin/develop:medium/rules/test-perspectives.md
+  ```
+  **If any of them fails, stop** and tell the user to run `git -C "$TC" fetch origin` — never write the TC from what you remember of the rules. The scout stops on the same gap with exit 1. This skill names a rule by its file and section heading, such as `sql/rules/writing-rules.md` "Place and files".
+- **JIRA context (optional).** If a `CBRD-XXXXX` is referenced and `author-testcase` did not hand you grounded input, ground it yourself: `~/.cubrid-agent/bin/ground-issue.sh CBRD-XXXXX` (installed by `/setup-cubrid-agent`) puts the description **and every comment** in the run directory's `issue.txt`, downloads every attachment, and prints what to read: `read` (text, and extracted archive members), `view` (images — use the Read tool), `unread` **with the reason**. Read all of it: the rulebook gives a case to every scenario of the issue, one in a comment or an attachment too (`sql/rules/test-perspectives.md` "Scenarios to cover"). **Never infer an `unread` attachment's contents from its filename** (CUBRIDQA-1488). If neither the script nor `cubrid-jira` is installed, skip — but grounding improves accuracy.
+- **Search for existing coverage, and read the nearest sibling TC's header before writing.** The scout's `--grep` is that search — give it the issue's tables/queries, since a search by cbrd number cannot see the same repro under another name. It also names the sibling tests under the target tree. **Read the header of the nearest sibling TC before writing**: it usually documents the area's conventions — which hints force the plan, how the data is sized against the thresholds CTP actually runs with, what the trace is expected to show. Skipping that step is what forced a rewrite round on a parallel-heap-scan TC whose sibling had already documented all of it (CUBRIDQA-1488). What to do when a TC already checks the scenario is in `sql/AGENTS.md` "Before the PR".
+- **No hardcoded paths.** If a step needs scratch space, use `work=$(mktemp -d)` and reference `$work` — never a written-out path like `/tmp/foo` or `/home/<user>/foo`, which breaks on every other machine. When author-testcase drives this skill, anything worth keeping goes in its run directory (`$HOME/.cubrid-agent/CBRD-XXXXX/`) instead.
 
 ## Directory convention
 
-The path is how CTP locates and categorizes a test. The `.sql` and its `.answer` share basename, split across sibling `cases/` and `answers/` dirs.
-
-```
-# Bug fix — issue type Correct Error:
-#                     $TC/sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_XXXXX.sql
-#                                                    answers/cbrd_XXXXX.answer
-# Everything else — Improve Function/Performance, Refactoring, Task,
-# Internal Management, Development Subject:
-#                     $TC/sql/_{no}_{release_code}/cbrd_XXXXX/cases/cbrd_XXXXX.sql
-#                                                            answers/cbrd_XXXXX.answer
-# ... grouped by feature instead of by issue:
-#                     $TC/sql/_{no}_{release_code}/{feature_group}/cases/cbrd_XXXXX.sql
-#                                                                 answers/cbrd_XXXXX.answer
-# Medium:             $TC/medium/...
-```
-
-`{yy}_{1|2}h` is **the half-year you are writing the TC in — today's date, never a date on the issue.** The corpus settles it: each dir's first commit falls inside its own label (`_24_2h` 2024-07-30, `_25_1h` 2025-01-15, `_25_2h` 2025-08-07, `_26_1h` 2026-01-19) while the issues filed inside them span other years — `_26_1h` holds `cbrd_26404`, whose issue was created in 2025-11. Take the current date, not the issue's `created`/`resolutiondate`/version, and **create the dir if this half-year has none yet**. A run that read this rule as "the issue's year" put a 2026-07 TC into `_25_2h`; the lint hook now blocks a new case outside the current half-year. Multiple tests for one issue get a suffix (`cbrd_27100_select.sql`, `cbrd_27100_update.sql`), all sharing one `cases/`+`answers/` pair — never make a subdirectory per individual `.sql`. **The issue type alone selects the tree.** A `Correct Error` is a bug fix and goes under `_13_issues/_{yy}_{1|2}h/cases/` — **whatever its version fields say**; create the half-year dir if it does not exist yet. Every other type goes into the release dir named for its target release (`_{no}_{release_code}/cbrd_XXXXX/`, one dir per issue).
-
-**No version field enters this decision** — not the Planned Version the Select JQL filters on, and not `fixVersions`. A shipped bug fix is still a bug fix, so it still goes to `_13_issues`; the release dir is about *what kind of change* it is, not *when it shipped*. Treating a version as the signal is what sent two TCs into `_36_guava/`, and both drew the same review objection (CUBRIDQA-1486). The corpus agrees: every `cbrd_*` dir under `_36_guava/` is an Improve or a Task (`cbrd_25447`, `cbrd_26104`, `cbrd_26258`, `cbrd_26266`, `cbrd_25776`), not one is a `Correct Error`. **When you match against siblings, match on issue type, not on release.**
+The TC's path — its tree, its half-year directory, its file names, and when to split it into files — is `sql/rules/writing-rules.md` "Place and files"; for a TC under `medium/`, `medium/rules/writing-rules.md` "New TC" and "Place and names" as well. Once the run has recorded the issue type, the lint hook checks the tree and the half-year on the write itself. **When you match against siblings, match on issue type, not on release**: matching on a version is what sent two TCs into `_36_guava/`, and both drew the same review objection (CUBRIDQA-1486).
 
 ## Lifecycle contract
 
-The `.answer` is the expected output and **must come from CTP**, not your keyboard — hand-written answers drift from real engine output and fail diffs.
+The `.answer` comes from a CTP run, never from your keyboard (`sql/rules/writing-rules.md` "Answer files"). These steps make it:
 
 1. Write the `.sql` into `cases/`.
-2. **Seed an empty `answers/cbrd_XXXXX.answer` first** — CTP's interactive `run` skips any case that has no answer file (it runs nothing: `Total:1 / Success:0 / Fail:0`). With the empty answer present, run it through `verify-sql` (needs a build URL — use one given, else ask). The run diffs against the empty answer (`Fail:1`) and writes the real output to `$CTP_HOME/sql/result/<date>/schedule_…/sql/cbrd_XXXXX.result` — in the result tree, **not** next to the `.sql`.
-3. Promote it: copy that `.result` over the seeded answer (`answers/cbrd_XXXXX.answer`), then re-run to confirm `Success:1`.
+2. **Seed an empty `answers/cbrd_XXXXX.answer` first** — CTP's interactive `run` skips any case that has no answer file (it runs nothing: `Total:1 / Success:0 / Fail:0`). With the empty answer present, run it through `verify-sql` (needs a build URL — use one given, else ask). The run diffs against the empty answer (`Fail:1`). On every run CTP writes the output to `cases/cbrd_XXXXX.result`, next to the `.sql`; only because this case failed does it also copy it into the result tree, `$CTP_HOME/sql/result/<date>/schedule_…/sql/cbrd_XXXXX.result`.
+3. Promote it: copy the `.result` next to the `.sql` over the seeded answer (`answers/cbrd_XXXXX.answer`), then re-run to confirm `Success:1`.
    - **Inside the author-testcase pipeline steps 2–3 are two commands, not six**: `~/.cubrid-agent/bin/verify-run.sh CBRD-XXXXX --generate` (seed + run + print the output) → you judge it → `--promote` (copy + record the provenance). Hand-run the steps only for an ad-hoc `.sql` with no run manifest.
-4. Read the `.answer` and confirm it matches intent — DDL/DML show affected row count; SELECT shows headers + rows; errors show `Error:-NNN\n<message>`; each statement's output is split by `===...===` lines.
+4. Read the `.answer` and confirm it matches intent — DDL/DML show affected row count; SELECT shows headers + rows; each statement's output is split by `===...===` lines.
 
 No build URL / no CUBRID env? Drop an empty `.answer` and tell the user to fill it later with `verify-sql`.
-
-## Essential helpers (use these, not raw SQL prose)
-
-These directives are how CTP and reviewers read your intent. Skipping them changes what gets compared.
-
-| Use | For | Why |
-|---|---|---|
-| `evaluate 'Case N: ...'` | label each scenario | sole section marker CTP echoes into the answer; number sequentially |
-| `--+ server-message on` / `off` | PL/CSQL `DBMS_OUTPUT`, or asserting an error *message* (not just the code) | adds message text to the diff (only if `System.xml errorMessage=false`); plain SQL error tests conventionally omit it and assert the `-NNN` code alone; pair on/off when used |
-| `SET TRACE ON` / `OFF` | plan/trace assertions | pair on/off — trace left on leaks into later cases; turn it off once trace checks end |
-| `DROP TABLE IF EXISTS t` before `CREATE` | every table | keeps the test re-runnable |
-| empty `cbrd_XXXXX.queryPlan` sidecar | optimizer/plan tests | tells CTP to capture and diff the query plan |
-| `verify-sql` | generating `.answer` | only sanctioned source of expected output |
-
-## Writing rules
-
-- **`evaluate 'Case N: description'`** before each scenario; this is the *only* section marker — do not add `-- === ...` style comment banners.
-- **`server-message` is not the default for error tests.** A plain SQL error case asserts the `-NNN` code alone (no `server-message`) — the corpus norm, and enough to catch regressions. Use `--+ server-message on/off` (paired) only for PL/CSQL `DBMS_OUTPUT`, or when you must pin the exact error *message* text (brittle to rewording). The same on/off pairing applies to `SET TRACE` — turn it off once its checks end so trace output doesn't leak into later cases (a frequent review nit).
-- **`DROP TABLE IF EXISTS` before every `CREATE TABLE`**, setup at top, cleanup at bottom. Keep setup minimal with simple names (`tbl1`, `col1`).
-- **Make each file self-contained — the full suite shares ONE database.** CI/regression creates the DB once and runs every SQL case in it back-to-back, so uncleaned state leaks into later tests. Undo everything at cleanup: `DROP TABLE IF EXISTS` (also at top), `deallocate prepare <name>` for any `prepare`, restore any `SET SYSTEM PARAMETERS`, drop any temp serial/view/procedure created.
-- **Keep the answer deterministic.** Output that varies run-to-run breaks the diff: `EXECUTE … USING {collection}` renders as `[Ljava.lang.Integer;@<hash>` (a Java object id), and OIDs, timestamps, and unordered result sets drift too. Return scalars, assert errors, or add `ORDER BY` — **any SELECT that can return more than one row needs an explicit `ORDER BY`** (the single most repeated review nit); never bake a hash/OID/timestamp into a `.answer`. **Assert only invariants:** values that vary by environment, build, or time (page ids, starting values, the current year) must not be baked into the answer — assert what is *guaranteed* (a count, an ordering, an error code, a min/max boundary), not a volatile exact value.
-- **Make the test actually exercise the fixed code path — a green test that never hits the fix is worthless.** A test can pass deterministically while running a *different*, unaffected path. Identify the path the fix touches and force the TC down it, then confirm with `verify-sql` (query plan / trace). Example: the offline **parallel** index build (`btree_sort_get_next_parallel`) is taken only by a plain `CREATE INDEX` when `parallelism`≥2 (default 4) **and** the table has ≥ `parallel_sort_page_threshold` heap pages (default 2048) — `WITH ONLINE PARALLEL` is a *different* (online) path. So size the data to clear the threshold (~2M rows here), don't just copy a small repro that runs serial under the default config.
-- **Cover boundaries and the negative side, not just the issue's exact repro — this is the #1 review ask.** Reviewers most often reply "please add this scenario." For every positive case add its negative/error counterpart; test just-below / at / just-above any limit; and cover the paths the fix affects beyond the one literal repro line. A test that only replays the single repro almost always comes back with case-addition requests (extra round-trip).
-- **Keep it minimal — drop hints, parameters, and duplicate cases the repro doesn't need.** An unrelated hint, an unneeded `UPDATE STATISTICS`, or a case identical to another blurs what's verified and draws "please remove this" review asks. Aim for the smallest repro that still exercises the fix (this balances the coverage rule above — cover the fix's space, not noise).
-- **Expected values live in the `.answer`, judged by CTP's diff — never compute pass/fail in the `.sql`.** Emit the raw result (a count, a row, an `Error:-NNN`); do **not** wrap it in `CASE … 'OK'/'FAIL'`, and do **not** put the expected value in a comment. The generated `.answer` is the single source of the expected result; scenario labels go in `evaluate '...'` (echoed into the answer), not in `--` comments.
-- **Write few `--` comments.** Half the corpus has none, and a `-- SETUP:` / `-- CLEANUP:` label only repeats what the statement already says. Keep the ones a rewrite would otherwise lose — why *this* shape rather than the obvious one — and drop the rest; the lint hook reports a file above the corpus upper quartile.
-- **Language: `.sql` comments and commit messages are English; only the PR body is Korean** (user-perspective), per CUBRID repo convention.
-- **Simple, distinct data values** so answer diffs read cleanly; explicit column lists in `INSERT` when it aids readability.
-- **3–10 `evaluate` sections** per file is typical; one `evaluate` label per error case.
-- **No hardcoded paths.** SQL stays path-free. If a step needs scratch space, use `work=$(mktemp -d)` and reference `$work` — never a written-out path like `/tmp/foo` or `/home/<user>/foo`, which breaks on every other machine. When author-testcase drives this skill, anything worth keeping goes in its run directory (`$HOME/.cubrid-agent/CBRD-XXXXX/`) instead.
-
-## House idioms (quick recipes)
-
-These match what the corpus and reviewers expect. See `@examples/` for full files.
-
-- **Header block** — start every file with `/** This test case verifies CBRD-XXXXX: <title> */` followed by a numbered `Coverage:` list. **The header describes the test, not the run that produced it — and it must stay scannable, within 20 lines.** Both a human reviewer and a later skill read it: `review-testcase` judges the TC from it, and the next author greps the corpus through it to find existing coverage. So it carries what is durably true about the testcase, and nothing about the one run that produced it — no "the Verify lane MUST check …", no reporting guidance, no detection-probability arithmetic. Each of those has a place: how the case was reasoned about → the run report; a constraint the reviewer must weigh → the PR Remarks; **a condition that decides whether the run proved anything at all → `verify.preconditions` in the manifest**, which is what the Verify stage actually reads. **Never write `--` inside the header block** — CTP parses it as a SQL line comment, the block stops being a block, and the case does not run; use a single hyphen. Over 20 lines, compress the wording rather than dropping coverage items. **20 is the ceiling, not the target** — the corpus writes far shorter headers, and the lint hook reports any header above the corpus upper quartile (it holds the measurements, so they cannot go stale here). The usual cause of a long one is a `Coverage:` list that restates the `evaluate` labels case by case: those labels already name every case and ship in the `.answer`, so group the coverage instead (`6-8. subquery inside a collection`) rather than mirroring them. The lint hook checks both bounds, and the submit gate blocks on either (CUBRIDQA-1481, where a shipped TC carried a 36-line header instructing the agent's own next stage).
-- **Query-plan test** — drop an empty `cbrd_XXXXX.queryPlan` beside the `.sql`; CTP then captures the optimizer plan into the answer. **Pin the plan against optimizer flakiness:** when two indexes tie on cost the optimizer can pick differently run-to-run, so add a decisive index or `UPDATE STATISTICS` (or fix the index set) so the chosen plan is stable across runs — otherwise the plan diff flakes.
-- **Parameter change (rare)** — `SET SYSTEM PARAMETERS 'k=v';` then restore the original value at the end of the test.
-- **`holdcas` (rare)** — wrap transaction-sensitive scenarios in `--+ holdcas on;` … `--+ holdcas off;`.
 
 ## Verify before claiming done
 
@@ -103,27 +59,13 @@ After authoring, prove the testcase actually runs — don't just eyeball it.
 
 ## Self-review checklist
 
-- Header block present with CBRD number and `Coverage:`?
-- `evaluate 'Case N: ...'` on every scenario, numbered, no `-- ===` banners?
-- `DROP TABLE IF EXISTS` before each `CREATE TABLE`? Cleanup at bottom?
-- `server-message` used only for PL/CSQL or message-text assertions — plain SQL errors assert the `-NNN` code alone — and paired on/off when present? `SET TRACE` turned off after its checks?
-- Every multi-row SELECT has an explicit `ORDER BY`?
-- Covers boundary and negative/error cases, not just the literal repro (the most common review ask)?
-- Asserts only invariants — no environment/build/time-dependent exact values (page ids, starting values, current year)?
-- Minimal — no hints/params/duplicate cases irrelevant to the repro?
-- Fully self-contained? Every `prepare` deallocated, every `SET SYSTEM PARAMETERS` restored, every created object dropped at cleanup (the suite shares one DB)?
-- Answer free of non-deterministic tokens (object hashes/OIDs, timestamps, unordered rows)?
-- **Does the test actually exercise the fixed code path** (not just pass)? Confirmed via plan/trace, and data sized to trigger it (e.g. parallel path needs ≥2048 heap pages)?
-- Checked the corpus for existing coverage — not a duplicate of an existing test?
-- Expected results live only in the `.answer` (no `CASE … 'OK'/'FAIL'` verdict in SQL, no expected values in comments)?
-- Comments and commit message in English (PR body Korean)?
-- `.queryPlan` sidecar present for optimizer tests, and the plan pinned against optimizer tie/flakiness (decisive index or updated stats)?
-- `.answer` generated via `verify-sql` (not hand-written), or left empty with a handoff note?
-- Dir/basename correct? Right `_{yy}_{1|2}h` bucket, shared `cases/`+`answers/`?
+Check the `.sql` against every bold rule of `sql/rules/writing-rules.md` "New TC" and of `sql/rules/test-perspectives.md` — for a TC under `medium/`, the `medium/` files as well — in the copies you read in Before you start. The lint hook checks a few of them on each write; the rest are yours.
 
 ## Examples & references
 
-- `@examples/bug_fix_error_cases.sql` — negative test with `server-message on/off`.
+Where an example and the rulebook differ, the rulebook wins.
+
+- `@examples/bug_fix_error_cases.sql` — error cases checked by their `Error:` codes, with `server-message` on only around the call whose `DBMS_OUTPUT` Case 1 checks.
 - `@examples/bug_fix_select.sql` — basic SELECT result verification.
-- `@examples/feature_query_plan.sql` — optimizer test with a `.queryPlan` sidecar.
+- `@examples/feature_query_plan.sql` — every case checks a plan, so an empty `cbrd_25975.queryPlan` sits beside it.
 - Test guide: `sql_guide.md` — https://github.com/CUBRID/cubrid-testtools/blob/develop/doc/sql_guide.md (or `$CTP_HOME/../doc/sql_guide.md` if CTP is checked out locally).

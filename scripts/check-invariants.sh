@@ -331,9 +331,11 @@ done
 
 # A skill documenting an artifact header must also say what the header is NOT for. create-cci /
 # create-jdbc / create-unittest are absent on purpose — their header is an include, not a comment.
+# create-sql is absent because it documents no header any more: the tc repo's rulebook holds the
+# header rules, and the rulebook-read check below holds create-sql to reading them.
 _bad=0
-for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell create-isolation; do
-  # The rule follows the skill, not the tree: create-sql ships, the other five are in-progress.
+for f in create-cdc-repl create-ha-repl create-shell create-ha-shell create-isolation; do
+  # The rule follows the skill, not the tree: the five are in-progress today and may ship later.
   _p=$(ls -d skills/*/"$f"/SKILL.md 2>/dev/null | head -1)
   [ -n "$_p" ] || { fail "$f is named by this check but exists in neither skills tree"; _bad=$((_bad+1)); continue; }
   grep -q 'describes the test, not the run' "$_p" \
@@ -342,6 +344,37 @@ for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell 
     || { fail "$_p documents a header but not the 20-line scannability bound"; _bad=$((_bad+1)); }
 done
 [ "$_bad" -eq 0 ] && pass "every header-documenting create-* skill bounds both header scope and size"
+
+# create-sql and author-testcase hold no TC rules: they read the tc repo's deployed rulebook from
+# origin/develop. A skill that drops the read writes or judges TCs by what the model remembers, and a
+# file it stops naming is a rule it stops reading — so the file list comes from the canonical copy,
+# and each skill is checked on its own.
+_rb_files=$(git ls-files 'rulebook/cubrid-testcases/*' | sed 's|^rulebook/cubrid-testcases/||')
+if [ -z "$_rb_files" ]; then
+  fail "rulebook/cubrid-testcases/ holds no tracked file, so the rulebook-read check below has nothing to check"
+fi
+for _s in create-sql author-testcase; do
+  _f=skills/qa/$_s/SKILL.md; _miss=""
+  for _r in $_rb_files; do
+    grep -qF "git -C \"\$TC\" show origin/develop:$_r" "$_f" || _miss="$_miss $_r"
+  done
+  grep -qF 'git -C "$TC" fetch origin' "$_f" || _miss="$_miss the-stop-and-fetch"
+  if [ -z "$_miss" ]; then
+    pass "$_s reads the $(printf '%s\n' $_rb_files | wc -l | tr -d ' ') deployed rulebook files from origin/develop and stops when one is missing"
+  else
+    fail "$_s lost its rulebook read:$_miss — it would write or judge a TC by rules it no longer reads"
+  fi
+done
+# lint-sql-tc.sh's wrong-tree message sends the author to "create-sql's directory convention", so the
+# heading stays in create-sql as a pointer to the rulebook section that holds the convention.
+if grep -q "create-sql's directory convention" scripts/lint-sql-tc.sh; then
+  if sed -n '/^## Directory convention/,/^## [^D]/p' skills/qa/create-sql/SKILL.md \
+       | grep -qF 'sql/rules/writing-rules.md` "Place and files"'; then
+    pass "create-sql's Directory convention, which the lint hook's message cites, points at the rulebook's \"Place and files\""
+  else
+    fail "create-sql has no Directory convention section pointing at sql/rules/writing-rules.md \"Place and files\", yet lint-sql-tc.sh sends the author there"
+  fi
+fi
 
 # Satisfied by delegating to ground-issue.sh, or by the hand-run rule until a skill is migrated.
 _bad=0
@@ -549,15 +582,17 @@ else
   fail "these files reference agent memory or a cached verdict — the knowledge belongs in the skill body, references/, env.sh or the manifest (DP5, CUBRIDQA-1488): $(printf '%s' "$_mem" | tr '\n' ' ')"
 fi
 
-# The TC's directory is create-sql's call: author-testcase must defer instead of pinning a path, and
-# must record the two issue facts the placement check needs. Checking the fix is PRESENT (not that
-# the old string is absent) is what catches a rewrite that drops it.
+# The TC's directory is the rulebook's call (sql/rules/writing-rules.md "Place and files"):
+# author-testcase must defer to it instead of pinning a path, and must record the issue fact the
+# placement check needs. Checking the fix is PRESENT (not that the old string is absent) is what
+# catches a rewrite that drops it.
 _at=skills/qa/author-testcase/SKILL.md
 _miss=""
-grep -q "directory convention" "$_at" || _miss="$_miss deferral-to-create-sql"
+grep -qF 'The TC path comes from the rulebook'"'"'s `sql/rules/writing-rules.md` "Place and files"' "$_at" \
+                                     || _miss="$_miss deferral-to-the-rulebook"
 grep -q "select.issue_type" "$_at"   || _miss="$_miss select.issue_type-recording"
 if [ -z "$_miss" ]; then
-  pass "author-testcase defers the TC path to create-sql and records the placement facts"
+  pass "author-testcase defers the TC path to the rulebook's \"Place and files\" and records the placement facts"
 else
   fail "author-testcase lost:$_miss — without both, the TC path is decided by whoever guesses first and the placement check cannot run"
 fi

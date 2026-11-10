@@ -7,8 +7,6 @@
  * 3 - Procedure in SELECT raises error
  */
 
---+ server-message on
-
 CREATE OR REPLACE PROCEDURE proc_test(arg1 INT) AS
 BEGIN
     DBMS_OUTPUT.put_line('executed: ' || arg1);
@@ -19,7 +17,9 @@ CREATE TABLE tbl1 (col1 INT, col2 VARCHAR(10));
 INSERT INTO tbl1 VALUES (1, 'test');
 
 evaluate 'Case 1: CALL procedure with IN parameter';
+--+ server-message on
 CALL proc_test(10);
+--+ server-message off
 
 evaluate 'Case 2: CALL with INTO clause should fail';
 CALL proc_test(10) INTO :v;
@@ -29,5 +29,3 @@ SELECT col1, proc_test(col1) FROM tbl1;
 
 DROP PROCEDURE proc_test;
 DROP TABLE IF EXISTS tbl1;
-
---+ server-message off
