@@ -72,7 +72,7 @@
     {
       "id": 3,
       "prompt": "review-testcase 돌려줘. PR 3160은 옵티마이저 plan/trace를 검증하는 sql tc야. 근데 이 머신엔 로컬 빌드랑 CTP 환경이 없어.",
-      "expected_output": "Run only L1+L2 and mark L3 as NOT-RUN (no fabricated execution). L2, since this is a plan/trace testcase, adds the plan-stability lens (P3 fix path · P13 tie/flaky plan stability) plus the determinism-convention lens applied across the board. Through the DP2 black-box view, check whether the TC asserts on user-observable plan/output, and flag any dependence on C internals/physical values like page id or offset. Issue a READY-TO-MERGE/NEEDS-WORK verdict based on L1+L2 evidence, with a Korean line-comment review that — because the prompt enumerates a specific PR (targeted) — is POSTED to the PR with a bot signature (L3 marked NOT-RUN in the posted review), + report PR-3160.md. Does not approve/merge (human-only).",
+      "expected_output": "Run only L1+L2 and mark L3 as NOT-RUN (no fabricated execution). L2, since this is a plan/trace testcase, adds the plan-stability lens (P3 fix path · P13 tie/flaky plan stability) plus the determinism-convention lens applied across the board. Through the DP2 black-box view, judged by the deployed sql/rules/test-perspectives.md, check whether the TC asserts on user-observable plan/output, and flag any value that changes from run to run, such as a page id, in the answer. Issue a READY-TO-MERGE/NEEDS-WORK verdict based on L1+L2 evidence, with a Korean line-comment review that — because the prompt enumerates a specific PR (targeted) — is POSTED to the PR with a bot signature (L3 marked NOT-RUN in the posted review), + report PR-3160.md. Does not approve/merge (human-only).",
       "files": [],
       "assertions": [
         {
@@ -89,7 +89,7 @@
         },
         {
           "name": "dp2_black_box_check",
-          "description": "From the DP2 perspective, verify that assertions are on user-observable plan/output and flag dependence on C internals/physical values."
+          "description": "From the DP2 perspective, judged by the deployed sql/rules/test-perspectives.md, verify that assertions are on user-observable plan/output and flag a run-to-run value, such as a page id, in the answer."
         },
         {
           "name": "verdict_enum",

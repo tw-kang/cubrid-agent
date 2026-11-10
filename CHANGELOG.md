@@ -43,6 +43,21 @@ All notable changes to cubrid-agent are documented here. The format follows
   `header_size: false` in its manifest no longer blocks the pull request, and the next `.sql`
   write removes the field.
 
+- (minor) **`review-testcase` judges a PR by the testcase repo's rulebook, read from
+  `origin/develop` of the clone, not by the copy in the PR.** The skill now reads the deployed
+  rulebook of `cubrid-testcases` with `git -C "$TC" show origin/develop:<path>` and stops when a
+  read fails. It never reads the rulebook files in the PR worktree, so a PR that edits a rule
+  cannot pass by its own edit. L1 checks every bold rule of that rulebook instead of the
+  `create-sql` checklist, and an expected result at the end of an `evaluate` label after
+  `; result =` is no longer a finding. The perspective catalog keeps the review questions that the
+  rulebook does not hold and names the rulebook section of each perspective. Few-shot entries that
+  the rulebook contradicts now say what it says: a still-open bug is marked by a
+  `Case N: known wrong result, CBRD-NNNNN (open)` line in the header block, not kept as a `-- BUG`
+  comment, and an error case is checked by its code, not its message. The review calls `scout.sh`
+  first: exit 1 stops it, exit 3 lets it go on, and only a missing CUBRID build or CTP makes it
+  skip L3. **After you update the plugin, run `/setup-cubrid-agent` again**, so that the scout it
+  calls is the one that checks the rulebook.
+
 ## [1.1.1] - 2026-11-03
 
 - (patch) **The shipped skills no longer point at decision records that are gone.**

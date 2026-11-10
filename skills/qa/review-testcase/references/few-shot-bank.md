@@ -6,6 +6,7 @@ A **collection of real human review examples** injected into the L2 domain-revie
 - review-testcase L2 injects, as few-shot examples, entries from the lens section matching the PR's nature: **new-testcase → coverage-expansion**, **change-testcase → answer-vs-spec**, **shared → determinism-convention · plan-stability** (plan TCs).
 - Each entry: **Context** (situation) → **Finding** (verbatim reviewer comment) → **Pattern** (reusable rule the LLM generalizes) → **Source** (PR/reviewer).
 - **The pattern is the point** — the goal is to make the bot apply this rule to new PRs. It should follow the pattern rather than copy-paste the quoted wording verbatim.
+- **Where an entry and the deployed rulebook differ, the rulebook wins.** A Finding is what a reviewer said, some of it before the rulebook existed; the Pattern says what to apply now and names the rulebook section it follows.
 
 ## Backtest isolation (important)
 When backtesting a particular PR, inject the entries **excluding those whose source is that PR** (to prevent answer leakage). That is why each entry records its source PR.
@@ -38,7 +39,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P4] Strengthen system-catalog verification queries with identifying columns, ordering, and noise filters
 - **Context**: The result-checking select in several privilege (grant/revoke) TCs (the same finding repeated across 4 PRs)
 - **Finding**: "select grantor_name, grantee_name, object_name, auth_type, is_grantable from db_auth where grantee_name != 'PUBLIC' order by grantor_name, grantee_name; — object_name·auth_type 값이 여러 행에서 동일하니 바꾸는 게 좋다", "object_type, object_name, auth_type 추가; 동일 쿼리는 파일 내 모두 고쳐달라"
-- **Pattern**: Make verification queries that check results via a system catalog (db_auth, etc.) have (1) a noise filter like `!= 'PUBLIC'`, (2) enough columns to distinguish rows, and (3) an order by over multiple key columns. When the same-shaped query appears several times in a file, require that they all be fixed identically. (repeated across 4 PRs = highly reusable)
+- **Pattern**: Make verification queries that check results via a system catalog (db_auth, etc.) have (1) a noise filter like `!= 'PUBLIC'`, (2) enough columns to distinguish rows, and (3) an order by down to a unique key or over the whole select list (`sql/rules/test-perspectives.md` "What sql TCs cannot check"). When the same-shaped query appears several times in a file, require that they all be fixed identically. (repeated across 4 PRs = highly reusable)
 - **Source**: PR1948·1950·1956·1957 / ssihil·kwonhoil
 
 ### [P4] Test type conversion/precision with digit-boundary values
@@ -50,7 +51,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P4] For predicates containing a function, build an operator × logical-connective × sign combination matrix
 - **Context**: A numbered combination TC (17+) that classifies predicates containing the abs() function as key range vs. data filter
 - **Finding**: "predicate: (ta.b <= abs(tb.b) or ta.c > abs(tb.b)) key range: ((abs(tb.b)>=ta.b) or (abs(tb.b)<ta.c))", "predicate: (ta.b <= -abs(tb.b) or ta.c > abs(tb.b)) key range: NULL"
-- **Pattern**: For predicates containing a function, enumerate every combination of comparison operator (>=, <=, =, <, >) × logical connective (and/or) × sign (positive/negative) with numbers, and for each combination state the expected value — whether the optimizer takes a key range or defers it to a data filter/NULL (full scan). When easily-missed combinations like or-connectives or negative abs are absent, point out that they should be filled in.
+- **Pattern**: For predicates containing a function, enumerate every combination of comparison operator (>=, <=, =, <, >) × logical connective (and/or) × sign (positive/negative) with numbers, and for each combination state the expected value — whether the optimizer takes a key range or defers it to a data filter/NULL (full scan) — at the end of its `evaluate` label after `; result =`, never in a comment (`sql/rules/writing-rules.md` "Header and labels"). When easily-missed combinations like or-connectives or negative abs are absent, point out that they should be filled in.
 - **Source**: PR1884 / youngjinj
 
 ### [P4] List every function in a family that pairs by prefix/abbreviated form
@@ -68,7 +69,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P4] Pair positive cases with matching negative cases (nonexistent target, typo)
 - **Context**: A privilege error-case TC
 - **Finding**: "에러케이스 추가: 'show grant for 없는user명;' 에러·메시지 확인, grant/revoke 오탈자 명령 실행 에러메시지 확인"
-- **Pattern**: When the TC is positive-heavy, propose symmetrically adding the matching negative cases (specifying a nonexistent target, a command typo) in a form that verifies the actual error message as well.
+- **Pattern**: When the TC is positive-heavy, propose symmetrically adding the matching negative cases (specifying a nonexistent target, a command typo), each checked by the error code of its refusal, not by its message (`sql/rules/test-perspectives.md` "Evidence in the answer file", "What sql TCs cannot check").
 - **Source**: PR1901 / kwonhoil
 
 ### [P8] Attach a "check for existing duplicates first" caveat to coverage-expansion suggestions
@@ -86,7 +87,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P14] Explicitly restore changed system parameters/session settings at the end
 - **Context**: The wrap-up of a TC that verifies by changing an index-related system parameter
 - **Finding**: "set system parameters 'deduplicate_key_level=default'; — 명시적으로 default를 추가해 다른 케이스가 default로 동작함을 보장"
-- **Pattern**: If you changed a system parameter or session setting during the test, add a statement at the end of the case that explicitly restores it to default, so later TCs aren't affected — you must not skip this restore on the grounds of "minimal reproduction."
+- **Pattern**: If you changed a system parameter or session setting during the test, add a statement at the end of the file that explicitly restores it to default (`sql/rules/writing-rules.md` "Cleanup"), so later TCs aren't affected — you must not skip this restore on the grounds of "minimal reproduction."
 - **Source**: PR1844 / tw-kang
 
 ---
@@ -138,7 +139,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P12] For odd behavior, ask the developer directly whether it's a bug or the spec
 - **Context**: The rewritten query has the leading hint, but it isn't applied to the view table
 - **Finding**: "뷰테이블에 leading 힌트 적용 안 되는 게 스펙인지 개발자 문의" → "뷰테이블도 적용돼야 하는 게 스펙. 개발자 수정중."
-- **Pattern**: When behavior is odd and the reviewer can't decide whether it's a bug or the spec, don't just fix the answer to match that behavior and move on. First ask the developer "is this the spec?", and if it's a bug, keep the TC on the premise that it will be fixed and leave it as an issue.
+- **Pattern**: When behavior is odd and the reviewer can't decide whether it's a bug or the spec, don't just fix the answer to match that behavior and move on. First ask the developer "is this the spec?", and if it's a bug, leave it as an issue and do not approve an answer that holds its output: when it is the bug the TC tests, the answer comes from a build with the fix (`sql/AGENTS.md` "Before the PR"), and `sql/rules/writing-rules.md` "Answer files" says what a TC does with any other bug.
 - **Source**: PR1736 / kwonhoil·zionyun
 
 ### [P12] For cross-component criterion mismatches, go as far as filing an issue and updating the manual
@@ -172,7 +173,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P2] Even with ORDER BY, ordering is nondeterministic if the sort key isn't unique
 - **Context**: A db_auth query uses only `order by grantor_name`
 - **Finding**: "order by가 grantor_name이라 출력 순서가 바뀔 수도. grantor_name, auth_type 순으로 처리하는 게 좋겠습니다."
-- **Pattern**: Don't just look at whether ORDER BY exists — also look at whether the sort key uniquely distinguishes the results (the possibility of ties). When the leading key value is duplicated, the remaining order is still nondeterministic, so require adding a tie-breaker column.
+- **Pattern**: Don't just look at whether ORDER BY exists — also look at whether the sort key uniquely distinguishes the results (the possibility of ties). When the leading key value is duplicated, the remaining order is still nondeterministic, so require tie-breaker columns until the key is unique or covers the whole select list (`sql/rules/test-perspectives.md` "What sql TCs cannot check").
 - **Source**: PR1944 / kwonhoil
 
 ### [P2] A zero-row query needs no ORDER BY — also check whether the finding points at the wrong query
@@ -208,13 +209,13 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P6] Delete BUG comments for already-fixed issues — comments must reflect the state at review time
 - **Context**: A %TYPE procedure return-value TC
 - **Finding**: "CBRD-25557에서 수정돼 develop에 반영됨(결과 0.1). 이 주석은 지워져야 합니다."
-- **Pattern**: A BUG/TODO comment reflects only the state when it was written and isn't permanently accurate. At review time, check whether the issue has landed in develop and been fixed, and if so require deleting the comment — the comment text alone isn't enough to judge; you must check external state.
+- **Pattern**: A BUG/TODO comment reflects only the state when it was written and isn't permanently accurate. At review time, check whether the issue has landed in develop and been fixed — the comment text alone isn't enough to judge; you must check external state. Fixed: the comment goes and the answer is made again. Still open: the rulebook marks it with the header-block line `Case N: known wrong result, CBRD-NNNNN (open)`, not a `-- BUG` comment (`sql/rules/writing-rules.md` "Answer files").
 - **Source**: PR1847 / hyunikn
 
-### [P6] When expected and actual differ, that itself is a BUG — a case where the comment must not be deleted
+### [P6] When expected and actual differ, that itself is a BUG — keep it marked as a known wrong result
 - **Context**: A TC that passes a collection-type parameter to PLCSQL
 - **Finding**: "컬렉션 타입은 PLCSQL 미지원이라 에러를 기대했으나 정상 처리됨 → BUG 주석 유지."
-- **Pattern**: When the spec means "it's unsupported, so an error is the correct outcome" but it processed without an error, that mismatch is itself a regression / undocumented change. Don't read it as "no error, so it passes" — you can only judge whether to keep the BUG comment once you've reconciled the direction of expected vs. actual behavior (error expected vs. success).
+- **Pattern**: When the spec means "it's unsupported, so an error is the correct outcome" but it processed without an error, that mismatch is itself a regression / undocumented change. Don't read it as "no error, so it passes" — first reconcile the direction of expected vs. actual behavior (error expected vs. success). The Finding's "BUG 주석 유지" predates the rulebook: when the case keeps that output, the mark that stays is the header-block line `Case N: known wrong result, CBRD-NNNNN (open)`, with no `-- BUG` comment before the statement, and the rulebook first asks whether the scenario can avoid the bug or wait for its fix (`sql/rules/writing-rules.md` "Answer files").
 - **Source**: PR1687 / kwonhoil
 
 ### [P6] Even when a trace looks unnecessary, the trace output itself may be the verification target
@@ -284,7 +285,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P13] For cost-model-wide changes, make a policy determination and document the supporting commit
 - **Context**: An engine cost-model (overhead) change shifts the plans of several TCs (Q101/Q121/Q123) toward skip ORDER BY all at once
 - **Finding**: "policy A로 수용. overhead=1(엔진 PR #7262)로 비커버링 인덱스 스캔이 비용 경쟁력을 얻어 skip ORDER BY가 적용되는 의도된 변경. Q101 evaluate 설명 갱신(commit 1098cec1f)."
-- **Pattern**: When an engine cost-model change shifts many TCs' plans as a family, make a per-case determination of whether it's an "intended change (policy)," then update the evaluate/answer descriptions to match the new behavior and record the supporting engine commit/PR number. Documenting the policy and its basis reduces repeated investigation when the same change recurs.
+- **Pattern**: When an engine cost-model change shifts many TCs' plans as a family, make a per-case determination of whether it's an "intended change (policy)," then update the `evaluate` labels to match the new behavior, make the answer again by a run (`sql/rules/writing-rules.md` "Answer files"), and record the supporting engine commit/PR number. Documenting the policy and its basis reduces repeated investigation when the same change recurs.
 - **Source**: PR2871 / shparkcubrid
 
 ---

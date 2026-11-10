@@ -345,15 +345,15 @@ for f in create-cdc-repl create-ha-repl create-shell create-ha-shell create-isol
 done
 [ "$_bad" -eq 0 ] && pass "every header-documenting create-* skill bounds both header scope and size"
 
-# create-sql and author-testcase hold no TC rules: they read the tc repo's deployed rulebook from
-# origin/develop. A skill that drops the read writes or judges TCs by what the model remembers, and a
-# file it stops naming is a rule it stops reading — so the file list comes from the canonical copy,
-# and each skill is checked on its own.
+# create-sql, author-testcase and review-testcase hold no TC rules: they read the tc repo's deployed
+# rulebook from origin/develop. A skill that drops the read writes or judges TCs by what the model
+# remembers, and a file it stops naming is a rule it stops reading — so the file list comes from the
+# canonical copy, and each skill is checked on its own.
 _rb_files=$(git ls-files 'rulebook/cubrid-testcases/*' | sed 's|^rulebook/cubrid-testcases/||')
 if [ -z "$_rb_files" ]; then
   fail "rulebook/cubrid-testcases/ holds no tracked file, so the rulebook-read check below has nothing to check"
 fi
-for _s in create-sql author-testcase; do
+for _s in create-sql author-testcase review-testcase; do
   _f=skills/qa/$_s/SKILL.md; _miss=""
   for _r in $_rb_files; do
     grep -qF "git -C \"\$TC\" show origin/develop:$_r" "$_f" || _miss="$_miss $_r"
@@ -368,6 +368,21 @@ for _s in create-sql author-testcase; do
     fail "$_s lost its rulebook read:$_miss — it would write or judge a TC by rules it no longer reads"
   fi
 done
+# review-testcase judges a PR, and the PR worktree holds the PR's own copy of the rulebook: read there,
+# a PR that edits a rule passes itself by its own edit. L1 lost its criteria once create-sql's
+# checklist became a pointer, so L1 has to name the rulebook itself. The scout is what stops a review
+# whose clone lacks the rulebook, and what tells L3 alone to step aside.
+_rt=skills/qa/review-testcase/SKILL.md; _miss=""
+grep -qF 'never from the PR worktree' "$_rt" || _miss="$_miss not-the-pr-worktree"
+sed -n '/^## 3\. L1/,/^## 4\./p' "$_rt" | grep -qF '`sql/rules/writing-rules.md` "New TC"' \
+  || _miss="$_miss l1-names-the-rulebook"
+grep -qF '**Scout first — `~/.cubrid-agent/bin/scout.sh`' "$_rt" || _miss="$_miss scout-at-start"
+grep -qF 'Skip L3 only when a `MISSING:` line names the CUBRID build or CTP' "$_rt" || _miss="$_miss l3-only-for-build-or-ctp"
+if [ -z "$_miss" ]; then
+  pass "review-testcase judges by origin/develop, not the PR worktree; its L1 names the rulebook; the scout gates only L3"
+else
+  fail "review-testcase lost:$_miss — a PR could pass by its own rulebook edit, L1 would have no rules, or a missing JIRA user would skip L3"
+fi
 # lint-sql-tc.sh's wrong-tree message sends the author to "create-sql's directory convention", so the
 # heading stays in create-sql as a pointer to the rulebook section that holds the convention.
 if grep -q "create-sql's directory convention" scripts/lint-sql-tc.sh; then

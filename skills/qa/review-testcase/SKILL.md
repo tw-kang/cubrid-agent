@@ -7,7 +7,7 @@ description: "Review a cubrid-testcases SQL TC pull request as the first reviewe
 
 Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and produce a draft review, so the human reviewer's round-trip shrinks. Works on any SQL TC PR (human- or author-testcase-authored). Verdict = READY-TO-MERGE / NEEDS-WORK + severity-tagged findings.
 
-**Self-contained**: perspective catalog [`references/review-perspectives.md`](./references/review-perspectives.md) + **few-shot bank (L2 fuel)** [`references/few-shot-bank.md`](./references/few-shot-bank.md) live inside this skill. Run the L2 lenses in parallel (DP1); judge from the user's black-box perspective (DP2 — see L2).
+**Where the rules come from**: the TC rules this review judges by are the testcase repo's deployed rulebook, read from `origin/develop` of `$TC` (Before you start), never the PR's own copy. This skill holds the review side: the perspective catalog [`references/review-perspectives.md`](./references/review-perspectives.md) (how each perspective is handled, and the lens questions the rulebook does not hold) and the **few-shot bank (L2 fuel)** [`references/few-shot-bank.md`](./references/few-shot-bank.md). Run the L2 lenses in parallel (DP1); judge from the user's black-box perspective (DP2 — see L2).
 
 ## Scope
 
@@ -18,11 +18,24 @@ Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and 
 ## Before you start
 
 - **gh** authenticated (`gh pr view <N> --repo CUBRID/cubrid-testcases`).
+- **Scout first — `~/.cubrid-agent/bin/scout.sh`, once, at the start, with no issue key** (installed by `/setup-cubrid-agent`; its answers that need a key are about authoring a TC). It reads only: no writes, no network. **Exit 1: stop the review** — its one line says why, such as `origin/develop` of the clone lacking the rulebook, and the `git -C "$TC" fetch origin` to run. **Exit 3: continue the review.** **Skip L3 only when a `MISSING:` line names the CUBRID build or CTP** (`MISSING: CUBRID build`, `MISSING: CTP`): run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it). The other `MISSING:` lines, such as the JIRA username, the fork owner, or the gh credentials, are about authoring and submitting a TC and do not enter the verdict.
+- **`$TC`** (testcases clone) = `$CUBRID_TESTCASES` if set, else `~/cubrid-testcases` — the clone the scout and the helpers resolve.
+- **Rulebook — the TC rules this review judges by, read from `origin/develop` of `$TC`, never from the PR worktree.** A PR is judged by the rules of the branch it goes into. The rulebook files in the PR worktree (`~/.cubrid-agent/worktrees/pr-<N>`) are the PR's own copy, and a PR that edits them would pass itself by its own edit. Read these for L1, and give each L2 lens the commands, not their output:
+  ```bash
+  git -C "$TC" show origin/develop:AGENTS.md
+  git -C "$TC" show origin/develop:sql/AGENTS.md
+  git -C "$TC" show origin/develop:sql/rules/writing-rules.md
+  git -C "$TC" show origin/develop:sql/rules/test-perspectives.md
+  # to judge whether a TC belongs under medium/ instead (it needs the data of mdb), also:
+  git -C "$TC" show origin/develop:medium/AGENTS.md
+  git -C "$TC" show origin/develop:medium/rules/writing-rules.md
+  git -C "$TC" show origin/develop:medium/rules/test-perspectives.md
+  ```
+  **If any of them fails, stop** and tell the user to run `git -C "$TC" fetch origin` — never judge a TC from what you remember of the rules. A finding names its rule by file and section heading, such as `sql/rules/writing-rules.md` "Cleanup".
 - **Ground the issue with one command (mandatory, before the P11 judgment).** `~/.cubrid-agent/bin/ground-issue.sh <KEY> --run-dir ~/.cubrid-agent/PR-NNNN` (installed by `/setup-cubrid-agent`; if it is missing, run that once rather than grounding by hand) puts the description **and every comment** in `issue.txt`, downloads every attachment, and prints what to read: `read` (text, and extracted archive members), `view` (images — use the Read tool), `unread` **with the reason**. ⚠ The repro/scenario is often **only in a comment or an attachment**: that is where P11 (issue intent) lives, and if it lives only in an attachment the PR coverage assessment goes wrong. **Never infer an `unread` attachment's contents from its filename** (CUBRIDQA-1488). Jira wiki markup reads fine as-is.
 - **An empty description is a signal this skill uses — trust it only from `issue.txt`.** Never re-read the body with `cubrid-jira search`: its markdown goes through pandoc, and an old pandoc without the `jira` reader (the RHEL 8 package is one) returns a blank body with a success exit — indistinguishable from a genuinely empty description, which would fabricate the signal. The grounding script uses the pandoc-free read.
 - **Run directory — `$HOME/.cubrid-agent/PR-NNNN/` per PR, never `$HOME` or the cwd.** Conf copies, run logs and anything else this review leaves behind go there (the worktree keeps its own place, `~/.cubrid-agent/worktrees/pr-<N>`; the report keeps its path below). Create it if absent. Short-lived in-step scratch may use `mktemp -d`. **Do not invent a directory** (`~/scratchpad…`, `~/work…`) and **do not delete it on the way out** — a disputed verdict is re-checked from what the run actually ran.
-- **Local CTP** for L3 — **$HOME standard** (`/setup-cubrid-agent` provisions; env via `source ~/.cubrid-agent/env.sh`): `$HOME/CUBRID` (release build), testcases clone = `$CUBRID_TESTCASES` if set, else `~/cubrid-testcases`, CTP = `$CTP_HOME` (else `~/CTP` → `~/cubrid-testtools/CTP`). Stock `$CTP_HOME/conf/sql.conf` already targets `${HOME}/cubrid-testcases/sql` (non-default ports). The PR checkout and that conf are **both done by the helpers in L3** — never check out the PR in the clone yourself.
-- No local build / no CTP env? Run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it).
+- **Local CTP** for L3 — **$HOME standard** (`/setup-cubrid-agent` provisions; env via `source ~/.cubrid-agent/env.sh`): `$HOME/CUBRID` (release build), testcases clone = `$TC`, CTP = `$CTP_HOME` (else `~/CTP` → `~/cubrid-testtools/CTP`). Stock `$CTP_HOME/conf/sql.conf` already targets `${HOME}/cubrid-testcases/sql` (non-default ports). The PR checkout and that conf are **both done by the helpers in L3** — never check out the PR in the clone yourself.
 
 ## Pipeline
 
@@ -39,21 +52,20 @@ PR number as arg (default: oldest open SQL TC PR). Author-agnostic.
 - **Mark which cases hit the fix code path** from the fix merge diff (feeds L2/L3, P3).
 
 ## 3. L1 — convention lint (static)
-Reuse the `create-sql` checklist + mining-promoted auto-lint (details in [`references/review-perspectives.md`](./references/review-perspectives.md) 'Automatic lint rules to promote to L1'):
-- header block (≤200 chars, English), `evaluate 'Case N'` numbering, DROP-before-CREATE, cleanup (`deallocate prepare`, restore SET), naming, English comments, no expected value leaking into comments/SQL.
-- **Placement — check the tree, not just the filename.** The issue type alone decides it: a `Correct Error` is a bug fix and belongs under `sql/_13_issues/_{yy}_{1|2}h/cases/` whatever its version fields say, while a release dir (`sql/_{no}_{release_code}/cbrd_XXXXX/`) is for every other type. Two PRs put bug fixes in a release dir and this lens passed both because it only looked at naming form (CUBRIDQA-1486). Read the issue type, then say which tree the file should be in.
-- **auto-lint**: multi-row SELECT missing `ORDER BY` (only when a real tie is possible — a unique key or `COUNT(*)`/1-row is exempt), `set trace on`↔`off` imbalance, empty `.queryPlan` vs answer plan output, `evaluate` label missing, a `prepare`d name never released — **per name, and `DROP PREPARE` releases it as much as `DEALLOCATE PREPARE` does**, so neither spelling alone nor a count that has to balance is the rule (the corpus measurements are in [`scripts/lint-sql-tc.sh`](../../../scripts/lint-sql-tc.sh)).
+Check the PR's files against every bold rule of the rulebook you read in Before you start: `sql/rules/writing-rules.md` "New TC", and also "Changing an existing TC" for a modified-type PR; `sql/rules/test-perspectives.md` "What sql TCs cannot check"; `sql/AGENTS.md` "The PR" for its title, body and commits; and the `medium/` files for a TC that belongs there. Which of these rules human reviewers flagged most is in [`references/review-perspectives.md`](./references/review-perspectives.md) 'Automatic lint rules to promote to L1'.
+- **Do not flag `; result =` at the end of an `evaluate` label.** `sql/rules/writing-rules.md` "Header and labels" puts a case's expected result there, and forbids it only in a comment.
+- **Placement — check the tree, not just the filename.** Read the issue type, then say which tree the file should be in by `sql/rules/writing-rules.md` "Place and files". Two PRs put bug fixes in a release dir and this lens passed both because it only looked at naming form (CUBRIDQA-1486).
 
 ## 4. L2 — domain lenses (static, few-shot-driven) — DP1 parallel
 
 Route by PR kind, **run the lenses as parallel subagents (DP1)**; each lens is fed its entries from [`references/few-shot-bank.md`](./references/few-shot-bank.md) + its question set from [`references/review-perspectives.md`](./references/review-perspectives.md) ('L2 persona lenses'):
-- **new-type → coverage-expansion** (P4·P8·P9·P14): positive↔negative symmetry, boundary 3-points, combination matrix, sibling concepts, minimality. **Propose concrete `evaluate`+SQL, not just "missing"** (backtest improvement 1).
-- **modified-type → answer-vs-spec** (P7·P11·P12·P15): why did the answer change / was the old one right? execution vs answer consistency? issue-intent match? spec-vs-bug (escalate)? **dead-assertion** (.answer flipped but .sql literal left, e.g. ok→nok) and **.answer_cci pair** updated? (backtest improvements 6·7).
+- **new-type → coverage-expansion** (P4·P8·P9·P14). **Propose concrete `evaluate`+SQL, not just "missing"** (backtest improvement 1).
+- **modified-type → answer-vs-spec** (P7·P11·P12·P15).
 - **common (always) → determinism-convention** (P2·P5·P6·P10) + **plan-stability** (P3·P13) for plan/trace TCs.
 
 **Bot division**: greptile/codex already badge P1(answer)·P3(fix path) — reference/augment, don't re-file; focus L2 on bot-weak P4·P7·P11·P13.
 
-**DP2 (black-box)**: every lens checks that the TC verifies **DBA / DB engineer / AP-developer-observable behavior** (SQL I/O via the sql-category driver — JDBC, or CCI in sql_by_cci; csql shows the same — plan, catalog, driver output) and **flags dependence on C internals** a user can't observe (asserts, code paths, physical values like page id/offset — ties to P15). AP-developer/field angle → value non-expert misuse & edge cases (coverage-expansion negative/boundary).
+**DP2 (black-box)**: every lens judges what the TC asserts by `sql/rules/test-perspectives.md` "Evidence in the answer file" and "What sql TCs cannot check" (P15, and the category a check belongs to).
 
 ## 5. L3 — execution verification (dynamic)
 Two helpers do the mechanics (installed by `/setup-cubrid-agent`); the judging is yours. Fill `<...>`:
