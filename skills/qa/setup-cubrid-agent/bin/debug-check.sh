@@ -7,7 +7,7 @@
 #
 # It does NOT decide whether an assert is an engine bug or a testcase misusing the engine, nor whether
 # debug-only output differences are acceptable. Debug output is never promoted into `.answer` — the
-# answer is confirmed on release, which is CI's mode.
+# answer is confirmed on release.
 #
 # usage: debug-check.sh CBRD-XXXXX [--version <version|url>] [--tc-path PATH] [--timeout SECONDS]
 set -u

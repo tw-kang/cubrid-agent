@@ -18,15 +18,14 @@ Review a cubrid-testcases **SQL TC pull request** as the **first reviewer** and 
 ## Before you start
 
 - **gh** authenticated (`gh pr view <N> --repo CUBRID/cubrid-testcases`).
-- **Scout first — `~/.cubrid-agent/bin/scout.sh`, once, at the start, with no issue key** (installed by `/setup-cubrid-agent`; with a key it reads the manifest of an authoring run, `~/.cubrid-agent/CBRD-XXXXX/`, which a review does not have). It reads only: no writes, no network. **Exit 1: stop the review** — its one line says why, such as `origin/develop` of the clone lacking the rulebook, and the `git -C "$TC" fetch origin` to run. **Exit 3: continue the review.** **Skip L3 only when a `MISSING:` line names the CUBRID build or CTP** (`MISSING: CUBRID build`, `MISSING: CTP`): run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it). No other `MISSING:` line, such as the JIRA username, the fork owner, or the gh credentials, skips a layer or enters the verdict: a step that needs the missing tool reports it when it runs.
+- **Scout first — `~/.cubrid-agent/bin/scout.sh`, once, at the start, with no issue key** (installed by `/setup-cubrid-agent`; with a key it reads the manifest of an authoring run, `~/.cubrid-agent/CBRD-XXXXX/`, which a review does not have). It reads only: no writes, no network. **Exit 1: stop the review** — its one line says why. When `origin/develop` of `$TC` lacks the rulebook, tell the user to run the `git -C "$TC" fetch origin` it prints; do not fetch yourself. **Exit 3: continue the review.** **Skip L3 only when a `MISSING:` line names the CUBRID build or CTP** (`MISSING: CUBRID build`, `MISSING: CTP`): run L1+L2 only and mark L3 as NOT-RUN in the report (don't fake it). No other `MISSING:` line, such as the JIRA username, the fork owner, or the gh credentials, skips a layer or enters the verdict: a step that needs the missing tool reports it when it runs.
 - **`$TC`** (testcases clone) = `$CUBRID_TESTCASES` if set, else `~/cubrid-testcases` — the clone the scout and the helpers resolve.
-- **Rulebook — the TC rules this review judges by, read from `origin/develop` of `$TC`, never from the PR worktree.** A PR is judged by the rules of the branch it goes into. The rulebook files in the PR worktree (`~/.cubrid-agent/worktrees/pr-<N>`) are the PR's own copy, and a PR that edits them would pass itself by its own edit. Read these for L1, and give each L2 lens the commands, not their output:
+- **Rulebook — the TC rules this review judges by, read from `origin/develop` of `$TC`, never from the PR worktree.** A PR is judged by the rules of the branch it goes into. The rulebook files in the PR worktree (`~/.cubrid-agent/worktrees/pr-<N>`) are the PR's own copy, and a PR that edits them would pass itself by its own edit. Read all seven files for L1, and give each L2 lens the same commands, not their output:
   ```bash
   git -C "$TC" show origin/develop:AGENTS.md
   git -C "$TC" show origin/develop:sql/AGENTS.md
   git -C "$TC" show origin/develop:sql/rules/writing-rules.md
   git -C "$TC" show origin/develop:sql/rules/test-perspectives.md
-  # to judge whether a TC belongs under medium/ instead (it needs the data of mdb), also:
   git -C "$TC" show origin/develop:medium/AGENTS.md
   git -C "$TC" show origin/develop:medium/rules/writing-rules.md
   git -C "$TC" show origin/develop:medium/rules/test-perspectives.md

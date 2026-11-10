@@ -25,6 +25,11 @@ All notable changes to cubrid-agent are documented here. The format follows
   "Place and files", an error case is checked by its `Error:` code, `--+ server-message` wraps only
   a `DBMS_OUTPUT` check, the plans of a whole file come from an empty `.queryPlan` file,
   `Coverage:` has one line per case, and the commit message starts with `Add sql testcase for`.
+  When the scout stops because `origin/develop` lacks the rulebook, the skills tell you to run the
+  `git -C "$TC" fetch origin` it prints and do not fetch by themselves. `author-testcase`'s static
+  review checks the commit message by `sql/AGENTS.md` "The PR" too. `author-testcase` and
+  `debug-check.sh` no longer say that CI runs the release build: CI runs a debug build, and the
+  answer is still confirmed on the release build.
 
 - (patch) **The submit gate no longer blocks a TC whose header block runs past 20 lines.** The
   testcase repo's rulebook gives each case its own `Coverage:` line and sets no length for the
@@ -39,14 +44,17 @@ All notable changes to cubrid-agent are documented here. The format follows
   `origin/develop` of the clone, not by the copy in the PR.** The skill now reads the deployed
   rulebook of `cubrid-testcases` with `git -C "$TC" show origin/develop:<path>` and stops when a
   read fails. It never reads the rulebook files in the PR worktree, so a PR that edits a rule
-  cannot pass by its own edit. L1 checks every bold rule of that rulebook instead of the
-  `create-sql` checklist, and an expected result at the end of an `evaluate` label after
-  `; result =` is no longer a finding. The perspective catalog keeps the review questions that the
-  rulebook does not hold and names the rulebook section of each perspective. Few-shot entries that
-  the rulebook contradicts now follow it: a still-open bug is marked as the rulebook's known wrong
-  result, not kept as a `-- BUG` comment, and an error case is checked by its code, not its
-  message. The review calls `scout.sh` first: exit 1 stops it, exit 3 lets it go on, and only a
-  missing CUBRID build or CTP makes it skip L3.
+  cannot pass by its own edit. L1 points at `sql/rules/writing-rules.md` "New TC" (and "Changing
+  an existing TC" for a changed TC), `sql/rules/test-perspectives.md` "What sql TCs cannot check",
+  `sql/AGENTS.md` "The PR", and the `medium/` files for a TC that belongs there, instead of the
+  `create-sql` checklist; an expected result at the end of an `evaluate` label after `; result =`
+  is no longer a finding. The perspective catalog keeps the review questions that the rulebook
+  does not hold and names the rulebook section of each perspective. Few-shot entries that the
+  rulebook contradicts now point at it: a still-open bug follows `sql/rules/writing-rules.md`
+  "Answer files" instead of a kept `-- BUG` comment, and an error case is checked by its code, not
+  its message. The review calls `scout.sh` first: exit 1 stops it, and it tells you to run the
+  fetch the scout prints; exit 3 lets it go on, and only a missing CUBRID build or CTP makes it
+  skip L3.
 
 ## [1.1.1] - 2026-11-03
 

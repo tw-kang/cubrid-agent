@@ -209,13 +209,13 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P6] Delete BUG comments for already-fixed issues — comments must reflect the state at review time
 - **Context**: A %TYPE procedure return-value TC
 - **Finding**: "CBRD-25557에서 수정돼 develop에 반영됨(결과 0.1). 이 주석은 지워져야 합니다."
-- **Pattern**: A BUG/TODO comment reflects only the state when it was written and isn't permanently accurate. At review time, check whether the issue has landed in develop and been fixed — the comment text alone isn't enough to judge; you must check external state. Fixed: the comment goes and the answer is made again. Still open: by `sql/rules/writing-rules.md` "Answer files", the scenario first avoids that bug or stays out of the TC until the fix, and only when it can do neither does the header block mark a known wrong result, in place of the `-- BUG` comment.
+- **Pattern**: A BUG/TODO comment reflects only the state when it was written and isn't permanently accurate. At review time, check whether the issue has landed in develop and been fixed — the comment text alone isn't enough to judge; you must check external state. Fixed: the comment goes and the answer is made again. Still open: what the TC does instead of a `-- BUG` comment is `sql/rules/writing-rules.md` "Answer files".
 - **Source**: PR1847 / hyunikn
 
-### [P6] When expected and actual differ, that itself is a BUG — keep it marked as a known wrong result
+### [P6] When expected and actual differ, that itself is a BUG — mark it as the rulebook says, not by keeping the comment
 - **Context**: A TC that passes a collection-type parameter to PLCSQL
 - **Finding**: "컬렉션 타입은 PLCSQL 미지원이라 에러를 기대했으나 정상 처리됨 → BUG 주석 유지."
-- **Pattern**: When the spec means "it's unsupported, so an error is the correct outcome" but it processed without an error, that mismatch is itself a regression / undocumented change. Don't read it as "no error, so it passes" — first reconcile the direction of expected vs. actual behavior (error expected vs. success). The Finding's "BUG 주석 유지" predates the rulebook: by `sql/rules/writing-rules.md` "Answer files", the scenario first avoids that bug or waits for its fix, and only a case that can do neither keeps the output, marked as a known wrong result in the header block with no `-- BUG` comment before the statement.
+- **Pattern**: When the spec means "it's unsupported, so an error is the correct outcome" but it processed without an error, that mismatch is itself a regression / undocumented change. Don't read it as "no error, so it passes" — first reconcile the direction of expected vs. actual behavior (error expected vs. success). The Finding's "BUG 주석 유지" predates the rulebook: what a case does with that output instead of a `-- BUG` comment is `sql/rules/writing-rules.md` "Answer files".
 - **Source**: PR1687 / kwonhoil
 
 ### [P6] Even when a trace looks unnecessary, the trace output itself may be the verification target

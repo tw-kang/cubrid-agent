@@ -194,12 +194,13 @@ STUB_NO_GH_TOKEN=1 GH_TOKEN=x run "GH_TOKEN counts" 0 "" "MISSING: gh credential
 CUBRID="$T/none" run "report is still complete" 3 "cover  :"
 
 # A skill that went on would fill the rules from memory, so this is exit 1, not a MISSING line.
+# The line ends at the command: the skill, not the scout, tells the user what to do with it.
 reset_state
 manifest '{"select":{"issue_type":"Correct Error"}}'
 deploy_ref sql/rules/writing-rules.md
-run_err "an sql rulebook file absent from origin/develop stops" 1 "git -C $TCD fetch origin"
+run_err "an sql rulebook file absent from origin/develop stops" 1 "fetch with git -C $TCD fetch origin."
 deploy_ref medium/rules/test-perspectives.md
-run_err "a medium rulebook file absent from origin/develop stops" 1 "git -C $TCD fetch origin"
+run_err "a medium rulebook file absent from origin/develop stops" 1 "fetch with git -C $TCD fetch origin."
 if [ -s "$NETLOG" ]; then note_fail "a rulebook stop touched the network: $(tr '\n' ';' < "$NETLOG")"; else T_PASS=$((T_PASS+1)); fi
 deploy_ref sql/AGENTS.md
 CTP_HOME="$T/none" run "with CTP absent too, the stop comes before the reduced path" 1 "fetch origin" "MISSING: CTP"

@@ -46,7 +46,7 @@ git -C "$TC" rev-parse --git-dir >/dev/null 2>&1 \
 RULEBOOK='AGENTS.md sql/AGENTS.md sql/rules/writing-rules.md sql/rules/test-perspectives.md medium/AGENTS.md medium/rules/writing-rules.md medium/rules/test-perspectives.md'
 for f in $RULEBOOK; do
   git -C "$TC" cat-file -e "origin/develop:$f" 2>/dev/null \
-    || { printf 'scout: origin/develop of %s has no %s, the rulebook the TC is written by — run git -C %s fetch origin, then call me again.\n' "$TC" "$f" "$TC" >&2; exit 1; }
+    || { printf 'scout: origin/develop of %s has no %s, the rulebook the TC is written by — fetch with git -C %s fetch origin.\n' "$TC" "$f" "$TC" >&2; exit 1; }
 done
 
 # The key is optional, because the environment half of the answer does not depend on one and

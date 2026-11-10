@@ -363,6 +363,9 @@ for _s in create-sql author-testcase review-testcase; do
   # where it describes the scout, which would keep the check green after the stop itself is gone.
   grep -qF '**If any of them fails, stop** and tell the user to run `git -C "$TC" fetch origin`' "$_f" \
     || _miss="$_miss the-stop-and-fetch"
+  # The scout's exit 1 is the same gap, and the agent must not fetch on its own: one sentence in all three.
+  grep -qF 'tell the user to run the `git -C "$TC" fetch origin` it prints; do not fetch yourself' "$_f" \
+    || _miss="$_miss the-scout-exit-1"
   if [ -z "$_miss" ]; then
     pass "$_s reads the $(printf '%s\n' $_rb_files | wc -l | tr -d ' ') deployed rulebook files from origin/develop and stops when one is missing"
   else
@@ -389,12 +392,14 @@ if [ -z "$_miss" ]; then
 else
   fail "review-testcase lost:$_miss — a PR could pass by its own rulebook edit, L1 would have no rules, or a missing JIRA user would skip L3"
 fi
-# The three TC skills name a rule by its rulebook file and heading. A heading the rulebook renames, or
-# never had, leaves that pointer leading nowhere. Only the quotes chained right after a backticked path
-# are read: other quotes in the same sentence are not section names.
+# The three TC skills, and the scout that hands them a path, name a rule by its rulebook file and
+# heading. A heading the rulebook renames, or never had, leaves that pointer leading nowhere. Only the
+# quotes chained right after a backticked path are read: other quotes in the same sentence are not
+# section names. scout.sh writes the path bare and the quotes escaped, so it is put in that form first.
 _badsec=""; _nsec=0
 for _f in $(git ls-files 'skills/qa/create-sql/SKILL.md' 'skills/qa/author-testcase/SKILL.md' 'skills/qa/review-testcase/SKILL.md' \
-              'skills/qa/create-sql/references/*.md' 'skills/qa/author-testcase/references/*.md' 'skills/qa/review-testcase/references/*.md'); do
+              'skills/qa/create-sql/references/*.md' 'skills/qa/author-testcase/references/*.md' 'skills/qa/review-testcase/references/*.md' \
+              skills/qa/setup-cubrid-agent/bin/scout.sh); do
   while IFS= read -r _m; do
     [ -n "$_m" ] || continue
     _p=${_m#@@}; _p=${_p%%@@*}
@@ -407,14 +412,17 @@ for _f in $(git ls-files 'skills/qa/create-sql/SKILL.md' 'skills/qa/author-testc
 $(printf '%s\n' "$_m" | grep -oE '"[^"]+"' | tr -d '"')
 SEC
   done <<CITE
-$(sed -E 's/`((sql|medium)\/(AGENTS\.md|rules\/(writing-rules|test-perspectives)\.md))`/\n@@\1@@/g' "$_f" \
+$(case $_f in
+    *.sh) sed -E 's/\\"/"/g; s/(^|[ (])((sql|medium)\/(AGENTS\.md|rules\/(writing-rules|test-perspectives)\.md)) "/\1`\2` "/g' "$_f" ;;
+    *)    cat "$_f" ;;
+  esac | sed -E 's/`((sql|medium)\/(AGENTS\.md|rules\/(writing-rules|test-perspectives)\.md))`/\n@@\1@@/g' \
     | grep -oE '^@@[^@]+@@ *"[^"]+"(( *\([^)]*\))?(, and also |, and |, | and )"[^"]+")*')
 CITE
 done
 if [ "$_nsec" -eq 0 ]; then
-  fail "found no rulebook section cited by name in the three TC skills — either the citations are gone or this check no longer matches their shape"
+  fail "found no rulebook section cited by name in the three TC skills and scout.sh — either the citations are gone or this check no longer matches their shape"
 elif [ -z "$_badsec" ]; then
-  pass "the $_nsec rulebook sections that create-sql, author-testcase and review-testcase cite by name are headings of the cited file"
+  pass "the $_nsec rulebook sections that create-sql, author-testcase, review-testcase and scout.sh cite by name are headings of the cited file"
 else
   fail "cited rulebook section(s) that are not a heading of the cited file in rulebook/cubrid-testcases/:$_badsec"
 fi
