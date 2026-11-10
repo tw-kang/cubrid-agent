@@ -273,31 +273,30 @@ chatty_body() {  # body carrying five inline -- comments
 }
 
 seed_manifest "Correct Error"
-{ good_header CBRD-99999; body; } > "$BUG_DIR/cbrd_99999.sql"
+{ good_header CBRD-99999; printf -- '-- one\n-- two\n-- three\n-- four\n'; body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
-never_says "a short header draws no advice" "corpus p75"
+never_says "four inline comments, the p75 itself, draw no advice" "corpus p75"
 
-{ long_header CBRD-99999 17; body; } > "$BUG_DIR/cbrd_99999.sql"
+{ long_header CBRD-99999 18; chatty_body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
-says   "a 17-line header draws advice"      "header is 17 lines against a corpus p75 of 16"
+says       "a Coverage line per case: the comment advice still prints" "5 inline"
+never_says "  ... and nothing asks to shorten the Coverage list"     "Coverage list"
+never_says "  ... and the header length draws no advice"             "header is 18 lines"
 
 { good_header CBRD-99999; chatty_body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
 says   "five inline comments draw advice"   "5 inline"
 never_says "  ... and are not a violation"  "convention violations"
 
-{ long_header CBRD-99999 16; body; } > "$BUG_DIR/cbrd_99999.sql"
-lint "$BUG_DIR/cbrd_99999.sql"
-never_says "the p75 itself is not flagged"  "corpus p75 of 16"
-
-# A Coverage line per case makes a long header normal, so length draws advice and nothing else —
-# and a manifest from before the cap went loses the field it recorded.
+# A Coverage line per case makes a long header normal, so its length draws nothing — and a manifest
+# from before the cap went loses the field it recorded.
 printf '{"select":{"issue_type":"Correct Error"},"lint":{"header_size":false}}\n' > "$RUN/manifest.json"
-{ long_header CBRD-99999 25; body; } > "$BUG_DIR/cbrd_99999.sql"
+{ long_header CBRD-99999 25; chatty_body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
-says       "a 25-line header draws advice"     "header is 25 lines against a corpus p75 of 16"
-expect     "  ... and records no header_size"  header_size absent
-never_says "  ... and is no 20-line violation" "max 20"
+says       "a 25-line header: the message still prints" "5 inline"
+expect     "  ... and records no header_size"           header_size absent
+never_says "  ... and is no 20-line violation"          "max 20"
+never_says "  ... and draws no length advice"           "header is 25 lines"
 
 # ── the session mark ─────────────────────────────────────────────────────────────────────────────
 # gate-stop.sh reads $HOME state, so it needs to know whether THIS session touched a testcase. This

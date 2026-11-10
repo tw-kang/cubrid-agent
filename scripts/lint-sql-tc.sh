@@ -43,9 +43,8 @@ grep -E '^[[:space:]]*--' "$FILE" | LC_ALL=C grep -q '[^[:print:][:blank:]]' && 
 
 # The header says what the test verifies. Instructions aimed at a later pipeline stage must not be
 # frozen into a corpus file that outlives the run; they belong in the report, the PR Remarks or
-# verify.preconditions. The vocabulary below fires on 0 of 58 human-authored corpus headers. Its
-# length is no bound: the rulebook lists one Coverage line per case, so a TC with many cases has a
-# long header, and only the advice further down speaks about length.
+# verify.preconditions. The vocabulary below fires on 0 of 58 human-authored corpus headers. Nothing
+# here weighs the header's length: the rulebook sets none and lists one Coverage line per case.
 header_scope=true
 printf '%s\n' "$_hblock" \
   | grep -qEi '(Verify|Review) lane|MUST check|manifest|fail->pass|fail→pass|subagent|Draft PR|the report' \
@@ -55,8 +54,6 @@ printf '%s\n' "$_hblock" \
 # a SQL line comment, so the statements after it are swallowed. Write " - ", not " -- ".
 header_no_dashdash=true
 printf '%s\n' "$_hblock" | grep -q -- '--' && header_no_dashdash=false
-
-hlines=$(awk '/^\/\*\*/{f=1} f{c++} /\*\//{if(f){print c; exit}}' "$FILE")
 
 # CTP's line splitter (CTP/sql/src/.../cqt/common/SQLParser.java) decides what a statement is, and the
 # five rules below are the shapes that make it read the file as something else. The review lane used to
@@ -133,12 +130,9 @@ if [ -n "$_d" ]; then
   _dkind=${_d%%	*}; _dwhere=${_d#*	}
 fi
 
-# Advice, not a gate: length has a long tail, so there is no honest threshold to fail on. Thresholds
-# are corpus p75s — headers, measured 2026-08-03: median 9, p75 16, p90 24; `--` comments across 380
-# cases: median 1, p75 4, and 189 have none.
+# Advice, not a gate: the comment count has a long tail, so there is no honest threshold to fail on.
+# The threshold is the corpus p75 — `--` comments across 380 cases: median 1, p75 4, and 189 have none.
 advice=""
-[ -n "$hlines" ] && [ "$hlines" -gt 16 ] \
-  && advice="$advice header is $hlines lines against a corpus p75 of 16 (median 9) — the Coverage list is the usual cause, and the evaluate labels already name every case;"
 _cmt=$(grep -cE '^[[:space:]]*--[^+]' "$FILE")
 [ "${_cmt:-0}" -gt 4 ] \
   && advice="$advice $_cmt inline \`--\` comments against a corpus p75 of 4 (median 1; half the corpus has none) — drop what the statement already says, keep only a reason that would not survive a rewrite;"
