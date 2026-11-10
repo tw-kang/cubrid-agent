@@ -42,9 +42,9 @@ grep -E '^[[:space:]]*--' "$FILE" | LC_ALL=C grep -q '[^[:print:][:blank:]]' && 
 
 # The header says what the test verifies. Instructions aimed at a later pipeline stage must not be
 # frozen into a corpus file that outlives the run; they belong in the report, the PR Remarks or
-# verify.preconditions. Two bounds, because the header serves a reviewer and a later skill:
-#   header_scope — vocabulary; fires on 0 of 58 human-authored corpus headers.
-#   header_size  — 20 lines. Corpus, measured 2026-08-03: median 9, p75 16, p90 24, 52/59 within 20.
+# verify.preconditions. The vocabulary below fires on 0 of 58 human-authored corpus headers. Its
+# length is no bound: the rulebook lists one Coverage line per case, so a TC with many cases has a
+# long header, and only the advice further down speaks about length.
 header_scope=true
 printf '%s\n' "$_hblock" \
   | grep -qEi '(Verify|Review) lane|MUST check|manifest|fail->pass|fail→pass|subagent|Draft PR|the report' \
@@ -55,9 +55,7 @@ printf '%s\n' "$_hblock" \
 header_no_dashdash=true
 printf '%s\n' "$_hblock" | grep -q -- '--' && header_no_dashdash=false
 
-header_size=true
 hlines=$(awk '/^\/\*\*/{f=1} f{c++} /\*\//{if(f){print c; exit}}' "$FILE")
-[ -n "$hlines" ] && [ "$hlines" -gt 20 ] && header_size=false
 
 # CTP's line splitter (CTP/sql/src/.../cqt/common/SQLParser.java) decides what a statement is, and the
 # five rules below are the shapes that make it read the file as something else. The review lane used to
@@ -134,9 +132,9 @@ if [ -n "$_d" ]; then
   _dkind=${_d%%	*}; _dwhere=${_d#*	}
 fi
 
-# Advice, not a gate: length has a long tail, so there is no honest threshold to fail on, but writing
-# to the 20-line ceiling lands well above practice. Thresholds are corpus p75s; `--` comments across
-# 380 cases: median 1, p75 4, and 189 have none.
+# Advice, not a gate: length has a long tail, so there is no honest threshold to fail on. Thresholds
+# are corpus p75s — headers, measured 2026-08-03: median 9, p75 16, p90 24; `--` comments across 380
+# cases: median 1, p75 4, and 189 have none.
 advice=""
 [ -n "$hlines" ] && [ "$hlines" -gt 16 ] \
   && advice="$advice header is $hlines lines against a corpus p75 of 16 (median 9) — the Coverage list is the usual cause, and the evaluate labels already name every case;"
@@ -196,11 +194,11 @@ else
 fi
 tmp=$(mktemp)
 if jq --arg k "$KEY" --argjson h "$header" --argjson e "$evaluate" --argjson c "$cleanup" \
-      --argjson en "$english" --argjson hs "$header_scope" --argjson hz "$header_size" \
+      --argjson en "$english" --argjson hs "$header_scope" \
       --argjson pl "$placement" --argjson hd "$header_no_dashdash" \
       --argjson hn "$header_no_semicolon" --argjson eq "$evaluate_quotes" \
       --argjson et "$evaluate_terminator" --argjson pr "$prepare_released" --argjson dr "$directives" \
-   '.issue=(.issue//$k) | .author.sql_writes=((.author.sql_writes // 0) + 1) | .lint.header=$h | .lint.evaluate=$e | .lint.cleanup=$c | .lint.english_comments=$en | .lint.header_scope=$hs | .lint.header_size=$hz | .lint.header_no_dashdash=$hd | .lint.header_no_semicolon=$hn | .lint.evaluate_quotes=$eq | .lint.evaluate_terminator=$et | .lint.prepare_released=$pr | .lint.directives=$dr | .lint.placement=$pl' \
+   '.issue=(.issue//$k) | .author.sql_writes=((.author.sql_writes // 0) + 1) | .lint.header=$h | .lint.evaluate=$e | .lint.cleanup=$c | .lint.english_comments=$en | .lint.header_scope=$hs | del(.lint.header_size) | .lint.header_no_dashdash=$hd | .lint.header_no_semicolon=$hn | .lint.evaluate_quotes=$eq | .lint.evaluate_terminator=$et | .lint.prepare_released=$pr | .lint.directives=$dr | .lint.placement=$pl' \
    "$MANIFEST" > "$tmp" 2>/dev/null; then mv "$tmp" "$MANIFEST"; else rm -f "$tmp"; fi
 
 probs=""
@@ -209,7 +207,6 @@ probs=""
 [ "$cleanup" = true ]  || probs="$probs missing DROP TABLE IF EXISTS before CREATE TABLE;"
 [ "$english" = true ]  || probs="$probs non-English text in comments (comments must be English);"
 [ "$header_scope" = true ] || probs="$probs header talks to the pipeline instead of describing the test — move stage instructions to the report, reviewer constraints to the PR Remarks, and run-validity preconditions to verify.preconditions;"
-[ "$header_size" = true ]  || probs="$probs header is $hlines lines (max 20) — compress the wording, don't drop coverage items;"
 [ "$header_no_dashdash" = true ] || probs="$probs header contains \`--\`, which CTP reads as a SQL line comment so the case stops running — use a single hyphen;"
 [ "$header_no_semicolon" = true ] || probs="$probs a header line ends with \`;\`, so CTP cuts the statement there and the \`/**\` block never closes — the fragment reaches the server as SQL; drop the semicolon;"
 [ "$evaluate_quotes" = true ] || probs="$probs an \`evaluate\` label has an odd number of apostrophes, so its string literal closes early and the rest of the label parses as SQL — double the apostrophe (\`it''s\`) or reword it out;"

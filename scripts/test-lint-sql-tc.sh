@@ -64,7 +64,6 @@ seed_manifest "Correct Error"
 { good_header CBRD-99999; body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
 expect "corpus-shaped header" header true
-expect "corpus-shaped header" header_size true
 expect "corpus-shaped header" header_no_dashdash true
 expect "corpus-shaped header" evaluate true
 expect "corpus-shaped header" cleanup true
@@ -88,11 +87,6 @@ seed_manifest "Correct Error"
 { printf -- '-- CBRD-99999 old style, no block\n'; body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
 expect "no header block" header false
-
-seed_manifest "Correct Error"
-{ printf '/**\n'; i=0; while [ "$i" -lt 21 ]; do printf ' * CBRD-99999 line %s\n' "$i"; i=$((i+1)); done; printf ' */\n'; body; } > "$BUG_DIR/cbrd_99999.sql"
-lint "$BUG_DIR/cbrd_99999.sql"
-expect "header over 20 lines" header_size false
 
 seed_manifest "Correct Error"
 { good_header CBRD-99999; printf 'DROP TABLE IF EXISTS t1;\nCREATE TABLE t1(c1 int);\nSELECT 1;\nDROP TABLE t1;\n'; } > "$BUG_DIR/cbrd_99999.sql"
@@ -257,10 +251,10 @@ lint "$BUG_DIR/cbrd_99999.sql"
 expect "no issue type recorded" placement null
 
 # --- length advice: reported, never recorded, never a violation ----------------------------------
-# The gate fields are a 20-line ceiling and nothing at all about comment volume, and writing to a
-# ceiling lands well above the practice — a 17-line header and five comment lines shipped with every
-# gate green. The advice quotes the corpus quartile instead of inventing a limit, so it must fire on
-# the top quartile, stay silent below it, and leave the recorded fields untouched either way.
+# No gate field bounds the length of the header or the number of comments, and a 17-line header and
+# five comment lines once shipped with every gate green. The advice quotes the corpus quartile instead
+# of inventing a limit, so it must fire on the top quartile, stay silent below it, and never be a
+# violation.
 never_says() {  # never_says <name> <fragment>
   grep -qF -- "$2" "$T/out" && note_fail "$1: the message says \"$2\" when it should not" || T_PASS=$((T_PASS+1))
 }
@@ -286,17 +280,24 @@ never_says "a short header draws no advice" "corpus p75"
 { long_header CBRD-99999 17; body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
 says   "a 17-line header draws advice"      "header is 17 lines against a corpus p75 of 16"
-expect "  ... and is still within the gate" header_size true
 
 { good_header CBRD-99999; chatty_body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
 says   "five inline comments draw advice"   "5 inline"
-expect "  ... and record nothing"           header_size true
 never_says "  ... and are not a violation"  "convention violations"
 
 { long_header CBRD-99999 16; body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
 never_says "the p75 itself is not flagged"  "corpus p75 of 16"
+
+# A Coverage line per case makes a long header normal, so length draws advice and nothing else —
+# and a manifest from before the cap went loses the field it recorded.
+printf '{"select":{"issue_type":"Correct Error"},"lint":{"header_size":false}}\n' > "$RUN/manifest.json"
+{ long_header CBRD-99999 25; body; } > "$BUG_DIR/cbrd_99999.sql"
+lint "$BUG_DIR/cbrd_99999.sql"
+says       "a 25-line header draws advice"     "header is 25 lines against a corpus p75 of 16"
+expect     "  ... and records no header_size"  header_size absent
+never_says "  ... and is no 20-line violation" "max 20"
 
 # ── the session mark ─────────────────────────────────────────────────────────────────────────────
 # gate-stop.sh reads $HOME state, so it needs to know whether THIS session touched a testcase. This

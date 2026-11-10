@@ -34,6 +34,15 @@ All notable changes to cubrid-agent are documented here. The format follows
   longer calls the release build CI's mode: CI runs a debug build, and the answer is still
   confirmed on the release build.
 
+- (patch) **The submit gate no longer blocks a TC whose header block runs past 20 lines.** The
+  testcase repo's rulebook gives each case its own `Coverage:` line and sets no length for the
+  header block, so a TC with many cases has a long one. The lint hook stops recording
+  `lint.header_size` and no longer reports "header is N lines (max 20)", and the submit gate no
+  longer reads that field. A header longer than the corpus p75 of 16 lines still draws the same
+  advice, which blocks nothing. A run directory from before this release keeps working: a
+  `header_size: false` in its manifest no longer blocks the pull request, and the next `.sql`
+  write removes the field.
+
 ## [1.1.1] - 2026-11-03
 
 - (patch) **The shipped skills no longer point at decision records that are gone.**
