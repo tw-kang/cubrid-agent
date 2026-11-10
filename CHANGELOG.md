@@ -35,10 +35,11 @@ All notable changes to cubrid-agent are documented here. The format follows
   testcase repo's rulebook gives each case its own `Coverage:` line and sets no length for the
   header block, so a TC with many cases has a long one. The lint hook stops recording
   `lint.header_size` and no longer reports "header is N lines (max 20)", and the submit gate no
-  longer reads that field. The hook no longer advises on the header block's length either, so it
-  no longer tells you to shorten the `Coverage:` list. A run directory from before this release keeps working: a
-  `header_size: false` in its manifest no longer blocks the pull request, and the next `.sql`
-  write removes the field.
+  longer reads that field. The hook no longer advises on the header block's length either, so it no
+  longer tells you to shorten the `Coverage:` list, and `author-testcase` no longer counts a
+  header-length miss among the lint violations to clear. A run directory from before this release
+  keeps working: a `header_size: false` in its manifest no longer blocks the pull request, and the
+  next `.sql` write removes the field.
 
 - (minor) **`review-testcase` judges a PR by the testcase repo's rulebook, read from
   `origin/develop` of the clone, not by the copy in the PR.** The skill now reads the deployed

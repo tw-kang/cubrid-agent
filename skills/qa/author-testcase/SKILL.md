@@ -113,7 +113,7 @@ Two passes, split by what each actually needs. **R1 needs no execution output** 
 
 ## 6. Feedback loop — static rounds are cheap, the CTP chain is not
 - **Static rounds (Author → lint → R1), up to 5:** loop here until R1 is `PASS`. **Force ≥1 improvement round even on a clean R1** (min 2 static rounds) — the mandate is unchanged, it simply no longer drags a CTP chain behind it.
-- **Clear every lint violation before the first CTP run.** The hook fires on the `.sql` write, so a header-length or convention miss is already known — it must never be the reason a chain re-runs, which is exactly what happened once in the measured run.
+- **Clear every lint violation before the first CTP run.** The hook fires on the `.sql` write, so a convention miss is already known — it must never be the reason a chain re-runs, which is exactly what happened once in the measured run.
 - **Then Verify once (§4), then R2 (§5).**
 - **A second CTP chain needs a Verify or R2 finding to justify it** — nondeterminism, a `verify.preconditions` entry that came back unverified, an `.answer` that contradicts the issue, or a negative fail→pass. Re-run only the sessions the change can affect (an `.sql` edit → S1+S2; a conf/plan problem → S3), and keep fail→pass for after the final `.sql` is settled.
 - Submit when all three gates pass (author completeness · verify PASS · review PASS).

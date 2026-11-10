@@ -250,11 +250,11 @@ seed_manifest
 lint "$BUG_DIR/cbrd_99999.sql"
 expect "no issue type recorded" placement null
 
-# --- length advice: reported, never recorded, never a violation ----------------------------------
-# No gate field bounds the length of the header or the number of comments, and a 17-line header and
-# five comment lines once shipped with every gate green. The advice quotes the corpus quartile instead
-# of inventing a limit, so it must fire on the top quartile, stay silent below it, and never be a
-# violation.
+# --- comment advice: reported, never recorded, never a violation ---------------------------------
+# No gate field bounds the number of comments, and five comment lines once shipped with every gate
+# green. The advice quotes the corpus quartile instead of inventing a limit, so it must fire above it,
+# stay silent at it, and never be a violation. Nothing advises on the header block's length: the
+# rulebook sets none and gives each case its own Coverage line.
 never_says() {  # never_says <name> <fragment>
   grep -qF -- "$2" "$T/out" && note_fail "$1: the message says \"$2\" when it should not" || T_PASS=$((T_PASS+1))
 }
@@ -277,12 +277,6 @@ seed_manifest "Correct Error"
 lint "$BUG_DIR/cbrd_99999.sql"
 never_says "four inline comments, the p75 itself, draw no advice" "corpus p75"
 
-{ long_header CBRD-99999 18; chatty_body; } > "$BUG_DIR/cbrd_99999.sql"
-lint "$BUG_DIR/cbrd_99999.sql"
-says       "a Coverage line per case: the comment advice still prints" "5 inline"
-never_says "  ... and nothing asks to shorten the Coverage list"     "Coverage list"
-never_says "  ... and the header length draws no advice"             "header is 18 lines"
-
 { good_header CBRD-99999; chatty_body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
 says   "five inline comments draw advice"   "5 inline"
@@ -293,10 +287,11 @@ never_says "  ... and are not a violation"  "convention violations"
 printf '{"select":{"issue_type":"Correct Error"},"lint":{"header_size":false}}\n' > "$RUN/manifest.json"
 { long_header CBRD-99999 25; chatty_body; } > "$BUG_DIR/cbrd_99999.sql"
 lint "$BUG_DIR/cbrd_99999.sql"
-says       "a 25-line header: the message still prints" "5 inline"
+says       "a 25-line header of Coverage lines: the message still prints" "5 inline"
 expect     "  ... and records no header_size"           header_size absent
 never_says "  ... and is no 20-line violation"          "max 20"
 never_says "  ... and draws no length advice"           "header is 25 lines"
+never_says "  ... and says nothing about the Coverage list" "Coverage"
 
 # ── the session mark ─────────────────────────────────────────────────────────────────────────────
 # gate-stop.sh reads $HOME state, so it needs to know whether THIS session touched a testcase. This
