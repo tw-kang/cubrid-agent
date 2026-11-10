@@ -18,21 +18,13 @@ All notable changes to cubrid-agent are documented here. The format follows
   **After you update the plugin, run `/setup-cubrid-agent` again**: the skills call the copy in
   `~/.cubrid-agent/bin/`, and only setup replaces it.
 
-- (minor) **`create-sql` and `author-testcase` write a TC by the testcase repo's rulebook, read
-  from `origin/develop`.** Both skills now read the deployed rulebook of `cubrid-testcases` with
-  `git -C "$TC" show origin/develop:<path>` — the root `AGENTS.md` and the three `sql/` files, and
-  the three `medium/` files for a TC under `medium/` — and stop when a read fails, so the branch the
-  clone has checked out no longer changes the rules. The TC rules the two skills carried in their
-  own text are gone; where they still name a rule, they name its file and section. What a TC gets
-  differently as a result: its path comes from `sql/rules/writing-rules.md` "Place and files"; an
-  error case is checked by its `Error:` code, and `--+ server-message` wraps only the statements
-  whose `DBMS_OUTPUT` a case checks; the plans of a whole file come from an empty `.queryPlan` file
-  and the plan of one statement from `--@queryplan`; the `Coverage:` list has one line per case;
-  and the `author-testcase` commit message starts with `Add sql testcase for`, without the
-  `[CBRD-XXXXX]` prefix. `create-sql` now says that CTP writes the `.result` file next to the case
-  on every run and copies it into the result tree only for a failed case, and `author-testcase` no
-  longer calls the release build CI's mode: CI runs a debug build, and the answer is still
-  confirmed on the release build.
+- (minor) **`create-sql` and `author-testcase` take the TC rules from the testcase repo's
+  rulebook.** Both read its seven files from `origin/develop` of `$TC`, whatever branch the clone
+  has checked out, and stop when a read fails; the rules they carried in their own text are gone.
+  A TC they write now follows that rulebook: its path comes from `sql/rules/writing-rules.md`
+  "Place and files", an error case is checked by its `Error:` code, `--+ server-message` wraps only
+  a `DBMS_OUTPUT` check, the plans of a whole file come from an empty `.queryPlan` file,
+  `Coverage:` has one line per case, and the commit message starts with `Add sql testcase for`.
 
 - (patch) **The submit gate no longer blocks a TC whose header block runs past 20 lines.** The
   testcase repo's rulebook gives each case its own `Coverage:` line and sets no length for the

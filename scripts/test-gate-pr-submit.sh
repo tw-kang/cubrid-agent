@@ -238,7 +238,6 @@ m '.verify.debug.note = "CBRD-27000: known assert on this path, developer accept
 run "assert, reviewer-approved with a note" ok "" "$BASE --body-file $GEN"
 m 'del(.review.debug_approved) | .verify.debug = {checked:true, result:"clean"}'
 
-# --- the header-length cap is gone: a run directory from before it went still holds the field ---
 good_body
 m '.lint.header_size = false'
 run "an old manifest's header_size:false does not block" ok "" "$BASE --body-file $GEN"

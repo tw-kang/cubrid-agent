@@ -3,6 +3,7 @@
 # into the run manifest so the PreToolUse submit gate can't be silently bypassed.
 # Event: PostToolUse / Write|Edit. Non-blocking (feedback only).
 set -u
+export LC_ALL=C
 
 INPUT=$(cat)
 FILE=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
