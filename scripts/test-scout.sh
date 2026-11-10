@@ -36,10 +36,15 @@ fi
 echo "gh $*" >> "$NETLOG"
 exit 0
 STUB
-# git is real except for ls-remote, which is the one subcommand that goes out to the network.
+# git is real except for the subcommands that go out to the network. The scout always passes -C, so
+# the subcommand is the first word after the -C/-c options, not $1.
 cat > "$BIN/git" <<'STUB'
 #!/bin/bash
-[ "$1" = ls-remote ] && { echo "git ls-remote $*" >> "$NETLOG"; exit 0; }
+a=("$@"); i=0
+while [ "$i" -lt "${#a[@]}" ]; do
+  case "${a[$i]}" in -C|-c) i=$((i+2)) ;; -*) i=$((i+1)) ;; *) break ;; esac
+done
+case "${a[$i]:-}" in ls-remote|fetch|pull) echo "git $*" >> "$NETLOG"; exit 0 ;; esac
 exec "$REAL_GIT" "$@"
 STUB
 chmod +x "$BIN"/*
@@ -62,12 +67,27 @@ mkdir -p "$TCD/sql/_05_feature/cases" "$TCD/sql/_13_issues/_24_1h/answers"
 printf 'PREPARE st FROM %s;\n' "'SELECT 2'" > "$TCD/sql/_05_feature/cases/_03_iss_700000.sql"
 printf 'PREPARE st\n' > "$TCD/sql/_13_issues/_24_1h/answers/cbrd_20001.answer"
 printf 'PREPARE is documented here\n' > "$TCD/sql/README.md"
+# The deployed rulebook. The clone's own branch always holds all seven files; origin/develop is what a
+# case varies, so a scout that read the working tree instead of the ref would pass where it must stop.
+RULEBOOK="AGENTS.md sql/AGENTS.md sql/rules/writing-rules.md sql/rules/test-perspectives.md medium/AGENTS.md medium/rules/writing-rules.md medium/rules/test-perspectives.md"
+for f in $RULEBOOK; do mkdir -p "$TCD/$(dirname "$f")"; printf '# %s\n' "$f" > "$TCD/$f"; done
 "$REAL_GIT" init -q "$TCD"
 "$REAL_GIT" -C "$TCD" remote add origin https://github.com/CUBRID/cubrid-testcases.git
 "$REAL_GIT" -C "$TCD" remote add fork https://github.com/octo/cubrid-testcases.git
 "$REAL_GIT" -C "$TCD" add -A >/dev/null 2>&1
 "$REAL_GIT" -C "$TCD" -c user.email=t@t -c user.name=t commit -q -m init
 "$REAL_GIT" -C "$TCD" branch -M develop
+# deploy_ref [path]: point origin/develop at a commit of the clone's tree without that one deployed
+# file — with no path, at a commit that holds all seven.
+deploy_ref() {
+  _idx="$T/deploy.idx"; rm -f "$_idx"
+  GIT_INDEX_FILE="$_idx" "$REAL_GIT" -C "$TCD" read-tree develop
+  [ -z "${1:-}" ] || GIT_INDEX_FILE="$_idx" "$REAL_GIT" -C "$TCD" rm -q --cached -- "$1"
+  _tree=$(GIT_INDEX_FILE="$_idx" "$REAL_GIT" -C "$TCD" write-tree)
+  _c=$("$REAL_GIT" -C "$TCD" -c user.email=t@t -c user.name=t commit-tree -p develop -m deploy "$_tree")
+  "$REAL_GIT" -C "$TCD" update-ref refs/remotes/origin/develop "$_c"
+}
+deploy_ref
 
 # ── environment the happy path expects ───────────────────────────────────────────────────────────
 export CUBRID="$T/cub"; mkdir -p "$CUBRID/bin"
@@ -110,6 +130,18 @@ run() {
   if [ -n "$_no" ] && grep -qF -- "$_no" "$OUTF"; then note_fail "$_name: output must not say \"$_no\" but does"; return; fi
   T_PASS=$((T_PASS+1))
 }
+# run_err <name> <expected exit> <fragment>: a stop says why in one stderr line, so the fragment must be
+# on stderr and stderr must be that one line.
+ERRF="$T/err"
+run_err() {
+  _name=$1; _want=$2; _yes=$3
+  # shellcheck disable=SC2086
+  bash "$SRC" $ARGS > "$OUTF" 2> "$ERRF"; _rc=$?
+  if [ "$_rc" != "$_want" ]; then note_fail "$_name: expected exit $_want, got $_rc"; return; fi
+  if ! grep -qF -- "$_yes" "$ERRF"; then note_fail "$_name: stderr never says \"$_yes\""; return; fi
+  if [ "$(grep -c . "$ERRF")" -ne 1 ]; then note_fail "$_name: stderr is $(grep -c . "$ERRF") lines, not one"; return; fi
+  T_PASS=$((T_PASS+1))
+}
 manifest() { mkdir -p "$HOME/.cubrid-agent/CBRD-25913"; printf '%s' "$1" > "$HOME/.cubrid-agent/CBRD-25913/manifest.json"; }
 reset_state() { rm -rf "$HOME/.cubrid-agent"; install_helpers; ARGS=CBRD-25913; : > "$NETLOG"
                 export CUBRID_JIRA_USER=qauser CTP_HOME="$T/ctp" CUBRID="$T/cub" CUBRID_SRC="$T/engine"
@@ -134,6 +166,7 @@ run "no coverage yet" 0 "no cbrd_25913 file or directory"
 run "no pattern note" 0 "no --grep pattern given"
 run "run state"       0 "type Correct Error"
 run "hands back judgment" 0 "whether this build contains the issue's fix"
+run "and hands the path to the rulebook" 0 "final path (sql/rules/writing-rules.md \"Place and files\" on origin/develop)"
 
 # The whole point of the helper: no network, so both the orchestrator and the author lane may call it.
 if [ -s "$NETLOG" ]; then note_fail "the scout touched the network: $(tr '\n' ';' < "$NETLOG")"; else T_PASS=$((T_PASS+1)); fi
@@ -160,6 +193,19 @@ STUB_NO_GH_TOKEN=1 GH_TOKEN=x run "GH_TOKEN counts" 0 "" "MISSING: gh credential
 # Still a full report: the caller decides whether the reduced path is acceptable, so it needs the rest.
 CUBRID="$T/none" run "report is still complete" 3 "cover  :"
 
+# ── the deployed rulebook: a stop when origin/develop lacks a file, never the reduced path ───────
+# A skill that went on would fill the rules from memory, so this is exit 1, not a MISSING line.
+reset_state
+manifest '{"select":{"issue_type":"Correct Error"}}'
+deploy_ref sql/rules/writing-rules.md
+run_err "an sql rulebook file absent from origin/develop stops" 1 "git -C $TCD fetch origin"
+deploy_ref medium/rules/test-perspectives.md
+run_err "a medium rulebook file absent from origin/develop stops" 1 "git -C $TCD fetch origin"
+if [ -s "$NETLOG" ]; then note_fail "a rulebook stop touched the network: $(tr '\n' ';' < "$NETLOG")"; else T_PASS=$((T_PASS+1)); fi
+deploy_ref sql/AGENTS.md
+CTP_HOME="$T/none" run "with CTP absent too, the stop comes before the reduced path" 1 "fetch origin" "MISSING: CTP"
+deploy_ref
+
 reset_state
 "$REAL_GIT" -C "$TCD" remote remove fork
 run "no fork owner" 3 "MISSING: fork owner"
@@ -178,7 +224,7 @@ run "and names no tree"              0 "" "sql/_13_issues/$CURHY/cases/ — exis
 manifest '{"select":{"issue_type":"Improve Function/Performance"}}'
 run "non-bug goes to a release dir" 0 "release dir, sql/_NN_<release>/cbrd_25913/cases/"
 run "and lists the ones present"    0 "_35_ordinary _36_guava"
-run "release choice stays create-sql's" 0 "create-sql's convention picks the release"
+run "release choice stays the rulebook's" 0 "sql/rules/writing-rules.md \"Place and files\" picks the release"
 
 # ── existing coverage ────────────────────────────────────────────────────────────────────────────
 reset_state

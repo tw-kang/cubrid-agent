@@ -7,6 +7,17 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+- (minor) **`scout.sh` stops when the testcase clone's `origin/develop` lacks the deployed rulebook.**
+  The scout now checks that `origin/develop` of `$TC` holds the seven rulebook files of
+  `cubrid-testcases` — the root `AGENTS.md`, and `AGENTS.md`, `rules/writing-rules.md` and
+  `rules/test-perspectives.md` under both `sql/` and `medium/`. When one is absent, as in a clone
+  last fetched before the rulebook was deployed, it prints one line that names the file and
+  `git -C <clone> fetch origin`, and exits 1 instead of going on. It reads the local ref, so it
+  still makes no network call, and the branch the clone has checked out does not matter. Its
+  answer now names `sql/rules/writing-rules.md` "Place and files" as where the TC path comes from.
+  **After you update the plugin, run `/setup-cubrid-agent` again**: the skills call the copy in
+  `~/.cubrid-agent/bin/`, and only setup replaces it.
+
 ## [1.1.1] - 2026-11-03
 
 - (patch) **The shipped skills no longer point at decision records that are gone.**

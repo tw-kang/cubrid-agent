@@ -39,6 +39,14 @@ for c in git jq; do
 done
 git -C "$TC" rev-parse --git-dir >/dev/null 2>&1 \
   || { printf 'scout: %s is not a git clone, so there is no corpus to scout — run /setup-cubrid-agent (or point CUBRID_TESTCASES at the clone).\n' "$TC" >&2; exit 1; }
+# The TC rules are the tc repo's deployed rulebook, read from origin/develop and never from the
+# working tree, whose branch is whatever someone checked out. A stop, not a MISSING line: the reduced
+# path would leave the skill writing the TC from memory. The ref is local, so this costs no network.
+RULEBOOK='AGENTS.md sql/AGENTS.md sql/rules/writing-rules.md sql/rules/test-perspectives.md medium/AGENTS.md medium/rules/writing-rules.md medium/rules/test-perspectives.md'
+for f in $RULEBOOK; do
+  git -C "$TC" cat-file -e "origin/develop:$f" 2>/dev/null \
+    || { printf 'scout: origin/develop of %s has no %s, the rulebook the TC is written by — run git -C %s fetch origin, then call me again.\n' "$TC" "$f" "$TC" >&2; exit 1; }
+done
 
 # The key is optional, because the environment half of the answer does not depend on one and
 # create-sql is reachable without a CBRD number ("새 sql testcase" with no issue). Without a key the
@@ -127,7 +135,7 @@ BR_AT=$(tc_root_for_branch "$TC" "$BR")
 
 # ── 2. where the testcase goes ───────────────────────────────────────────────────────────────────
 # The issue type alone selects the tree, and it comes from JIRA via grounding — never from a version
-# field. Reported, not decided: create-sql's directory convention names the file.
+# field. Reported, not decided: the rulebook's sql/rules/writing-rules.md "Place and files" names the file.
 ITYPE=""
 [ -n "$MANIFEST" ] && ITYPE=$(jq -r '.select.issue_type // empty' "$MANIFEST" 2>/dev/null)
 CURHY="_$(date +%y)_$([ "$(date +%-m)" -le 6 ] && echo 1 || echo 2)h"
@@ -144,7 +152,7 @@ elif [ "$ITYPE" = "Correct Error" ]; then
     WHERE="\"$ITYPE\" (a bug fix) → $TARGET/cases/ — does NOT exist yet; create it (the half-year you write in, not any date on the issue)"
   fi
 else
-  WHERE="\"$ITYPE\" (not a bug fix) → a release dir, sql/_NN_<release>/cbrd_$NUM/cases/ — create-sql's convention picks the release; the ones here: $(find "$TC/sql" -maxdepth 1 -type d -name '_[0-9][0-9]_*' -printf '%f\n' 2>/dev/null | grep -v '^_13_issues$' | sort | tr '\n' ' ')"
+  WHERE="\"$ITYPE\" (not a bug fix) → a release dir, sql/_NN_<release>/cbrd_$NUM/cases/ — sql/rules/writing-rules.md \"Place and files\" picks the release; the ones here: $(find "$TC/sql" -maxdepth 1 -type d -name '_[0-9][0-9]_*' -printf '%f\n' 2>/dev/null | grep -v '^_13_issues$' | sort | tr '\n' ' ')"
 fi
 # Paths are printed relative to the clone: the caller reads them, and an absolute prefix repeated on
 # every line pushes the part that differs off the end.
@@ -235,5 +243,5 @@ if [ -n "$MISS" ]; then
   exit 3
 fi
 printf '  next   : read the sibling header(s) above and the fix diff; nothing else in the prep phase needs a call.\n'
-printf '           NOT decided here (yours): whether this build contains the issue'\''s fix, and the TC'\''s final path (create-sql'\''s directory convention).\n'
+printf '           NOT decided here (yours): whether this build contains the issue'\''s fix, and the TC'\''s final path (sql/rules/writing-rules.md "Place and files" on origin/develop).\n'
 exit 0
