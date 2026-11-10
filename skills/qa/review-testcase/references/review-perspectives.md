@@ -24,15 +24,14 @@ Its purpose is not to hold the TC rules — those are the testcase repo's deploy
 | P14 | Minimality *(new)* | Medium | **L2** | No | youngjinj, ssihil | `sql/rules/test-perspectives.md` "Scenarios to cover" |
 | P15 | Assert only invariants *(new)* | Medium | **L2**+L3 | Partial | shparkcubrid, ssihil | `sql/rules/test-perspectives.md` "What sql TCs cannot check" |
 
-## Automatic lint rules to promote to L1 (the recurring comments the mining flagged)
+## L1 — the perspectives humans flagged most
 
-Mechanical comments humans made *repeatedly* belong in static rules, not LLM judgment. The ones the mining flagged are now rules of the deployed rulebook, which L1 checks in full; look at these sections first:
+Mechanical comments humans made *repeatedly* belong in static rules, not LLM judgment. L1 checks every bold rule of the rulebook, and the table above names the rule of each perspective. The mining found these perspectives repeated most, so look at them first:
 
-- **P2** — `sql/rules/test-perspectives.md` "What sql TCs cannot check" (ssihil's most-repeated comment; a tie under `ORDER BY` was PR#3091's major).
-- **P6** — `sql/rules/writing-rules.md` "Header and labels", "Statements and comments", "Plans and traces", "Cleanup".
-- **P6/P7 (shared)** — `sql/rules/writing-rules.md` "Answer files": a label changed in the `.sql` file and not in the answer file (PR#3091's live blocker). It applies regardless of PR character.
-- **P5** — `sql/rules/writing-rules.md` "Cleanup".
-- **P10** — `sql/rules/writing-rules.md` "Header and labels" for comments, `sql/AGENTS.md` "The PR" for commit messages.
+- **P2** — ssihil's most-repeated comment. A tie under `ORDER BY` was PR#3091's major.
+- **P6** — including the L1 check of a `.queryPlan` file against the plan output in the answer file ([SKILL.md](../SKILL.md) L1).
+- **P6/P7 (shared)** — a label changed in the `.sql` file and not in the answer file was PR#3091's live blocker. It applies regardless of PR character.
+- **P5** and **P10**.
 
 ## Division of labor with the bots
 

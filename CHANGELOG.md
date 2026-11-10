@@ -43,12 +43,10 @@ All notable changes to cubrid-agent are documented here. The format follows
   `create-sql` checklist, and an expected result at the end of an `evaluate` label after
   `; result =` is no longer a finding. The perspective catalog keeps the review questions that the
   rulebook does not hold and names the rulebook section of each perspective. Few-shot entries that
-  the rulebook contradicts now say what it says: a still-open bug is marked by a
-  `Case N: known wrong result, CBRD-NNNNN (open)` line in the header block, not kept as a `-- BUG`
-  comment, and an error case is checked by its code, not its message. The review calls `scout.sh`
-  first: exit 1 stops it, exit 3 lets it go on, and only a missing CUBRID build or CTP makes it
-  skip L3. **After you update the plugin, run `/setup-cubrid-agent` again**, so that the scout it
-  calls is the one that checks the rulebook.
+  the rulebook contradicts now follow it: a still-open bug is marked as the rulebook's known wrong
+  result, not kept as a `-- BUG` comment, and an error case is checked by its code, not its
+  message. The review calls `scout.sh` first: exit 1 stops it, exit 3 lets it go on, and only a
+  missing CUBRID build or CTP makes it skip L3.
 
 ## [1.1.1] - 2026-11-03
 

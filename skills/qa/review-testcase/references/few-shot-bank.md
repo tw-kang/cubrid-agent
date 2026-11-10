@@ -6,7 +6,7 @@ A **collection of real human review examples** injected into the L2 domain-revie
 - review-testcase L2 injects, as few-shot examples, entries from the lens section matching the PR's nature: **new-testcase → coverage-expansion**, **change-testcase → answer-vs-spec**, **shared → determinism-convention · plan-stability** (plan TCs).
 - Each entry: **Context** (situation) → **Finding** (verbatim reviewer comment) → **Pattern** (reusable rule the LLM generalizes) → **Source** (PR/reviewer).
 - **The pattern is the point** — the goal is to make the bot apply this rule to new PRs. It should follow the pattern rather than copy-paste the quoted wording verbatim.
-- **Where an entry and the deployed rulebook differ, the rulebook wins.** A Finding is what a reviewer said, some of it before the rulebook existed; the Pattern says what to apply now and names the rulebook section it follows.
+- **Where an entry and the deployed rulebook differ, the rulebook wins.** A Finding quotes what a reviewer said, some of it before the rulebook existed, and stays verbatim.
 
 ## Backtest isolation (important)
 When backtesting a particular PR, inject the entries **excluding those whose source is that PR** (to prevent answer leakage). That is why each entry records its source PR.
@@ -21,7 +21,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P4] Extend to sibling functions in the same parent category (family)
 - **Context**: A TC covering the ORDERBY_NUM() function
 - **Finding**: "Orderby_num()의 상위목록 'ROWNUM함수'에 ROWNUM, INST_NUM, GROUP_NUM도 포함됩니다. 이들에 대한 TC 추가가 필요하지 않을지 검토 바랍니다" + example `select ROWNUM rrnum,rnum,col_a,col_b from (select ROWNUM rnum,col_a,col_b from tbl order by col_a) where ROWNUM < 5 order by rnum desc`
-- **Pattern**: When the function under test is one of several functions in a larger category (a parent concept), enumerate all the remaining functions in that category and propose an identically-shaped SQL case for each.
+- **Pattern**: When the function under test is one of several functions in a larger category (a parent concept), enumerate all the remaining functions in that category and propose a case of the same shape for each. Write each proposed query by `sql/rules/test-perspectives.md` "What sql TCs cannot check", not by the Finding's example: its outer `where ROWNUM < 5` sits under an `order by`, which that section's `ROWNUM` rule rejects.
 - **Source**: PR1790 / bagus-kim
 
 ### [P4] Symmetrically add hints/options applied to only one DML to the other DMLs
@@ -39,7 +39,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P4] Strengthen system-catalog verification queries with identifying columns, ordering, and noise filters
 - **Context**: The result-checking select in several privilege (grant/revoke) TCs (the same finding repeated across 4 PRs)
 - **Finding**: "select grantor_name, grantee_name, object_name, auth_type, is_grantable from db_auth where grantee_name != 'PUBLIC' order by grantor_name, grantee_name; — object_name·auth_type 값이 여러 행에서 동일하니 바꾸는 게 좋다", "object_type, object_name, auth_type 추가; 동일 쿼리는 파일 내 모두 고쳐달라"
-- **Pattern**: Make verification queries that check results via a system catalog (db_auth, etc.) have (1) a noise filter like `!= 'PUBLIC'`, (2) enough columns to distinguish rows, and (3) an order by down to a unique key or over the whole select list (`sql/rules/test-perspectives.md` "What sql TCs cannot check"). When the same-shaped query appears several times in a file, require that they all be fixed identically. (repeated across 4 PRs = highly reusable)
+- **Pattern**: Make verification queries that check results via a system catalog (db_auth, etc.) have (1) a noise filter like `!= 'PUBLIC'`, (2) enough columns to distinguish rows, and (3) an order by that fixes the row order as `sql/rules/test-perspectives.md` "What sql TCs cannot check" requires. When the same-shaped query appears several times in a file, require that they all be fixed identically. (repeated across 4 PRs = highly reusable)
 - **Source**: PR1948·1950·1956·1957 / ssihil·kwonhoil
 
 ### [P4] Test type conversion/precision with digit-boundary values
@@ -51,7 +51,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P4] For predicates containing a function, build an operator × logical-connective × sign combination matrix
 - **Context**: A numbered combination TC (17+) that classifies predicates containing the abs() function as key range vs. data filter
 - **Finding**: "predicate: (ta.b <= abs(tb.b) or ta.c > abs(tb.b)) key range: ((abs(tb.b)>=ta.b) or (abs(tb.b)<ta.c))", "predicate: (ta.b <= -abs(tb.b) or ta.c > abs(tb.b)) key range: NULL"
-- **Pattern**: For predicates containing a function, enumerate every combination of comparison operator (>=, <=, =, <, >) × logical connective (and/or) × sign (positive/negative) with numbers, and for each combination state the expected value — whether the optimizer takes a key range or defers it to a data filter/NULL (full scan) — at the end of its `evaluate` label after `; result =`, never in a comment (`sql/rules/writing-rules.md` "Header and labels"). When easily-missed combinations like or-connectives or negative abs are absent, point out that they should be filled in.
+- **Pattern**: For predicates containing a function, enumerate every combination of comparison operator (>=, <=, =, <, >) × logical connective (and/or) × sign (positive/negative) with numbers, and for each combination state the expected value — whether the optimizer takes a key range or defers it to a data filter/NULL (full scan) — where `sql/rules/writing-rules.md` "Header and labels" puts an expected result, not in a comment. When easily-missed combinations like or-connectives or negative abs are absent, point out that they should be filled in.
 - **Source**: PR1884 / youngjinj
 
 ### [P4] List every function in a family that pairs by prefix/abbreviated form
@@ -103,7 +103,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P7] Only .sql edited while .answer is left stale — the pair must always change together
 - **Context**: A .sql case was modified but the change wasn't reflected in the paired .answer
 - **Finding**: "As you modify the .sql file, the .answer must also be modified."
-- **Pattern**: If the diff changes only the .sql while the .answer (/.answer_cci) stays the same, or conversely only the answer changes while the comparison literals in the .sql stay the same, one of them was left stale. Confirm that the two files must always change as a pair.
+- **Pattern**: If the diff changes only the .sql while the .answer (/.answer_cci) stays the same, or conversely only the answer changes while the comparison literals in the .sql stay the same, one of them was left stale. Confirm that the two files must always change as a pair. A comparison literal that turns a value into a verdict (`'ok'`/`'nok'`) is itself the defect: `sql/rules/test-perspectives.md` "Evidence in the answer file" replaces it with a query that prints the value, and `sql/rules/writing-rules.md` "Changing an existing TC" applies that to a TC under change too.
 - **Source**: PR2004 / ssihil
 
 ### [P7] answer state changed but the status tag in the .sql comment is unchanged
@@ -173,7 +173,7 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P2] Even with ORDER BY, ordering is nondeterministic if the sort key isn't unique
 - **Context**: A db_auth query uses only `order by grantor_name`
 - **Finding**: "order by가 grantor_name이라 출력 순서가 바뀔 수도. grantor_name, auth_type 순으로 처리하는 게 좋겠습니다."
-- **Pattern**: Don't just look at whether ORDER BY exists — also look at whether the sort key uniquely distinguishes the results (the possibility of ties). When the leading key value is duplicated, the remaining order is still nondeterministic, so require tie-breaker columns until the key is unique or covers the whole select list (`sql/rules/test-perspectives.md` "What sql TCs cannot check").
+- **Pattern**: Don't just look at whether ORDER BY exists — also look at whether the sort key uniquely distinguishes the results (the possibility of ties). When the leading key value is duplicated, the remaining order is still nondeterministic, so require tie-breaker columns until the order is fixed as `sql/rules/test-perspectives.md` "What sql TCs cannot check" requires.
 - **Source**: PR1944 / kwonhoil
 
 ### [P2] A zero-row query needs no ORDER BY — also check whether the finding points at the wrong query
@@ -209,13 +209,13 @@ The 4th field in the original mining files (`NEW`/`y1`) is a **time bucket** (y1
 ### [P6] Delete BUG comments for already-fixed issues — comments must reflect the state at review time
 - **Context**: A %TYPE procedure return-value TC
 - **Finding**: "CBRD-25557에서 수정돼 develop에 반영됨(결과 0.1). 이 주석은 지워져야 합니다."
-- **Pattern**: A BUG/TODO comment reflects only the state when it was written and isn't permanently accurate. At review time, check whether the issue has landed in develop and been fixed — the comment text alone isn't enough to judge; you must check external state. Fixed: the comment goes and the answer is made again. Still open: the rulebook marks it with the header-block line `Case N: known wrong result, CBRD-NNNNN (open)`, not a `-- BUG` comment (`sql/rules/writing-rules.md` "Answer files").
+- **Pattern**: A BUG/TODO comment reflects only the state when it was written and isn't permanently accurate. At review time, check whether the issue has landed in develop and been fixed — the comment text alone isn't enough to judge; you must check external state. Fixed: the comment goes and the answer is made again. Still open: by `sql/rules/writing-rules.md` "Answer files", the scenario first avoids that bug or stays out of the TC until the fix, and only when it can do neither does the header block mark a known wrong result, in place of the `-- BUG` comment.
 - **Source**: PR1847 / hyunikn
 
 ### [P6] When expected and actual differ, that itself is a BUG — keep it marked as a known wrong result
 - **Context**: A TC that passes a collection-type parameter to PLCSQL
 - **Finding**: "컬렉션 타입은 PLCSQL 미지원이라 에러를 기대했으나 정상 처리됨 → BUG 주석 유지."
-- **Pattern**: When the spec means "it's unsupported, so an error is the correct outcome" but it processed without an error, that mismatch is itself a regression / undocumented change. Don't read it as "no error, so it passes" — first reconcile the direction of expected vs. actual behavior (error expected vs. success). The Finding's "BUG 주석 유지" predates the rulebook: when the case keeps that output, the mark that stays is the header-block line `Case N: known wrong result, CBRD-NNNNN (open)`, with no `-- BUG` comment before the statement, and the rulebook first asks whether the scenario can avoid the bug or wait for its fix (`sql/rules/writing-rules.md` "Answer files").
+- **Pattern**: When the spec means "it's unsupported, so an error is the correct outcome" but it processed without an error, that mismatch is itself a regression / undocumented change. Don't read it as "no error, so it passes" — first reconcile the direction of expected vs. actual behavior (error expected vs. success). The Finding's "BUG 주석 유지" predates the rulebook: by `sql/rules/writing-rules.md` "Answer files", the scenario first avoids that bug or waits for its fix, and only a case that can do neither keeps the output, marked as a known wrong result in the header block with no `-- BUG` comment before the statement.
 - **Source**: PR1687 / kwonhoil
 
 ### [P6] Even when a trace looks unnecessary, the trace output itself may be the verification target
