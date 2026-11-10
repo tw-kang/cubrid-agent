@@ -50,12 +50,11 @@ All notable changes to cubrid-agent are documented here. The format follows
   `create-sql` checklist; an expected result at the end of an `evaluate` label after `; result =`
   is no longer a finding. The perspective catalog keeps the review questions that the rulebook
   does not hold, names the rulebook section of each perspective, and leaves the list of L1's
-  sections to the skill. Few-shot entries that the
-  rulebook contradicts now point at it: a still-open bug follows `sql/rules/writing-rules.md`
-  "Answer files" instead of a kept `-- BUG` comment, and an error case is checked by its code, not
-  its message. The review calls `scout.sh` first: exit 1 stops it, and it tells you to run the
-  fetch the scout prints; exit 3 lets it go on, and only a missing CUBRID build or CTP makes it
-  skip L3.
+  sections to the skill. Few-shot entries that the rulebook contradicts now point at it: a
+  still-open bug follows `sql/rules/writing-rules.md` "Answer files" instead of a kept `-- BUG`
+  comment, and an error case is checked by its code, not its message. The review calls `scout.sh`
+  first: exit 1 stops it, and it tells you to run the fetch the scout prints; exit 3 lets it go
+  on, and only a missing CUBRID build or CTP makes it skip L3.
 
 ## [1.1.1] - 2026-11-03
 
