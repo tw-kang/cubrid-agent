@@ -16,6 +16,7 @@
 #   With no key, the environment and the pattern search still answer; the three things that need an
 #   issue (its tree, its own TC, its run state) say that a key was not given.
 set -u
+export LC_ALL=C
 
 SELF_DIR=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
 # shellcheck source=common.sh disable=SC1091
