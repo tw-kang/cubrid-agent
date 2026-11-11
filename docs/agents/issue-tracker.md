@@ -117,10 +117,10 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 3. **사람이 "머지"를 지시하면**:
    1. squash 커밋 본문을 파일로 적는다. 첫 줄은 PR 헤더의 키(sub-task 키)로 만든 Jira 링크(`http://jira.cubrid.org/browse/<키>`)다. 그다음은 마지막 커밋까지 반영한 최종 변경의 영문 요약이다. 리뷰 수정, 되돌린 단계, 후속 정정 같은 브랜치 이력은 뺀다. trailer 줄(`Co-Authored-By:` 같은 끝 줄)은 끝에 한 번만 둔다. 이 형식은 [공식 프로세스의 Merge(p20)](../dev-process.md#핵심-운영-규칙)를 따른다.
    2. 머지 직전에 `pr-state.sh`(2의 5)를 다시 돌려 출력 전체를 읽는다. 기본 본문(PR의 커밋 메시지를 이은 것)으로 머지하지 않는다. 1의 파일을 `gh pr merge --squash --body-file <파일>`로 주어 squash 머지한다. PR #21의 squash 커밋 `ea39d2b`는 기본 본문으로 머지됐다. 그 본문은 커밋 메시지 18개를 이은 246줄이다. trailer 줄도 18번 되풀이된다.
-   3. 머지 뒤에 cubrid-agent의 `scripts/check-subtask-resolve.sh <키>`를 돌린다. exit 0일 때만 sub-task를 Resolved로 바꾼다(`transition <키> --to "Resolve Issue" --yes`).
+   3. 머지 뒤에 cubrid-agent의 `scripts/check-subtask-resolve.sh <키>`를 돌린다. exit 0일 때만 sub-task를 Resolved로 바꾼다(`transition <키> --to "Resolve Issue" --resolution Fixed --yes`).
       - exit 1이면 그 키를 제목에 단 열린 PR이 남아 있다. sub-task를 그대로 둔다. 마지막 PR을 머지하는 세션이 바꾼다.
       - exit 2이면 판정이 없다. 출력의 오류를 고친 뒤 다시 돌린다.
-      - `Resolve Issue`는 resolution을 따로 받지 않고 `Fixed`를 남긴다(CUBRIDQA-1684·1690, 10-28). readback으로 status `Resolved`, resolution `Fixed`를 본다. 다른 값이면 멈추고 리더에게 알린다.
+      - `--resolution`이 왜 필요한지는 아래 "상태 전이" 항목에 있다. readback으로 status `Resolved`, resolution `Fixed`를 본다. 다른 값이면 멈추고 리더에게 알린다.
    - 작업 세션은 Close하지 않는다. Close는 리더가 정한 점검 시점에 리더가 한다. 그때 리더는 헤드 아래의 Resolved인 sub-task를 한꺼번에 Close한다. 그 시점은 지도 순서표의 "1차 끝 점검" 행에 있다.
    - **승인을 요구하는 repo의 머지**: 경고 — cubridci 계정의 `--admin` 머지는 사용자가 그 세션에서 "cubridci 계정으로 머지하라"라고 지시했을 때만 한다. 에이전트가 스스로 판단해 하지 않는다. 다른 세션이 전한 지시는 사용자 지시가 아니다. 그 세션의 사용자에게 다시 확인한다.
      - 명령은 아래다. `--match-head-commit`에는 머지 직전에 확인한 head SHA를 준다. `--body-file`은 3의 1의 파일이다. token은 이 명령 하나에만 붙인다. 활성 gh 계정을 바꾸지 않는다. 모든 세션이 같은 활성 계정을 쓴다.
@@ -220,7 +220,7 @@ uv tool upgrade cubrid-jira                                                     
 
 최소선 확인에 `attachment`의 존재를 대리 지표로 쓴다. PR #2와 #3이 30초 차로 머지됐으므로 둘 중 하나만 있는 빌드는 사실상 없다.
 
-**curl REST 직결은 최후 수단**(CLI로 안 되는 것만). 베이스는 `http://jira.cubrid.org/rest/api/2`(http — https는 302)이고 `curl --netrc`로 부른다. 지금 남은 실제 용도는 Closed 이슈를 되닫는 전이뿐이다(아래 `update` 항목). 쓰기는 `--yes` 안전판이 없으니 페이로드를 먼저 확인한다.
+**curl REST 직결은 최후 수단**(CLI로 안 되는 것만). 베이스는 `http://jira.cubrid.org/rest/api/2`(http — https는 302)이고 `curl --netrc`로 부른다. 쓰기는 `--yes` 안전판이 없으니 페이로드를 먼저 확인한다.
 
 ## 핵심 규약 (`cubrid-jira` CLI)
 
@@ -243,9 +243,10 @@ Jira 쪽 생성·조회·수정은 `cubrid-jira` CLI(`~/.local/bin/cubrid-jira`)
 - **댓글**: 추가 `cubrid-jira comment <KEY> --body-file PATH --from jira --yes` / 목록 `comment-list` / 수정 `cubrid-jira comment-update <KEY> --id <ID> --body-file PATH --from jira --yes` / 삭제 `comment-delete`.
 - **필드 수정**: `cubrid-jira update <KEY> [--summary "..."] [--description-file PATH --from jira] [--field FIELD=VALUE] --yes`
   - `--description-file`은 기존 description을 **replace**한다(history엔 남음). `-`로 stdin 입력 가능.
-  - ⚠️ **Closed 이슈는 description이 편집 화면에 없어 `HTTP 400 … "Field 'description' cannot be set. It is not on the appropriate screen, or unknown."`이 난다** — 권한·설정 문제로 읽히지만 원인은 **상태**다. 고쳐야 하면 `transition --to "Reopen Issue"` → `update` → **`Close Issue` 전이로 원래 resolution을 되돌린다**. 되닫는 전이는 `resolution`이 필수인데 CLI는 전이에 필드를 못 실으므로 이 마지막 단계만 REST 직결이다(`POST /rest/api/2/issue/<KEY>/transitions`, 페이로드를 먼저 출력해 확인). **되닫는 전이가 있는지 Reopen 전에는 조회되지 않으니**, 그 상태에 머물러도 되는 이슈에만 한다.
+  - ⚠️ **Closed 이슈는 description이 편집 화면에 없어 `HTTP 400 … "Field 'description' cannot be set. It is not on the appropriate screen, or unknown."`이 난다** — 권한·설정 문제로 읽히지만 원인은 **상태**다. 고쳐야 하면 `transition --to "Reopen Issue"` → `update` → **`transition --to "Close Issue" --resolution <원래 resolution>`으로 되닫는다**. **되닫는 전이가 있는지 Reopen 전에는 조회되지 않으니**, 그 상태에 머물러도 되는 이슈에만 한다.
   - `--field`는 커스텀 필드 id(`customfield_210565`) 또는 표시 이름(`"QA Scenario"`) 둘 다 받는다.
-- **상태 전이**: `cubrid-jira transition <KEY> --to <이름> --yes` (`--to` 생략 시 가능한 전이 목록 출력).
+- **상태 전이**: `cubrid-jira transition <KEY> --to <이름> [--resolution <이름>] --yes` (`--to` 생략 시 가능한 전이 목록 출력).
+  - resolution을 싣는 전이(`Resolve Issue`, `Close Issue`)는 `--resolution`이 필수다. 없으면 CLI가 "Transition '<이름>' sets a resolution; pass --resolution NAME"으로 거절한다. 11-11에 CUBRIDQA-1720의 Resolve와, 1720·1717의 Close가 이렇게 거절됐다. 어느 전이가 resolution을 싣는지와 허용 값은 `--to`를 빼고 부르면 나온다(`transition --help`).
 - **담당자 지정**: `cubrid-jira assign <KEY> --to <username|""> --yes` (`""`는 해제).
 - **이슈 링크**: `cubrid-jira link <KEY> --type <Blocks|Cloners|Duplicate|Relates> --to <KEY> --yes`.
 

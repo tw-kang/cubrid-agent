@@ -129,7 +129,7 @@ grep -q 'cubrid-jira assign' docs/agents/issue-tracker.md         || _t="$_t sub
 # Sub-task states: In Progress under review, Resolved at merge. Only the leader closes, so the PR flow names no Close.
 _flow=$(sed -n '/^## PR 흐름/,/^## Jira에/p' docs/agents/issue-tracker.md)
 printf '%s\n' "$_flow" | grep -qF -- '--to "Start Progress"'   || _t="$_t subtask-in-progress-at-merge-ready"
-printf '%s\n' "$_flow" | grep -qF -- '--to "Resolve Issue"'    || _t="$_t subtask-resolved-at-merge"
+printf '%s\n' "$_flow" | grep -qF -- '--to "Resolve Issue" --resolution Fixed' || _t="$_t subtask-resolved-at-merge"
 printf '%s\n' "$_flow" | grep -qF 'Close Issue'                && _t="$_t close-transition-in-pr-flow"
 printf '%s\n' "$_flow" | grep -qF 'check-subtask-resolve.sh <키>' || _t="$_t resolve-after-the-last-pr"
 printf '%s\n' "$_flow" | grep -q '^   5\. PR을 Ready로 바꾼다\..*`scripts/pr-state\.sh <owner/repo> <PR 번호>`' || _t="$_t pr-state-at-ready"
@@ -160,6 +160,8 @@ grep -q '^- \*\*초안의 자리\*\*:.*`\.scratch/<디렉토리>/notes/`에 쓴�
 grep -qF '세션 기록(`~/.claude/projects/<프로젝트>/<세션 id>.jsonl`)의 `timestamp`를 쓴다' docs/agents/issue-tracker.md || _t="$_t user-answer-time-from-session-log"
 grep -qxF '      bash scripts/session-answer.sh <세션 이름> "<답의 일부>"' docs/agents/issue-tracker.md || _t="$_t user-answer-time-by-script"
 grep -qF 'resolve-ticket.sh <티켓 파일> <세션 이름>' docs/agents/issue-tracker.md || _t="$_t resolve-by-script"
+# The CLI refuses a transition that carries a resolution unless --resolution names it (11-11).
+grep -qF 'transition <KEY> --to <이름> [--resolution <이름>] --yes' docs/agents/issue-tracker.md || _t="$_t transition-takes-resolution"
 printf '%s\n' "$_flow" | grep -qF '`@<리뷰어> <N>절, <행>: <무엇을 고쳤다> (<커밋 SHA>)`' || _t="$_t tc-review-reply-format"
 printf '%s\n' "$_flow" | grep -qF 'readback은 `pulls/<PR 번호>/comments`로 한다' || _t="$_t tc-review-reply-readback"
 # The warning has to come before the command: a reader who copies the command first never reaches it.
