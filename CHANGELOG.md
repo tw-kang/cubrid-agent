@@ -7,6 +7,15 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+- (patch) **The lint hook accepts a backported Correct Error TC at the path it has on
+  `origin/develop`.** The testcase repo's rulebook keeps that path when a TC is backported, so on
+  a release branch it can be an older half-year directory than the one you write in. A `.sql`
+  file under `sql/_13_issues/` that git does not track yet now passes the half-year check when
+  `origin/develop` of its clone holds the same path. A file at a path that `origin/develop` does
+  not hold still has to be in the current half-year, and the message for it now adds that a
+  backport keeps its `origin/develop` path and to fetch `origin develop` if the develop TC is
+  merged.
+
 ## [1.2.0] - 2026-11-11
 
 - (minor) **`scout.sh` stops when the testcase clone's `origin/develop` lacks the deployed rulebook.**
