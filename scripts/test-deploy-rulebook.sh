@@ -137,9 +137,10 @@ c_pr_body() {
   local want
   printf '%s\n' "$OUT" | grep -qx 'reviewers: tester-shell' || echo "no 'reviewers: tester-shell' line;"
   for want in '<http://jira.cubrid.org/browse/CUBRIDQA-1663>' '### Purpose' '### Implementation' '### Remarks' \
-              '제안' '담당자 확인 목록' '리뷰어가 쓰는 말' '고친 규칙과 더한 규칙'; do
+              '제안' '담당자 확인 목록' '리뷰어가 쓰는 말' '정본, 배포본, 결정 번호' '고친 규칙과 더한 규칙만'; do
     printf '%s\n' "$OUT" | grep -qF -- "$want" || echo "body lacks '$want';"
   done
+  printf '%s\n' "$OUT" | grep -qE '^- 원본: .*rulebook/[^ ]*/.*커밋 `[0-9a-f]{12}`' || echo "no '- 원본:' line with the source commit;"
   # The tc repo reviewer does not use this repo's word for the source tree (CUBRIDQA-1686, 11-11 retro).
   printf '%s\n' "$OUT" | grep -q '^- 정본:' && echo "body keeps the '- 정본:' line;"
   [ "$(git -C "$O" for-each-ref --format='%(refname) %(objectname)')" = "refs/heads/develop $ORIGIN_TIP" ] \

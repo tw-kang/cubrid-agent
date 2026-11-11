@@ -205,15 +205,17 @@ cat <<EOF
 ----- PR body -----
 <http://jira.cubrid.org/browse/$KEY>
 
+TODO: 본문 전체를 리뷰어가 쓰는 말로 쓴다. 정본, 배포본, 결정 번호 같은 내부 용어는 쓰지 않는다. 이 줄은 지운다.
+
 ### Purpose
 
-TODO: 배경과 문제. 이 변경 전에 TC를 쓰는 사람이 무엇을 몰랐나. 본문 전체를 리뷰어가 쓰는 말로 쓴다. 정본, 배포본, 결정 번호 같은 내부 용어는 쓰지 않는다.
+TODO: 배경과 문제. 이 변경 전에 개발자와 에이전트가 무엇을 못 했나.
 
 ### Implementation
 
 - 제안: TODO: 제안 링크 (\`cubrid-agent\` PR 또는 CUBRIDQA-1505 코멘트)
 - 원본: 이 PR의 룰북 파일은 \`cubrid-agent\` repo \`rulebook/$NAME/\`(커밋 \`${SOURCE:0:12}\`)을 복사한 것이다.
-- TODO: 고친 규칙과 더한 규칙만 규칙마다 한 줄로 적는다. 그대로 둔 규칙과 고친 과정은 적지 않는다.
+- TODO: 고친 규칙과 더한 규칙만 적는다.
 
 ### Remarks
 
