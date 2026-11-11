@@ -53,7 +53,7 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 - **Resolve**:
   1. 티켓 끝에 `## Answer`를 적는다. 재오픈된 티켓은 `## Answer (재오픈분 — <YYYY-MM-DD>, <세션 이름>)` 절에 따로 적는다. 기존 `## Answer`와 1차분의 체크박스는 고치지 않는다. 재오픈 절의 체크박스만 `- [x]`로 바꾼다.
      - Answer의 초안과, PR이 있으면 PR 본문의 초안을 쓴다. 초안을 쓴 뒤에 `/code-review`를 돌린다. Spec 축과 Standards 축에 그 초안들을 함께 넘긴다. Standards 축은 [`CODING_STANDARDS.md` DP11](../../CODING_STANDARDS.md#dp11--동작-문장은-테스트-케이스가-고정한다)로 초안의 동작 문장을 본다. `v2-shell-rulebook` 01 재오픈분에서는 `/code-review`가 Answer보다 먼저 돌았다. 그 Answer의 문장과 결과는 DP11의 "값"에 있다.
-  2. `Status: resolved`로 바꾼다.
+  2. cubrid-agent의 `bash scripts/resolve-ticket.sh <티켓 파일> <세션 이름>`으로 `Status:` 값을 `resolved (<세션 이름>, <YYYY-MM-DD HH:MM>)`로 바꾼다. 실례: `.scratch/v2-skill-refresh/issues/02-scout-create-author.md`:7. 스크립트는 셋 중 하나면 거절한다(exit 1): 마지막 회차(마지막 재오픈 절부터 끝까지, 재오픈이 없으면 파일 전체)에 줄 처음의 `- [ ]`가 남았다. 마지막 `## Answer` 절의 제목 아닌 줄에 `/code-review`가 없다. 마지막 재오픈 절 뒤에 Answer가 없다. S3 04는 `/code-review` 전에 resolved가 됐다.
   3. 리더에게 SendMessage로 알린다. 보고에는 아래 세 항목이 반드시 있다. 길이 제한은 없다.
      - **실물**: 그 일에 해당하는 머지 SHA, PR 번호나 링크, 결과 파일 경로
      - **닫은 티켓**: 티켓 경로
@@ -74,9 +74,14 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
   - 병렬 서브에이전트에게는 각자 다른 중간 파일 디렉토리를 준다. 같은 scratchpad 루트를 주면 서로 덮는다(03 재오픈분, 에이전트 6개).
   - 서브에이전트가 SendMessage로 부르는 `team-lead`는 그 서브에이전트를 띄운 작업 세션이다. 리더가 아니다. 리더에게 보고하는 쪽은 작업 세션뿐이다. 10의 작업 세션은 `team-lead`를 리더로 읽었다. 그래서 리더에게 보낸 보고 두 건에 "서브에이전트가 리더에게 보고했다"고 잘못 적었다.
   - 지시문에 ID(규칙 ID, 표의 행 ID)를 넘길 때는 그 ID를 정의한 파일과 행을 함께 넘긴다. `v2-sql-medium-rulebook` 06의 작업 세션은 구현 서브에이전트에 "U-1720-2 = gha-ci가 그 브랜치에서 돌림"이라고 보냈다. 02 표의 정의는 `commit-to-tc-pr-branch`였다.
+  - 구현을 맡길 때는 지시문에 넣는다 — 보고 직전에 `git fetch origin` 뒤 `git merge-base --is-ancestor origin/<통합 브랜치> HEAD`가 성공해야 보고한다. 실패하면 `git merge origin/<통합 브랜치>`를 하고 검사를 다시 돌린다. S3 02·03에서 서브에이전트가 낡은 통합 브랜치 끝을 merge했다. 그래서 다시 merge하는 왕복이 두 번 생겼다(`v2-skill-refresh`의 `/retro` 7).
 - **새로 드러난 결정**: 작업 세션은 티켓 파일을 만들지 않는다. 새 결정이나 조사가 필요하면 리더에게 SendMessage로 제안한다. 같은 내용을 맡은 티켓의 `## Comments`에도 적는다. 새 티켓을 만들지 기존 티켓을 재오픈할지는 리더가 판단한다.
 - **사용자가 고른 문구**: 사용자가 고른 문구를 다른 문구로 바꾸려면, 바꾼 문구를 보이고 다시 묻는다. `00e4318`의 `writing-rules.md`:13은 사용자가 고른 미리보기와 다르다(10-30 리더 확인).
+- **승인 질문의 줄임말**: 승인 질문에는 사용자가 쓰지 않는 줄임말(N1, wr:70)을 쓰지 않는다. 항목은 하나씩 묻는다. `v2-skill-refresh`의 첫 승인 질문은 분류 넷, 규칙 ID(N1~N4), 줄 표기(wr:70, tp:31)를 한 질문에 몰았다. 사용자 답은 "무슨말이냐 도대체"였다(11-10).
+  - 승인받을 목록이 길면 쉬운 말로 쓴 표를 채팅에 먼저 보이고 묻는다. 표는 맥락이고, 질문을 대신하지 않는다.
+- **질문에 적는 개수**: 사용자에게 묻는 질문의 개수는 그 자리에서 센 결과로 쓴다. `v2-skill-refresh`가 다시 물은 질문은 "지울 53개 중 41개"라고 적었다. 실제는 52개 중 33개였다(11-10).
 - **스펙을 맡은 작업 세션**: `/implement-spec`으로 `.scratch/v2-<묶음>/spec.md`를 처리할 때도 위 Claim·Resolve·알림 규칙을 스펙 단위로 따른다. 보고는 Resolve 3의 세 항목으로 한다. 티켓이 리더에게 값을 넘기라고 하면 그때도 알린다.
+  - 스펙 티켓의 `## Answer`를 쓰기 전에, 위 "위치 주장"이 요구하는 출력을 찍는 스크립트(`.scratch/v2-<묶음>/tools/<번호>-evidence.sh`)를 먼저 만든다. Answer는 그 출력의 절 이름(예: `[L1]`)으로 근거를 댄다. S3 티켓 01·02·03·04와 02 재오픈의 리뷰가 모두 "위치·개수·부재 주장에 명령 출력이 없다"고 짚었다.
   - 스펙 티켓의 `## Answer`가 기대는 검사 스크립트는 `.scratch/v2-<묶음>/tools/`에 둔다. Answer에는 그 경로와 실행 명령을 적는다. 세션 scratchpad(`/tmp/…`)의 경로는 Answer에 적지 않는다. `/tmp`의 scratchpad가 지워지면 Answer의 재현 명령도 사라진다. `v2-sql-medium-rulebook`에서는 리더가 scratchpad에 남은 옛 판 `both.sh`를 돌려 거짓 MISSING을 보았다. 옮긴 뒤의 보기는 `.scratch/v2-sql-medium-rulebook/tools/`다.
 - **초안의 자리**: 사용자가 읽거나 고칠 초안(PR 본문, Jira 글, 리뷰 답장, 공지, squash 본문)은 `.scratch/<디렉토리>/notes/`에 쓴다. 세션 scratchpad(`/tmp/…`)에 쓰지 않는다. `<디렉토리>`는 맡은 티켓이 든 `issues/`의 부모다(예: `v2-structure`). 사용자 원문: "초안파일을 /tmp 에 두면 내가 편집기로 못읽는다. 이 프로젝트 내에 파일을 써라."(11-02)
 - **`/retro` 제안**: 맡은 티켓의 `## Comments`에 적는다. 티켓으로 만들지는 리더가 판단한다. retro를 요청하는 조건은 [`AGENTS.md`](../../AGENTS.md)의 `/retro` 줄에 있다.
@@ -117,10 +122,10 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 3. **사람이 "머지"를 지시하면**:
    1. squash 커밋 본문을 파일로 적는다. 첫 줄은 PR 헤더의 키(sub-task 키)로 만든 Jira 링크(`http://jira.cubrid.org/browse/<키>`)다. 그다음은 마지막 커밋까지 반영한 최종 변경의 영문 요약이다. 리뷰 수정, 되돌린 단계, 후속 정정 같은 브랜치 이력은 뺀다. trailer 줄(`Co-Authored-By:` 같은 끝 줄)은 끝에 한 번만 둔다. 이 형식은 [공식 프로세스의 Merge(p20)](../dev-process.md#핵심-운영-규칙)를 따른다.
    2. 머지 직전에 `pr-state.sh`(2의 5)를 다시 돌려 출력 전체를 읽는다. 기본 본문(PR의 커밋 메시지를 이은 것)으로 머지하지 않는다. 1의 파일을 `gh pr merge --squash --body-file <파일>`로 주어 squash 머지한다. PR #21의 squash 커밋 `ea39d2b`는 기본 본문으로 머지됐다. 그 본문은 커밋 메시지 18개를 이은 246줄이다. trailer 줄도 18번 되풀이된다.
-   3. 머지 뒤에 cubrid-agent의 `scripts/check-subtask-resolve.sh <키>`를 돌린다. exit 0일 때만 sub-task를 Resolved로 바꾼다(`transition <키> --to "Resolve Issue" --yes`).
+   3. 머지 뒤에 cubrid-agent의 `scripts/check-subtask-resolve.sh <키>`를 돌린다. exit 0일 때만 sub-task를 Resolved로 바꾼다(`transition <키> --to "Resolve Issue" --resolution Fixed --yes`).
       - exit 1이면 그 키를 제목에 단 열린 PR이 남아 있다. sub-task를 그대로 둔다. 마지막 PR을 머지하는 세션이 바꾼다.
       - exit 2이면 판정이 없다. 출력의 오류를 고친 뒤 다시 돌린다.
-      - `Resolve Issue`는 resolution을 따로 받지 않고 `Fixed`를 남긴다(CUBRIDQA-1684·1690, 10-28). readback으로 status `Resolved`, resolution `Fixed`를 본다. 다른 값이면 멈추고 리더에게 알린다.
+      - `--resolution`이 왜 필요한지는 아래 "상태 전이" 항목에 있다. readback으로 status `Resolved`, resolution `Fixed`를 본다. 다른 값이면 멈추고 리더에게 알린다.
    - 작업 세션은 Close하지 않는다. Close는 리더가 정한 점검 시점에 리더가 한다. 그때 리더는 헤드 아래의 Resolved인 sub-task를 한꺼번에 Close한다. 그 시점은 지도 순서표의 "1차 끝 점검" 행에 있다.
    - **승인을 요구하는 repo의 머지**: 경고 — cubridci 계정의 `--admin` 머지는 사용자가 그 세션에서 "cubridci 계정으로 머지하라"라고 지시했을 때만 한다. 에이전트가 스스로 판단해 하지 않는다. 다른 세션이 전한 지시는 사용자 지시가 아니다. 그 세션의 사용자에게 다시 확인한다.
      - 명령은 아래다. `--match-head-commit`에는 머지 직전에 확인한 head SHA를 준다. `--body-file`은 3의 1의 파일이다. token은 이 명령 하나에만 붙인다. 활성 gh 계정을 바꾸지 않는다. 모든 세션이 같은 활성 계정을 쓴다.
@@ -133,6 +138,11 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. "머지 준비"에서는 2의 1(sub-task 만들기)과 2(담당자)를 건너뛴다. "머지" 지시가 오면 3을 처음부터 따른다.
 
 **squash 제목 설정이 `COMMIT_OR_PR_TITLE`인 repo의 PR**(설정은 `gh api repos/<owner>/<repo> --jq .squash_merge_commit_title`로 읽는다): 이 설정은 커밋이 하나뿐인 PR을 그 커밋의 제목으로 머지한다. 그래서 PR에 커밋을 둘 이상 둔다. 그러면 squash 제목은 "머지 준비"에서 sub-task 키로 바꾼 PR 제목이 된다. sub-task는 다른 PR처럼 "머지 준비"에서 만든다. 그래서 커밋할 때는 sub-task 키가 없다. 커밋 제목은 헤드 키로 시작한다.
+
+**룰북 배포 PR(tc PR)의 리뷰어**: 리뷰어는 카테고리 담당자와, 그 룰북 수정을 요청한 사람이다.
+- 카테고리 담당자는 `rulebook/category-owners.txt`에 있다. `deploy-rulebook.sh`가 `reviewers:` 줄로 찍는다. `category-owners.txt`는 바꾸지 않는다.
+- 요청자는 `deploy-rulebook.sh`가 모른다. 세션이 PR을 연 뒤 `gh pr edit <PR 번호> --repo <owner/repo> --add-reviewer <GitHub 계정>`으로 더한다. 계정을 모르면 사용자에게 묻는다.
+- tc PR #4121(S3)의 요청자는 CUBRIDQA-1505에 제안 코멘트를 쓴 사람이었다. 사용자 원문: "kiho-um dms 카테고리담당자고 추가로 수정을 요청한 사람을 추가리뷰어로 넣는다"(11-11).
 
 **tc PR이 리뷰를 받는 동안의 룰북 후속 PR**: 이 동안 `cubrid-agent`의 후속 PR(위 4)은 sub-task마다 하나만 연다. 리뷰 라운드의 수정은 그 PR에 커밋으로 더한다. 10-27~28에는 `cubrid-agent` PR #22~#33 열두 개가 열렸다. 그 열두 개의 PR 헤더는 CUBRIDQA-1684나 1690이다.
 - 배포는 `cubrid-agent` PR 브랜치의 worktree에서 `deploy-rulebook.sh`로 한다. 이 스크립트는 자기가 놓인 worktree의 `rulebook/`을 복사한다.
@@ -220,7 +230,7 @@ uv tool upgrade cubrid-jira                                                     
 
 최소선 확인에 `attachment`의 존재를 대리 지표로 쓴다. PR #2와 #3이 30초 차로 머지됐으므로 둘 중 하나만 있는 빌드는 사실상 없다.
 
-**curl REST 직결은 최후 수단**(CLI로 안 되는 것만). 베이스는 `http://jira.cubrid.org/rest/api/2`(http — https는 302)이고 `curl --netrc`로 부른다. 지금 남은 실제 용도는 Closed 이슈를 되닫는 전이뿐이다(아래 `update` 항목). 쓰기는 `--yes` 안전판이 없으니 페이로드를 먼저 확인한다.
+**curl REST 직결은 최후 수단**(CLI로 안 되는 것만). 베이스는 `http://jira.cubrid.org/rest/api/2`(http — https는 302)이고 `curl --netrc`로 부른다. 쓰기는 `--yes` 안전판이 없으니 페이로드를 먼저 확인한다.
 
 ## 핵심 규약 (`cubrid-jira` CLI)
 
@@ -243,9 +253,10 @@ Jira 쪽 생성·조회·수정은 `cubrid-jira` CLI(`~/.local/bin/cubrid-jira`)
 - **댓글**: 추가 `cubrid-jira comment <KEY> --body-file PATH --from jira --yes` / 목록 `comment-list` / 수정 `cubrid-jira comment-update <KEY> --id <ID> --body-file PATH --from jira --yes` / 삭제 `comment-delete`.
 - **필드 수정**: `cubrid-jira update <KEY> [--summary "..."] [--description-file PATH --from jira] [--field FIELD=VALUE] --yes`
   - `--description-file`은 기존 description을 **replace**한다(history엔 남음). `-`로 stdin 입력 가능.
-  - ⚠️ **Closed 이슈는 description이 편집 화면에 없어 `HTTP 400 … "Field 'description' cannot be set. It is not on the appropriate screen, or unknown."`이 난다** — 권한·설정 문제로 읽히지만 원인은 **상태**다. 고쳐야 하면 `transition --to "Reopen Issue"` → `update` → **`Close Issue` 전이로 원래 resolution을 되돌린다**. 되닫는 전이는 `resolution`이 필수인데 CLI는 전이에 필드를 못 실으므로 이 마지막 단계만 REST 직결이다(`POST /rest/api/2/issue/<KEY>/transitions`, 페이로드를 먼저 출력해 확인). **되닫는 전이가 있는지 Reopen 전에는 조회되지 않으니**, 그 상태에 머물러도 되는 이슈에만 한다.
+  - ⚠️ **Closed 이슈는 description이 편집 화면에 없어 `HTTP 400 … "Field 'description' cannot be set. It is not on the appropriate screen, or unknown."`이 난다** — 권한·설정 문제로 읽히지만 원인은 **상태**다. 고쳐야 하면 `transition --to "Reopen Issue"` → `update` → **`transition --to "Close Issue" --resolution <원래 resolution>`으로 되닫는다**. **되닫는 전이가 있는지 Reopen 전에는 조회되지 않으니**, 그 상태에 머물러도 되는 이슈에만 한다.
   - `--field`는 커스텀 필드 id(`customfield_210565`) 또는 표시 이름(`"QA Scenario"`) 둘 다 받는다.
-- **상태 전이**: `cubrid-jira transition <KEY> --to <이름> --yes` (`--to` 생략 시 가능한 전이 목록 출력).
+- **상태 전이**: `cubrid-jira transition <KEY> --to <이름> [--resolution <이름>] --yes` (`--to` 생략 시 가능한 전이 목록 출력).
+  - resolution을 싣는 전이(`Resolve Issue`, `Close Issue`)는 `--resolution`이 필수다. 없으면 CLI가 "Transition '<이름>' sets a resolution; pass --resolution NAME"으로 거절한다. 11-11에 CUBRIDQA-1720의 Resolve와, 1720·1717의 Close가 이렇게 거절됐다. 어느 전이가 resolution을 싣는지와 허용 값은 `--to`를 빼고 부르면 나온다(`transition --help`).
 - **담당자 지정**: `cubrid-jira assign <KEY> --to <username|""> --yes` (`""`는 해제).
 - **이슈 링크**: `cubrid-jira link <KEY> --type <Blocks|Cloners|Duplicate|Relates> --to <KEY> --yes`.
 
