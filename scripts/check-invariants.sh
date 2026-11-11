@@ -159,6 +159,7 @@ grep -q '^- \*\*사용자가 고른 문구\*\*: 사용자가 고른 문구를 �
 grep -q '^- \*\*초안의 자리\*\*:.*`\.scratch/<디렉토리>/notes/`에 쓴다\. 세션 scratchpad(`/tmp/…`)에 쓰지 않는다\.' docs/agents/issue-tracker.md || _t="$_t drafts-in-scratch-notes"
 grep -qF '세션 기록(`~/.claude/projects/<프로젝트>/<세션 id>.jsonl`)의 `timestamp`를 쓴다' docs/agents/issue-tracker.md || _t="$_t user-answer-time-from-session-log"
 grep -qxF '      bash scripts/session-answer.sh <세션 이름> "<답의 일부>"' docs/agents/issue-tracker.md || _t="$_t user-answer-time-by-script"
+grep -qF 'resolve-ticket.sh <티켓 파일> <세션 이름>' docs/agents/issue-tracker.md || _t="$_t resolve-by-script"
 printf '%s\n' "$_flow" | grep -qF '`@<리뷰어> <N>절, <행>: <무엇을 고쳤다> (<커밋 SHA>)`' || _t="$_t tc-review-reply-format"
 printf '%s\n' "$_flow" | grep -qF 'readback은 `pulls/<PR 번호>/comments`로 한다' || _t="$_t tc-review-reply-readback"
 # The warning has to come before the command: a reader who copies the command first never reaches it.
@@ -852,6 +853,10 @@ else fail "pr-state test failed — run scripts/test-pr-state.sh:"; printf '    
 # logged at 10:02:32Z on 11-03, the old jq line gave a tool result logged at 09:56:53Z.
 if _t=$(bash scripts/test-session-answer.sh 2>&1); then pass "session answer search reads only what the user typed or answered: $_t"
 else fail "session-answer test failed — run scripts/test-session-answer.sh:"; printf '         %s\n' "$_t"; fi
+
+# A ticket closed with a box unticked or no review in its last Answer reads done to the leader (S3 04).
+if _t=$(bash scripts/test-resolve-ticket.sh 2>&1); then pass "ticket resolve refuses an open box or an unreviewed Answer: $_t"
+else fail "resolve-ticket test failed — run scripts/test-resolve-ticket.sh:"; printf '         %s\n' "$_t"; fi
 
 if _t=$(bash scripts/test-verify-run.sh 2>&1); then pass "verify-run writes where it is told: $_t"
 else fail "verify-run test failed — run scripts/test-verify-run.sh:"; printf '         %s\n' "$_t"; fi

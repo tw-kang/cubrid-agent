@@ -53,7 +53,7 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 - **Resolve**:
   1. 티켓 끝에 `## Answer`를 적는다. 재오픈된 티켓은 `## Answer (재오픈분 — <YYYY-MM-DD>, <세션 이름>)` 절에 따로 적는다. 기존 `## Answer`와 1차분의 체크박스는 고치지 않는다. 재오픈 절의 체크박스만 `- [x]`로 바꾼다.
      - Answer의 초안과, PR이 있으면 PR 본문의 초안을 쓴다. 초안을 쓴 뒤에 `/code-review`를 돌린다. Spec 축과 Standards 축에 그 초안들을 함께 넘긴다. Standards 축은 [`CODING_STANDARDS.md` DP11](../../CODING_STANDARDS.md#dp11--동작-문장은-테스트-케이스가-고정한다)로 초안의 동작 문장을 본다. `v2-shell-rulebook` 01 재오픈분에서는 `/code-review`가 Answer보다 먼저 돌았다. 그 Answer의 문장과 결과는 DP11의 "값"에 있다.
-  2. `Status: resolved`로 바꾼다.
+  2. cubrid-agent의 `bash scripts/resolve-ticket.sh <티켓 파일> <세션 이름>`으로 `Status:` 값을 `resolved (<세션 이름>, <YYYY-MM-DD HH:MM>)`로 바꾼다. 실례: `.scratch/v2-skill-refresh/issues/02-scout-create-author.md`:7. 스크립트는 셋 중 하나면 거절한다(exit 1): 마지막 회차(마지막 재오픈 절부터 끝까지, 재오픈이 없으면 파일 전체)에 줄 처음의 `- [ ]`가 남았다. 마지막 `## Answer` 절의 제목 아닌 줄에 `/code-review`가 없다. 마지막 재오픈 절 뒤에 Answer가 없다. S3 04는 `/code-review` 전에 resolved가 됐다.
   3. 리더에게 SendMessage로 알린다. 보고에는 아래 세 항목이 반드시 있다. 길이 제한은 없다.
      - **실물**: 그 일에 해당하는 머지 SHA, PR 번호나 링크, 결과 파일 경로
      - **닫은 티켓**: 티켓 경로
