@@ -162,6 +162,13 @@ grep -qxF '      bash scripts/session-answer.sh <세션 이름> "<답의 일부>
 grep -qF 'resolve-ticket.sh <티켓 파일> <세션 이름>' docs/agents/issue-tracker.md || _t="$_t resolve-by-script"
 # The CLI refuses a transition that carries a resolution unless --resolution names it (11-11).
 grep -qF 'transition <KEY> --to <이름> [--resolution <이름>] --yes' docs/agents/issue-tracker.md || _t="$_t transition-takes-resolution"
+# The user chose these two sentences word for word (leader session, 11-10); a rewrite needs their answer.
+grep -q '^- \*\*승인 질문의 줄임말\*\*: 승인 질문에는 사용자가 쓰지 않는 줄임말(N1, wr:70)을 쓰지 않는다\. 항목은 하나씩 묻는다\.' docs/agents/issue-tracker.md || _t="$_t no-abbreviation-in-approval-questions"
+grep -q '^- \*\*질문에 적는 개수\*\*: 사용자에게 묻는 질문의 개수는 그 자리에서 센 결과로 쓴다\.' docs/agents/issue-tracker.md || _t="$_t counts-in-questions-counted-on-the-spot"
+grep -qF '승인받을 목록이 길면 쉬운 말로 쓴 표를 채팅에 먼저 보이고 묻는다' docs/agents/issue-tracker.md || _t="$_t long-list-table-first"
+grep -qF '`.scratch/v2-<묶음>/tools/<번호>-evidence.sh`)를 먼저 만든다' docs/agents/issue-tracker.md || _t="$_t evidence-script-before-answer"
+grep -qF 'git merge-base --is-ancestor origin/<통합 브랜치> HEAD`가 성공해야 보고한다' docs/agents/issue-tracker.md || _t="$_t subagent-reports-on-the-latest-integration-branch"
+printf '%s\n' "$_flow" | grep -qF -- '--add-reviewer <GitHub 계정>' || _t="$_t rulebook-pr-requester-reviews"
 printf '%s\n' "$_flow" | grep -qF '`@<리뷰어> <N>절, <행>: <무엇을 고쳤다> (<커밋 SHA>)`' || _t="$_t tc-review-reply-format"
 printf '%s\n' "$_flow" | grep -qF 'readback은 `pulls/<PR 번호>/comments`로 한다' || _t="$_t tc-review-reply-readback"
 # The warning has to come before the command: a reader who copies the command first never reaches it.

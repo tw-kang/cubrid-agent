@@ -74,9 +74,14 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
   - 병렬 서브에이전트에게는 각자 다른 중간 파일 디렉토리를 준다. 같은 scratchpad 루트를 주면 서로 덮는다(03 재오픈분, 에이전트 6개).
   - 서브에이전트가 SendMessage로 부르는 `team-lead`는 그 서브에이전트를 띄운 작업 세션이다. 리더가 아니다. 리더에게 보고하는 쪽은 작업 세션뿐이다. 10의 작업 세션은 `team-lead`를 리더로 읽었다. 그래서 리더에게 보낸 보고 두 건에 "서브에이전트가 리더에게 보고했다"고 잘못 적었다.
   - 지시문에 ID(규칙 ID, 표의 행 ID)를 넘길 때는 그 ID를 정의한 파일과 행을 함께 넘긴다. `v2-sql-medium-rulebook` 06의 작업 세션은 구현 서브에이전트에 "U-1720-2 = gha-ci가 그 브랜치에서 돌림"이라고 보냈다. 02 표의 정의는 `commit-to-tc-pr-branch`였다.
+  - 구현을 맡길 때는 지시문에 넣는다 — 보고 직전에 `git fetch origin` 뒤 `git merge-base --is-ancestor origin/<통합 브랜치> HEAD`가 성공해야 보고한다. 실패하면 `git merge origin/<통합 브랜치>`를 하고 검사를 다시 돌린다. S3 02·03에서 서브에이전트가 낡은 통합 브랜치 끝을 merge했다. 그래서 다시 merge하는 왕복이 두 번 생겼다(`v2-skill-refresh`의 `/retro` 7).
 - **새로 드러난 결정**: 작업 세션은 티켓 파일을 만들지 않는다. 새 결정이나 조사가 필요하면 리더에게 SendMessage로 제안한다. 같은 내용을 맡은 티켓의 `## Comments`에도 적는다. 새 티켓을 만들지 기존 티켓을 재오픈할지는 리더가 판단한다.
 - **사용자가 고른 문구**: 사용자가 고른 문구를 다른 문구로 바꾸려면, 바꾼 문구를 보이고 다시 묻는다. `00e4318`의 `writing-rules.md`:13은 사용자가 고른 미리보기와 다르다(10-30 리더 확인).
+- **승인 질문의 줄임말**: 승인 질문에는 사용자가 쓰지 않는 줄임말(N1, wr:70)을 쓰지 않는다. 항목은 하나씩 묻는다. `v2-skill-refresh`의 첫 승인 질문은 분류 넷, 규칙 ID(N1~N4), 줄 표기(wr:70, tp:31)를 한 질문에 몰았다. 사용자 답은 "무슨말이냐 도대체"였다(11-10).
+  - 승인받을 목록이 길면 쉬운 말로 쓴 표를 채팅에 먼저 보이고 묻는다. 표는 맥락이고, 질문을 대신하지 않는다.
+- **질문에 적는 개수**: 사용자에게 묻는 질문의 개수는 그 자리에서 센 결과로 쓴다. `v2-skill-refresh`가 다시 물은 질문은 "지울 53개 중 41개"라고 적었다. 실제는 52개 중 33개였다(11-10).
 - **스펙을 맡은 작업 세션**: `/implement-spec`으로 `.scratch/v2-<묶음>/spec.md`를 처리할 때도 위 Claim·Resolve·알림 규칙을 스펙 단위로 따른다. 보고는 Resolve 3의 세 항목으로 한다. 티켓이 리더에게 값을 넘기라고 하면 그때도 알린다.
+  - 스펙 티켓의 `## Answer`를 쓰기 전에, 위 "위치 주장"이 요구하는 출력을 찍는 스크립트(`.scratch/v2-<묶음>/tools/<번호>-evidence.sh`)를 먼저 만든다. Answer는 그 출력의 절 이름(예: `[L1]`)으로 근거를 댄다. S3 티켓 01·02·03·04와 02 재오픈의 리뷰가 모두 "위치·개수·부재 주장에 명령 출력이 없다"고 짚었다.
   - 스펙 티켓의 `## Answer`가 기대는 검사 스크립트는 `.scratch/v2-<묶음>/tools/`에 둔다. Answer에는 그 경로와 실행 명령을 적는다. 세션 scratchpad(`/tmp/…`)의 경로는 Answer에 적지 않는다. `/tmp`의 scratchpad가 지워지면 Answer의 재현 명령도 사라진다. `v2-sql-medium-rulebook`에서는 리더가 scratchpad에 남은 옛 판 `both.sh`를 돌려 거짓 MISSING을 보았다. 옮긴 뒤의 보기는 `.scratch/v2-sql-medium-rulebook/tools/`다.
 - **초안의 자리**: 사용자가 읽거나 고칠 초안(PR 본문, Jira 글, 리뷰 답장, 공지, squash 본문)은 `.scratch/<디렉토리>/notes/`에 쓴다. 세션 scratchpad(`/tmp/…`)에 쓰지 않는다. `<디렉토리>`는 맡은 티켓이 든 `issues/`의 부모다(예: `v2-structure`). 사용자 원문: "초안파일을 /tmp 에 두면 내가 편집기로 못읽는다. 이 프로젝트 내에 파일을 써라."(11-02)
 - **`/retro` 제안**: 맡은 티켓의 `## Comments`에 적는다. 티켓으로 만들지는 리더가 판단한다. retro를 요청하는 조건은 [`AGENTS.md`](../../AGENTS.md)의 `/retro` 줄에 있다.
@@ -133,6 +138,11 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 4. **추이를 보고 고칠 것이 생기면**: 같은 sub-task를 Reopen한다(`transition <키> --to "Reopen Issue" --yes`). 새 sub-task는 만들지 않는다. 후속 PR은 처음부터 그 sub-task 키를 PR 헤더로 연다. "머지 준비"에서는 2의 1(sub-task 만들기)과 2(담당자)를 건너뛴다. "머지" 지시가 오면 3을 처음부터 따른다.
 
 **squash 제목 설정이 `COMMIT_OR_PR_TITLE`인 repo의 PR**(설정은 `gh api repos/<owner>/<repo> --jq .squash_merge_commit_title`로 읽는다): 이 설정은 커밋이 하나뿐인 PR을 그 커밋의 제목으로 머지한다. 그래서 PR에 커밋을 둘 이상 둔다. 그러면 squash 제목은 "머지 준비"에서 sub-task 키로 바꾼 PR 제목이 된다. sub-task는 다른 PR처럼 "머지 준비"에서 만든다. 그래서 커밋할 때는 sub-task 키가 없다. 커밋 제목은 헤드 키로 시작한다.
+
+**룰북 배포 PR(tc PR)의 리뷰어**: 리뷰어는 카테고리 담당자와, 그 룰북 수정을 요청한 사람이다.
+- 카테고리 담당자는 `rulebook/category-owners.txt`에 있다. `deploy-rulebook.sh`가 `reviewers:` 줄로 찍는다. `category-owners.txt`는 바꾸지 않는다.
+- 요청자는 `deploy-rulebook.sh`가 모른다. 세션이 PR을 연 뒤 `gh pr edit <PR 번호> --repo <owner/repo> --add-reviewer <GitHub 계정>`으로 더한다. 계정을 모르면 사용자에게 묻는다.
+- tc PR #4121(S3)의 요청자는 CUBRIDQA-1505에 제안 코멘트를 쓴 사람이었다. 사용자 원문: "kiho-um dms 카테고리담당자고 추가로 수정을 요청한 사람을 추가리뷰어로 넣는다"(11-11).
 
 **tc PR이 리뷰를 받는 동안의 룰북 후속 PR**: 이 동안 `cubrid-agent`의 후속 PR(위 4)은 sub-task마다 하나만 연다. 리뷰 라운드의 수정은 그 PR에 커밋으로 더한다. 10-27~28에는 `cubrid-agent` PR #22~#33 열두 개가 열렸다. 그 열두 개의 PR 헤더는 CUBRIDQA-1684나 1690이다.
 - 배포는 `cubrid-agent` PR 브랜치의 worktree에서 `deploy-rulebook.sh`로 한다. 이 스크립트는 자기가 놓인 worktree의 `rulebook/`을 복사한다.
