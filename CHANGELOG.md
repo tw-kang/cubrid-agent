@@ -16,6 +16,13 @@ All notable changes to cubrid-agent are documented here. The format follows
   backport keeps its `origin/develop` path and to fetch `origin develop` if the develop TC is
   merged.
 
+- (patch) **`scout.sh` names the path a backport keeps.** For a Correct Error issue whose TC is
+  already on `origin/develop` of `$TC`, the scout prints that path with "a backport keeps this
+  path" under the half-year directory it names for a new case. It reads the local ref, so a clone
+  on a release branch gets the line too, and the scout still makes no network call. **After you
+  update the plugin, run `/setup-cubrid-agent` again**: the skills call the copy in
+  `~/.cubrid-agent/bin/`, and only setup replaces it.
+
 ## [1.2.0] - 2026-11-11
 
 - (minor) **`scout.sh` stops when the testcase clone's `origin/develop` lacks the deployed rulebook.**
