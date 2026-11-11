@@ -4,6 +4,7 @@
 # Dev-only: not a hook, never invoked by a skill. Run by hand or from CI.
 # Deterministic and offline (git, jq, grep, sed only). `claude plugin validate` runs when present.
 set -u
+export LC_ALL=C
 
 cd "$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "not a git repo" >&2; exit 1; }
 
@@ -331,9 +332,11 @@ done
 
 # A skill documenting an artifact header must also say what the header is NOT for. create-cci /
 # create-jdbc / create-unittest are absent on purpose — their header is an include, not a comment.
+# create-sql is absent because it documents no header any more: the tc repo's rulebook holds the
+# header rules, and the rulebook-read check below holds create-sql to reading them.
 _bad=0
-for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell create-isolation; do
-  # The rule follows the skill, not the tree: create-sql ships, the other five are in-progress.
+for f in create-cdc-repl create-ha-repl create-shell create-ha-shell create-isolation; do
+  # The rule follows the skill, not the tree: the five are in-progress today and may ship later.
   _p=$(ls -d skills/*/"$f"/SKILL.md 2>/dev/null | head -1)
   [ -n "$_p" ] || { fail "$f is named by this check but exists in neither skills tree"; _bad=$((_bad+1)); continue; }
   grep -q 'describes the test, not the run' "$_p" \
@@ -342,6 +345,97 @@ for f in create-sql create-cdc-repl create-ha-repl create-shell create-ha-shell 
     || { fail "$_p documents a header but not the 20-line scannability bound"; _bad=$((_bad+1)); }
 done
 [ "$_bad" -eq 0 ] && pass "every header-documenting create-* skill bounds both header scope and size"
+
+# create-sql, author-testcase and review-testcase hold no TC rules: they read the tc repo's deployed
+# rulebook from origin/develop. A skill that drops the read writes or judges TCs by what the model
+# remembers, and a file it stops naming is a rule it stops reading — so the file list comes from the
+# canonical copy, and each skill is checked on its own.
+_rb_files=$(git ls-files 'rulebook/cubrid-testcases/*' | sed 's|^rulebook/cubrid-testcases/||')
+if [ -z "$_rb_files" ]; then
+  fail "rulebook/cubrid-testcases/ holds no tracked file, so the rulebook-read check below has nothing to check"
+fi
+for _s in create-sql author-testcase review-testcase; do
+  _f=skills/qa/$_s/SKILL.md; _miss=""
+  for _r in $_rb_files; do
+    grep -qF "git -C \"\$TC\" show origin/develop:$_r" "$_f" || _miss="$_miss $_r"
+  done
+  # The whole stop sentence, not the fetch command alone: author-testcase also quotes that command
+  # where it describes the scout, which would keep the check green after the stop itself is gone.
+  grep -qF '**If any of them fails, stop** and tell the user to run `git -C "$TC" fetch origin`' "$_f" \
+    || _miss="$_miss the-stop-and-fetch"
+  # The scout's exit 1 is the same gap, and the agent must not fetch on its own: one sentence in all three.
+  grep -qF 'tell the user to run the `git -C "$TC" fetch origin` it prints; do not fetch yourself' "$_f" \
+    || _miss="$_miss the-scout-exit-1"
+  if [ -z "$_miss" ]; then
+    pass "$_s reads the $(printf '%s\n' $_rb_files | wc -l | tr -d ' ') deployed rulebook files from origin/develop and stops when one is missing"
+  else
+    fail "$_s lost its rulebook read:$_miss — it would write or judge a TC by rules it no longer reads"
+  fi
+done
+# The installed scout cannot read this repo, so it carries its own copy of the same file list.
+_sc_rb=$(sed -n "s/^RULEBOOK='\(.*\)'\$/\1/p" skills/qa/setup-cubrid-agent/bin/scout.sh | tr ' ' '\n' | grep . | sort)
+_rb_sorted=$(printf '%s\n' $_rb_files | sort)
+if [ -n "$_sc_rb" ] && [ "$_sc_rb" = "$_rb_sorted" ]; then
+  pass "scout.sh checks exactly the $(printf '%s\n' "$_sc_rb" | wc -l | tr -d ' ') files of rulebook/cubrid-testcases/ on origin/develop"
+else
+  fail "scout.sh's RULEBOOK list drifted from rulebook/cubrid-testcases/ — only in scout:$(comm -23 <(printf '%s\n' "$_sc_rb") <(printf '%s\n' "$_rb_sorted") | tr '\n' ' ') only in the rulebook:$(comm -13 <(printf '%s\n' "$_sc_rb") <(printf '%s\n' "$_rb_sorted") | tr '\n' ' ')"
+fi
+# The L1 atom reads the L1 section alone: the body names the rulebook path in other sections too.
+_rt=skills/qa/review-testcase/SKILL.md; _miss=""
+grep -qF 'never from the PR worktree' "$_rt" || _miss="$_miss not-the-pr-worktree"
+sed -n '/^## 3\. L1/,/^## 4\./p' "$_rt" | grep -qF '`sql/rules/writing-rules.md` "New TC"' \
+  || _miss="$_miss l1-names-the-rulebook"
+grep -qF '**Scout first — `~/.cubrid-agent/bin/scout.sh`' "$_rt" || _miss="$_miss scout-at-start"
+grep -qF 'Skip L3 only when a `MISSING:` line names the CUBRID build or CTP' "$_rt" || _miss="$_miss l3-only-for-build-or-ctp"
+if [ -z "$_miss" ]; then
+  pass "review-testcase judges by origin/develop, not the PR worktree; its L1 names the rulebook; the scout gates only L3"
+else
+  fail "review-testcase lost:$_miss — a PR could pass by its own rulebook edit, L1 would have no rules, or a missing JIRA user would skip L3"
+fi
+# The three TC skills, and the scout that hands them a path, name a rule by its rulebook file and
+# heading. A heading the rulebook renames, or never had, leaves that pointer leading nowhere. Only the
+# quotes chained right after a backticked path are read: other quotes in the same sentence are not
+# section names. scout.sh writes the path bare and the quotes escaped, so it is put in that form first.
+_badsec=""; _nsec=0
+for _f in $(git ls-files 'skills/qa/create-sql/SKILL.md' 'skills/qa/author-testcase/SKILL.md' 'skills/qa/review-testcase/SKILL.md' \
+              'skills/qa/create-sql/references/*.md' 'skills/qa/author-testcase/references/*.md' 'skills/qa/review-testcase/references/*.md' \
+              skills/qa/setup-cubrid-agent/bin/scout.sh); do
+  while IFS= read -r _m; do
+    [ -n "$_m" ] || continue
+    _p=${_m#@@}; _p=${_p%%@@*}
+    while IFS= read -r _sec; do
+      [ -n "$_sec" ] || continue
+      _nsec=$((_nsec+1))
+      sed -n -E 's/^#{1,6} //p' "rulebook/cubrid-testcases/$_p" 2>/dev/null | grep -qxF "$_sec" \
+        || _badsec="$_badsec ${_f#skills/qa/}:\"$_sec\"($_p)"
+    done <<SEC
+$(printf '%s\n' "$_m" | grep -oE '"[^"]+"' | tr -d '"')
+SEC
+  done <<CITE
+$(case $_f in
+    *.sh) sed -E 's/\\"/"/g; s/(^|[ (])((sql|medium)\/(AGENTS\.md|rules\/(writing-rules|test-perspectives)\.md)) "/\1`\2` "/g' "$_f" ;;
+    *)    cat "$_f" ;;
+  esac | sed -E 's/`((sql|medium)\/(AGENTS\.md|rules\/(writing-rules|test-perspectives)\.md))`/\n@@\1@@/g' \
+    | grep -oE '^@@[^@]+@@ *"[^"]+"(( *\([^)]*\))?(, and also |, and |, | and )"[^"]+")*')
+CITE
+done
+if [ "$_nsec" -eq 0 ]; then
+  fail "found no rulebook section cited by name in the three TC skills and scout.sh — either the citations are gone or this check no longer matches their shape"
+elif [ -z "$_badsec" ]; then
+  pass "the $_nsec rulebook sections that create-sql, author-testcase, review-testcase and scout.sh cite by name are headings of the cited file"
+else
+  fail "cited rulebook section(s) that are not a heading of the cited file in rulebook/cubrid-testcases/:$_badsec"
+fi
+# lint-sql-tc.sh's wrong-tree message sends the author to "create-sql's directory convention", so the
+# heading stays in create-sql as a pointer to the rulebook section that holds the convention.
+if grep -q "create-sql's directory convention" scripts/lint-sql-tc.sh; then
+  if sed -n '/^## Directory convention/,/^## [^D]/p' skills/qa/create-sql/SKILL.md \
+       | grep -qF 'sql/rules/writing-rules.md` "Place and files"'; then
+    pass "create-sql's Directory convention, which the lint hook's message cites, points at the rulebook's \"Place and files\""
+  else
+    fail "create-sql has no Directory convention section pointing at sql/rules/writing-rules.md \"Place and files\", yet lint-sql-tc.sh sends the author there"
+  fi
+fi
 
 # Satisfied by delegating to ground-issue.sh, or by the hand-run rule until a skill is migrated.
 _bad=0
@@ -549,15 +643,17 @@ else
   fail "these files reference agent memory or a cached verdict — the knowledge belongs in the skill body, references/, env.sh or the manifest (DP5, CUBRIDQA-1488): $(printf '%s' "$_mem" | tr '\n' ' ')"
 fi
 
-# The TC's directory is create-sql's call: author-testcase must defer instead of pinning a path, and
-# must record the two issue facts the placement check needs. Checking the fix is PRESENT (not that
-# the old string is absent) is what catches a rewrite that drops it.
+# The TC's directory is the rulebook's call (sql/rules/writing-rules.md "Place and files"):
+# author-testcase must defer to it instead of pinning a path, and must record the issue fact the
+# placement check needs. Checking the fix is PRESENT (not that the old string is absent) is what
+# catches a rewrite that drops it.
 _at=skills/qa/author-testcase/SKILL.md
 _miss=""
-grep -q "directory convention" "$_at" || _miss="$_miss deferral-to-create-sql"
+grep -qF 'The TC path comes from the rulebook'"'"'s `sql/rules/writing-rules.md` "Place and files"' "$_at" \
+                                     || _miss="$_miss deferral-to-the-rulebook"
 grep -q "select.issue_type" "$_at"   || _miss="$_miss select.issue_type-recording"
 if [ -z "$_miss" ]; then
-  pass "author-testcase defers the TC path to create-sql and records the placement facts"
+  pass "author-testcase defers the TC path to the rulebook's \"Place and files\" and records the placement facts"
 else
   fail "author-testcase lost:$_miss — without both, the TC path is decided by whoever guesses first and the placement check cannot run"
 fi

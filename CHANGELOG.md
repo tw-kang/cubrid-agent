@@ -7,6 +7,56 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+- (minor) **`scout.sh` stops when the testcase clone's `origin/develop` lacks the deployed rulebook.**
+  The scout now checks that `origin/develop` of `$TC` holds the seven rulebook files of
+  `cubrid-testcases` — the root `AGENTS.md`, and `AGENTS.md`, `rules/writing-rules.md` and
+  `rules/test-perspectives.md` under both `sql/` and `medium/`. When one is absent, as in a clone
+  last fetched before the rulebook was deployed, it prints one line that names the file and
+  `git -C <clone> fetch origin`, and exits 1 instead of going on. It reads the local ref, so it
+  still makes no network call, and the branch the clone has checked out does not matter. Its
+  answer now names `sql/rules/writing-rules.md` "Place and files" as where the TC path comes from.
+  **After you update the plugin, run `/setup-cubrid-agent` again**: the skills call the copy in
+  `~/.cubrid-agent/bin/`, and only setup replaces it.
+
+- (minor) **`create-sql` and `author-testcase` take the TC rules from the testcase repo's
+  rulebook.** Both read its seven files from `origin/develop` of `$TC`, whatever branch the clone
+  has checked out, and stop when a read fails; the rules they carried in their own text are gone.
+  A TC they write now follows that rulebook: its path comes from `sql/rules/writing-rules.md`
+  "Place and files", an error case is checked by its `Error:` code, `--+ server-message` wraps only
+  a `DBMS_OUTPUT` check, the plans of a whole file come from an empty `.queryPlan` file,
+  `Coverage:` has one line per case, and the commit message starts with `Add sql testcase for`.
+  When the scout stops because `origin/develop` lacks the rulebook, the skills tell you to run the
+  `git -C "$TC" fetch origin` it prints and do not fetch by themselves. `author-testcase`'s static
+  review checks the commit message by `sql/AGENTS.md` "The PR" too. `author-testcase` and
+  `debug-check.sh` no longer say that CI runs the release build: CI runs a debug build, and the
+  answer is still confirmed on the release build.
+
+- (patch) **The submit gate no longer blocks a TC whose header block runs past 20 lines.** The
+  testcase repo's rulebook gives each case its own `Coverage:` line and sets no length for the
+  header block, so a TC with many cases has a long one. The lint hook stops recording
+  `lint.header_size` and no longer reports "header is N lines (max 20)", and the submit gate no
+  longer reads that field. The hook no longer advises on the header block's length either, so it no
+  longer tells you to shorten the `Coverage:` list, and `author-testcase` no longer counts a
+  header-length miss among the lint violations to clear. A run directory from before this release
+  keeps working: a `header_size: false` in its manifest no longer blocks the pull request, and the
+  next `.sql` write removes the field.
+
+- (minor) **`review-testcase` judges a PR by the testcase repo's rulebook, read from
+  `origin/develop` of the clone, not by the copy in the PR.** The skill now reads the deployed
+  rulebook of `cubrid-testcases` with `git -C "$TC" show origin/develop:<path>` and stops when a
+  read fails. It never reads the rulebook files in the PR worktree, so a PR that edits a rule
+  cannot pass by its own edit. L1 points at `sql/rules/writing-rules.md` "New TC" (and "Changing
+  an existing TC" for a changed TC), `sql/rules/test-perspectives.md` "What sql TCs cannot check",
+  `sql/AGENTS.md` "The PR", and the `medium/` files for a TC that belongs there, instead of the
+  `create-sql` checklist; an expected result at the end of an `evaluate` label after `; result =`
+  is no longer a finding. The perspective catalog keeps the review questions that the rulebook
+  does not hold, names the rulebook section of each perspective, and leaves the list of L1's
+  sections to the skill. Few-shot entries that the rulebook contradicts now point at it: a
+  still-open bug follows `sql/rules/writing-rules.md` "Answer files" instead of a kept `-- BUG`
+  comment, and an error case is checked by its code, not its message. The review calls `scout.sh`
+  first: exit 1 stops it, and it tells you to run the fetch the scout prints; exit 3 lets it go
+  on, and only a missing CUBRID build or CTP makes it skip L3.
+
 ## [1.1.1] - 2026-11-03
 
 - (patch) **The shipped skills no longer point at decision records that are gone.**

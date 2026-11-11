@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "CBRD-27150 버그 픽스 sql tc 만들어줘. DATE_FORMAT 함수에서 '%f' 포맷 지정자가 마이크로초 대신 0을 반환하는 버그야. 정상 동작, 다른 포맷과 혼합, NULL 입력 케이스를 포함해줘.",
-      "expected_output": "Creates the file sql/_13_issues/_26_1h/cases/cbrd_27150.sql and the file answers/cbrd_27150.answer",
+      "expected_output": "Creates the file sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_27150.sql, in the directory of the half-year the run writes it in, and the file answers/cbrd_27150.answer beside cases/",
       "files": [],
       "assertions": [
         {"name": "has_header_comment", "description": "File contains a header block that starts with /**"},
@@ -19,15 +19,15 @@
     {
       "id": 2,
       "prompt": "CBRD-26900에 대한 sql tc를 만들어야 해. PL/CSQL에서 INTO 절 없이 SELECT 하면 에러가 나야 하는데 안 나는 버그야. 에러 발생 케이스 위주로 작성해줘.",
-      "expected_output": "sql/_13_issues/_26_1h/cases/cbrd_26900.sql + answers/cbrd_26900.answer, including --+ server-message on/off",
+      "expected_output": "sql/_13_issues/_{yy}_{1|2}h/cases/cbrd_26900.sql (the half-year the run writes it in) + answers/cbrd_26900.answer. The error cases are checked by their Error:-<code> lines, so --+ server-message is not turned on for them; it appears only right around a statement whose DBMS_OUTPUT a case checks",
       "files": [],
       "assertions": [
         {"name": "has_header_comment", "description": "File contains a header block that starts with /**"},
         {"name": "has_evaluate_labels", "description": "At least 2 evaluate labels are present"},
         {"name": "has_drop_if_exists", "description": "Uses DROP TABLE IF EXISTS"},
         {"name": "answer_file_created", "description": "The .answer file is present in outputs"},
-        {"name": "has_server_message_on", "description": "Contains --+ server-message on (validates the error case)"},
-        {"name": "has_server_message_off", "description": "A paired --+ server-message off is present"}
+        {"name": "errors_checked_by_code", "description": "No error case runs while --+ server-message is on; each error case is checked by its Error:-<code> line"},
+        {"name": "server_message_only_around_dbms_output", "description": "If --+ server-message on is present, it comes right before a statement whose DBMS_OUTPUT a case checks, and --+ server-message off comes right after that statement"}
       ]
     },
     {
