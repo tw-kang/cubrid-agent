@@ -362,7 +362,7 @@ expect_check "$R" 0 "ok +8" "check 8 reads a skip as the step its entries declar
 
 # ── run: the world it talks to ───────────────────────────────────────────────────────────────────
 # `origin` is a real local bare repo, so the push is real and observable. `gh` is a stub: it records
-# every call and answers the four questions release.sh asks it.
+# every call and answers the five questions release.sh asks it.
 STUB="$T/bin"; mkdir -p "$STUB"
 cat > "$STUB/gh" <<'STUBSCRIPT'
 #!/bin/bash
@@ -378,7 +378,10 @@ case "$1" in
              create) printf 'https://github.com/testowner/testrepo/pull/7\n' ;;
              merge)  [ -n "${GH_MERGE_FAILS:-}" ] && { echo "Pull request is not mergeable" >&2; exit 1; }; exit 0 ;;
            esac ;;
-  api)     printf '%s\n' "${GH_MAIN_SHA:-1111111111111111111111111111111111111111}" ;;
+  api)     case "$2" in
+             */commits/main) printf '%s\n' "${GH_MAIN_SHA:-1111111111111111111111111111111111111111}" ;;
+             *) printf '%s\n' "${GH_ALLOW_MERGE_COMMIT:-true}" ;;
+           esac ;;
   release) [ -n "${GH_RELEASE_FAILS:-}" ] && { echo "release failed" >&2; exit 1; }
            printf 'https://github.com/testowner/testrepo/releases/tag/%s\n' "$3" ;;
 esac
@@ -408,6 +411,7 @@ MD
   git init -q --bare "$d.origin" >/dev/null
   git -C "$d" remote add origin "$d.origin"
   git -C "$d" push -q -u origin develop 2>/dev/null
+  git -C "$d" push -q origin develop:main 2>/dev/null
 }
 
 run_release() {  # run_release <dir> [env assignments...] — sets $OUT and $RC in the caller
@@ -471,14 +475,23 @@ _order=$(grep -nE '^(pr create|pr merge|release create)' "$R.gh.log" | cut -d: -
   || note_fail "the release runs PR, merge, then publish, in that order: got $_order"
 
 # ── run: the states it must refuse, before it changes anything ───────────────────────────────────
-refuses() {  # refuses <dir> <pattern> <label>
-  local head_before; head_before=$(git -C "$1" rev-parse HEAD)
+refuses() {  # refuses <dir> <pattern> <label> [asks-gh] — asks-gh: gh may answer questions, never act
+  local head_before origin_before
+  head_before=$(git -C "$1" rev-parse HEAD)
+  origin_before=$(git -C "$1.origin" rev-parse develop 2>/dev/null)
   run_release "$1"; local out=$OUT
   if [ "$RC" -eq 0 ]; then note_fail "$3: it went ahead (exit 0)"; return; fi
   if ! printf '%s\n' "$out" | grep -qE "$2"; then
     note_fail "$3: refused but said \"$(flat "$out")\", expected /$2/"; return
   fi
-  [ -s "$1.gh.log" ] && { note_fail "$3: refused only after calling gh — $(flat "$(cat "$1.gh.log")")"; return; }
+  if [ "${4:-}" = asks-gh ]; then
+    grep -qE '^(pr|release) ' "$1.gh.log" \
+      && { note_fail "$3: refused only after acting through gh — $(flat "$(cat "$1.gh.log")")"; return; }
+  else
+    [ -s "$1.gh.log" ] && { note_fail "$3: refused only after calling gh — $(flat "$(cat "$1.gh.log")")"; return; }
+  fi
+  [ "$(git -C "$1.origin" rev-parse develop 2>/dev/null)" = "$origin_before" ] \
+    || { note_fail "$3: refused only after pushing develop"; return; }
   # A refusal that already rewrote or committed something is not a refusal. A half-written file is
   # worse than either: it is untracked, so it fails the clean-tree check on every later run.
   [ "$(git -C "$1" rev-parse HEAD)" = "$head_before" ] || { note_fail "$3: refused after committing"; return; }
@@ -537,7 +550,7 @@ git -C "$R" diff --quiet HEAD -- CHANGELOG.md .claude-plugin/plugin.json package
   || note_fail "a rejected commit is reverted: the bumped files are still rewritten"
 [ -z "$(git -C "$R" diff --cached --name-only)" ] && pass \
   || note_fail "a rejected commit leaves nothing staged: $(git -C "$R" diff --cached --name-only | tr '\n' ' ')"
-[ -s "$R.gh.log" ] && note_fail "a rejected commit must not reach gh" || pass
+grep -qE '^(pr|release) ' "$R.gh.log" && note_fail "a rejected commit must not act through gh" || pass
 
 # ── run: a publish that fails leaves main merged and the tag missing ──────────────────────────────
 # This is the worst state the script can reach, so it must name it rather than exit quietly.
@@ -553,6 +566,58 @@ grep -q '^release create v1\.1\.0 --target 2222222222222222222222222222222222222
 run_fixture
 git -C "$R" tag v1.1.0 && git -C "$R" push -q origin v1.1.0 && git -C "$R" tag -d v1.1.0 >/dev/null
 refuses "$R" "v1\.1\.0" "a tag that exists only on origin stops the release"
+
+# v1.1.1 (#39) reached main as a squash, so develop's bump commit was never main's ancestor and the
+# next bump conflicted with main in the version files. Pushed, that bump strands on develop.
+run_fixture
+set_version "$R" 1.1.0
+set_changelog "$R" <<'MD'
+## [Unreleased]
+
+## [1.1.0] - 2026-08-07
+
+### Changed
+
+- (minor) **A new skill.** It does a new thing.
+
+## [1.0.0] - 2026-08-06
+
+### Changed
+
+- **Repackaged as a plugin.** Text.
+MD
+git -C "$R" commit -qam "Release v1.1.0 (trigger 2)" >/dev/null
+_squash=$(git -C "$R" commit-tree "HEAD^{tree}" -p HEAD~1 -m "Release v1.1.0 (#1)")
+git -C "$R" tag v1.1.0 "$_squash"
+set_changelog "$R" <<'MD'
+## [Unreleased]
+
+- (patch) **A fix.** Text.
+
+## [1.1.0] - 2026-08-07
+
+### Changed
+
+- (minor) **A new skill.** It does a new thing.
+
+## [1.0.0] - 2026-08-06
+
+### Changed
+
+- **Repackaged as a plugin.** Text.
+MD
+git -C "$R" commit -qam "declare a fix" >/dev/null
+_stale=$(git -C "$R" rev-parse refs/remotes/origin/main)
+git -C "$R" push -q origin develop "$_squash:refs/heads/main" 2>/dev/null
+# GitHub squashed it, not this clone, so this clone's origin/main still shows the main before it.
+git -C "$R" update-ref refs/remotes/origin/main "$_stale"
+refuses "$R" "origin/main.*plugin\.json" "a bump that conflicts with a squashed main stops before the push" asks-gh
+
+# Step 2 merges with --merge. For v1.1.1 GitHub refused it ("Merge commits are not allowed on this
+# repository") after the bump was already on develop.
+run_fixture
+GH_ALLOW_MERGE_COMMIT=false refuses "$R" "allow_merge_commit" \
+  "a repository that forbids merge commits stops before the push" asks-gh
 
 # ── usage ────────────────────────────────────────────────────────────────────────────────────────
 fixture; _out=$(cd "$R" && bash "$SRC" 2>&1); _rc=$?

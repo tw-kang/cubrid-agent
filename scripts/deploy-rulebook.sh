@@ -8,9 +8,10 @@
 # origin/develop, copies the tree, puts a CLAUDE.md that imports AGENTS.md next to every AGENTS.md,
 # commits, and prints the PR body skeleton with the reviewers from rulebook/category-owners.txt. If the
 # branch exists, the deploy commits on top of it instead and merges origin/develop in when the branch is
-# behind; a branch that already matches gets no commit. It never pushes. --check names every path on
-# origin/develop that a deploy would change. The head key comes from .github/head-keys.txt unless --key
-# names it.
+# behind; a branch that already matches gets no commit. A branch whose change origin/develop already holds
+# is merged: the deploy leaves it and takes the next name, -2, -3, and so on. It never pushes. --check
+# names every path on origin/develop that a deploy would change. The head key comes from
+# .github/head-keys.txt unless --key names it.
 # Before it commits, a deploy reads the repo's squash_merge_commit_title with gh, or takes it from
 # DEPLOY_RULEBOOK_SQUASH_TITLE: under PR_TITLE the commit subjects carry no key, under COMMIT_OR_PR_TITLE
 # they start with it. A setting it cannot read stops the deploy.
@@ -128,7 +129,25 @@ if [ "$CHECK" -eq 1 ]; then
   exit 1
 fi
 
-# An existing branch carries an open PR, which takes new commits on top and is never rewritten.
+# A squash merge leaves the branch tip off origin/develop, so a merged branch is found by its net change:
+# GitHub's squash commit carries it as one commit, and a branch that took origin/develop after its merge
+# has none left.
+merged_at() {  # <branch>: print the origin/develop commit that holds the branch's change, or nothing
+  local base id paths
+  base=$(git -C "$CLONE" merge-base origin/develop "$1") || return
+  mapfile -t paths < <(git -C "$CLONE" diff --name-only "$base" "$1")
+  [ ${#paths[@]} -gt 0 ] || { echo "$base"; return; }
+  id=$(git -C "$CLONE" diff "$base" "$1" | git -C "$CLONE" patch-id --stable | cut -d' ' -f1)
+  git -C "$CLONE" log -p "$base..origin/develop" -- "${paths[@]}" | git -C "$CLONE" patch-id --stable \
+    | awk -v id="$id" '$1 == id { print $2; exit }'
+}
+
+# A branch that is not merged carries an open PR, which takes new commits on top and is never rewritten.
+STEM=$BRANCH N=1
+while git -C "$CLONE" show-ref --verify -q "refs/heads/$BRANCH" && AT=$(merged_at "$BRANCH") && [ -n "$AT" ]; do
+  echo "deploy-rulebook: $BRANCH is already in origin/develop at ${AT:0:12}; it is left as it is"
+  N=$((N+1)) BRANCH=$STEM-$N
+done
 if git -C "$CLONE" show-ref --verify -q "refs/heads/$BRANCH"; then
   [ -n "$(drift "refs/heads/$BRANCH")" ] \
     || { echo "deploy-rulebook: $BRANCH already matches rulebook/$NAME, no commit made"; exit 0; }

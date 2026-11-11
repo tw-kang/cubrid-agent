@@ -75,7 +75,6 @@
   "lint": {
     "header": true,
     "header_scope": true,
-    "header_size": true,
     "header_no_dashdash": true,
     "header_no_semicolon": true,
     "placement": true,

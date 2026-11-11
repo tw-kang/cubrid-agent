@@ -43,9 +43,9 @@ cubrid-agent 자체 개발의 일을 세 단계로 추적한다. 이 트래커�
 - **배정**: 리더가 지도의 순서표에서 세션을 배정한다. 배정받지 않은 티켓은 claim하지 않는다.
 - **Claim**: 일을 시작하기 전에 `Status:` 줄을 `claimed (<세션 이름>, <YYYY-MM-DD HH:MM>)`로 바꾸고 저장한다. 세션 이름은 맡은 티켓 번호를 따른다(예: `v2-03`).
   - 시각과 수치는 손으로 치지 않는다. 티켓 줄의 시각은 그 줄을 적는 셸 명령(`sed -i`, heredoc) 안의 `$(date '+%Y-%m-%d %H:%M')`가 넣는다. 보고의 시각과 수치는 명령의 출력 줄(그 티켓 줄, 검사 출력)을 그대로 붙인다. `v2-sql-medium-rulebook` 01은 15:01을 15:20으로 적었다. 지적을 받은 뒤에도 같은 일이 한 번 더 생겼다.
-    - 사용자 답이나 지시의 시각은 세션 기록(`~/.claude/projects/<프로젝트>/<세션 id>.jsonl`)의 `timestamp`를 쓴다. 그 답을 적는 때의 `date`를 쓰지 않는다. `timestamp`는 아래 명령으로 꺼낸다. 그 답을 인용한 도구 출력도 걸리므로 가장 이른 줄을 쓴다.
+    - 사용자 답이나 지시의 시각은 세션 기록(`~/.claude/projects/<프로젝트>/<세션 id>.jsonl`)의 `timestamp`를 쓴다. 그 답을 적는 때의 `date`를 쓰지 않는다. `timestamp`는 cubrid-agent의 아래 스크립트로 꺼낸다. 출력의 첫 줄(가장 이른 줄)의 `timestamp`를 쓴다.
       ```bash
-      jq -r 'select(.type=="user" and (.message.content|tostring|contains("<답의 일부>"))) | .timestamp' <세션 기록> | head -1
+      bash scripts/session-answer.sh <세션 이름> "<답의 일부>"
       ```
     - `timestamp`는 UTC다. 시:분:초에 `Z`를 붙여 적는다(예: `05:58:08Z`). `v2-shell-rulebook` 08은 적는 때의 `date`(14:47, 14:59 KST)를 넣었다. 세션 기록은 `05:46:58Z`, `05:58:08Z`(14:46, 14:58 KST)였다.
   - 재오픈된 티켓(`Status:` 값에 `재오픈`이 있다)은 값을 덮지 않고 앞에 잇는다. 새 값을 앞에 쓴다. 지금 값은 ` · 이전: `으로 뒤에 잇는다. 예: `**Status:** claimed (v2-structure, 2026-10-23 20:12) · 이전: ready-for-agent — 재오픈 (…) · 이전: resolved`. resolve도 같다.

@@ -36,7 +36,7 @@ cat > "$RUN/manifest.json" <<'JSON'
            "debug":{"checked":true,"result":"clean"}},
  "review":{"verdict":"PASS"},
  "lint":{"header":true,"evaluate":true,"cleanup":true,"answer_not_handwritten":true,
-         "english_comments":true,"header_scope":true,"header_size":true,"placement":true}}
+         "english_comments":true,"header_scope":true,"placement":true}}
 JSON
 
 # The shape render-pr-body.sh emits once the author has written the two TODO sections.
@@ -237,6 +237,11 @@ run "assert, approved but unexplained" deny "review.debug_approved=true plus ver
 m '.verify.debug.note = "CBRD-27000: known assert on this path, developer accepted it as out of scope"'
 run "assert, reviewer-approved with a note" ok "" "$BASE --body-file $GEN"
 m 'del(.review.debug_approved) | .verify.debug = {checked:true, result:"clean"}'
+
+good_body
+m '.lint.header_size = false'
+run "an old manifest's header_size:false does not block" ok "" "$BASE --body-file $GEN"
+m 'del(.lint.header_size)'
 
 # --- the artifact conditions still gate, and they report first ---------------------------------
 good_body

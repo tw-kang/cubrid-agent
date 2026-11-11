@@ -15,6 +15,7 @@
 # SHIPPED_PATHS below is the canonical list of the shipped surface — the files whose change obliges
 # a version bump. Prose points here instead of repeating the paths.
 set -u
+export LC_ALL=C
 
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 [ -n "$ROOT" ] && cd "$ROOT" || { echo "release: not a git repo" >&2; exit 1; }
@@ -203,7 +204,7 @@ do_next() {
 
 # ── run ──────────────────────────────────────────────────────────────────────────────────────────
 do_run() {
-  local trigger="" branch checked next digit tag today body repo pr sha
+  local trigger="" branch checked next digit tag today body repo allow_merge pr sha merge_out rc
   while [ $# -gt 0 ]; do
     case "$1" in
       --trigger) trigger=${2:-}; shift; [ $# -gt 0 ] && shift ;;
@@ -229,6 +230,15 @@ do_run() {
     && { echo "release: tag $tag already exists here" >&2; return 1; }
   git ls-remote --exit-code --tags origin "$tag" >/dev/null 2>&1 \
     && { echo "release: tag $tag already exists on origin" >&2; return 1; }
+  git fetch -q origin +refs/heads/main:refs/remotes/origin/main \
+    || { echo "release: cannot fetch main from origin, so the merge into it cannot be tried" >&2; return 1; }
+  repo=$(gh repo view --json nameWithOwner -q .nameWithOwner) \
+    || { echo "release: cannot read which repository this is" >&2; return 1; }
+  # For v1.1.1 GitHub refused step 2's merge commit only after the bump was on develop.
+  allow_merge=$(gh api "repos/$repo" --jq .allow_merge_commit) \
+    || { echo "release: cannot read allow_merge_commit of $repo" >&2; return 1; }
+  [ "$allow_merge" = true ] \
+    || { echo "release: $repo has allow_merge_commit=$allow_merge, and step 2 needs a merge commit" >&2; return 1; }
 
   today=$(date +%F)
   body=$(section_body "[Unreleased]")
@@ -267,6 +277,19 @@ do_run() {
     git checkout -- "$CHANGELOG" "$MANIFEST" "$PACKAGE"
     echo "release: committing the bump failed — reverted, nothing was pushed" >&2; return 1
   fi
+  # Every install reads develop, so a pushed bump that step 2 cannot merge strands there: v1.1.1
+  # reached main as a squash, and the next bump conflicted with it in the version files.
+  merge_out=$(git merge-tree --write-tree --name-only origin/main HEAD); rc=$?
+  if [ "$rc" -ne 0 ]; then
+    git reset -q --keep HEAD~1
+    if [ "$rc" -eq 1 ]; then
+      echo "release: the bump conflicts with origin/main in $(printf '%s\n' "$merge_out" | sed -n '2,/^$/p' \
+        | grep . | tr '\n' ' ')— reverted, nothing was pushed" >&2
+    else
+      echo "release: cannot try the merge into origin/main — reverted, nothing was pushed" >&2
+    fi
+    return 1
+  fi
   if ! git push -q origin develop; then
     echo "release: pushing develop failed. The bump commit is here but not on origin." >&2
     echo "release: push it, then open the release PR and tag $tag by hand." >&2
@@ -277,8 +300,6 @@ do_run() {
   # Step 2 — develop into main, as a merge commit. A squash here would rewrite every commit and make
   # the two branches permanently diverge.
   NOTES=$(mktemp); printf '%s\n' "$body" | strip_blank_edges > "$NOTES"
-  repo=$(gh repo view --json nameWithOwner -q .nameWithOwner) \
-    || { echo "release: cannot read which repository this is — develop carries the bump" >&2; return 1; }
   pr=$(gh pr create --base main --head develop --title "Release $tag" --body-file "$NOTES") \
     || { echo "release: opening the release PR failed — develop carries the bump" >&2; return 1; }
   if ! gh pr merge "$pr" --merge; then
