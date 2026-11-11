@@ -207,13 +207,13 @@ cat <<EOF
 
 ### Purpose
 
-TODO: 배경과 문제. 이 변경 전에 개발자와 에이전트가 무엇을 못 했나.
+TODO: 배경과 문제. 이 변경 전에 TC를 쓰는 사람이 무엇을 몰랐나. 본문 전체를 리뷰어가 쓰는 말로 쓴다. 정본, 배포본, 결정 번호 같은 내부 용어는 쓰지 않는다.
 
 ### Implementation
 
 - 제안: TODO: 제안 링크 (\`cubrid-agent\` PR 또는 CUBRIDQA-1505 코멘트)
-- 정본: \`cubrid-agent\`의 \`rulebook/$NAME/\` (커밋 \`${SOURCE:0:12}\`)
-- TODO: 바뀐 동작. 개발자가 어느 디렉터리의 파일을 열 때 에이전트가 무엇을 읽게 되나.
+- 원본: 이 PR의 룰북 파일은 \`cubrid-agent\` repo \`rulebook/$NAME/\`(커밋 \`${SOURCE:0:12}\`)을 복사한 것이다.
+- TODO: 고친 규칙과 더한 규칙만 규칙마다 한 줄로 적는다. 그대로 둔 규칙과 고친 과정은 적지 않는다.
 
 ### Remarks
 
