@@ -7,6 +7,8 @@ All notable changes to cubrid-agent are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-11
+
 - (minor) **`scout.sh` stops when the testcase clone's `origin/develop` lacks the deployed rulebook.**
   The scout now checks that `origin/develop` of `$TC` holds the seven rulebook files of
   `cubrid-testcases` — the root `AGENTS.md`, and `AGENTS.md`, `rules/writing-rules.md` and
