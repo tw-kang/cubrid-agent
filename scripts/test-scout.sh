@@ -283,6 +283,22 @@ manifest '{"select":{"issue_type":"Correct Error"}}'
 run "uncommitted work is reported" 0 "uncommitted work — prepare-tc-workspace.sh will cut a worktree"
 rm -f "$TCD/dirty.txt"
 
+# A clone on a release branch does not hold the develop TC, so only the ref can name its path.
+reset_state
+mkdir -p "$HOME/.cubrid-agent/CBRD-20003" "$TCD/sql/_13_issues/_23_1h/cases"
+printf '{"select":{"issue_type":"Correct Error"}}' > "$HOME/.cubrid-agent/CBRD-20003/manifest.json"
+printf 'SELECT 3;\n' > "$TCD/sql/_13_issues/_23_1h/cases/cbrd_20003.sql"
+"$REAL_GIT" -C "$TCD" add -A >/dev/null 2>&1
+"$REAL_GIT" -C "$TCD" -c user.email=t@t -c user.name=t commit -q -m "develop TC"
+deploy_ref
+"$REAL_GIT" -C "$TCD" switch -q -c backport develop~1
+ARGS=CBRD-20003 run "a TC on origin/develop is named for a backport" 0 "on origin/develop: sql/_13_issues/_23_1h/cases/cbrd_20003.sql — a backport keeps this path"
+ARGS=CBRD-20003 run "  ... and a new case still goes in this half-year" 0 "sql/_13_issues/$CURHY/cases/ — exists"
+manifest '{"select":{"issue_type":"Correct Error"}}'
+run "a bug fix with no TC on origin/develop draws no such line" 0 "" "on origin/develop:"
+"$REAL_GIT" -C "$TCD" switch -q develop
+"$REAL_GIT" -C "$TCD" branch -q -D backport
+
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'scout: %d/%d\n' "$T_PASS" "$T_PASS"
   exit 0

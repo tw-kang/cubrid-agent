@@ -293,6 +293,33 @@ never_says "  ... and is no 20-line violation"          "max 20"
 never_says "  ... and draws no length advice"           "header is 25 lines"
 never_says "  ... and says nothing about the Coverage list" "Coverage"
 
+# The rulebook keeps a Correct Error TC's develop path when the TC is backported, so on a release
+# branch the file is new to git but its path is on origin/develop. _20_1h is never this half-year.
+G="$T/tcg"; OLD=_20_1h
+mkdir -p "$G/sql/_13_issues/$OLD/cases"
+git init -q "$G"
+{ good_header CBRD-99999; body; } > "$G/sql/_13_issues/$OLD/cases/cbrd_99999.sql"
+git -C "$G" add -A
+git -C "$G" -c user.email=t@t -c user.name=t commit -q -m develop
+git -C "$G" update-ref refs/remotes/origin/develop HEAD
+git -C "$G" checkout -q --orphan backport
+git -C "$G" rm -rfq .
+
+seed_manifest "Correct Error"
+mkdir -p "$G/sql/_13_issues/$OLD/cases"
+{ good_header CBRD-99999; body; } > "$G/sql/_13_issues/$OLD/cases/cbrd_99999.sql"
+lint "$G/sql/_13_issues/$OLD/cases/cbrd_99999.sql"
+expect     "a backport at its origin/develop path" placement true
+never_says "  ... and is no half-year violation"  "wrong half-year dir"
+
+seed_manifest "Correct Error"
+mkdir -p "$G/sql/_13_issues/_20_2h/cases"
+{ good_header CBRD-99999; body; } > "$G/sql/_13_issues/_20_2h/cases/cbrd_99999.sql"
+lint "$G/sql/_13_issues/_20_2h/cases/cbrd_99999.sql"
+expect "a new case in an old half-year that origin/develop does not hold" placement false
+says   "  ... names the half-year rule" "wrong half-year dir"
+says   "  ... and says how a backport is told apart" "A backport keeps the path its TC has on origin/develop, and origin/develop here has no such file — fetch origin develop if the develop TC is merged"
+
 # ── the session mark ─────────────────────────────────────────────────────────────────────────────
 # gate-stop.sh reads $HOME state, so it needs to know whether THIS session touched a testcase. This
 # hook is where that is first known. Marking a session that only wrote unrelated files would put the
