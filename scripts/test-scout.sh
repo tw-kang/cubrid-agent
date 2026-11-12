@@ -283,7 +283,6 @@ manifest '{"select":{"issue_type":"Correct Error"}}'
 run "uncommitted work is reported" 0 "uncommitted work — prepare-tc-workspace.sh will cut a worktree"
 rm -f "$TCD/dirty.txt"
 
-# ── a backport keeps the path the TC has on origin/develop ───────────────────────────────────────
 # A clone on a release branch does not hold the develop TC, so only the ref can name its path.
 reset_state
 mkdir -p "$HOME/.cubrid-agent/CBRD-20003" "$TCD/sql/_13_issues/_23_1h/cases"
@@ -298,6 +297,7 @@ ARGS=CBRD-20003 run "  ... and a new case still goes in this half-year" 0 "sql/_
 manifest '{"select":{"issue_type":"Correct Error"}}'
 run "a bug fix with no TC on origin/develop draws no such line" 0 "" "on origin/develop:"
 "$REAL_GIT" -C "$TCD" switch -q develop
+"$REAL_GIT" -C "$TCD" branch -q -D backport
 
 if [ "$T_FAIL" -eq 0 ]; then
   printf 'scout: %d/%d\n' "$T_PASS" "$T_PASS"
