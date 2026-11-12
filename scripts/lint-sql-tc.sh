@@ -166,8 +166,7 @@ esac
 # _25_2h, the same ambiguity that once sent bug TCs to a release dir.
 # Only a NEW case file has to land in the current half-year: old dirs keep receiving edits to
 # existing TCs long after they stop receiving new cases, and flagging those would be noise.
-# A backport is not new either: the rulebook keeps the path the TC has on origin/develop, so on a
-# release branch a file git does not track yet passes when origin/develop holds that path.
+# A backport is not new either: the rulebook keeps the path the TC has on origin/develop.
 halfyear=true
 _curhy="_$(date +%y)_$([ "$(date +%-m)" -le 6 ] && echo 1 || echo 2)h"
 if [ "$_tree" = issues ]; then
@@ -175,7 +174,7 @@ if [ "$_tree" = issues ]; then
   _cdir=$(dirname "$FILE")
   if [ -n "$_hy" ] && [ "$_hy" != "$_curhy" ] \
      && ! git -C "$_cdir" ls-files --error-unmatch "$FILE" >/dev/null 2>&1 \
-     && ! git -C "$_cdir" cat-file -e "origin/develop:$(git -C "$_cdir" rev-parse --show-prefix 2>/dev/null)${FILE##*/}" 2>/dev/null; then
+     && ! git -C "$_cdir" cat-file -e "origin/develop:./${FILE##*/}" 2>/dev/null; then
     halfyear=false
   fi
 fi
