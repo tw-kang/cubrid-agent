@@ -17,6 +17,8 @@ Windows tests of shell TCs have stopped: from the 11.4.6 and 11.3.6 patch releas
 
 Opening an engine PR to develop or to a `feature/` branch makes a branch `tc/pr-<N>` in this repo, where `<N>` is the number of the engine PR, and opens a Draft TC PR from it. When the engine PR merges, the engine repo deletes its `tc/pr-<N>` branches, so the TC changes of a Draft TC PR that was closed instead of merged are lost.
 
+`shell/_06_issues/` holds one directory per half-year, `_<yy>_<1|2>h/`, such as `_26_2h/`. A code-name directory `_<no>_<codename>/`, such as `_40_guava/`, takes its name from a Jira version of CUBRID: `_39_fig_cake/` is the version `fig-cake`. The number differs from that of the same version under `sql/` of `cubrid-testcases`, which has `_36_guava/`. Which TC goes into which directory is in [writing rules](rules/writing-rules.md#place-and-files).
+
 ## Before the PR
 
 **Before you write the TC, read the issue and its engine PR, run the reproduction steps of the issue yourself, and state in one sentence the behavior the TC reproduces.** The SQL in an issue can differ from the real syntax. Example: the issue shows `ANALYZE TABLE t UPDATE HISTOGRAM`, which CUBRID rejects, so the TC reproduces the bug with `UPDATE STATISTICS ON t`.
