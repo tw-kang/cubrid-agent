@@ -293,7 +293,11 @@ printf 'SELECT 3;\n' > "$TCD/sql/_13_issues/_23_1h/cases/cbrd_20003.sql"
 deploy_ref
 "$REAL_GIT" -C "$TCD" switch -q -c backport develop~1
 ARGS=CBRD-20003 run "a TC on origin/develop is named for a backport" 0 "on origin/develop: sql/_13_issues/_23_1h/cases/cbrd_20003.sql — a backport keeps this path"
+if grep -A1 -F '  where  :' "$OUTF" | tail -n 1 | grep -qF 'on origin/develop:'; then T_PASS=$((T_PASS+1))
+else note_fail "  ... on the line under the where line"; fi
 ARGS=CBRD-20003 run "  ... and a new case still goes in this half-year" 0 "sql/_13_issues/$CURHY/cases/ — exists"
+printf '{"select":{"issue_type":"Improve Function/Performance"}}' > "$HOME/.cubrid-agent/CBRD-20003/manifest.json"
+ARGS=CBRD-20003 run "an issue that is not a bug fix draws no such line, with a TC on origin/develop" 0 "(not a bug fix)" "on origin/develop:"
 manifest '{"select":{"issue_type":"Correct Error"}}'
 run "a bug fix with no TC on origin/develop draws no such line" 0 "" "on origin/develop:"
 "$REAL_GIT" -C "$TCD" switch -q develop

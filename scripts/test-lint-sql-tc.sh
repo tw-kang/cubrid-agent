@@ -295,21 +295,20 @@ never_says "  ... and says nothing about the Coverage list" "Coverage"
 
 # The rulebook keeps a Correct Error TC's develop path when the TC is backported, so on a release
 # branch the file is new to git but its path is on origin/develop. _20_1h is never this half-year.
+# The develop copy differs from the backport on purpose: a backport may change the TC.
 G="$T/tcg"; OLD=_20_1h
 mkdir -p "$G/sql/_13_issues/$OLD/cases"
 git init -q "$G"
-{ good_header CBRD-99999; body; } > "$G/sql/_13_issues/$OLD/cases/cbrd_99999.sql"
+printf 'SELECT 0;\n' > "$G/sql/_13_issues/$OLD/cases/cbrd_99999.sql"
 git -C "$G" add -A
 git -C "$G" -c user.email=t@t -c user.name=t commit -q -m develop
 git -C "$G" update-ref refs/remotes/origin/develop HEAD
-git -C "$G" checkout -q --orphan backport
-git -C "$G" rm -rfq .
+git -C "$G" rm -q --cached "sql/_13_issues/$OLD/cases/cbrd_99999.sql"
 
 seed_manifest "Correct Error"
-mkdir -p "$G/sql/_13_issues/$OLD/cases"
 { good_header CBRD-99999; body; } > "$G/sql/_13_issues/$OLD/cases/cbrd_99999.sql"
 lint "$G/sql/_13_issues/$OLD/cases/cbrd_99999.sql"
-expect     "a backport at its origin/develop path" placement true
+expect     "a backport at its origin/develop path, with other content" placement true
 never_says "  ... and is no half-year violation"  "wrong half-year dir"
 
 seed_manifest "Correct Error"
