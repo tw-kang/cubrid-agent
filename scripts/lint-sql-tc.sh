@@ -166,12 +166,15 @@ esac
 # _25_2h, the same ambiguity that once sent bug TCs to a release dir.
 # Only a NEW case file has to land in the current half-year: old dirs keep receiving edits to
 # existing TCs long after they stop receiving new cases, and flagging those would be noise.
+# A backport is not new either: the rulebook keeps the path the TC has on origin/develop.
 halfyear=true
 _curhy="_$(date +%y)_$([ "$(date +%-m)" -le 6 ] && echo 1 || echo 2)h"
 if [ "$_tree" = issues ]; then
   _hy=$(printf '%s' "$FILE" | sed -n 's#.*/sql/_13_issues/\([^/]*\)/cases/.*#\1#p')
+  _cdir=$(dirname "$FILE")
   if [ -n "$_hy" ] && [ "$_hy" != "$_curhy" ] \
-     && ! git -C "$(dirname "$FILE")" ls-files --error-unmatch "$FILE" >/dev/null 2>&1; then
+     && ! git -C "$_cdir" ls-files --error-unmatch "$FILE" >/dev/null 2>&1 \
+     && ! git -C "$_cdir" cat-file -e "origin/develop:./${FILE##*/}" 2>/dev/null; then
     halfyear=false
   fi
 fi
@@ -211,7 +214,7 @@ probs=""
 [ "$_dkind" = params ] && probs="$probs a line starts with \`\$\`, which CTP parses as a bind-parameter list, and its \$type/\$value parts do not pair up — the parse throws and every statement after it is dropped — $_dwhere;"
 [ "$_dkind" = connid ] && probs="$probs a statement starts with \`@\` and contains \`:\`, so CTP takes everything up to that colon as a connection id and deletes it — use the \`@<conn>:\` prefix form, or move the \`@\` off the line start — $_dwhere;"
 [ "$_pwhy" = tree ]     && probs="$probs wrong tree: a bug fix (Correct Error) belongs in sql/_13_issues/_{yy}_{1|2}h/cases/ regardless of its version fields, not in a release dir (create the half-year dir if it does not exist yet) — see create-sql's directory convention;"
-[ "$_pwhy" = halfyear ] && probs="$probs wrong half-year dir: a new case goes in $_curhy (the half-year you are writing it in), not $_hy — no date on the issue selects this dir; create $_curhy if it does not exist yet;"
+[ "$_pwhy" = halfyear ] && probs="$probs wrong half-year dir: a new case goes in $_curhy (the half-year you are writing it in), not $_hy — no date on the issue selects this dir; create $_curhy if it does not exist yet. A backport keeps the path its TC has on origin/develop, and origin/develop here has no such file — fetch origin develop if the develop TC is merged;"
 [ "$placement" = null ]  && probs="$probs placement unverifiable: record select.issue_type in the manifest during Select, so the tree can be checked against the issue type;"
 _msg=""
 [ -z "$probs" ]  || _msg="[TC lint] $FILE convention violations:$probs (recorded in manifest.lint — the submit gate will block)"

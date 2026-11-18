@@ -140,7 +140,7 @@ BR_AT=$(tc_root_for_branch "$TC" "$BR")
 ITYPE=""
 [ -n "$MANIFEST" ] && ITYPE=$(jq -r '.select.issue_type // empty' "$MANIFEST" 2>/dev/null)
 CURHY="_$(date +%y)_$([ "$(date +%-m)" -le 6 ] && echo 1 || echo 2)h"
-TARGET=""; WHERE=""
+TARGET=""; WHERE=""; DEVTC=""
 if [ -z "$KEY" ]; then
   WHERE="no issue key given — the tree follows from the issue type, so name CBRD-XXXXX to have it reported"
 elif [ -z "$ITYPE" ]; then
@@ -152,6 +152,10 @@ elif [ "$ITYPE" = "Correct Error" ]; then
   else
     WHERE="\"$ITYPE\" (a bug fix) → $TARGET/cases/ — does NOT exist yet; create it (the half-year you write in, not any date on the issue)"
   fi
+  # A backport keeps the path its TC has on origin/develop, and a clone on a release branch does not
+  # hold that TC, so the ref names it, not the working tree.
+  DEVTC=$(git -C "$TC" ls-tree -r --name-only origin/develop -- sql/_13_issues 2>/dev/null \
+            | grep -E "/cases/cbrd_${NUM}(_[^/]*)?\.sql\$" | paste -sd ' ' -)
 else
   WHERE="\"$ITYPE\" (not a bug fix) → a release dir, sql/_NN_<release>/cbrd_$NUM/cases/ — sql/rules/writing-rules.md \"Place and files\" picks the release; the ones here: $(find "$TC/sql" -maxdepth 1 -type d -name '_[0-9][0-9]_*' -printf '%f\n' 2>/dev/null | grep -v '^_13_issues$' | sort | tr '\n' ' ')"
 fi
@@ -234,6 +238,7 @@ printf '  tc     : %s  (origin %s, on %s%s)\n' \
   "$TC" "${ORIGIN:-unset}" "${TC_BRANCH:-?}" "$([ -n "$TC_DIRTY" ] && printf ', uncommitted work — prepare-tc-workspace.sh will cut a worktree')"
 [ -n "$BR_AT" ] && printf '           %s is already checked out at %s — that path is the workspace for this run\n' "$BR" "$BR_AT"
 printf '  where  : %s\n' "$WHERE"
+[ -n "$DEVTC" ] && printf '           on origin/develop: %s — a backport keeps this path\n' "$DEVTC"
 [ -n "$SIBS" ] && printf '           read a sibling header first (area conventions): %s\n' "$SIBS"
 printf '  cover  : %s\n' "$COVER"
 printf '%s' "$BYGREP"
